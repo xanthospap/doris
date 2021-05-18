@@ -2,6 +2,10 @@
 #include "ggdatetime/datetime_read.hpp"
 #include <stdexcept>
 
+/// The constructor will try to:
+/// 1. open the input file
+/// 2. parse the header
+/// If any of the above fails, then an std::runtime_error will be thrown.
 ids::DorisObsRinex::DorisObsRinex(const char *fn)
     : m_filename(fn), m_stream(fn, std::ios_base::in) {
   int status = read_header();
@@ -46,8 +50,39 @@ void ids::DorisObsRinex::read() {
   return;
 }
 
+/// Example line:
+/*
+> 2020 01 01 01 41 53.279947800  0  4       -4.432841287 0 
+  +-------------------------+-----------+-----------+----+
+  | Record identifier : '>' |  A1       | start:  0 | 1
+  +-------------------------+-----------+-----------+----+
+  | Epoch :                 |           |
+  | - year (4 digits)       | 1X,I4     | start:  1 | 5
+  | - month,day,hour,min    | 4(1X,I2.2)| start:  6 | 12
+  | - sec                   | F13.9     | start: 18 | 13
+  +-------------------------+-----------+-----------+----+
+  |Epoch flag               | 2X,I1     | start: 31 | 3
+  |   0: OK                             |           |
+  |   1: power failure between          |           |
+  |      previous and current epoch     |           |
+  |  >1: Special event                  |           |
+  +-------------------------+-----------+-----------+----+
+  |Number of stations       | I3        | start: 34 | 3
+  |observed in current epoch|           |           |
+  +-------------------------+-----------+-----------+----+
+  |(reserved)               | 6X        | start: 37 | 6
+  +-------------------------+-----------+-----------+----+
+  | Receiver clock offset   | F13.9     | start: 43 | 13
+  | (seconds, optional)     |           |           |
+  +-------------------------+-----------+-----------+----+
+  | Receiver clock offset   |           | start: 56 | 3
+  | flag,                   | 1X,I1,1X  |           |
+  |  - 1 if extrapolated,   |           |           |
+  |  - 0 otherwise          |           | Max length of line = 59 chars
+  +-------------------------+-----------+------------------------------
+*/
 int ids::DorisObsRinex::resolve_data_epoch(
-    const char *line, ids::RinexDataRecordHeader &hdr) noexcept {
+    const char *line, ids::RinexDataRecordHeader &hdr) const noexcept {
   if (*line != '>')
     return 1; // must start with '>' character
 
@@ -60,29 +95,41 @@ int ids::DorisObsRinex::resolve_data_epoch(
     status = status ? status : 2;
   }
 
-  hdr.m_flag = static_cast<int_fast8_t>(std::strtol(line + 33, &end, 10));
-  if (end == line + 33 || errno) {
+  // probably i am exagerating a bit here, but nevertheless ...
+  // it could happen that the 'Epoch flag' and the 'Number of stations' fields
+  // are joined in one big int (if number of stations is >=100). Hence, just to
+  // be safe, we are moving the firlds in a temporary buffer and parse from
+  // there
+  char tbuf[4];
+  std::memset(tbuf, '\0', sizeof tbuf);
+  std::memcpy(tbuf, line + 31, 3);
+  // hdr.m_flag = static_cast<int_fast8_t>(std::strtol(line + 31, &end, 10));
+  hdr.m_flag = static_cast<int_fast8_t>(std::strtol(tbuf, &end, 10));
+  if (end == tbuf || errno) {
     errno = 0;
     status = status ? status : 3;
   }
 
+  std::memcpy(tbuf, line + 34, 3);
+  // hdr.m_num_stations =
+  //     static_cast<int_fast16_t>(std::strtol(line + 34, &end, 10));
   hdr.m_num_stations =
-      static_cast<int_fast16_t>(std::strtol(line + 34, &end, 10));
-  if (end == line + 34 || errno) {
+         static_cast<int_fast16_t>(std::strtol(tbuf, &end, 10));
+  if (end == tbuf || errno) {
     errno = 0;
     status = status ? status : 4;
   }
 
   bool has_clock_offset = false;
   for (int i = 0; i < 13; i++) {
-    if (*(line + 42 + i) != ' ') {
+    if (*(line + 43 + i) != ' ') {
       has_clock_offset = true;
       break;
     }
   }
   if (has_clock_offset) {
-    hdr.m_clock_offset = std::strtod(line + 42, &end);
-    if (errno || end == line + 42) {
+    hdr.m_clock_offset = std::strtod(line + 43, &end);
+    if (errno || end == line + 43) {
       errno = 0;
       status = status ? status : 5;
     }

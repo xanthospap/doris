@@ -103,7 +103,14 @@ private:
   /// @brief read and resolve a RINEX header record.
   int read_header() noexcept;
 
-  int resolve_data_epoch(const char *line, RinexDataRecordHeader &hdr) noexcept;
+  /// @brief Given a data record header line, resolve it to a 
+  ///        RinexDataRecordHeader instance.
+  /// @param[in]  line A RINEX data record header line
+  /// @param[out] hdr A RinexDataRecordHeader; at output it will hold the info
+  ///             resolved from the input line. 
+  /// @return Anything other than 0 denotes an error; in this case, the hdr
+  ///         instance may hold erronuous values and should not be used.
+  int resolve_data_epoch(const char *line, RinexDataRecordHeader &hdr) const noexcept;
 
   void skip_next_epoch(int num_stations, int lines_per_station) noexcept;
 
@@ -138,6 +145,7 @@ public:
 
   void read();
 }; // DorisObsRinex
+
 } // namespace ids
 
 #endif
