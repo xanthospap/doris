@@ -7,11 +7,6 @@
 
 namespace ids {
 
-/// In DORIS RINEX files, the receiver clock offset may be missing for some/all
-/// epochs; this value signifies a missing epoch Receiver clock offset value.
-constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
-    std::numeric_limits<double>::min();
-
 /// @enum ObservationType
 /// DORIS Observation Types as defined in RINEX DORIS 3.0 (Issue 1.7)
 enum class ObservationType : int_fast8_t {

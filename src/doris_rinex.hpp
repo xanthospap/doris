@@ -44,10 +44,35 @@ struct RinexDataRecordHeader {
 }; // RinexDataRecordHeader
 
 struct RinexObservationValue {
+  RinexObservationValue(double v, char f1, char f2) noexcept
+      : m_value(v), m_flag1(f1), m_flag2(f2){};
   /// The actual value parsed from the corresponding RINEX field
   double m_value;
   char m_flag1, m_flag2;
-};// RinexObservationValue
+#ifdef DEBUG
+  std::string to_string() const {
+    return std::to_string(m_value) + std::string("_f1[") + m_flag1 +
+           std::string("]_f2[") + m_flag2 + std::string("]");
+  }
+#endif
+}; // RinexObservationValue
+
+struct BeaconObservations {
+  std::vector<RinexObservationValue> m_values;
+  char m_beacon_id[3];
+  explicit BeaconObservations(int size_hint = 10) noexcept {
+    m_values.reserve(size_hint);
+  }
+#ifdef DEBUG
+  std::string to_string() const {
+    std::string s(m_beacon_id, 3);
+    for (const auto &v : m_values) {
+      s += std::string("/") + v.to_string();
+    }
+    return s;
+  }
+#endif
+}; // BeaconObservations
 
 /// @class DorisObsRinex
 /// @brief A class to hold DORIS Observation RINEX files for reading.
@@ -63,6 +88,17 @@ public:
 
   /// No record line can have more than 3+5*16=83 chars
   static constexpr int MAX_RECORD_CHARS{124};
+
+  /// In DORIS RINEX files, the receiver clock offset may be missing for
+  /// some/all epochs; this value signifies a missing epoch Receiver clock
+  /// offset value.
+  static constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
+      std::numeric_limits<double>::min();
+
+  /// In DORIS RINEX files, the observation value may be missing for some/all
+  /// epochs; this value signifies a missing observation value.
+  static constexpr double OBSERVATION_VALUE_MISSING =
+      std::numeric_limits<double>::min();
 
 private:
   /// The name of the file
@@ -113,7 +149,7 @@ private:
   pos_type m_end_of_head;
   /// Record lines for each beacon (in data record blocks)
   int m_lines_per_beacon;
-  
+
   /// @brief Depending on the number of observables, compute the number of
   /// lines needed to hold a full data record. Each data line can hold up to 5
   /// observable values.
@@ -125,14 +161,15 @@ private:
   /// @brief read and resolve a RINEX header record.
   int read_header() noexcept;
 
-  /// @brief Given a data record header line, resolve it to a 
+  /// @brief Given a data record header line, resolve it to a
   ///        RinexDataRecordHeader instance.
   /// @param[in]  line A RINEX data record header line
   /// @param[out] hdr A RinexDataRecordHeader; at output it will hold the info
-  ///             resolved from the input line. 
+  ///             resolved from the input line.
   /// @return Anything other than 0 denotes an error; in this case, the hdr
   ///         instance may hold erronuous values and should not be used.
-  int resolve_data_epoch(const char *line, RinexDataRecordHeader &hdr) const noexcept;
+  int resolve_data_epoch(const char *line,
+                         RinexDataRecordHeader &hdr) const noexcept;
 
   void skip_next_epoch(int num_stations, int lines_per_station) noexcept;
 
@@ -156,6 +193,9 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
+
+  int read_data_block(RinexDataRecordHeader &hdr,
+                      std::vector<BeaconObservations> &obsvec) noexcept;
 
   void read();
 }; // DorisObsRinex

@@ -1,0 +1,22 @@
+flagm1 & flagm2
+Each value represents a different information; m is the rank of information:
+ m = [1,2]
+  flagm1 = 1 for central frequency measurement; blank otherwise
+  flagm2 = LLI: 0 for continuity; blank for not known; 1 for discontinuity (cycle slip possible)
+m = [3,4]
+  flagm1 = Validity of measurement for time ref use; 0 = valid ; 1 = not valid
+  flagm2 = UT number
+m = [5,6]
+  flagm1 = 1 for a beacon 3.0 on Restart Mode (RS=1), blank otherwise
+  flagm2 = beacon 3.0 warming period(*), blank otherwise
+m = 7
+  flag71 = not used, blank
+  flaf72 = not used, blank
+m = [8,9,10]
+  flagm1 = not used, blank
+  flagm2 = 1 for a non valid measurement, 0 otherwise
+
+(*) Warming period: 0-7
+
+flagMX, for M=1
+  

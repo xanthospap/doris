@@ -1,5 +1,6 @@
 #include "doris_rinex.hpp"
 #include "ggdatetime/datetime_read.hpp"
+#include <cctype>
 #include <stdexcept>
 
 /// The constructor will try to:
@@ -30,6 +31,7 @@ void ids::DorisObsRinex::read() {
   m_stream.seekg(m_end_of_head);
   char line[MAX_RECORD_CHARS];
   RinexDataRecordHeader hdr;
+  std::vector<BeaconObservations> obsvec;
 
   while (m_stream && m_stream.getline(line, MAX_RECORD_CHARS)) {
     if (m_stream.eof())
@@ -40,10 +42,14 @@ void ids::DorisObsRinex::read() {
       std::cerr << "\nError: " << status;
       return;
     }
-    std::cout << "\nResolved line: \"" << line << "\"";
-    std::cout << "\n\t" << hdr.m_clock_offset << ", " << hdr.m_num_stations
-              << ", " << (int)hdr.m_flag << ", " << (int)hdr.m_clock_flag;
-    skip_next_epoch(hdr.m_num_stations, m_lines_per_beacon);
+    // std::cout << "\nResolved line: \"" << line << "\"";
+    // std::cout << "\n\t" << hdr.m_clock_offset << ", " << hdr.m_num_stations
+    //           << ", " << (int)hdr.m_flag << ", " << (int)hdr.m_clock_flag;
+    // skip_next_epoch(hdr.m_num_stations, m_lines_per_beacon);
+    if (int status = read_data_block(hdr, obsvec); status) {
+      std::cerr << "\nFailed to read data record! error code " << status;
+      return;
+    }
   }
 
   return;
@@ -51,11 +57,12 @@ void ids::DorisObsRinex::read() {
 
 /// Example:
 /*
-D02  -1581083.623 0   -311553.426 0-110699899.641 1-110699844.180 1      -128.850 5
-         -119.750 5      3080.497         991.000 1         0.000 1        60.000 1
-> 2010 01 01 00 05  5.079948170  0  1        3.770937835 0 
-D02  -1616313.621 0   -318495.649 0-110700297.293 1-110700121.915 1      -128.150 5
-         -120.450 5      3080.497         991.000 1         0.000 1        60.000 1
+D02  -1581083.623 0   -311553.426 0-110699899.641 1-110699844.180 1 -128.850 5
+         -119.750 5      3080.497         991.000 1         0.000
+1        60.000 1 > 2010 01 01 00 05  5.079948170  0  1        3.770937835 0 D02
+-1616313.621 0   -318495.649 0-110700297.293 1-110700121.915 1      -128.150 5
+         -120.450 5      3080.497         991.000 1         0.000
+1        60.000 1
 +---------------------------------------------------------------------------+
 
 * A1,I2 aka [0-3)   Station number e.g. 'D02' Only at first line, else 3X
@@ -67,18 +74,74 @@ Missing observations are written as 0.0 or blanks.
 
 maximum number of chars per (record) line: 3 + 5*16 = 83
 */
-int ids::DorisObsRinex::read_data_block(ids::RinexDataRecordHeader &hdr, ) noexcept {
+int ids::DorisObsRinex::read_data_block(
+    ids::RinexDataRecordHeader &hdr,
+    std::vector<BeaconObservations> &obsvec) noexcept {
   static char line[MAX_RECORD_CHARS];
-  for (int bcn=0; bcn<hdr.m_num_stations; bcn++) {
-    m_stream.getline(line, MAX_RECORD_CHARS);
+  if (!obsvec.empty())
+    obsvec.clear();
 
+  char buf[16] = {'\0'};
+  char *end;
+  double val;
+
+  // loop for every beacon/station in the RinexDataRecordHeader ...
+  for (int beacon = 0; beacon < hdr.m_num_stations; beacon++) {
+    // append a new BeaconObservations instance for the current beacon ...
+    obsvec.emplace_back(m_obs_codes.size());
+    // and get an iterator to it (so that we set its values in-place)
+    auto obsvec_it = obsvec.end() - 1;
+    int curobs = 0;
+    int curline = 0;
+    // for every observation code descrbed in the RINEX header ...
+    while (curobs < (int)m_obs_codes.size()) {
+      // should we change/get the next line ?
+      if (!(curobs % 5)) {
+        m_stream.getline(line, MAX_RECORD_CHARS);
+        // if this is the first data line for the beacon, get its code
+        if (!curline) {
+          if ((*line) != 'D')
+            return 1;
+          std::memcpy(obsvec_it->m_beacon_id, line, 3);
+        }
+        ++curline;
+      }
+      // collect measurements ...
+      std::memcpy(buf, line + 3 + (curobs % 5) * 16, 14);
+      // check if value is ommited (an ommited value is either left blank, or
+      // is recorded as 0.0)
+      bool buf_is_empty = true;
+      end = buf;
+      while (*end) {
+        if (!isspace(*end++)) {
+          buf_is_empty = false;
+          break;
+        }
+      }
+      char flagm1 = line[3 + (curobs % 5) * 16 + 14];
+      char flagm2 = line[3 + (curobs % 5) * 16 + 15];
+      val = (buf_is_empty) ? OBSERVATION_VALUE_MISSING : std::strtod(buf, &end);
+      if (val == 0e0)
+        val = OBSERVATION_VALUE_MISSING;
+      // push value to the current BeaconObservations instance (in-place)
+      obsvec_it->m_values.emplace_back(val, flagm1, flagm2);
+      ++curobs;
+    }
   }
-}
 
+  /*
+  #ifdef DEBUG
+    for (const auto& bcn: obsvec) {
+      std::cout<<"\n\t->"<<bcn.to_string();
+    }
+  #endif
+  */
+  return 0;
+}
 
 /// Example line:
 /*
-> 2020 01 01 01 41 53.279947800  0  4       -4.432841287 0 
+> 2020 01 01 01 41 53.279947800  0  4       -4.432841287 0
   +-------------------------+-----------+-----------+----+
   | Record identifier : '>' |  A1       | start:  0 | 1
   +-------------------------+-----------+-----------+----+
@@ -139,8 +202,7 @@ int ids::DorisObsRinex::resolve_data_epoch(
   std::memcpy(tbuf, line + 34, 3);
   // hdr.m_num_stations =
   //     static_cast<int_fast16_t>(std::strtol(line + 34, &end, 10));
-  hdr.m_num_stations =
-         static_cast<int_fast16_t>(std::strtol(tbuf, &end, 10));
+  hdr.m_num_stations = static_cast<int_fast16_t>(std::strtol(tbuf, &end, 10));
   if (end == tbuf || errno) {
     errno = 0;
     status = status ? status : 4;
