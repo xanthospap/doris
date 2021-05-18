@@ -14,11 +14,11 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
               << "\", Error Code: " << status;
     throw std::runtime_error("[ERROR] Cannot read RINEX header");
   }
+  m_lines_per_beacon = lines_per_beacon();
 }
 
 void ids::DorisObsRinex::skip_next_epoch(int num_stations,
                                          int lines_per_station) noexcept {
-  constexpr int MAX_RECORD_CHARS = 124;
   char line[MAX_RECORD_CHARS];
   for (int i = 0; i < num_stations * lines_per_station; i++) {
     m_stream.getline(line, MAX_RECORD_CHARS);
@@ -28,7 +28,6 @@ void ids::DorisObsRinex::skip_next_epoch(int num_stations,
 
 void ids::DorisObsRinex::read() {
   m_stream.seekg(m_end_of_head);
-  constexpr int MAX_RECORD_CHARS = 124;
   char line[MAX_RECORD_CHARS];
   RinexDataRecordHeader hdr;
 
@@ -44,11 +43,38 @@ void ids::DorisObsRinex::read() {
     std::cout << "\nResolved line: \"" << line << "\"";
     std::cout << "\n\t" << hdr.m_clock_offset << ", " << hdr.m_num_stations
               << ", " << (int)hdr.m_flag << ", " << (int)hdr.m_clock_flag;
-    skip_next_epoch(hdr.m_num_stations, this->lines_per_beacon());
+    skip_next_epoch(hdr.m_num_stations, m_lines_per_beacon);
   }
 
   return;
 }
+
+/// Example:
+/*
+D02  -1581083.623 0   -311553.426 0-110699899.641 1-110699844.180 1      -128.850 5
+         -119.750 5      3080.497         991.000 1         0.000 1        60.000 1
+> 2010 01 01 00 05  5.079948170  0  1        3.770937835 0 
+D02  -1616313.621 0   -318495.649 0-110700297.293 1-110700121.915 1      -128.150 5
+         -120.450 5      3080.497         991.000 1         0.000 1        60.000 1
++---------------------------------------------------------------------------+
+
+* A1,I2 aka [0-3)   Station number e.g. 'D02' Only at first line, else 3X
+* F14.3 aka [3-17)  Observation
+* I1    aka [17-18) flag-m1
+* I2    aka [18-19) flag m2
+if more than 5 measurements then repeat (instead of Station number we have 3X)
+Missing observations are written as 0.0 or blanks.
+
+maximum number of chars per (record) line: 3 + 5*16 = 83
+*/
+int ids::DorisObsRinex::read_data_block(ids::RinexDataRecordHeader &hdr, ) noexcept {
+  static char line[MAX_RECORD_CHARS];
+  for (int bcn=0; bcn<hdr.m_num_stations; bcn++) {
+    m_stream.getline(line, MAX_RECORD_CHARS);
+
+  }
+}
+
 
 /// Example line:
 /*

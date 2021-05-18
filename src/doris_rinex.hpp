@@ -43,6 +43,12 @@ struct RinexDataRecordHeader {
       m_clock_flag;
 }; // RinexDataRecordHeader
 
+struct RinexObservationValue {
+  /// The actual value parsed from the corresponding RINEX field
+  double m_value;
+  char m_flag1, m_flag2;
+};// RinexObservationValue
+
 /// @class DorisObsRinex
 /// @brief A class to hold DORIS Observation RINEX files for reading.
 /// @see RINEX DORIS 3.0 (Issue 1.7),
@@ -51,6 +57,12 @@ class DorisObsRinex {
 public:
   /// Let's not write this more than once.
   typedef std::ifstream::pos_type pos_type;
+
+  /// No header line can have more than 80 chars.
+  static constexpr int MAX_HEADER_CHARS{81};
+
+  /// No record line can have more than 3+5*16=83 chars
+  static constexpr int MAX_RECORD_CHARS{124};
 
 private:
   /// The name of the file
@@ -99,6 +111,16 @@ private:
   std::vector<TimeReferenceStation> m_ref_stations;
   /// Mark the 'END OF HEADER' field (next line is record line)
   pos_type m_end_of_head;
+  /// Record lines for each beacon (in data record blocks)
+  int m_lines_per_beacon;
+  
+  /// @brief Depending on the number of observables, compute the number of
+  /// lines needed to hold a full data record. Each data line can hold up to 5
+  /// observable values.
+  int lines_per_beacon() const noexcept {
+    int obs = m_obs_codes.size();
+    return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
+  }
 
   /// @brief read and resolve a RINEX header record.
   int read_header() noexcept;
@@ -134,14 +156,6 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
-
-  /// @brief Depending on the number of observables, compute the number of
-  /// lines needed to hold a full data record. Each data line can hold up to 5
-  /// observable values.
-  int lines_per_beacon() const noexcept {
-    int obs = m_obs_codes.size();
-    return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
-  }
 
   void read();
 }; // DorisObsRinex

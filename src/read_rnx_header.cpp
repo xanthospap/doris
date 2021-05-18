@@ -4,9 +4,6 @@
 #include <cassert>
 #include <cstring>
 
-/// No header line can have more than 80 chars.
-constexpr int MAX_HEADER_CHARS{81};
-
 /// Max header lines.
 /// constexpr int MAX_HEADER_LINES{1000};
 
