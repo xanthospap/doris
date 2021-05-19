@@ -89,17 +89,6 @@ public:
   /// No record line can have more than 3+5*16=83 chars
   static constexpr int MAX_RECORD_CHARS{124};
 
-  /// In DORIS RINEX files, the receiver clock offset may be missing for
-  /// some/all epochs; this value signifies a missing epoch Receiver clock
-  /// offset value.
-  static constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
-      std::numeric_limits<double>::min();
-
-  /// In DORIS RINEX files, the observation value may be missing for some/all
-  /// epochs; this value signifies a missing observation value.
-  static constexpr double OBSERVATION_VALUE_MISSING =
-      std::numeric_limits<double>::min();
-
 private:
   /// The name of the file
   std::string m_filename;
@@ -171,8 +160,6 @@ private:
   int resolve_data_epoch(const char *line,
                          RinexDataRecordHeader &hdr) const noexcept;
 
-  void skip_next_epoch(int num_stations, int lines_per_station) noexcept;
-
 public:
   /// @brief Constructor from filename
   explicit DorisObsRinex(const char *);
@@ -193,11 +180,30 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
-
+  
+  /// @brief Read next RINEX data block
+  /// @param[in] hdr A RinexDataRecordHeader; the data header record (that
+  ///                includes epoch and beacon information) read in the
+  ///                start of the data block.
+  /// param[out] obsvec A vector of BeaconObservations; for each of the beacons
+  ///                recorded in the data block, a new entry is appended in the
+  ///                obsvec. For each beacon, the corresponding 
+  ///                BeaconObservations includes all observation types recorded
+  ///                in the RINEX header. For any missing values, the default
+  ///                value OBSERVATION_VALUE_MISSING is filled in.
+  /// @return Anything other than 0, denotes an error
   int read_data_block(RinexDataRecordHeader &hdr,
                       std::vector<BeaconObservations> &obsvec) noexcept;
+  
+  /// @brief Skip next RINEX data block
+  /// @param[in] hdr A RinexDataRecordHeader; the data header record (that
+  ///                includes epoch and beacon information) read in the
+  ///                start of the data block.
+  void skip_data_block(const RinexDataRecordHeader &hdr) noexcept;
 
+#ifdef DEBUG
   void read();
+#endif
 }; // DorisObsRinex
 
 } // namespace ids

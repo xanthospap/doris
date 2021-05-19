@@ -18,15 +18,15 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
   m_lines_per_beacon = lines_per_beacon();
 }
 
-void ids::DorisObsRinex::skip_next_epoch(int num_stations,
-                                         int lines_per_station) noexcept {
+void ids::DorisObsRinex::skip_data_block(const ids::RinexDataRecordHeader &hdr) noexcept {
   char line[MAX_RECORD_CHARS];
-  for (int i = 0; i < num_stations * lines_per_station; i++) {
+  for (int i = 0; i < hdr.m_num_stations * m_lines_per_beacon; i++) {
     m_stream.getline(line, MAX_RECORD_CHARS);
   }
   return;
 }
 
+#ifdef DEBUG
 void ids::DorisObsRinex::read() {
   m_stream.seekg(m_end_of_head);
   char line[MAX_RECORD_CHARS];
@@ -54,6 +54,7 @@ void ids::DorisObsRinex::read() {
 
   return;
 }
+#endif
 
 /// Example:
 /*
@@ -81,6 +82,7 @@ int ids::DorisObsRinex::read_data_block(
   if (!obsvec.empty())
     obsvec.clear();
 
+  // temporary buffer to hold fields to be resolved
   char buf[16] = {'\0'};
   char *end;
   double val;
@@ -121,8 +123,10 @@ int ids::DorisObsRinex::read_data_block(
       char flagm1 = line[3 + (curobs % 5) * 16 + 14];
       char flagm2 = line[3 + (curobs % 5) * 16 + 15];
       val = (buf_is_empty) ? OBSERVATION_VALUE_MISSING : std::strtod(buf, &end);
-      if (val == 0e0)
+      if (val == 0e0 || end==buf) {
         val = OBSERVATION_VALUE_MISSING;
+        if (end==buf) return 2;
+      }
       // push value to the current BeaconObservations instance (in-place)
       obsvec_it->m_values.emplace_back(val, flagm1, flagm2);
       ++curobs;

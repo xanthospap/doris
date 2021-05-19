@@ -6,6 +6,17 @@
 #include <stdint.h>
 
 namespace ids {
+  
+/// In DORIS RINEX files, the receiver clock offset may be missing for
+/// some/all epochs; this value signifies a missing epoch Receiver clock
+/// offset value.
+static constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
+    std::numeric_limits<double>::min();
+
+/// In DORIS RINEX files, the observation value may be missing for some/all
+/// epochs; this value signifies a missing observation value.
+static constexpr double OBSERVATION_VALUE_MISSING =
+    std::numeric_limits<double>::min();
 
 /// @enum ObservationType
 /// DORIS Observation Types as defined in RINEX DORIS 3.0 (Issue 1.7)
