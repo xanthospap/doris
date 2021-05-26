@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <!-- for the next tag, see https://getbootstrap.com/docs/3.4/css/ -->
+    <meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>My DORIS Notes</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+
+    <script>
+    MathJax = {
+      loader: {load: ['[tex]/tagFormat']},
+      section: 1,
+      tex: {
+        tags: 'ams',
+        packages: {'[+]': ['tagFormat', 'sections']},
+        tagFormat: {
+          number: (n) => MathJax.config.section + '.' + n,
+          id: (n) => 'eqn-id-' + n
+        }
+      },
+      startup: {
+        ready() {
+          const Configuration = MathJax._.input.tex.Configuration.Configuration;
+          const CommandMap = MathJax._.input.tex.SymbolMap.CommandMap;
+          new CommandMap('sections', {
+            nextSection: 'NextSection'
+          }, {
+            NextSection(parser, name) {
+              MathJax.config.section++;
+              parser.tags.counter = parser.tags.allCounter = 0;
+            }
+          });
+          Configuration.create(
+            'sections', {handler: {macro: ['sections']}}
+          );
+          MathJax.startup.defaultReady();
+          MathJax.startup.input[0].preFilters.add(({math}) => {
+            if (math.inputData.recompile) MathJax.config.section = math.inputData.recompile.section;
+          });
+          MathJax.startup.input[0].postFilters.add(({math}) => {
+            if (math.inputData.recompile) math.inputData.recompile.section = MathJax.config.section;
+          });
+       }
+      }
+    };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  </head>
+  <body>
+
+<div class="container">
+<h2>Observables</h2>
+
+<h3>Phase Observables</h3>
+<hr>
+<p>Phase measurement definition, in meters :
+\begin{equation}
+\label{p-def}
+\begin{split}
+Q& = \lambda * \Phi_{re} \\
+&= \lambda * ( \Phi_r - \Phi_e ) + u_Q
+\end{split}
+\end{equation}
+where:
+<ul>
+  <li>\( \Phi_{re} \) is the rinex phase measurement in cycles (L1 or L2 in the Rinex 
+    file). It is the difference between the receiver reference phase \( \Phi_r \) 
+    and the phase of the received  signal, which was \( \Phi_e \) at the emission event.</li>
+  <li>\( \lambda = c / f \) where \( f \) is the reference frequency for the considered 
+    frequency band (coefficient to convert the oscillator cycle count in receiver time). This 
+    is different from the ’true’ frequency of the oscillator. For Doris, f has values 401.25 
+    or 2036.25 MHz.</li>
+  <li>\( u_Q \) is the phase measurement error, the phase measurement noise is a few 
+    millimeters.</li>
+</ul>
+</p>
+
+<p>Phase measurement modelling, in meters :
+\begin{equation}
+\label{p-mod}
+\begin{split}
+Q& = c (( \tau_r + h_r) - ( \tau_e + h_e ) ) + Q_0\\
+& = c(t_r - t_e) + c( {\delta_r}^{rel} - {\delta_e}^{rel}) + c(h_r - h_e) + Q_0\\
+& = D_{\Phi}(t_r) + c( {\delta_r}^{rel} - {\delta_e}^{rel}) + c(h_r - h_e) + Q_0 
+\end{split}
+\end{equation}
+where:
+<ul>
+  <li>\( \tau_r \) is the proper time for the receiver, and</li>
+  <li>\( \tau_e \) is the proper time for the transmitter</li>
+  <li>\( h_r \) is the receiver clock offset (usually it is modelled in Doris as a 
+    polynomial expression in \( \tau_r \) ). The receiver clock time for the reception 
+    event is \( \tau_r + h_r \). The difference between \( \tau_r + h_r \) and 
+    \( \Phi_r / f \) is just a bias by definition of the receiver clock. This is 
+    also the case for the difference between \( \tau_e + h_e \) and \( \Phi_e / f \).</li>
+  <li>\( t \) is the coordinate time for the reception \( _r \) or emission events 
+    \( _e \).<li>
+  <li>\( \delta^{rel} \) is the difference between proper time and coordinate time 
+    for the receiver or the transmitter, \( \tau = t + \delta^{rel} \). For the receiver 
+    (on board the satellite), it is a frequency offset with added periodic terms. For the 
+    transmitter (ground station), it is just a frequency offset. The corresponding 
+    expressions are shown in the <a href="#appendix-1">appendix</a></li>
+  <li>\( Q_0 \) is a common bias including the initial phase and a conventional time 
+    offset which may be present in the definition of the clocks relative to the USOs phase.
+    \( Q_0 \) remains constant for a visibility pass when the receiver phase measurement is 
+    locked, it is different for each pass. In case of loss of lock during a pass, the value
+    \( Q_0 \) changes by an integer number of wavelength \( \lambda \).</li>
+  <li>\( D_{ \Phi }(t_r) \) is the propagation time for the phase measurement between the 
+    transmitter and the receiver, expressed in meters, including atmospheric effects, 
+    phase centre and phase maps corrections, phase windup and Shapiro effect. It is a 
+    function of \( t_r \) (receiver coordinate time).</li>
+</ul>
+</p>
+
+<h3>Pseudo-Range Observables</h3>
+<hr>
+<p>Pseudo-range measurement expression, in meters :
+\begin{equation}
+C = c(( \tau_r + h_r) - ( \tau_e + h_e )) + u_C
+\end{equation}
+where:
+<ul>
+  <li>\( \tau_r \) is the proper time for the receiver</li>
+  <li>\( \tau_e \) is here the emission time (proper time) corresponding to the pseudo-range, 
+    it is very close to the corresponding event for the phase.</li>
+  <li>\( u_C \) is the pseudo-range measurement error (rms values have a magnitude of several
+    hundred meters)</li>
+</ul>
+</p>
+
+<p>The corresponding modelling equation is:
+\begin{equation}
+C = D_C(t_r) + c({\delta_r}^{rel} - {\delta_e}^{rel}) + c(h_r - h_e) \label{r-mod}
+\end{equation}
+where:
+<ul>
+  <li>\( D_C(t_r) \) is the propagation time between the transmitter and the receiver, 
+    expressed in meters, for the range measurement. It is a function of \( t_r \) 
+    (receiver coordinate time). The main difference with \( D_{\Phi}(t_r) \) are the 
+    ionospheric contribution (opposite sign) and the phase windup effect which is not 
+    present for pseudo-range observables</li>
+  <li>\( {\delta_e}^{rel} \) can be supposed identical for phase and pseudo-range. Also 
+    \( h_e \) (which is a function of \( \tau_e \) is also supposed identical for phase and 
+    pseudo-range</li>
+</ul>
+</p>
+
+<p>In the equations \eqref{p-mode} and \eqref{r-mod} there is a contribution of the 
+ionospheric effect different for each frequency. These contributions are removed by the 
+’iono-free combination’ of the measurements and corresponding models.</p>
+
+<h3>Dual frequency case, iono-free combination</h3>
+<hr>
+<p>The DORIS system uses two frequencies to remove the first order ionospheric effect, 
+using an iono-free combination of the measurements (pseudo-range or phase).</p>
+
+<p>For this dual frequency combination (iono-free combination), the model equations are 
+similar. The values of \( \tau_r \) and \( t_r \) are all identical for the two frequencies 
+(the receiver processing is designed for synchronous measurements). So the values of 
+\( {\delta_r}^{rel} \) and \( h_r \) are identical. For the ground transmitter, the corresponding 
+emission events are not exactly synchronous for the two frequencies, but the values of 
+\( h_e \) and \( {\delta_e}^{rel} \) can be considered identical for phase and pseudo-range on both 
+frequencies. For the geometry (iono-free \( D_C \) and \( D_{\Phi} \) ), if we suppose a 
+100 m differential effect due to ionosphere, this produces a maximal error in the corresponding emission 
+positions of 0.2 mm, which is negligible.</p>
+
+<p>For the iono-free combination, we have, with \( D_C \) or \( D_{\Phi} \) corresponding 
+to the iono-free propagations (no iono effect and use of iono-free reference phase centres) and 
+\( Q_0 \) including now all possible hardware biases (inter-frequency biases):<br>
+Pseudo_range
+\begin{equation}
+C = D_C(t_r) + c( {\delta_r}^{rel} - {\delta_e}^{rel} ) + c( h_r - h_e ) \label{if-r-mod}
+\end{equation}
+Phase
+\begin{equation}
+Q = D_{\Phi}(t_r) + c( {\delta_r}^{rel} - {\delta_e}^{rel} ) + c( h_r - h_e ) + Q_0 \label{if-p-mod}
+\end{equation}
+The minimal measurement set to be used in the Rinex file is the receiver time \( \tau_r + h_r \) 
+and the corresponding iono-free combinations \( C \) obtained from \( C_1 \) and \( C_2 \) 
+and \( Q \) obtained from \( \lambda_1 L_1 \) and \( \lambda_2 L_2 \).
+</p>
+
+<div class="alert alert-warning" role="alert">
+This model is valid only for the beacons without \( K \) frequency factor. The case of shifted 
+frequency beacons is detailed in the appendix.
+</div>
+
+<p>Other data like the clock offset present at the end of the Rinex epoch header (this value 
+corresponds to \( h_r + {\delta_r}^{rel} \), due to the synchronisation equations used for pseudo-range 
+\( C \), which do not have any relativity correction term), or the onboard frequency, are 
+obtained by the DIODE navigator, or by the ground post processing. This implies that some 
+systematic errors or incosistencies amy occur when using these data. However, these data are 
+useful for simplified solutions, or for validation purposes.</p>
+
+<h2>Reception Coordinate Time \( t_r \)</h2>
+<hr>
+<p>For a given trajectory of a satellite, expressed in coordinate time, the objective is here 
+to model correctly the phase measurement \( D_{\Phi}(t_r) \), knowing the values of 
+\( \tau_r + h_r \), \( C \) and \( Q \). So we have to estimate \( t_r \) with a precision 
+allowing a submillimeter modelling (better than \( 10^{-7} \) m.</p>
+
+<p>\( h_r \) can only be observed with pseudorange measurements. Due to the important noise 
+of the pseudorange observations \( C \), it is necessary to use a model for \( h_r \), 
+a snapshot solution is not realistic. Another reason is that for standard beacons (\(h_e = 0 \) 
+after correction with the bias and drift given in the RINEX file header) and these beacons are 
+not in permanent visibility. For the time beacons, the relativity correction \( {\delta_e}^{rel} \) 
+must be set to \(0\).</p>
+
+<p>The pseudo range equations \eqref{if-r-mod} and \eqref{if-p-mod} can be solved using a 
+polynomial expression in \( \tau_r \) for \( h_r \), and a sufficient number of passes on 
+reference beacons (typically more than two days are used, and a second degree polynomial). 
+Due to the almost linear evolution between \( \tau_r \) and \( t_r \), the polynomial is 
+usually expressed in \( t_r \) to simplify the coefficients identification.</p>
+
+<p>It is important to notice that in the usual Doris solutions, the term \( {\delta_r}^{rel} \) 
+is not used in the pseudo-range equation. This term has a very important drift (frequency bias), and 
+small periodic variations (a few centimeters). The periodic variations contributions are 
+negligible for the reception time estimation. However the drift is not negligible and will 
+be absorbed in this case by the adjusted polynomial. This means that in this case, for 
+the phase processing, the relativistic correction \( {\delta_r}^{rel} \) must be adapted to 
+have no drift (like in GPS processing, where only the periodic terms are used in the GPS satellite 
+clock correction).</p>
+
+<h2>Phase Modelling \( Q \)</h2>
+<hr>
+<p>Now, knowing the on board clock offset \( h_r \) for all reception epochs \( t_r \), it is possible to
+use the phase equation \eqref{if-p-mod}, where the only remaining measurement unknown parameters
+are \( h_e \) and \( Q_0 \) apart from other parameters like zenith troposphere delays or satellite
+orbit parameters which contribute to \( D_{\Phi}(t_r) \) and will be adjusted in a global solution.
+To obtain information from this equation it is necessary to model \( h_e \) in a certain way,
+for example by adding constraints between successive epochs. In standard Doris Doppler 
+processing, the beacon frequencies (or frequencies and drifts) are assumed to be
+constant during a pass, and are adjusted per pass. For the phase equation this corresponds to 
+adjust a 1 or 2 degree polynomial function of \( \tau_e \) (or \( t_e \) ) to represent \( h_e \) . 
+This was not clearly detailed in [2], the beacon polynomial is defined as a function of \( t_r \) ,
+which leads to significative errors in station positioning when the beacon frequency bias
+is important.</p>
+
+<p>For the relativistic corrections, the transmitter correction \( {\delta_e}^{rel} \) is a bias 
+and a drift (the beacon is fixed on the ground), and is not seperable from the \( h_e \) 
+polynomial expression. It can be corrected a-priori, but this is not necessary.</p>
+
+<p>The receiver correction is also mainly a bias and a drift, which cannot be seperated from the 
+polynomial expression of \( h_r \) as explained above. The periodic terms (due to eccentricity 
+and \( J_2 \) contributions) can be modelled. In current DORIS POD solutions, they are set to \( 0 \) 
+(millimeter radial effect on the orbits), but are probably not negligible for station positioning.
+
+<div class="alert alert-info" role="alert">
+<p><u>Remark</u>: in the DORIS 2.2. measurement files, these relativistic periodic terms
+are not taken into account, the on board frequency (derivative of \( h_r \), or increments of
+successives values of \(h_r\) ) is the only modelled term, as a low degree polynomial. This
+was not a problem at the beginning of Doris, but this approach has to be improved,
+as for satellites like Cryosat, the complete clock relativistic periodic bias amplitude
+contribution can reach 10 centimeters.</p>
+</div>
+
+<p>Of course, it is also possible to write directly the phase increments equations in Doppler
+mode (as it is the case for the standard DORIS Doppler processing). The same properties 
+hold for \(t_r\), \(t_e\), and for the related mean frequencies obtained with the \(h_e\) 
+and \(h_r\) variations.</p>
+
+<h2>Appendix</h2>
+
+<h3 id="appendix-1">Equations for Shifted Frequency Beacons</h3>
+<hr>
+<p>The frequency shift is defined by an integer value \(K\), given in the RINEX header [1].
+This means that the nominal reference frequency of the beacon is shifted from the
+standard system frequency, and can be written as \(f_K = (1 + a_K )f \) with \(f\) the nominal
+frequency.</p>
+
+<p>The transmission time is constructed using the correct time evolution (that is, is exactly
+equivalent to the one obtained with a \(K = 0\) beacon, driven by the same oscillator).</p>
+
+<p>However, this is not the case for the phase measurement, which follows the same mea-
+surement equation expressed in cycles as the other beacons (\eqref{p-def}). In order to be
+able to process these measurements in the same way as the standard case (\(K = 0\)), the
+corrected cycle count \(Q_{corr}\) (in meters) corresponding to the model \eqref{p-mod} would
+be, with the shifted wavelength \( \lambda_K = c / f_K \):
+\begin{equation}
+\begin{split}
+Q_{corr}& = \lambda \Phi_r - \lambda_K \Phi_e \\
+& = \lambda_K ( \Phi_r - \Phi_e ) + ( \lambda - \lambda_K ) \Phi_r \\
+& = \lambda_K ( \Phi_r - \Phi_e ) + c \frac{\Phi_r}{f} \frac{a_K}{1+a_K}
+\end{split}
+\end{equation}
+The term \(\frac{\Phi_r}{f}\) is proportional to the measured reception time \( tau_r + h_r \), 
+which is directly the receiver measurement time present in the RINEX file. Using this corrected 
+\(Q_{corr}\) expression for the phase measurement, the shifted frequency beacons can be processed 
+in the same way as all the other beacons.</p>
+
+ </div>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+</body>
+</html>
