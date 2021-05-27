@@ -1,0 +1,26 @@
+     1.4            D                                       ANTEX VERSION / SYST
+A                                                           PCV TYPE / REFANT   
+########################################################### COMMENT             
+DORIS Ground antenna corrections                            COMMENT
+D01 : 2036,25MHz                                            COMMENT
+DO2 : 401,25 MHz                                            COMMENT
+########################################################### COMMENT             
+                                                            END OF HEADER           
+                                                            START OF ANTENNA    
+STAREC B and C                                              TYPE / SERIAL NO    
+CHAMBER             CNES                     9    24-APR-13 METH / BY / # / DATE
+     0.0                                                    DAZI                
+     0.0  90.0   5.0                                        ZEN1 / ZEN2 / DZEN  
+     2                                                      # OF FREQUENCIES    
+STARECBC13                                                  SINEX CODE          
+   D01                                                      START OF FREQUENCY  
+      0.00      0.00    487.00                              NORTH / EAST / UP   
+   NOAZI    0.00    0.06   -0.32   -1.12   -2.87   -4.02   -3.44   -2.15   -1.73   -1.73   -0.08    1.37    2.20    5.37    7.02   10.70   13.86   17.27   22.37
+   D01                                                      END OF FREQUENCY    
+   D02                                                      START OF FREQUENCY  
+      0.00      0.00      0.00                              NORTH / EAST / UP   
+   NOAZI    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+   D02                                                      END OF FREQUENCY    
+                                                            END OF ANTENNA
+
+

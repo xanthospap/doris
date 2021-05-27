@@ -1,0 +1,24 @@
+     1.4            D                                       ANTEX VERSION / SYST
+A                                                           PCV TYPE / REFANT   
+########################################################### COMMENT             
+DORIS Ground antenna corrections                            COMMENT
+D01 : 2036,25MHz                                            COMMENT
+DO2 : 401,25 MHz                                            COMMENT
+########################################################### COMMENT             
+                                                            END OF HEADER           
+                                                            START OF ANTENNA    
+ALCATEL                                                     TYPE / SERIAL NO    
+CHAMBER             CNES                     5    29-MAY-17 METH / BY / # / DATE
+     0.0                                                    DAZI                
+     0.0  90.0   5.0                                        ZEN1 / ZEN2 / DZEN  
+     2                                                      # OF FREQUENCIES    
+ALCATEL17                                                   SINEX CODE          
+   D01                                                      START OF FREQUENCY  
+      0.00      0.00    510.00                              NORTH / EAST / UP   
+   NOAZI    0.00    2.05    7.24    9.21    6.71    8.14   11.87   12.48   12.28   13.67   13.91   13.01   13.01   11.87    9.70    7.94    4.99    0.41   -3.93
+   D01                                                      END OF FREQUENCY    
+   D02                                                      START OF FREQUENCY  
+      0.00      0.00    335.00                              NORTH / EAST / UP   
+   NOAZI    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00
+   D02                                                      END OF FREQUENCY    
+                                                            END OF ANTENNA              

@@ -1,5 +1,6 @@
 #include "doris_system_info.hpp"
 #include <cstring>
+#include <stdexcept>
 
 char ids::ObservationType_to_char(ids::ObservationType o) {
   switch (o) {
@@ -112,4 +113,15 @@ int ids::BeaconStation::set_from_rinex_line(const char *line) noexcept {
     return 3;
   }
   return 0;
+}
+
+
+ids::GroundAntennaType ids::BeaconStation::type() const {
+  switch (m_station_id[3]) {
+    case ('A'): return GroundAntennaType::Alcatel;
+    case ('B'): return GroundAntennaType::Starec_B;
+    case ('C'): return GroundAntennaType::Starec_C;
+    default:
+      throw std::runtime_error("[ERROR] Cannot match beacon mnemonic to antenna type");
+  }
 }

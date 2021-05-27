@@ -90,6 +90,20 @@ public:
   bool has_frequency() const noexcept;
 }; // ObservationCode
 
+/// @brief The type of a ground antenna (aka a beacon)
+/// The type of antenna is identified by the 4th character of the beacon 
+/// mnemonic: letter 'A' for the Alcatel type; letter 'B' or letter ‘C’ for 
+/// the Starec B or C type. STAREC antennae B and C are identical in terms of 
+/// design and specification, the difference is about the error budget in 
+/// phase center position. For STAREC C, manufacturing process and error 
+/// budget have been improved.
+/// @see DORIS SYSTEM GROUND SEGMENT MODELS, Issue 1.3
+enum class GroundAntennaType : int_fast8_t {
+  Alcatel,
+  Starec_B,
+  Starec_C
+};
+
 /// @brief A station (aka beacon) as defined in RINEX DORIS 3.0 (Issue 1.7)
 struct BeaconStation {
   /// Internal number used in data records
@@ -104,6 +118,9 @@ struct BeaconStation {
   int_fast8_t m_type;
   /// Frequency shift factor K (signed)
   int m_shift_factor;
+
+  /// @return the antenna type (see enum GroundAntennaType)
+  GroundAntennaType type() const;
 
   /// @brief Set instance's member as resolved from a DORIS RINEX record.
   /// @param[in] line A RINEX 'STATION REFERENCE' record line
