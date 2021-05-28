@@ -81,7 +81,8 @@ struct QuadraticInterpolator {
         } else if (i > 1 && i >= base.size - 1) {
           idx = i - 2;
         }
-        assert(idx >= 0 && idx < base.size - 1);
+        assert(idx >= 0 && idx <= base.size - 1);
+        // printf("\n\tInterpolation points: [%1d, %1d, %1d]\n", i-1, i, idx);
         double y0 = base.y[i - 1];
         double y1 = base.y[i];
         double x0 = base.x[i - 1];
