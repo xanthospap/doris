@@ -157,6 +157,7 @@ if __name__ == '__main__':
         ynew = f(xnew)
 
         ax[xi, yi].plot(x, y, 'o', xnew, ynew, '-')
+        ax[xi, yi].title.set_text(intrp_type[i])
 
     for ax in ax.flat: ax.label_outer()
     fig.show()
