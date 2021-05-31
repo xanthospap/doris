@@ -62,9 +62,14 @@ int ids::Sp3c::read_header() noexcept {
     errno = 0;
     return 16;
   }
+  /*
   crd_sys__ = std::string(line + 46, 5);
   orb_type__ = std::string(line + 52, 3);
   agency__ = std::string(line + 56, 3);
+  */
+  std::memcpy(crd_sys__, line + 46, 5);
+  std::memcpy(orb_type__, line + 52, 3);
+  std::memcpy(agency__, line + 56, 4);
 
   // all done for first line, construct the reference date
   start_epoch__ = ngpt::datetime<ngpt::microseconds>(
@@ -147,7 +152,8 @@ int ids::Sp3c::read_header() noexcept {
   __istream.getline(line, MAX_HEADER_CHARS);
   if (*line != '%' || line[1] != 'c')
     return 50;
-  time_sys__ = std::string(line + 9, 3);
+  /*time_sys__ = std::string(line + 9, 3);*/
+  std::memcpy(time_sys__, line + 9, 3);
   __istream.getline(line, MAX_HEADER_CHARS);
   if (*line != '%' || line[1] != 'c')
     return 51;

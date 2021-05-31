@@ -16,7 +16,7 @@ enum class Sp3Event : unsigned int {
   clock_prediction,
   maneuver,
   orbit_prediction
-};
+};// Sp3Event
 
 static_assert(std::numeric_limits<unsigned char>::digits >
               static_cast<unsigned int>(Sp3Event::orbit_prediction));
@@ -33,7 +33,10 @@ struct Sp3Flag {
   bool is_set(Sp3Event e) const noexcept {
     return ((bits_ >> static_cast<unsigned char>(e)) & 1);
   }
-};
+  bool is_clean() const noexcept {
+    return !bits_;
+  }
+};// Sp3Flag
 
 class Sp3c {
 public:
@@ -77,10 +80,10 @@ private:
   ngpt::datetime<ngpt::microseconds> start_epoch__; ///< Start epoch
   int num_epochs__,              ///< Number of epochs in file
       num_sats__;                ///< Number od SVs in file
-  std::string crd_sys__,         ///< Coordinate system
-      orb_type__,                ///< Orbit type
-      agency__,                  ///< Agency
-      time_sys__;                ///< Time system
+  char crd_sys__[6],///< Coordinate system (last char always '\0')
+    orb_type__[4], ///< Orbit type (last char always '\0')
+    agency__[5],  ///< Agency (last char always '\0')
+    time_sys__[4]; ///< Time system (last char always '\0')
   ngpt::microseconds interval__; ///< Epoch interval
   //SATELLITE_SYSTEM __satsys;     ///< satellite system
   pos_type __end_of_head;        ///< Mark the 'END OF HEADER' field
