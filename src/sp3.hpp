@@ -70,6 +70,10 @@ public:
 
   auto num_sats() const noexcept { return num_sats__; }
 
+#ifdef DEBUG
+void print_members() const noexcept;
+#endif
+
 private:
   /// @brief Read sp3c header; assign info
   int read_header() noexcept;
@@ -80,10 +84,10 @@ private:
   ngpt::datetime<ngpt::microseconds> start_epoch__; ///< Start epoch
   int num_epochs__,              ///< Number of epochs in file
       num_sats__;                ///< Number od SVs in file
-  char crd_sys__[6],///< Coordinate system (last char always '\0')
-    orb_type__[4], ///< Orbit type (last char always '\0')
-    agency__[5],  ///< Agency (last char always '\0')
-    time_sys__[4]; ///< Time system (last char always '\0')
+  char crd_sys__[6] = {'\0'},///< Coordinate system (last char always '\0')
+    orb_type__[4] = {'\0'}, ///< Orbit type (last char always '\0')
+    agency__[5] = {'\0'},  ///< Agency (last char always '\0')
+    time_sys__[4] = {'\0'}; ///< Time system (last char always '\0')
   ngpt::microseconds interval__; ///< Epoch interval
   //SATELLITE_SYSTEM __satsys;     ///< satellite system
   pos_type __end_of_head;        ///< Mark the 'END OF HEADER' field

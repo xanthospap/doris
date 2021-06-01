@@ -1,5 +1,9 @@
 #include "sp3.hpp"
 #include <stdexcept>
+#ifdef DEBUG
+#include <iostream>
+#include "ggdatetime/datetime_write.hpp"
+#endif
 
 /// Max record characters (for a navigation data block)
 constexpr int MAX_RECORD_CHARS{128};
@@ -21,3 +25,17 @@ ids::Sp3c::Sp3c(const char *filename)
                              std::to_string(j));
   }
 }
+
+#ifdef DEBUG
+void ids::Sp3c::print_members() const noexcept {
+  std::cout << "\nfilename     :" << __filename
+            << "\nVersion      :" << version__
+            << "\nStart Epoch  :" << ngpt::strftime_ymd_hms(start_epoch__)
+            << "\n# Epochs     :" << num_epochs__
+            << "\nCoordinate S :" << crd_sys__
+            << "\nOrbit Type   :" << orb_type__
+            << "\nAgency       :" << agency__
+            << "\nTime System  :" << time_sys__
+            << "\nInterval(sec):" << interval__.to_fractional_seconds();
+}
+#endif
