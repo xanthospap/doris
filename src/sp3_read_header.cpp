@@ -62,11 +62,6 @@ int ids::Sp3c::read_header() noexcept {
     errno = 0;
     return 16;
   }
-  /*
-  crd_sys__ = std::string(line + 46, 5);
-  orb_type__ = std::string(line + 52, 3);
-  agency__ = std::string(line + 56, 3);
-  */
   std::memcpy(crd_sys__, line + 46, 5);
   std::memcpy(orb_type__, line + 52, 3);
   std::memcpy(agency__, line + 56, 4);
@@ -122,18 +117,28 @@ int ids::Sp3c::read_header() noexcept {
     errno = 0;
     return 31;
   }
-  while (++dummy_it < MAX_HEADER_LINES && !std::strncmp(line, "+ ", 2)) {
-    __istream.getline(line, MAX_HEADER_CHARS);
+  int csat = 0, cidx = 9, lines_read = 0;
+  sat_vec__.reserve(num_sats__);
+  while (csat < num_sats__) {
+    sat_vec__.emplace_back(line+cidx);
+    cidx += 3;
+    if (cidx>60 && csat+1 < num_sats__) {
+      __istream.getline(line, MAX_HEADER_CHARS);
+      cidx = 9;
+      ++lines_read;
+    }
+    ++csat;
   }
-  if (dummy_it >= MAX_HEADER_LINES) {
-    return 32;
+  while (lines_read<5) {
+    __istream.getline(line, MAX_HEADER_CHARS);
+    ++lines_read;
   }
 
   // Read the satellite accuracy lines; they must be at least 5, but there is
   // no max limitation for the Sp3d files. Each satellite id line starts with '+
   // ' Error code [40,50]
   // ------------------------------------------------------------
-  // __istream.getline(line, MAX_HEADER_CHARS);
+  __istream.getline(line, MAX_HEADER_CHARS);
   if (*line != '+' || line[1] != '+')
     return 40;
   while (++dummy_it < MAX_HEADER_LINES && !std::strncmp(line, "++", 2)) {
@@ -161,11 +166,25 @@ int ids::Sp3c::read_header() noexcept {
   // two lines follow, starting with '%f'
   // Error code [60,70]
   // ------------------------------------------------------------
+  /*
   for (int i = 0; i < 2; i++) {
     __istream.getline(line, MAX_HEADER_CHARS);
     if (*line != '%' || line[1] != 'f')
       return 60;
+  }*/
+  __istream.getline(line, MAX_HEADER_CHARS);
+  if (*line != '%' || line[1] != 'f')
+    return 60;
+  fpb_pos__ = fpb_clk__ = 0e0;
+  fpb_pos__ = std::strtod(line+3, &str_end);
+  fpb_clk__ = std::strtod(line+14, &str_end);
+  if (str_end==line+14 || (fpb_pos__==0e0 || fpb_clk__==0e0)) {
+    errno = 0;
+    return 61;
   }
+  __istream.getline(line, MAX_HEADER_CHARS);
+  if (*line != '%' || line[1] != 'f')
+    return 65;
 
   // two lines follow, starting with '%i'
   // Error code [70,80]
