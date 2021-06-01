@@ -54,7 +54,11 @@ enum class Sp3Event : unsigned int {
   /// Bad or absent velocity (positional) values are to be set to 0.000000
   bad_abscent_velocity,
   /// Bad or absent clock rate values
-  bad_abscent_clock_rate
+  bad_abscent_clock_rate,
+  /// Reocord has valid position std. deviation records
+  has_vel_stddev,
+  /// Reocord has valid clock std. deviation records
+  has_clk_rate_stdev
 };// Sp3Event
 
 static_assert(std::numeric_limits<unsigned char>::digits >
@@ -87,8 +91,8 @@ struct Sp3Flag {
 /// @class Satellite ID as denoted in an Sp3 file
 struct SatelliteId { 
   char id[3]={'\0'};
-  explicit SatelliteId(const char* str) noexcept {
-    std::memcpy(id, str, 3);
+  explicit SatelliteId(const char* str=nullptr) noexcept {
+    if (str) std::memcpy(id, str, 3);
   }
 };
 
@@ -134,8 +138,15 @@ private:
   /// @brief Read sp3c header; assign info
   int read_header() noexcept;
 
+  /// @brief Resolve an Epoch Header Record line
+  int resolve_epoch_line(ngpt::datetime<ngpt::microseconds>& t) noexcept;
+
   /// @brief Get and resolve the next Position and Clock Record
   int get_next_position(SatelliteId& sat, double& xkm, double& ykm, double& zkm, double& clk, 
+double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexcept;
+  
+  /// @brief Get and resolve the next Velocity and ClockRate-of-Change Record
+  int get_next_velocity(SatelliteId& sat, double& xkm, double& ykm, double& zkm, double& clk, 
 double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexcept;
 
   std::string __filename;  ///< The name of the file

@@ -12,6 +12,11 @@ constexpr int MAX_RECORD_CHARS{128};
 /// nines are required, whereasthe fractional part nines are optional.
 constexpr double SP3_MISSING_CLK_VALUE {999999.e0};
 
+/// @brief Check if given substring is empty (aka whitespace only).
+/// Substring to check is str with indexes [0,count)
+/// @param[in] str Start of string
+/// @param[in] count Number of chars to consider
+/// @return true id substring is whitespace only, false otherwise
 bool substr_is_empty(const char* str, std::size_t count) noexcept {
   std::size_t idx = 0;
   while (idx<count && str[idx]==' ') ++idx;
@@ -22,14 +27,16 @@ bool substr_is_empty(const char* str, std::size_t count) noexcept {
 /// @param[in] line An Epoch Header Record to be resolved
 /// @param[out] t The epoch resolved from the input line
 /// @return Anything other than 0 denotes an error
-int resolve_epoch_line(const char* line, ngpt::datetime<ngpt::microseconds>& t) noexcept {
+int ids::Sp3c::resolve_epoch_line(ngpt::datetime<ngpt::microseconds>& t) noexcept {
+  char line[MAX_RECORD_CHARS];
+  char *end;
+  const char* start;
+  
+  __istream.getline(line, MAX_RECORD_CHARS);
   if (line[0] != '*' || line[1] != ' ')
     return 2;
   
   int date[5];
-  char *end, c;
-  const char *start;
-  
   date[0] = std::strtol(line + 3, &end, 10);
   if (!date[0] || errno == ERANGE) {
     errno = 0;
@@ -58,12 +65,31 @@ int resolve_epoch_line(const char* line, ngpt::datetime<ngpt::microseconds>& t) 
   return 0;
 }
 
+/// Read in and resolve an Sp3c/d Velocity and ClockRate-of-Change Record. The 
+/// function expects that the next line to be read off from the input stream 
+/// is a Velocity and ClockRate-of-Change Record line.
+///
+/// @param[out] A 3character satellite id as recorded in the Sp3 file
+/// @param[out] xv  X-component of satelite velocity, in dm/sec
+/// @param[out] yv  y-component of satelite velocity, in dm/sec
+/// @param[out] zv  Z-component of satelite velocity, in dm/sec
+/// @param[out] cv  Clock rate-of-change in 10**-4 microseconds/second
+/// @param[out] xstdv X-component std. deviation in 10**-4 mm/sec
+/// @param[out] ystdv Y-component std. deviation in 10**-4 mm/sec
+/// @param[out] zstdv Z-component std. deviation in 10**-4 mm/sec
+/// @param[out] cstdv Clock std. deviation in 10**-4 psec/sec
+/// @param[out] flag An Sp3Flag instance denoting the status of the resolved 
+///             fields. The flag is NOT reset (aka input flags will not be
+///             touched). Any flags to be added, only affect position and clock
+///             rate-of-change records (aka bad_abscent_velocity, 
+///             bad_abscent_clock_rate, has_vel_stddev, has_clk_rate_stdev).
+/// @return Anything other than 0 denotes an error (note tha error codes must
+///         be >0 and <10)
 int ids::Sp3c::get_next_velocity(SatelliteId& sat, double& xv, double& yv, double& zv, double& cv, 
 double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexcept {
   char line[MAX_RECORD_CHARS];
-  char *end, c;
+  char *end;
   const char* start;
-  int status;
   double dvec[4];
   
   __istream.getline(line, MAX_RECORD_CHARS);
@@ -77,7 +103,7 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
     dvec[i] = std::strtod(start, &end);
     if (errno == ERANGE || end == start) {
       errno = 0;
-      return 5 + i;
+      return 2 + i;
     }
     start += 14;
   }
@@ -87,7 +113,7 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
   zv = dvec[2];
   cv = dvec[3]; // 10**-4 microseconds/second
   
-  if ( xv=0e0 || (yv=0e0 || zv==0e0) ) {
+  if ( xv==0e0 || (yv==0e0 || zv==0e0) ) {
     flag.set(Sp3Event::bad_abscent_velocity);
   }
 
@@ -96,35 +122,52 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
 
   // std deviations (if any)
   int has_pos_stddev=false, has_clk_stddev=false;
-  if (*(line+61)!=' ' || *(line+62)!=' ') {
-    int nn = std::strtol(line + 61, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+  if (std::strlen(line) > 68) { 
+    if (*(line+61)!=' ' || *(line+62)!=' ') {
+      int nn = std::strtol(line + 61, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      xstdv = std::pow(fpb_pos__, nn); // 10**-4 mm/sec
+      ++has_pos_stddev;
     }
-    xstdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
-  }
-  if (*(line+64)!=' ' || *(line+65)!=' ') {
-    int nn = std::strtol(line + 64, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+    if (*(line+64)!=' ' || *(line+65)!=' ') {
+      int nn = std::strtol(line + 64, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      ystdv = std::pow(fpb_pos__, nn);
+      ++has_pos_stddev;
     }
-    ystdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
-  }
-  if (*(line+67)!=' ' || *(line+68)!=' ') {
-    int nn = std::strtol(line + 67, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+    if (*(line+67)!=' ' || *(line+68)!=' ') {
+      int nn = std::strtol(line + 67, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      zstdv = std::pow(fpb_pos__, nn);
+      ++has_pos_stddev;
     }
-    zstdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
   }
-  if (has_pos_stddev==3) flag.set(Sp3Event::has_pos_stddev);
+  if (has_pos_stddev==3) flag.set(Sp3Event::has_vel_stddev);
 
+  if (std::strlen(line) > 71) { 
+    if (*(line+70)!=' ' || *(line+71)!=' ' || *(line+72)!=' ') {
+      int nn = std::strtol(line + 70, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      cstdv = std::pow(fpb_clk__, nn); // 10**-4 psec/sec
+      ++has_clk_stddev;
+    }
+  }
+  if (has_clk_stddev==1) flag.set(Sp3Event::has_clk_rate_stdev);
+
+  return 0;
+}
 
 /// Read in and resolve an Sp3c/d Position and Clock Record. The function 
 /// expects that the next line to be read off from the input stream is a 
@@ -141,13 +184,13 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
 /// @param[out] cstdv Clock std. deviation in psec
 /// @param[out] flag An Sp3Flag instance denoting the status of the resolved 
 ///             fields
-/// @return Anything other than 0 denotes an error
+/// @return Anything other than 0 denotes an error (note tha error codes must
+///         be >0 and <10)
 int ids::Sp3c::get_next_position(SatelliteId& sat, double& xkm, double& ykm, double& zkm, double& clk, 
 double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexcept {
   char line[MAX_RECORD_CHARS];
-  char *end, c;
+  char *end;
   const char* start;
-  int status;
   double dvec[4];
   
   __istream.getline(line, MAX_RECORD_CHARS);
@@ -161,7 +204,7 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
     dvec[i] = std::strtod(start, &end);
     if (errno == ERANGE || end == start) {
       errno = 0;
-      return 5 + i;
+      return 2 + i;
     }
     start += 14;
   }
@@ -175,47 +218,51 @@ double& xstdv, double& ystdv, double& zstdv, double& cstdv, Sp3Flag& flag) noexc
   
   // std deviations (if any)
   int has_pos_stddev=false, has_clk_stddev=false;
-  if (*(line+61)!=' ' || *(line+62)!=' ') {
-    int nn = std::strtol(line + 61, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+  if (std::strlen(line) > 68) { 
+    if (*(line+61)!=' ' || *(line+62)!=' ') {
+      int nn = std::strtol(line + 61, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      xstdv = std::pow(fpb_pos__, nn);
+      ++has_pos_stddev;
     }
-    xstdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
-  }
-  if (*(line+64)!=' ' || *(line+65)!=' ') {
-    int nn = std::strtol(line + 64, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+    if (*(line+64)!=' ' || *(line+65)!=' ') {
+      int nn = std::strtol(line + 64, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      ystdv = std::pow(fpb_pos__, nn);
+      ++has_pos_stddev;
     }
-    ystdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
-  }
-  if (*(line+67)!=' ' || *(line+68)!=' ') {
-    int nn = std::strtol(line + 67, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+    if (*(line+67)!=' ' || *(line+68)!=' ') {
+      int nn = std::strtol(line + 67, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      zstdv = std::pow(fpb_pos__, nn);
+      ++has_pos_stddev;
     }
-    zstdv = std::pow(fpb_pos__, nn);
-    ++has_pos_stddev;
   }
   if (has_pos_stddev==3) flag.set(Sp3Event::has_pos_stddev);
 
-  if (*(line+70)!=' ' || *(line+71)!=' ' || *(line+72)!=' ') {
-    int nn = std::strtol(line + 70, &end, 10);
-    if (!nn || errno == ERANGE) {
-      errno = 0;
-      return 15;
+  if (std::strlen(line) > 71) { 
+    if (*(line+70)!=' ' || *(line+71)!=' ' || *(line+72)!=' ') {
+      int nn = std::strtol(line + 70, &end, 10);
+      if (!nn || errno == ERANGE) {
+        errno = 0;
+        return 6;
+      }
+      cstdv = std::pow(fpb_clk__, nn);
+      ++has_clk_stddev;
     }
-    cstdv = std::pow(fpb_clk__, nn);
-    ++has_clk_stddev;
   }
   if (has_clk_stddev==1) flag.set(Sp3Event::has_clk_stddev);
   
-  if ( xkm=0e0 || (ykm=0e0 || zkm==0e0) ) {
+  if ( xkm==0e0 || (ykm==0e0 || zkm==0e0) ) {
     flag.set(Sp3Event::bad_abscent_position);
   }
 
@@ -260,7 +307,7 @@ struct Sp3DataBlock {
 //.         >0: ERROR
 int ids::Sp3c::get_next_data_block() noexcept {
   char line[MAX_RECORD_CHARS];
-  char *end, *start, c;
+  char c;
   int status;
 
   if (!__istream.good())
@@ -274,32 +321,54 @@ int ids::Sp3c::get_next_data_block() noexcept {
    * 5. 'EV ' i.e. velocity correlation
    * 6. 'EOF' i.e. EOF
    */
-  
-  // resolve epoch header line
-  __istream.getline(line, MAX_RECORD_CHARS);
-  if (!std::strncmp(line, "EOF", 3)) { /* EOF */
-    return -1;
-  }
-  if ((status = resolve_epoch_line(line, t))) {
-    return status;
+  ngpt::datetime<ngpt::microseconds> t;
+  double state[6], clk[2];
+  double state_std[6], clk_std[2];
+  Sp3Flag flag;
+  SatelliteId satid;
+
+  // following line should be an epoch header or 'EOF'
+  c = __istream.peek();
+  if (c == '*') {
+    if ( (status=resolve_epoch_line(t)) ) return status + 10;
+  } else {
+    __istream.getline(line, MAX_RECORD_CHARS);
+    if (!std::strncmp(line, "EOF", 3)) {
+      return -1;
+    } else {
+      return 100;
+    }
   }
 
-  // peek next line's char to see what kind of line we are reading
+  // keep on reading reacords .....
+  bool keep_reading = true;
   do {
     c = __istream.peek();
-    if (c != '*') {
-      __istream.getline(line, MAX_RECORD_CHARS);
-      if (*line == 'P') { /* position and clock line */
-        if ((j = get_next_position()))
-          return j + 20;
-      } else { /* any other line is irrelevant */
-        ;
-      }
-    } else { /* next line is header line */
+    if (c == '*') {
       keep_reading = false;
+      break;
+    } else if (c=='P') {
+      if ( (status = get_next_position(satid, state[0], state[1],state[2], clk[0], state_std[0], state_std[1], state_std[2], clk_std[0], flag)) )
+        return status + 20;
+    } else if (c=='V') {
+      if ( (status=get_next_velocity(satid, state[3], state[4],state[5], clk[1], state_std[3], state_std[4], state_std[5], clk_std[1], flag)) )
+        return status + 30;
+    } else {
+      __istream.getline(line, MAX_RECORD_CHARS);
+      if (!std::strncmp(line, "EOF", 3)) {
+        keep_reading = false;
+        return -1;
+      } else if (!std::strncmp(line, "EP", 2)) {
+        std::cout<<"[DEBUG] Ingoring Position Correlation Records ...\n";
+      } else if (!std::strncmp(line, "EV", 2)) {
+        std::cout<<"[DEBUG] Ingoring Velocity Correlation Records ...\n";
+      } else {
+        return 150;
+      }
     }
   } while (keep_reading);
 
+  return status;
 }
 
 #ifdef DEBUG
