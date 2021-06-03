@@ -115,13 +115,16 @@ int ids::BeaconStation::set_from_rinex_line(const char *line) noexcept {
   return 0;
 }
 
-
 ids::GroundAntennaType ids::BeaconStation::type() const {
   switch (m_station_id[3]) {
-    case ('A'): return GroundAntennaType::Alcatel;
-    case ('B'): return GroundAntennaType::Starec_B;
-    case ('C'): return GroundAntennaType::Starec_C;
-    default:
-      throw std::runtime_error("[ERROR] Cannot match beacon mnemonic to antenna type");
+  case ('A'):
+    return GroundAntennaType::Alcatel;
+  case ('B'):
+    return GroundAntennaType::Starec_B;
+  case ('C'):
+    return GroundAntennaType::Starec_C;
+  default:
+    throw std::runtime_error(
+        "[ERROR] Cannot match beacon mnemonic to antenna type");
   }
 }

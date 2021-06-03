@@ -120,16 +120,16 @@ int ids::Sp3c::read_header() noexcept {
   int csat = 0, cidx = 9, lines_read = 0;
   sat_vec__.reserve(num_sats__);
   while (csat < num_sats__) {
-    sat_vec__.emplace_back(line+cidx);
+    sat_vec__.emplace_back(line + cidx);
     cidx += 3;
-    if (cidx>60 && csat+1 < num_sats__) {
+    if (cidx > 60 && csat + 1 < num_sats__) {
       __istream.getline(line, MAX_HEADER_CHARS);
       cidx = 9;
       ++lines_read;
     }
     ++csat;
   }
-  while (lines_read<5) {
+  while (lines_read < 5) {
     __istream.getline(line, MAX_HEADER_CHARS);
     ++lines_read;
   }
@@ -176,9 +176,9 @@ int ids::Sp3c::read_header() noexcept {
   if (*line != '%' || line[1] != 'f')
     return 60;
   fpb_pos__ = fpb_clk__ = 0e0;
-  fpb_pos__ = std::strtod(line+3, &str_end);
-  fpb_clk__ = std::strtod(line+14, &str_end);
-  if (str_end==line+14 || (fpb_pos__==0e0 || fpb_clk__==0e0)) {
+  fpb_pos__ = std::strtod(line + 3, &str_end);
+  fpb_clk__ = std::strtod(line + 14, &str_end);
+  if (str_end == line + 14 || (fpb_pos__ == 0e0 || fpb_clk__ == 0e0)) {
     errno = 0;
     return 61;
   }

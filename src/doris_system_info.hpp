@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 namespace ids {
-  
+
 /// In DORIS RINEX files, the receiver clock offset may be missing for
 /// some/all epochs; this value signifies a missing epoch Receiver clock
 /// offset value.
@@ -91,18 +91,14 @@ public:
 }; // ObservationCode
 
 /// @brief The type of a ground antenna (aka a beacon)
-/// The type of antenna is identified by the 4th character of the beacon 
-/// mnemonic: letter 'A' for the Alcatel type; letter 'B' or letter ‘C’ for 
-/// the Starec B or C type. STAREC antennae B and C are identical in terms of 
-/// design and specification, the difference is about the error budget in 
-/// phase center position. For STAREC C, manufacturing process and error 
+/// The type of antenna is identified by the 4th character of the beacon
+/// mnemonic: letter 'A' for the Alcatel type; letter 'B' or letter ‘C’ for
+/// the Starec B or C type. STAREC antennae B and C are identical in terms of
+/// design and specification, the difference is about the error budget in
+/// phase center position. For STAREC C, manufacturing process and error
 /// budget have been improved.
 /// @see DORIS SYSTEM GROUND SEGMENT MODELS, Issue 1.3
-enum class GroundAntennaType : int_fast8_t {
-  Alcatel,
-  Starec_B,
-  Starec_C
-};
+enum class GroundAntennaType : int_fast8_t { Alcatel, Starec_B, Starec_C };
 
 /// @brief A station (aka beacon) as defined in RINEX DORIS 3.0 (Issue 1.7)
 struct BeaconStation {

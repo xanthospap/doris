@@ -180,21 +180,21 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
-  
+
   /// @brief Read next RINEX data block
   /// @param[in] hdr A RinexDataRecordHeader; the data header record (that
   ///                includes epoch and beacon information) read in the
   ///                start of the data block.
   /// param[out] obsvec A vector of BeaconObservations; for each of the beacons
   ///                recorded in the data block, a new entry is appended in the
-  ///                obsvec. For each beacon, the corresponding 
+  ///                obsvec. For each beacon, the corresponding
   ///                BeaconObservations includes all observation types recorded
   ///                in the RINEX header. For any missing values, the default
   ///                value OBSERVATION_VALUE_MISSING is filled in.
   /// @return Anything other than 0, denotes an error
   int read_data_block(RinexDataRecordHeader &hdr,
                       std::vector<BeaconObservations> &obsvec) noexcept;
-  
+
   /// @brief Skip next RINEX data block
   /// @param[in] hdr A RinexDataRecordHeader; the data header record (that
   ///                includes epoch and beacon information) read in the

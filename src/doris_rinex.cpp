@@ -18,7 +18,8 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
   m_lines_per_beacon = lines_per_beacon();
 }
 
-void ids::DorisObsRinex::skip_data_block(const ids::RinexDataRecordHeader &hdr) noexcept {
+void ids::DorisObsRinex::skip_data_block(
+    const ids::RinexDataRecordHeader &hdr) noexcept {
   char line[MAX_RECORD_CHARS];
   for (int i = 0; i < hdr.m_num_stations * m_lines_per_beacon; i++) {
     m_stream.getline(line, MAX_RECORD_CHARS);
@@ -123,9 +124,10 @@ int ids::DorisObsRinex::read_data_block(
       char flagm1 = line[3 + (curobs % 5) * 16 + 14];
       char flagm2 = line[3 + (curobs % 5) * 16 + 15];
       val = (buf_is_empty) ? OBSERVATION_VALUE_MISSING : std::strtod(buf, &end);
-      if (val == 0e0 || end==buf) {
+      if (val == 0e0 || end == buf) {
         val = OBSERVATION_VALUE_MISSING;
-        if (end==buf) return 2;
+        if (end == buf)
+          return 2;
       }
       // push value to the current BeaconObservations instance (in-place)
       obsvec_it->m_values.emplace_back(val, flagm1, flagm2);
