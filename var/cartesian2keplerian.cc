@@ -115,7 +115,7 @@ void cartesian2keplerian_2(const double *x, const double *xdot) noexcept {
   printf("θ    = %15.12f\n", ngpt::rad2deg(theta));
 }
 
-void cartesian2keplerian_beutler(const double *x, const double *xdot) noexcept {
+void cartesian2keplerian_beutler(const double *x, const double *xdot, double t=0e0) noexcept {
   /*
    * Output:
    * -----------------------------------
@@ -128,12 +128,12 @@ void cartesian2keplerian_beutler(const double *x, const double *xdot) noexcept {
    */
   double hv[3];
   cross_product(x, xdot, hv);
+  hv[1] = -hv[1]; // bernese-like cross product
   double hsq = dot_product(hv, hv);
   double h = std::sqrt(hsq);
 
   // ascending node, Ω
   double Omega = std::atan2(hv[0], hv[1]);
-  if (Omega<0e0) Omega += ngpt::D2PI;
   
   // inclination, i
   double i = std::acos(hv[2]/h);
@@ -149,20 +149,95 @@ void cartesian2keplerian_beutler(const double *x, const double *xdot) noexcept {
   // argument e
   double e = std::sqrt(1e0 + 2e0*hsq*Edot / ngpt::GM / ngpt::GM);
 
-  double Rxi[9], RzO[9], R[9], eov[3];
-  rotation_matrix_x(i, Rxi);
-  rotation_matrix_z(Omega, RzO);
-  matmul3x3(Rxi, RzO, R);
-  matvecmul(R, x, eov);
-  double u = std::atan2(eov[1], eov[0]);
-  if (u<0e0) u += ngpt::D2PI;
+  // compute the argument of latitude at time t
+  // this is: R_x(i) * R_z(Ω) * r (expanded to ...)
+  double ck=std::cos(Omega);
+  double sk=std::sin(Omega);
+  double ci=std::cos(i);
+  double si=std::sin(i);
+  double xx0 =    ck*x[0]   +sk*x[1];
+  double xx1 =-ci*sk*x[0]+ci*ck*x[1]+si*x[2];
+  // double xx2 = si*sk*x[0]-si*ck*x[1]+ci*x[2];
+  double u = std::atan2(xx1, xx0);
+  double ecv = p / r - 1e0;
+  // double esv = h / ngpt::GM;
+  double esv = std::sqrt(p/ngpt::GM) / r * dot_product(x,xdot);
+  double v1 = std::atan2(esv, ecv);
+  double omega = u-v1;
+  // for elliptic orbits (eq. 5.33)
+  double a = p / (1e0 - e*e);
+  double sinv = std::sin(v1);
+  double cosv = std::cos(v1);
+  /*
+  double sinE = (std::sqrt(1e0-e*e) / (1e0+e)) * (sinv/cosv); // 4.51
+  double cosE = (e + cosv) / (1e0+e*cosv);                    // 4.51
+  double E = std::atan(sinE/cosE);
+  */
+  double E = std::atan(std::sqrt(1e0+e*e)*sinv / (e+cosv));
+  double T0 = t - (E - e*std::sin(E)) / std::sqrt(ngpt::GM/a/a/a);  // Table 4.2
 
   printf("a    = %15.6f\n", a);
   printf("e    = %15.13f\n", e);
   printf("ω    = %15.12f\n", ngpt::rad2deg(omega));
   printf("Ω    = %15.12f\n", ngpt::rad2deg(Omega));
   printf("i    = %15.12f\n", ngpt::rad2deg(i));
-  printf("M    = %15.12f\n", ngpt::rad2deg(M));
+  printf("T0   = %15.12f\n", T0);
+  //printf("M    = %15.12f\n", ngpt::rad2deg(M));
+}
+
+void cartesian2keplerian_bernese(const double *x, const double *v, double t=0e0) noexcept {
+  /*
+   * Output:
+   * -----------------------------------
+   * semi-major axis, a (m)
+   * eccentricity, e 
+   * argument of periapsis, ω (rad) -- in bernese PER --
+   * longitude of ascending node, Ω (rad) -- in bernese KN --
+   * inclination, i (rad)
+   * time of perigee/helion passing, T0
+   */
+  double h[3] = {
+      x[1]*v[2]-x[2]*v[1],
+      -x[2]*v[0]+x[0]*v[2],
+      x[0]*v[1]-x[1]*v[0],
+  };
+
+  double kn = std::atan2(h[0], h[1]);
+
+  double i = std::atan2(std::sqrt(h[0]*h[0]+h[1]*h[1]), h[2]);
+
+  double p=(h[0]*h[0]+h[1]*h[1]+h[2]*h[2])/ngpt::GM;
+  double r=std::sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+  double ecv=p/r-1e0;
+  double esv=std::sqrt(p/ngpt::GM)/r*(x[0]*v[0]+x[1]*v[1]+x[2]*v[2]);
+  double v1=std::atan2(esv,ecv);
+  double e=std::sqrt(ecv*ecv+esv*esv);
+
+  double ck=std::cos(kn);
+  double sk=std::sin(kn);
+  double ci=std::cos(i);
+  double si=std::sin(i);
+  double xx[] = {
+    ck*x[0]+sk*x[1],
+    -ci*sk*x[0]+ci*ck*x[1]+si*x[2],
+    si*sk*x[0]-si*ck*x[1]+ci*x[2]
+  };
+
+  double u=std::atan2(xx[1],xx[0]);
+  double per=u-v1;
+  double ex=2e0*std::atan(std::sqrt((1e0-e)/(1e0+e))*(std::sin(v1/2)/std::cos(v1/2e0)));
+  double a=p/(1e0-e*e);
+  double a3 = a*a*a;
+  double t0=t-(ex-e*std::sin(ex))/std::sqrt(ngpt::GM/a3);
+  
+  printf("a    = %15.6f\n", a);
+  printf("e    = %15.13f\n", e);
+  printf("ω    = %15.12f\n", ngpt::rad2deg(per));
+  printf("Ω    = %15.12f\n", ngpt::rad2deg(kn));
+  printf("i    = %15.12f\n", ngpt::rad2deg(i));
+  printf("T0   = %15.12f\n", t0);
+  // printf("M    = %15.12f\n", ngpt::rad2deg(M));
+  return;
 }
 
 /// https://downloads.rene-schwarz.com/download/M002-Cartesian_State_Vectors_to_Keplerian_Orbit_Elements.pdf
@@ -213,15 +288,15 @@ void cartesian2keplerian_schwarz(const double *x, const double *v) noexcept {
 
   // Eccentric anomaly, E
   double E = 2e0 * std::atan2(std::tan(ta/2e0), std::sqrt((1e0+e)/(1e0-e)));
-  if (E<0e0) E += ngpt::D2PI;
+  //if (E<0e0) E += ngpt::D2PI;
 
   // longtitude of the acending node, Ω
   double Omega = std::acos(nv[0] / n);
-  if (nv[1]<0e0) Omega = ngpt::D2PI - Omega;
+  //if (nv[1]<0e0) Omega = ngpt::D2PI - Omega;
 
   // argument of periapsis, ω
   double omega = std::acos(dot_product(nv, ev)/n/e);
-  if (ev[2]<0e0) omega = ngpt::D2PI - omega;
+  // if (ev[2]<0e0) omega = ngpt::D2PI - omega;
 
   // Mean anomaly, M
   double M = E - e * std::sin(E);
@@ -247,10 +322,10 @@ int main() {
 
   printf("/*--Schwarz Impl.-----------------------------------------------------------------*/\n");
   cartesian2keplerian_schwarz(x, v);
-  printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian_beutler(x, v);
   printf("/*--Beutler.----------------------------------------------------------------------*/\n");
-  cartesian2keplerian_2(x, v);
+  cartesian2keplerian_beutler(x, v);
+  printf("/*--Bernese.----------------------------------------------------------------------*/\n");
+  cartesian2keplerian_bernese(x, v);
   
   double x2[] = {-6045000.0e0,
                 -3490000.0e0,
@@ -261,9 +336,9 @@ int main() {
   
   printf("/*--Schwarz Impl.-----------------------------------------------------------------*/\n");
   cartesian2keplerian_schwarz(x2, v2);
-  printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian_beutler(x2, v2);
   printf("/*--Beutler.----------------------------------------------------------------------*/\n");
-  cartesian2keplerian_2(x2, v2);
+  cartesian2keplerian_beutler(x2, v2);
+  printf("/*--Bernese.----------------------------------------------------------------------*/\n");
+  cartesian2keplerian_bernese(x2, v2);
   return 0;
 }
