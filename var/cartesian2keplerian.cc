@@ -115,7 +115,17 @@ void cartesian2keplerian_2(const double *x, const double *xdot) noexcept {
   printf("θ    = %15.12f\n", ngpt::rad2deg(theta));
 }
 
-void cartesian2keplerian_(const double *x, const double *xdot) noexcept {
+void cartesian2keplerian_beutler(const double *x, const double *xdot) noexcept {
+  /*
+   * Output:
+   * -----------------------------------
+   * semi-latus rectum, p
+   * eccentricity, e 
+   * argument of periapsis, ω (rad)
+   * longitude of ascending node, Ω (rad)
+   * inclination, i (rad)
+   * time of perihelion, T0
+   */
   double hv[3];
   cross_product(x, xdot, hv);
   double hsq = dot_product(hv, hv);
@@ -147,16 +157,26 @@ void cartesian2keplerian_(const double *x, const double *xdot) noexcept {
   double u = std::atan2(eov[1], eov[0]);
   if (u<0e0) u += ngpt::D2PI;
 
-  printf("p    = %15.6f\n", p);
-  printf("a    = %15.6f\n", 0e0);
+  printf("a    = %15.6f\n", a);
   printf("e    = %15.13f\n", e);
-  printf("i    = %15.12f\n", ngpt::rad2deg(i));
+  printf("ω    = %15.12f\n", ngpt::rad2deg(omega));
   printf("Ω    = %15.12f\n", ngpt::rad2deg(Omega));
-  printf("ω    = %15.12f\n", ngpt::rad2deg(0e0));
+  printf("i    = %15.12f\n", ngpt::rad2deg(i));
+  printf("M    = %15.12f\n", ngpt::rad2deg(M));
 }
 
 /// https://downloads.rene-schwarz.com/download/M002-Cartesian_State_Vectors_to_Keplerian_Orbit_Elements.pdf
-void cartesian2keplerian(const double *x, const double *v) noexcept {
+void cartesian2keplerian_schwarz(const double *x, const double *v) noexcept {
+  /*
+   * Output:
+   * -----------------------------------
+   * semi-major axis, a (m)
+   * eccentricity, e 
+   * argument of periapsis, ω (rad)
+   * longitude of ascending node, Ω (rad)
+   * inclination, i (rad)
+   * mean anomaly, M (rad)
+   */
   
   // Calculate orbital momentum vector
   double hv[3];
@@ -175,71 +195,46 @@ void cartesian2keplerian(const double *x, const double *v) noexcept {
   ev[0] -= (x[0] / r);
   ev[1] -= (x[1] / r);
   ev[2] -= (x[2] / r);
+  const double esq = dot_product(ev, ev);
+
+  // eccentricity, e
+  double e = std::sqrt(esq);
 
   // Determine the vector n pointing towards the ascending node
-  double n[] = { -hv[1], hv[0], 0e0};
+  double nv[] = { -hv[1], hv[0], 0e0};
+  double n = std::sqrt(dot_product(nv, nv));
 
-  //  true anomaly
+  //  True anomaly
   double ta = std::acos(dot_product(ev, x)/ e / r);
+  if (dot_product(x,v)<0e0) ta = ngpt::D2PI - ta;
 
   // Orbital inclination, i
-  double i = std::acos(h[2] / h_norm);
-  assert(i>=0e0 && i<= ngpt::DPI); // not needed; acos is guranteed (if no 
-  // errors occur) to return a value in [0,π]
+  double i = std::acos(hv[2] / h);
 
-  // longtitude or right ascension of the acending node, Ω
-  const double h_xy = std::sqrt(h[0]*h[0] + h[1]*h[1]);
-  double sinOmega = h[0] / h_xy;
-  double cosOmega = -h[1] / h_xy;
-  double Omega = std::atan2(sinOmega, cosOmega);
-  if (Omega<0e0) Omega += ngpt::D2PI;
-  assert(Omega>=0e0 && Omega<=ngpt::D2PI);
+  // Eccentric anomaly, E
+  double E = 2e0 * std::atan2(std::tan(ta/2e0), std::sqrt((1e0+e)/(1e0-e)));
+  if (E<0e0) E += ngpt::D2PI;
 
-  // (intermidiate quantity) r0
-  double r0 = std::sqrt(norm_squared(x));
+  // longtitude of the acending node, Ω
+  double Omega = std::acos(nv[0] / n);
+  if (nv[1]<0e0) Omega = ngpt::D2PI - Omega;
 
-  // energy per unit mass
-  double ksi = norm_squared(v) / 2e0 - ngpt::GM / r0;
+  // argument of periapsis, ω
+  double omega = std::acos(dot_product(nv, ev)/n/e);
+  if (ev[2]<0e0) omega = ngpt::D2PI - omega;
 
-  // semi-major axis, a
-  double a = -ngpt::GM / (2e0*ksi);
+  // Mean anomaly, M
+  double M = E - e * std::sin(E);
 
-  // eccentricity of the orbit, e
-  double e = std::sqrt(1e0 + (2e0*ksi*h_sq)/ngpt::GM/ngpt::GM);
+  // Semi-major axis, a
+  double a = 1e0 / ( (2e0/r) - (dot_product(v, v)/ngpt::GM) );
 
-  // semilatus rectum, p
-  double p = h_sq / ngpt::GM;
-
-  // true anomaly, ω
-  double cosf = (p-r0)/(e*r0);
-  double sinf = (p/h_norm*e)*((x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/r0);
-  double cosof = (x[0]/r0)*std::cos(Omega) + (x[1]/r0)*std::sin(Omega);
-  double sinof = x[2] / (r0*std::sin(i));
-  double omega_opf = std::atan2(sinof, cosof);
-  if (omega_opf<0e0) omega_opf += ngpt::D2PI;
-  double omega_f = std::atan2(sinf, cosf);
-  if (omega_f<0e0) omega_f += ngpt::D2PI;
-  double omega = omega_opf - omega_f;
-  if (omega<0e0) omega += ngpt::D2PI;
-
-  /*
-  // eccentric anomaly, E0
-  double cosE0 = (r0/a)*cosf + e;
-  double sinE0 = (r0/b)*sinf;
-  double E0 = std::atan2(sinE0, cosE0);
-  if (E0<0e0) E0 += ngpt::D2PI;
-
-  // mean anomaly, M0
-  double M0 = E0 - e*std::sin(E0);
-  */
-
-  printf("p    = %15.6f\n", p);
   printf("a    = %15.6f\n", a);
   printf("e    = %15.13f\n", e);
-  printf("i    = %15.12f\n", ngpt::rad2deg(i));
-  printf("Ω    = %15.12f\n", ngpt::rad2deg(Omega));
   printf("ω    = %15.12f\n", ngpt::rad2deg(omega));
-  //printf("M0   = %15.12f\n", M0);
+  printf("Ω    = %15.12f\n", ngpt::rad2deg(Omega));
+  printf("i    = %15.12f\n", ngpt::rad2deg(i));
+  printf("M    = %15.12f\n", ngpt::rad2deg(M));
 } 
 
 int main() {
@@ -250,11 +245,11 @@ int main() {
                          5498.676921,
                          3665.980697};
 
+  printf("/*--Schwarz Impl.-----------------------------------------------------------------*/\n");
+  cartesian2keplerian_schwarz(x, v);
   printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian(x, v);
-  printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian_(x, v);
-  printf("/*-----------------------------------------------------------------*/\n");
+  cartesian2keplerian_beutler(x, v);
+  printf("/*--Beutler.----------------------------------------------------------------------*/\n");
   cartesian2keplerian_2(x, v);
   
   double x2[] = {-6045000.0e0,
@@ -264,11 +259,11 @@ int main() {
                 +6618.0e0,
                  2533.0e0};
   
+  printf("/*--Schwarz Impl.-----------------------------------------------------------------*/\n");
+  cartesian2keplerian_schwarz(x2, v2);
   printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian(x2, v2);
-  printf("/*-----------------------------------------------------------------*/\n");
-  cartesian2keplerian_(x2, v2);
-  printf("/*-----------------------------------------------------------------*/\n");
+  cartesian2keplerian_beutler(x2, v2);
+  printf("/*--Beutler.----------------------------------------------------------------------*/\n");
   cartesian2keplerian_2(x2, v2);
   return 0;
 }
