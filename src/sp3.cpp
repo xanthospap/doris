@@ -1,6 +1,6 @@
 #include "sp3.hpp"
-#include <stdexcept>
 #include <cstdio>
+#include <stdexcept>
 #ifdef DEBUG
 #include "ggdatetime/datetime_write.hpp"
 #include <iostream>
@@ -95,7 +95,8 @@ int ids::Sp3c::resolve_epoch_line(
 int ids::Sp3c::get_next_velocity(SatelliteId &sat, double &xv, double &yv,
                                  double &zv, double &cv, double &xstdv,
                                  double &ystdv, double &zstdv, double &cstdv,
-                                 Sp3Flag &flag, const SatelliteId* wsat) noexcept {
+                                 Sp3Flag &flag,
+                                 const SatelliteId *wsat) noexcept {
   char line[MAX_RECORD_CHARS];
   char *end;
   const char *start;
@@ -109,7 +110,8 @@ int ids::Sp3c::get_next_velocity(SatelliteId &sat, double &xv, double &yv,
 
   if (wsat) {
     if (*wsat != sat) {
-      flag.set(Sp3Event::bad_abscent_velocity | Sp3Event::bad_abscent_clock_rate);
+      flag.set(Sp3Event::bad_abscent_velocity |
+               Sp3Event::bad_abscent_clock_rate);
       return 0;
     }
   }
@@ -129,12 +131,15 @@ int ids::Sp3c::get_next_velocity(SatelliteId &sat, double &xv, double &yv,
   zv = dvec[2];
   cv = dvec[3]; // 10**-4 microseconds/second
 
-  if (xv == 0e0 || (yv == 0e0 || zv == 0e0)) {
+  if (xv == 0e0 || (yv == 0e0 || zv == 0e0))
     flag.set(Sp3Event::bad_abscent_velocity);
-  }
+  else
+    flag.clear(Sp3Event::bad_abscent_velocity);
 
   if (cv >= SP3_MISSING_CLK_VALUE)
     flag.set(Sp3Event::bad_abscent_clock_rate);
+  else
+    flag.clear(Sp3Event::bad_abscent_clock_rate);
 
   // std deviations (if any)
   int has_pos_stddev = false, has_clk_stddev = false;
@@ -211,20 +216,19 @@ int ids::Sp3c::get_next_velocity(SatelliteId &sat, double &xv, double &yv,
 int ids::Sp3c::get_next_position(SatelliteId &sat, double &xkm, double &ykm,
                                  double &zkm, double &clk, double &xstdv,
                                  double &ystdv, double &zstdv, double &cstdv,
-                                 Sp3Flag &flag, const SatelliteId* wsat) noexcept {
+                                 Sp3Flag &flag,
+                                 const SatelliteId *wsat) noexcept {
   char line[MAX_RECORD_CHARS];
   char *end;
   const char *start;
   double dvec[4];
-  
-  flag.reset();
 
   __istream.getline(line, MAX_RECORD_CHARS);
   if (*line != 'P')
     return 1;
 
   std::memcpy(sat.id, line + 1, 3);
-  
+
   if (wsat) {
     if (*wsat != sat) {
       flag.set(Sp3Event::bad_abscent_position | Sp3Event::bad_abscent_clock);
@@ -245,7 +249,16 @@ int ids::Sp3c::get_next_position(SatelliteId &sat, double &xkm, double &ykm,
   xkm = dvec[0];
   ykm = dvec[1];
   zkm = dvec[2];
+  if (xkm == 0e0 || ykm == 0e0 || zkm == 0e0)
+    flag.set(Sp3Event::bad_abscent_position);
+  else
+    flag.clear(Sp3Event::bad_abscent_position);
+
   clk = dvec[3];
+  if (clk >= SP3_MISSING_CLK_VALUE)
+    flag.set(Sp3Event::bad_abscent_clock);
+  else
+    flag.clear(Sp3Event::bad_abscent_clock);
 
   // std deviations (if any)
   int has_pos_stddev = false, has_clk_stddev = false;
@@ -295,12 +308,6 @@ int ids::Sp3c::get_next_position(SatelliteId &sat, double &xkm, double &ykm,
   if (has_clk_stddev == 1)
     flag.set(Sp3Event::has_clk_stddev);
 
-  if (xkm == 0e0 || (ykm == 0e0 || zkm == 0e0)) {
-    flag.set(Sp3Event::bad_abscent_position);
-  }
-
-  if (clk >= SP3_MISSING_CLK_VALUE)
-    flag.set(Sp3Event::bad_abscent_clock);
   if (line[74] == 'E')
     flag.set(Sp3Event::clock_event);
   if (line[75] == 'P')
@@ -331,10 +338,14 @@ ids::Sp3c::Sp3c(const char *filename)
   }
 }
 
-/// @return -1: EOF encountered
-///          0: All ok
-///         >0: ERROR
-int ids::Sp3c::get_next_data_block(SatelliteId satid, Sp3DataBlock& block) noexcept {
+/// Read in the next data block (including the epoch header) and if it has
+/// a position and/or velocity record (lines) for the given satellite, parse
+/// and collect them in the passed in Sp3DataBlock.
+/// The function expects that the next line to be read is an Epoch Header
+/// line. It will keep on reading until the data block is over, and if it
+/// encounters data for SV satid, it will parse and store them.
+int ids::Sp3c::get_next_data_block(SatelliteId satid,
+                                   Sp3DataBlock &block) noexcept {
   char line[MAX_RECORD_CHARS];
   char c;
   int status;
@@ -366,6 +377,9 @@ int ids::Sp3c::get_next_data_block(SatelliteId satid, Sp3DataBlock& block) noexc
     }
   }
 
+  // default initialize the block flag
+  block.flag.set_defaults();
+
   // keep on reading reacords .....
   bool keep_reading = true;
   do {
@@ -374,14 +388,16 @@ int ids::Sp3c::get_next_data_block(SatelliteId satid, Sp3DataBlock& block) noexc
       keep_reading = false;
       break;
     } else if (c == 'P') {
-      if ((status = get_next_position(satid, block.state[0], block.state[1], block.state[2],
-                                      block.state[3], block.state_sdev[0], block.state_sdev[1],
-                                      block.state_sdev[2], block.state_sdev[3], block.flag, &satid)))
+      if ((status = get_next_position(
+               satid, block.state[0], block.state[1], block.state[2],
+               block.state[3], block.state_sdev[0], block.state_sdev[1],
+               block.state_sdev[2], block.state_sdev[3], block.flag, &satid)))
         return status + 20;
     } else if (c == 'V') {
-      if ((status = get_next_velocity(satid, block.state[4], block.state[5], block.state[6],
-                                      block.state[7], block.state_sdev[4], block.state_sdev[5],
-                                      block.state_sdev[6], block.state_sdev[7], block.flag, &satid)))
+      if ((status = get_next_velocity(
+               satid, block.state[4], block.state[5], block.state[6],
+               block.state[7], block.state_sdev[4], block.state_sdev[5],
+               block.state_sdev[6], block.state_sdev[7], block.flag, &satid)))
         return status + 30;
     } else {
       __istream.getline(line, MAX_RECORD_CHARS);
@@ -415,16 +431,32 @@ void ids::Sp3c::print_members() const noexcept {
 }
 #endif
 
-ids::sp3_details::__Sp3FlagWrapper__ ids::operator|(ids::sp3_details::__Sp3FlagWrapper__ e1, ids::Sp3Event e2) noexcept {
+ids::sp3_details::__Sp3FlagWrapper__
+ids::operator|(ids::sp3_details::__Sp3FlagWrapper__ e1,
+               ids::Sp3Event e2) noexcept {
   ids::sp3_details::__Sp3FlagWrapper__ wf;
   wf.bits_ = e1.bits_;
   wf.bits_ |= (1 << static_cast<ids::sp3_details::uitype>(e2));
   return wf;
 }
 
-ids::sp3_details::__Sp3FlagWrapper__ ids::operator|(ids::Sp3Event e1, ids::Sp3Event e2) noexcept {
+ids::sp3_details::__Sp3FlagWrapper__ ids::operator|(ids::Sp3Event e1,
+                                                    ids::Sp3Event e2) noexcept {
   ids::sp3_details::__Sp3FlagWrapper__ wf;
   wf.bits_ |= (1 << static_cast<ids::sp3_details::uitype>(e1));
   wf.bits_ |= (1 << static_cast<ids::sp3_details::uitype>(e2));
   return wf;
+}
+
+/// First reset all Sp3Events (aka all are turned off). Then turn on the 
+/// following flags:
+/// * Sp3Event::bad_abscent_position,
+/// * Sp3Event::bad_abscent_clock,
+/// * Sp3Event::bad_abscent_velocity
+/// * Sp3Event::bad_abscent_clock_rate
+void ids::Sp3Flag::set_defaults() noexcept {
+  this->reset();
+  set(Sp3Event::bad_abscent_position | Sp3Event::bad_abscent_clock |
+      Sp3Event::bad_abscent_velocity | Sp3Event::bad_abscent_clock_rate);
+  return;
 }

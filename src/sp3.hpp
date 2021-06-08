@@ -2,10 +2,11 @@
 #define __SP3C_IGS_FILE__
 
 #include "ggdatetime/dtcalendar.hpp"
+#include <algorithm>
+#include <cinttypes>
 #include <cstdint>
 #include <fstream>
 #include <vector>
-#include <cinttypes>
 #ifdef DEBUG
 #include "ggdatetime/datetime_write.hpp"
 #endif
@@ -13,7 +14,7 @@
 namespace ids {
 
 namespace sp3_details {
-  using uitype = uint_fast16_t;
+using uitype = uint_fast16_t;
 };
 
 /// @enum Sp3Event Describe an event that can be recorded in an Sp3 file
@@ -70,31 +71,31 @@ static_assert(std::numeric_limits<sp3_details::uitype>::digits >
               static_cast<sp3_details::uitype>(Sp3Event::has_clk_rate_stdev));
 
 namespace sp3_details {
-  /// @class __Sp3FlagWrapper__
-  /// This is just an Sp3Flag instance, with limited use; it mainly acts as
-  /// a temporary Sp3Flag for easy interactions between Sp3Event's and an 
-  /// actual Sp3Flag.
-  struct __Sp3FlagWrapper__ {
-    uitype bits_{0};
-  };// __Sp3FlagWrapper__
-}// sp3_details
-  
+/// @class __Sp3FlagWrapper__
+/// This is just an Sp3Flag instance, with limited use; it mainly acts as
+/// a temporary Sp3Flag for easy interactions between Sp3Event's and an
+/// actual Sp3Flag.
+struct __Sp3FlagWrapper__ {
+  uitype bits_{0};
+}; // __Sp3FlagWrapper__
+} // namespace sp3_details
+
 /// @brief set two events (aka turn them 'on') in a __Sp3FlagWrapper__
 /// @param[in] e1 Event to turn 'on' aka set
 /// @param[in] e2 Event to turn 'on' aka set
 /// @return An __Sp3FlagWrapper__ that only has the two bits e1 and e2 on.
-///            Everythiong else is set to 0. This function acts on a bit 
+///            Everythiong else is set to 0. This function acts on a bit
 ///            level.
 /// What we want here, is a functionality of:
 /// Sp3Flag flag;
-/// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock| 
+/// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock|
 ///          Sp3Event::clock_event|Sp3Event::has_clk_rate_stdev);
 /// This here is a first step ....
 /// @see  __Sp3FlagWrapper__ operator|(__Sp3FlagWrapper__ e1, Sp3Event e2)
 sp3_details::__Sp3FlagWrapper__ operator|(Sp3Event e1, Sp3Event e2) noexcept;
 
 /// @brief Concatenate an __Sp3FlagWrapper__ and an Sp3Event.
-/// The function will copy the input __Sp3FlagWrapper__ and set on the 
+/// The function will copy the input __Sp3FlagWrapper__ and set on the
 /// e2 event (aka set the e2 bit 'on').
 /// @param[in] e1 An __Sp3FlagWrapper__
 /// @param[in] e2 An event to tunr on in the resulting __Sp3FlagWrapper__
@@ -102,11 +103,12 @@ sp3_details::__Sp3FlagWrapper__ operator|(Sp3Event e1, Sp3Event e2) noexcept;
 ///            the e2 bit turned on.
 /// What we want here, is a functionality of:
 /// Sp3Flag flag;
-/// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock| 
+/// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock|
 ///          Sp3Event::clock_event|Sp3Event::has_clk_rate_stdev);
 /// This here is the final step ....
 /// @see __Sp3FlagWrapper__ operator|(Sp3Event e1, Sp3Event e2)
-sp3_details::__Sp3FlagWrapper__ operator|(sp3_details::__Sp3FlagWrapper__ e1, Sp3Event e2) noexcept;
+sp3_details::__Sp3FlagWrapper__ operator|(sp3_details::__Sp3FlagWrapper__ e1,
+                                          Sp3Event e2) noexcept;
 
 /// @class Sp3Flag A flag to hold all events recorded in the Sp3 for a field
 struct Sp3Flag {
@@ -119,11 +121,9 @@ struct Sp3Flag {
   /// @brief Enable bitwise multiple Sp3Event's set.
   /// This function actually enables the following code:
   /// Sp3Flag flag;
-  /// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock| 
+  /// flag.set(Sp3Event::bad_abscent_position|Sp3Event::bad_abscent_clock|
   ///           Sp3Event::clock_event|Sp3Event::has_clk_rate_stdev);
-  void set(sp3_details::__Sp3FlagWrapper__ wf) noexcept {
-    bits_ = wf.bits_;
-  }
+  void set(sp3_details::__Sp3FlagWrapper__ wf) noexcept { bits_ = wf.bits_; }
   /// Un-Mark flag with an Sp3Event (aka, unset the Sp3Event)
   void clear(Sp3Event e) noexcept {
     bits_ &= (~(1 << static_cast<sp3_details::uitype>(e)));
@@ -136,6 +136,8 @@ struct Sp3Flag {
   }
   /// Check if Sp3Flag is clean (no Sp3Event is set)
   bool is_clean() const noexcept { return !bits_; }
+  /// Set to reasonable default values
+  void set_defaults() noexcept;
 }; // Sp3Flag
 
 /// @class Satellite ID as denoted in an Sp3 file
@@ -145,12 +147,13 @@ struct SatelliteId {
     if (str)
       std::memcpy(id, str, 3);
   }
-  bool operator==(const SatelliteId& s) const noexcept {
+  bool operator==(const SatelliteId &s) const noexcept {
     return !std::strncmp(id, s.id, 3);
   }
-  bool operator!=(const SatelliteId& s) const noexcept {
+  bool operator!=(const SatelliteId &s) const noexcept {
     return !this->operator==(s);
   }
+  std::string to_string() const noexcept { return std::string(id, 3); }
 };
 
 /// @class Sp3DataBlock
@@ -195,7 +198,31 @@ public:
 
   auto num_sats() const noexcept { return num_sats__; }
 
-  int get_next_data_block(SatelliteId satid, Sp3DataBlock& block) noexcept;
+  /// @brief Read the next data block and parse holding for a given SV
+  /// @param[in] satid The SV to collect records for
+  /// @param[out] block An Sp3DataBlock instance; if we encounter records
+  ///            for SV satid, block will be filled with the parsed values.
+  ///            Use the block's flag member to check which values where
+  ///            actually parsed (if any at all).
+  /// @return -1: EOF encountered
+  ///          0: All ok
+  ///         >0: ERROR
+  int get_next_data_block(SatelliteId satid, Sp3DataBlock &block) noexcept;
+
+  /// @brief Check if a given SV in included in the Sp3 (i.e. is included in
+  ///        the instance's sat_vec__ member).
+  /// @note  It is assumed that the header of the file is already parsed; this
+  ///        should always be the case, since the file's header is parsed when
+  ///        it is constructed.
+  /// @param[in] satid The satelliteid we are searching for, as recorded in Sp3
+  ///            (aka a 3-char id, as'G01', 'R27', etc)
+  /// @return True if satellite is included in the instance's sat_vec__; false
+  ///         otherwise.
+  bool has_sv(SatelliteId satid) const noexcept {
+    return std::find_if(sat_vec__.cbegin(), sat_vec__.cend(),
+                        [satid](const SatelliteId &s) { return s == satid; }) !=
+           sat_vec__.cend();
+  }
 
 #ifdef DEBUG
   void print_members() const noexcept;
@@ -211,12 +238,14 @@ private:
   /// @brief Get and resolve the next Position and Clock Record
   int get_next_position(SatelliteId &sat, double &xkm, double &ykm, double &zkm,
                         double &clk, double &xstdv, double &ystdv,
-                        double &zstdv, double &cstdv, Sp3Flag &flag, const SatelliteId* wsat = nullptr) noexcept;
+                        double &zstdv, double &cstdv, Sp3Flag &flag,
+                        const SatelliteId *wsat = nullptr) noexcept;
 
   /// @brief Get and resolve the next Velocity and ClockRate-of-Change Record
   int get_next_velocity(SatelliteId &sat, double &xkm, double &ykm, double &zkm,
                         double &clk, double &xstdv, double &ystdv,
-                        double &zstdv, double &cstdv, Sp3Flag &flag, const SatelliteId* wsat = nullptr) noexcept;
+                        double &zstdv, double &cstdv, Sp3Flag &flag,
+                        const SatelliteId *wsat = nullptr) noexcept;
 
   std::string __filename;  ///< The name of the file
   std::ifstream __istream; ///< The infput (file) stream
