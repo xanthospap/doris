@@ -4,9 +4,9 @@
 
 using namespace ids;
 
-int main(int argc, char* argv[]) {
-  if (argc!=2) {
-    std::cerr << "Usage "<<argv[0]<<" SP3_FILE\n";
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    std::cerr << "Usage " << argv[0] << " SP3_FILE\n";
     return 1;
   }
 
@@ -17,7 +17,8 @@ int main(int argc, char* argv[]) {
   Sp3DataBlock block;
 
   if (!sp3.has_sv(sv)) {
-    std::cout << "Satellite \'"<< sv.to_string() << "\' not included in sp3 file.\n";
+    std::cout << "Satellite \'" << sv.to_string()
+              << "\' not included in sp3 file.\n";
     return 0;
   }
 
@@ -27,10 +28,10 @@ int main(int argc, char* argv[]) {
   do {
     printf("reading record #%6lu", rec_count);
     j = sp3.get_next_data_block(sv, block);
-    if (j>0) {
+    if (j > 0) {
       printf("Something went wrong ....status = %3d\n", j);
       return 1;
-    } else if (j==-1) {
+    } else if (j == -1) {
       printf("EOF encountered; Sp3 file read through!\n");
     }
     bool position_ok = !block.flag.is_set(Sp3Event::bad_abscent_position);

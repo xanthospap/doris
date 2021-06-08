@@ -162,3 +162,9 @@ if __name__ == '__main__':
     for ax in ax.flat: ax.label_outer()
     fig.show()
     fig.savefig("foo.pdf", bbox_inches='tight')
+
+    f = interp1d(x, y, 'quadratic', assume_sorted=True)
+    xnew = np.linspace(x_start+1, x_stop, num=x_numpts*20, endpoint=True, retstep=False)
+    ynew = f(xnew)
+    for i in range(xnew.size):
+        print('{:10.4f} {:10.4f}'.format(xnew[i], ynew[i]))

@@ -1,4 +1,4 @@
-noinst_PROGRAMS = testDorisRinex testSp3Flags testSp3Read
+noinst_PROGRAMS = testDorisRinex testSp3Flags testSp3Read testAntennaPcv
 
 MCXXFLAGS = \
   -std=c++17 \
@@ -28,3 +28,7 @@ testSp3Flags_LDADD     = $(top_srcdir)/src/libcppdoris.la
 testSp3Read_SOURCES   = test_sp3_read.cc
 testSp3Read_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
 testSp3Read_LDADD     = $(top_srcdir)/src/libcppdoris.la
+
+testAntennaPcv_SOURCES   = test_pcv.cc
+testAntennaPcv_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
+testAntennaPcv_LDADD     = $(top_srcdir)/src/libcppdoris.la

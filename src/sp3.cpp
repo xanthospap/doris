@@ -403,7 +403,8 @@ int ids::Sp3c::get_next_data_block(SatelliteId satid,
       __istream.getline(line, MAX_RECORD_CHARS);
       if (!std::strncmp(line, "EOF", 3)) {
         keep_reading = false;
-        return -1;
+        /*return -1;*/
+        status = -1;
       } else if (!std::strncmp(line, "EP", 2)) {
         printf("[DEBUG] Ingoring Position Correlation Records ...\n");
       } else if (!std::strncmp(line, "EV", 2)) {
@@ -448,7 +449,7 @@ ids::sp3_details::__Sp3FlagWrapper__ ids::operator|(ids::Sp3Event e1,
   return wf;
 }
 
-/// First reset all Sp3Events (aka all are turned off). Then turn on the 
+/// First reset all Sp3Events (aka all are turned off). Then turn on the
 /// following flags:
 /// * Sp3Event::bad_abscent_position,
 /// * Sp3Event::bad_abscent_clock,
