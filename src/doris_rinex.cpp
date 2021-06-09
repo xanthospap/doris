@@ -2,6 +2,9 @@
 #include "ggdatetime/datetime_read.hpp"
 #include <cctype>
 #include <stdexcept>
+#ifdef DEBUG
+#include "ggdatetime/datetime_write.hpp"
+#endif
 
 /// The constructor will try to:
 /// 1. open the input file
@@ -33,6 +36,7 @@ void ids::DorisObsRinex::read() {
   char line[MAX_RECORD_CHARS];
   RinexDataRecordHeader hdr;
   std::vector<BeaconObservations> obsvec;
+  ngpt::datetime<ngpt::nanoseconds> last_epoch;
 
   while (m_stream && m_stream.getline(line, MAX_RECORD_CHARS)) {
     if (m_stream.eof())
@@ -43,6 +47,10 @@ void ids::DorisObsRinex::read() {
       std::cerr << "\nError: " << status;
       return;
     }
+    hdr.apply_clock_offset();
+    std::cout << "Read Epoch : "<<ngpt::strftime_ymd_hms(hdr.m_epoch) ;
+    std::cout << " diff in seconds: " << hdr.m_epoch.delta_sec(last_epoch).as_underlying_type()/1000000000L << "\n";
+    last_epoch = hdr.m_epoch;
     // std::cout << "\nResolved line: \"" << line << "\"";
     // std::cout << "\n\t" << hdr.m_clock_offset << ", " << hdr.m_num_stations
     //           << ", " << (int)hdr.m_flag << ", " << (int)hdr.m_clock_flag;
@@ -58,24 +66,19 @@ void ids::DorisObsRinex::read() {
 #endif
 
 /// Example:
-/*
-D02  -1581083.623 0   -311553.426 0-110699899.641 1-110699844.180 1 -128.850 5
-         -119.750 5      3080.497         991.000 1         0.000
-1        60.000 1 > 2010 01 01 00 05  5.079948170  0  1        3.770937835 0 D02
--1616313.621 0   -318495.649 0-110700297.293 1-110700121.915 1      -128.150 5
-         -120.450 5      3080.497         991.000 1         0.000
-1        60.000 1
-+---------------------------------------------------------------------------+
-
-* A1,I2 aka [0-3)   Station number e.g. 'D02' Only at first line, else 3X
-* F14.3 aka [3-17)  Observation
-* I1    aka [17-18) flag-m1
-* I2    aka [18-19) flag m2
-if more than 5 measurements then repeat (instead of Station number we have 3X)
-Missing observations are written as 0.0 or blanks.
-
-maximum number of chars per (record) line: 3 + 5*16 = 83
-*/
+/// D21  -1339276.297 0   -263905.449 0 115619271.79511 115619357.25411      -119.750 7
+///          -108.200 7      2149.340         530.000 1       -10.000 1        60.000 1
+/// +---------------------------------------------------------------------------+
+/// 
+/// * A1,I2 aka [0-3)   Station number e.g. 'D02' Only at first line, else 3X
+/// * F14.3 aka [3-17)  Observation
+/// * I1    aka [17-18) flag-m1
+/// * I2    aka [18-19) flag m2
+/// if more than 5 measurements then repeat (instead of Station number we have 3X)
+/// Missing observations are written as 0.0 or blanks.
+/// maximum number of chars per (record) line: 3 + 5*16 = 83
+/// @note Note that the resulting observable values are always scaled using the 
+///       'SYS / SCALE FACTOR' header information (stored in m_obs_scale_factors
 int ids::DorisObsRinex::read_data_block(
     ids::RinexDataRecordHeader &hdr,
     std::vector<BeaconObservations> &obsvec) noexcept {
@@ -130,6 +133,13 @@ int ids::DorisObsRinex::read_data_block(
           return 2;
       }
       // push value to the current BeaconObservations instance (in-place)
+      // WAIT! check if we have a scale factor for the observable (note that
+      // the m_obs_scale_factors are in one-to-one correspondance with the
+      // m_obs_codes vector. Hence, we can find the scale factor simply by the
+      // index of the observable. If no scale factor for the observable exists,
+      // then the m_obs_scale_factors should have an '1' in the corresponding
+      // index
+      val /= m_obs_scale_factors[curobs];
       obsvec_it->m_values.emplace_back(val, flagm1, flagm2);
       ++curobs;
     }
@@ -146,36 +156,36 @@ int ids::DorisObsRinex::read_data_block(
 }
 
 /// Example line:
-/*
-> 2020 01 01 01 41 53.279947800  0  4       -4.432841287 0
-  +-------------------------+-----------+-----------+----+
-  | Record identifier : '>' |  A1       | start:  0 | 1
-  +-------------------------+-----------+-----------+----+
-  | Epoch :                 |           |
-  | - year (4 digits)       | 1X,I4     | start:  1 | 5
-  | - month,day,hour,min    | 4(1X,I2.2)| start:  6 | 12
-  | - sec                   | F13.9     | start: 18 | 13
-  +-------------------------+-----------+-----------+----+
-  |Epoch flag               | 2X,I1     | start: 31 | 3
-  |   0: OK                             |           |
-  |   1: power failure between          |           |
-  |      previous and current epoch     |           |
-  |  >1: Special event                  |           |
-  +-------------------------+-----------+-----------+----+
-  |Number of stations       | I3        | start: 34 | 3
-  |observed in current epoch|           |           |
-  +-------------------------+-----------+-----------+----+
-  |(reserved)               | 6X        | start: 37 | 6
-  +-------------------------+-----------+-----------+----+
-  | Receiver clock offset   | F13.9     | start: 43 | 13
-  | (seconds, optional)     |           |           |
-  +-------------------------+-----------+-----------+----+
-  | Receiver clock offset   |           | start: 56 | 3
-  | flag,                   | 1X,I1,1X  |           |
-  |  - 1 if extrapolated,   |           |           |
-  |  - 0 otherwise          |           | Max length of line = 59 chars
-  +-------------------------+-----------+------------------------------
-*/
+///
+/// > 2020 01 01 01 41 53.279947800  0  4       -4.432841287 0
+///   +-------------------------+-----------+-----------+----+
+///   | Record identifier : '>' |  A1       | start:  0 | 1
+///   +-------------------------+-----------+-----------+----+
+///   | Epoch :                 |           |
+///   | - year (4 digits)       | 1X,I4     | start:  1 | 5
+///   | - month,day,hour,min    | 4(1X,I2.2)| start:  6 | 12
+///   | - sec                   | F13.9     | start: 18 | 13
+///   +-------------------------+-----------+-----------+----+
+///   |Epoch flag               | 2X,I1     | start: 31 | 3
+///   |   0: OK                             |           |
+///   |   1: power failure between          |           |
+///   |      previous and current epoch     |           |
+///   |  >1: Special event                  |           |
+///   +-------------------------+-----------+-----------+----+
+///   |Number of stations       | I3        | start: 34 | 3
+///   |observed in current epoch|           |           |
+///   +-------------------------+-----------+-----------+----+
+///   |(reserved)               | 6X        | start: 37 | 6
+///   +-------------------------+-----------+-----------+----+
+///   | Receiver clock offset   | F13.9     | start: 43 | 13
+///   | (seconds, optional)     |           |           |
+///   +-------------------------+-----------+-----------+----+
+///   | Receiver clock offset   |           | start: 56 | 3
+///   | flag,                   | 1X,I1,1X  |           |
+///   |  - 1 if extrapolated,   |           |           |
+///   |  - 0 otherwise          |           | Max length of line = 59 chars
+///   +-------------------------+-----------+------------------------------
+///
 int ids::DorisObsRinex::resolve_data_epoch(
     const char *line, ids::RinexDataRecordHeader &hdr) const noexcept {
   if (*line != '>')

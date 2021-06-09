@@ -55,6 +55,143 @@
   <body>
 
 <div class="container">
+
+<h2>DORIS RINEX</h2>
+
+<h3>RINEX HEADER</h3>
+<hr>
+
+<h4>L2/L1 DATE OFFSET</h4>
+<p>This parameter gives the delay between:
+<ul>
+  <li>L1 measurement time : 2GHz phase sampling</li>
+  <li>And L2 measurement time : 400MHz phase sampling</li>
+</ul>
+This delay is due to the independence of the two sampling scales. Both sampling scales have an
+elementary schedule of 4 microseconds. This means that this delay is between 0 and 4
+microseconds. It is measured by the instrument and updated for each RINEX file.</p>
+
+<h3>Data Blocks</h3>
+<hr>
+<p>
+<div class="alert alert-secondary" role="alert">
+<pre>
+---------------------------------------------------------------------Record Block 1-
+> 2010 01 01 00 07 55.079948170  0  2        3.770932598 0 
+D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5
+         -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
+D03   -115982.666 1    -22856.030 1 -84642810.433 3 -84642717.499 3      -132.350 7
+         -118.000 7      3080.497         994.000 0         9.000 0        87.000 0
+---------------------------------------------------------------------Record Block 2-
+> 2010 01 01 00 07 58.079948170  0  2        3.770932598 0 
+D02  -3791993.763 0  -4115027.158 0-110696077.257 1-110696598.911 1      -128.150 5
+         -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
+D03   -151447.858 1    -29844.622 1 -84643332.571 3 -84643239.634 3      -132.350 7
+         -118.000 7      3080.497         994.000 0         9.000 0        87.000 0
+</pre></div>
+
+<div class="alert alert-secondary" role="alert">
+<pre>
+---------------------------------------------------------------------Record Block 1-
+> 2010 01 01 00 07 55.079948170  0  2        3.770932598 0                           // Sequence characteristics
+D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5  // First measurement of the sequence
+         -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
+D03   -115982.666 1    -22856.030 1 -84642810.433 3 -84642717.499 3      -132.350 7  // Second measurement of the sequence
+         -118.000 7      3080.497         994.000 0         9.000 0        87.000 0
+</pre></div>
+
+<div class="alert alert-secondary" role="alert">
+<pre>
+> 2010 01 01 00 07 55.079948170  0  2        3.770932598 0
+  --------------[1]------------ [2][3]       ----[4]----[5]
+</pre>
+</div>
+<ul>
+  <li>[1] <u>Epoch</u> L1 measurement time tagging of the sequence measurements, given in the 
+    receiver time scale.</li>
+  <li>[2] <u>Epoch Flag</u> <ul><li>0 : Ok</li><li>1 : measurement not exploitable<li></ul></li>
+  <li>[3] <u>Measurements in Epoch</u> Number of measurements in epoch</li>
+  <li>[4] <u>Receiver Clock Offset</u></li>
+  <li>[5] <u>Receiver Clock Offset Flag</u></li>
+</ul>
+
+<div class="alert alert-warning" role="alert">
+Note: The TAI time tag of L1 of the sequence is determined by the expression:  \( date(TAI) = epoch + receiver\_clock\_offset \) (cf ANN 1)
+</div>
+
+
+<div class="alert alert-secondary" role="alert">
+<pre>
+D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5  // First measurement of the sequence
+         -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
+</pre></div>
+
+<ul>
+  <li>Num (D02) : DORIS station number. In the example, if we look at the header, D01 corresponds to the mnemonic HBMB and the site HARTEBEESTHOEK</li>
+  <li>L1 (-3814236.464) : 2GHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
+  <li>L2 (-4119409.974) : 400MHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
+  Note: these phases are equal to the phases measured by the DORIS instrument with the opposite sign.
+  <li>C1 (-110696404.739) : 2GHz pseudo-range, given in km (F14.3)<ul>
+      <li>1: indicator flags (see DR1)</li></ul></li>
+  <li>C2 (-110696926.407) : 400MHz pseudo-range, given in km (F14.3)<ul>
+      <li>1: indicator flags (see DR1)</li><ul></li>
+  <li>W1 (-128.150) : (F14.3) 2GHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
+  <li>W2 (-122.550) : (F14.3) 400MHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
+  <li>F (3080.497) : (F14.3) relative frequency offset (10 -11 ) (optionally followed by 2 flags on 2 characters, see DR1)</li>
+  <li>P (991.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+  <li>P (0.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+  <li>H (60.000) : (F14.3) humidity (%) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+</ul>
+</p>
+
+<h4>Data Sequencing</h4>
+<hr>
+<p>As already mentioned, there can be two sets of measurements in sequences of 10 seconds,
+the first at T0, the second at T0 + 3s. The dates introduced by the ">" sign therefore indicate
+alternately the date of the first series of a sequence and then the date of the second series of the
+same sequence. In the file given as an example, it must therefore be read:<br>
+Record block 1: first measurements set of the first sequence<br>
+Record block 2: second measurement set of the first sequence<br></p>
+
+<p>It should be noted that both series are not always present. In particular at the start of a pass or
+following a stall due to Doppler collision, the first series (phase measurements at T0) is absent
+because of the time the receiver takes to lock on (or reconnect to) the signal. In this case, the first
+step in the sequence will be at T0 + 3s.</p>
+
+<h4>(ANN 1) RINEX Header Epoch</h4>
+<hr>
+<p>The date (for example: <pre>> 2012 02 26 00 00 27.359947870</pre>) is expressed in the onboard (BT)
+scale. To convert it to the TAI scale, just add the given offset in seconds on the same line, after the
+indicator of the number of measurements.</p>
+
+<p>Example:
+<pre>> 2012 02 26 00 00 27.359947870 0 2     1.497442592 0</pre>
+TAI date of the measurements = 2012 02 26 00 00 27.3599 + 1.49744259247870 = 2012 02 26 00 00
+28.857390462</p>
+
+<p>It should be noted that the first series of measurements in the sequence falls nominally on a TAI date
+whose modulo [10 seconds] = ~ -1.15 seconds (a value better known by the name of nominal time
+shift between onboard and ground time frame).</p>
+
+<p>The flag that follows the offset ("0" in the example above) indicates whether the offset for
+correspondence between BT and TAI is derived from an interpolation ("0") or an extrapolation ("1"). It
+is usually "0" and can be ignored (it does not affect the accuracy of the dating in TAI, which is always,
+and regardless of the method used, to about the nearest microsecond, as this error is dominated by
+the noise of the measurement of pseudo-range).</p>
+
+<h4>Data Accuracy</h4>
+<hr>
+<p>In DORIS RINEX, two dual-frequency phase measurements are delivered every 10 seconds: the first
+at T0, the second at T0 + ~3s. This may be of interest to those who want faster temporal sampling than 1 every 10 seconds.</p>
+
+<p>In RINEX, the measurements are dated to a few microseconds in the TAI scale. This avoids the need
+for users to repeat a BT/UT match.</p>
+
+<p>The DORIS measurement of pseudo-range is not very accurate ~1km at 400MHz and ~5km at 2GHz.
+The phase measurement is more accurate.</p>
+
+<p>Phase measurement is accurate to a few millimetres.</p>
+
 <h2>Observables</h2>
 
 <h3>Phase Observables</h3>

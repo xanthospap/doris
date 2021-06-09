@@ -41,6 +41,12 @@ struct RinexDataRecordHeader {
   int_fast8_t m_flag,
       ///< Receiver clock offset flag, 1 if extrapolated, 0 otherwise
       m_clock_flag;
+  /// @brief Apply the recorded (in RINEX) clock offset to time m_epoch
+  void apply_clock_offset() noexcept {
+    ngpt::nanoseconds off_nsec {static_cast<ngpt::nanoseconds::underlying_type>( 
+      m_clock_offset * ngpt::nanoseconds::sec_factor<double>())};
+    m_epoch.add_seconds(off_nsec);
+  }
 }; // RinexDataRecordHeader
 
 struct RinexObservationValue {

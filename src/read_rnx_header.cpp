@@ -179,8 +179,11 @@ int ids::DorisObsRinex::read_header() noexcept {
       // SYS / SCALE FACTOR; get/fill m_obs_scale_factors
       if (*line != 'D')
         return 141;
-      if (!m_obs_scale_factors.empty())
+      if (!m_obs_scale_factors.empty()) {
+        // that should be empty ... why not ?
+        return 147;
         m_obs_scale_factors.clear();
+      }
       // create a vector of 1's with a size equal to m_obs_codes. the two
       // vectors will have a one-to-one correspondance
       m_obs_scale_factors = std::vector<int>(m_obs_codes.size(), 1);
