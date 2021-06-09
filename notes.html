@@ -74,8 +74,8 @@ microseconds. It is measured by the instrument and updated for each RINEX file.<
 <h3>Data Blocks</h3>
 <hr>
 <p>
-<div class="alert alert-secondary" role="alert">
-<pre>
+  <div class="alert alert-secondary" role="alert">
+  <pre>
 ---------------------------------------------------------------------Record Block 1-
 > 2010 01 01 00 07 55.079948170  0  2        3.770932598 0 
 D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5
@@ -88,60 +88,66 @@ D02  -3791993.763 0  -4115027.158 0-110696077.257 1-110696598.911 1      -128.15
          -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
 D03   -151447.858 1    -29844.622 1 -84643332.571 3 -84643239.634 3      -132.350 7
          -118.000 7      3080.497         994.000 0         9.000 0        87.000 0
-</pre></div>
+  </pre></div>
 
-<div class="alert alert-secondary" role="alert">
-<pre>
+  <div class="alert alert-secondary" role="alert">
+  <pre>
 ---------------------------------------------------------------------Record Block 1-
 > 2010 01 01 00 07 55.079948170  0  2        3.770932598 0                           // Sequence characteristics
 D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5  // First measurement of the sequence
          -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
 D03   -115982.666 1    -22856.030 1 -84642810.433 3 -84642717.499 3      -132.350 7  // Second measurement of the sequence
          -118.000 7      3080.497         994.000 0         9.000 0        87.000 0
-</pre></div>
+  </pre></div>
 
-<div class="alert alert-secondary" role="alert">
-<pre>
+  <div class="alert alert-secondary" role="alert">
+  <pre>
 > 2010 01 01 00 07 55.079948170  0  2        3.770932598 0
   --------------[1]------------ [2][3]       ----[4]----[5]
-</pre>
-</div>
-<ul>
-  <li>[1] <u>Epoch</u> L1 measurement time tagging of the sequence measurements, given in the 
-    receiver time scale.</li>
-  <li>[2] <u>Epoch Flag</u> <ul><li>0 : Ok</li><li>1 : measurement not exploitable<li></ul></li>
-  <li>[3] <u>Measurements in Epoch</u> Number of measurements in epoch</li>
-  <li>[4] <u>Receiver Clock Offset</u></li>
-  <li>[5] <u>Receiver Clock Offset Flag</u></li>
-</ul>
+  </pre>
+  </div>
+  <ul>
+    <li>[1] <u>Epoch</u> L1 measurement time tagging of the sequence measurements, given in the 
+      receiver time scale.</li>
+    <li>[2] <u>Epoch Flag</u> <ul><li>0 : Ok</li><li>1 : measurement not exploitable<li></ul></li>
+    <li>[3] <u>Measurements in Epoch</u> Number of measurements in epoch</li>
+    <li>[4] <u>Receiver Clock Offset</u></li>
+    <li>[5] <u>Receiver Clock Offset Flag</u></li>
+  </ul>
 
-<div class="alert alert-warning" role="alert">
+  <div class="alert alert-warning" role="alert">
 Note: The TAI time tag of L1 of the sequence is determined by the expression:  \( date(TAI) = epoch + receiver\_clock\_offset \) (cf ANN 1)
-</div>
+  </div>
 
 
-<div class="alert alert-secondary" role="alert">
-<pre>
+  <div class="alert alert-secondary" role="alert">
+  <pre>
 D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.150 5  // First measurement of the sequence
          -122.550 5      3080.497         991.000 1         0.000 1        60.000 1
-</pre></div>
+  </pre></div>
 
-<ul>
-  <li>Num (D02) : DORIS station number. In the example, if we look at the header, D01 corresponds to the mnemonic HBMB and the site HARTEBEESTHOEK</li>
-  <li>L1 (-3814236.464) : 2GHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
-  <li>L2 (-4119409.974) : 400MHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
-  Note: these phases are equal to the phases measured by the DORIS instrument with the opposite sign.
-  <li>C1 (-110696404.739) : 2GHz pseudo-range, given in km (F14.3)<ul>
-      <li>1: indicator flags (see DR1)</li></ul></li>
-  <li>C2 (-110696926.407) : 400MHz pseudo-range, given in km (F14.3)<ul>
-      <li>1: indicator flags (see DR1)</li><ul></li>
-  <li>W1 (-128.150) : (F14.3) 2GHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
-  <li>W2 (-122.550) : (F14.3) 400MHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
-  <li>F (3080.497) : (F14.3) relative frequency offset (10 -11 ) (optionally followed by 2 flags on 2 characters, see DR1)</li>
-  <li>P (991.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
-  <li>P (0.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
-  <li>H (60.000) : (F14.3) humidity (%) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
-</ul>
+  <ul>
+    <li>Num (D02) : DORIS station number. In the example, if we look at the header, D01 corresponds to the mnemonic HBMB and the site HARTEBEESTHOEK</li>
+    <li>L1 (-3814236.464) : 2GHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
+    <li>L2 (-4119409.974) : 400MHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
+    Note: these phases are equal to the phases measured by the DORIS instrument with the opposite sign.
+    <li>C1 (-110696404.739) : 2GHz pseudo-range, given in km (F14.3)
+      <ul>
+        <li>1: indicator flags (see DR1)</li>
+      </ul>
+    </li>
+    <li>C2 (-110696926.407) : 400MHz pseudo-range, given in km (F14.3)
+      <ul>
+        <li>1: indicator flags (see DR1)</li>
+      <ul>
+    </li>
+    <li>W1 (-128.150) : (F14.3) 2GHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
+    <li>W2 (-122.550) : (F14.3) 400MHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
+    <li>F (3080.497) : (F14.3) relative frequency offset (10 -11 ) (optionally followed by 2 flags on 2 characters, see DR1)</li>
+    <li>P (991.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+    <li>P (0.000) : (F14.3) atmospheric pressure (100 Pa) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+    <li>H (60.000) : (F14.3) humidity (%) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
+  </ul>
 </p>
 
 <h4>Data Sequencing</h4>
@@ -178,6 +184,8 @@ correspondence between BT and TAI is derived from an interpolation ("0") or an e
 is usually "0" and can be ignored (it does not affect the accuracy of the dating in TAI, which is always,
 and regardless of the method used, to about the nearest microsecond, as this error is dominated by
 the noise of the measurement of pseudo-range).</p>
+
+<p><u>Summary</u>Thefirst part of the date (year, month, day, hour, minute, sec-ond) is given in the on-board time scale (proper time of theinstrument), and the conversion to the TAI time scale isobtained by adding the field containing the receiver clock-offset.</p>
 
 <h4>Data Accuracy</h4>
 <hr>
