@@ -57,6 +57,17 @@
 <div class="container">
 
 <h2>DORIS RINEX</h2>
+<hr>
+
+<h3>General</h3>
+<hr>
+<p>Depending on the version of the RINEX ﬁle, this receiver clock oﬀset can be either computed on-board 
+by the DORIS-DIODE or through a post-processing performed with a software
+called "PANDOR". In the ﬁrst case (DIODE time-tagging) the ﬁle names end with 
+".001", in the second casev(PANDOR time-tagging) they end with ".010" on the IDS
+Data Centers. The only diﬀerences between the two versions are the value of thev
+\( \tau_{r_offset} \) ﬁeld and the label of the "OBSERVER" ﬁeld in the header: 
+"STILO_" for DIODE, "PANDOR" for PANDOR [<a href="#lemoine_2016">1</a>].
 
 <h3>RINEX HEADER</h3>
 <hr>
@@ -128,9 +139,8 @@ D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.15
 
   <ul>
     <li>Num (D02) : DORIS station number. In the example, if we look at the header, D01 corresponds to the mnemonic HBMB and the site HARTEBEESTHOEK</li>
-    <li>L1 (-3814236.464) : 2GHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
-    <li>L2 (-4119409.974) : 400MHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
-    Note: these phases are equal to the phases measured by the DORIS instrument with the opposite sign.
+    <li>L1<sup><a href="#phase_note">1</a></sup> (-3814236.464) : 2GHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
+    <li>L2<sup><a href="#phase_note">1</a></sup> (-4119409.974) : 400MHz phase measurement, given in full cycles (F14.3) (optionally followed by 2 flags on 2 characters)</li>
     <li>C1 (-110696404.739) : 2GHz pseudo-range, given in km (F14.3)
       <ul>
         <li>1: indicator flags (see DR1)</li>
@@ -139,7 +149,7 @@ D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.15
     <li>C2 (-110696926.407) : 400MHz pseudo-range, given in km (F14.3)
       <ul>
         <li>1: indicator flags (see DR1)</li>
-      <ul>
+      </ul>
     </li>
     <li>W1 (-128.150) : (F14.3) 2GHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
     <li>W2 (-122.550) : (F14.3) 400MHz power received (dBm) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 5</li>
@@ -149,6 +159,7 @@ D02  -3814236.464 0  -4119409.974 0-110696404.739 1-110696926.407 1      -128.15
     <li>H (60.000) : (F14.3) humidity (%) (optionally followed by 2 flags on 2 characters, see DR1): here flag = 1</li>
   </ul>
 </p>
+<p id="phases_note"><sup>1</sup> Note: these phases are equal to the phases measured by the DORIS instrument with the opposite sign.</p>
 
 <h4>Data Sequencing</h4>
 <hr>
@@ -438,6 +449,12 @@ The term \(\frac{\Phi_r}{f}\) is proportional to the measured reception time \( 
 which is directly the receiver measurement time present in the RINEX file. Using this corrected 
 \(Q_{corr}\) expression for the phase measurement, the shifted frequency beacons can be processed 
 in the same way as all the other beacons.</p>
+
+<h2>Bibliography</h2>
+<hr>
+<ul>
+  <li id="lemoine_2016">[1] J-M Lemoine, H. Capdeville, L. Soudarin, Precise orbit determination and station position estimation using DORIS RINEX data, Advances in Space Research, Volume 58, Issue 12, 15 December 2016, Pages 2677-2690</li>
+</ul>
 
  </div>
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
