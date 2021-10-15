@@ -1,0 +1,36 @@
+\documentclass{beamer}
+
+\usepackage{hyperref}
+
+%Information to be included in the title page:
+\title{Sample title}
+\author{Anonymous}
+\institute{Overleaf}
+\date{2021}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Sample frame title}
+This is some text in the first frame. This is some text in the first frame. This is some text in the first frame.
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{SV coordinates}
+    Extract satellite coordinates (or bettter yet state vector) from Sp3 files 
+    using some kind of interpolation.\\
+    \vspace{.3cm}
+    
+    At this point use polynomial interpolation using a (slightly modified) Neville's \citet{numrec3}
+    method.\\
+    \vspace{.3cm}
+    
+    Functions for reading/parsing Sp3 files are included in \href{https://github.com/xanthospap/sp3}{sp3}
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Station/Beacon coordinates}
+    Extract station coordinates in ITRF2014
+\end{frame}
+
+\end{document}
