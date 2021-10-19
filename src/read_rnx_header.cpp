@@ -168,7 +168,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       if (std::strncmp(line + 48, "DOR", 3))
         return 121;
       try {
-        m_time_of_first_obs = ngpt::strptime_ymd_hms<ngpt::nanoseconds>(line);
+        m_time_of_first_obs = dso::strptime_ymd_hms<dso::nanoseconds>(line);
       } catch (std::exception &e) {
         return 122;
       }
@@ -288,7 +288,7 @@ int ids::DorisObsRinex::read_header() noexcept {
                              18)) { // Code: 200
       // TIME REF STAT DATE; get m_time_ref_stat (err. code 200)
       try {
-        m_time_ref_stat = ngpt::strptime_ymd_hms<ngpt::nanoseconds>(line);
+        m_time_ref_stat = dso::strptime_ymd_hms<dso::nanoseconds>(line);
       } catch (std::exception &e) {
         return 201;
       }

@@ -32,7 +32,7 @@ struct TimeReferenceStation {
 /// @see RINEX DORIS 3.0 (Issue 1.7)
 struct RinexDataRecordHeader {
   /// reference data record epoch
-  ngpt::datetime<ngpt::nanoseconds> m_epoch;
+  dso::datetime<dso::nanoseconds> m_epoch;
   /// Receiver clock offset in seconds (optional)
   double m_clock_offset{RECEIVER_CLOCK_OFFSET_MISSING};
   ///< Number of stations observed in current epoch
@@ -43,8 +43,8 @@ struct RinexDataRecordHeader {
       m_clock_flag;
   /// @brief Apply the recorded (in RINEX) clock offset to time m_epoch
   void apply_clock_offset() noexcept {
-    ngpt::nanoseconds off_nsec {static_cast<ngpt::nanoseconds::underlying_type>( 
-      m_clock_offset * ngpt::nanoseconds::sec_factor<double>())};
+    dso::nanoseconds off_nsec {static_cast<dso::nanoseconds::underlying_type>( 
+      m_clock_offset * dso::nanoseconds::sec_factor<double>())};
     m_epoch.add_seconds(off_nsec);
   }
 }; // RinexDataRecordHeader
@@ -128,11 +128,11 @@ private:
   /// the same size with a one-to-one correspondance
   std::vector<int> m_obs_scale_factors;
   /// Datetime of first observation in RINEX
-  ngpt::datetime<ngpt::nanoseconds> m_time_of_first_obs;
+  dso::datetime<dso::nanoseconds> m_time_of_first_obs;
   /// This date corresponds to the day of the first measurement performed on
   /// the first time reference beacon in the DORIS RINEX product, at
   /// 00h 00mn 00s.
-  ngpt::datetime<ngpt::nanoseconds> m_time_ref_stat;
+  dso::datetime<dso::nanoseconds> m_time_ref_stat;
   /// Constant shift between the date of the 400MHz phase measurement and the
   /// date of the 2GHz phase measurement in microseconds
   double m_l12_date_offset;

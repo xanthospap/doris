@@ -17,7 +17,7 @@ int main() {
   int d1_out_of_bounds, d2_out_of_bounds;
   printf("Zenith      Alcatel_1  Alcatel_2  Starec_1  Starec_2\n");
   for (double zenith = 0e0; zenith <= 90e0; zenith += 0.3e0) {
-    double zrad = ngpt::deg2rad<double>(zenith);
+    double zrad = dso::deg2rad<double>(zenith);
     double alc1 = AntennaOffset<GroundAntennaType::Alcatel, 1>::pcv(
         zrad, d1_out_of_bounds);
     double alc2 = AntennaOffset<GroundAntennaType::Alcatel, 2>::pcv(

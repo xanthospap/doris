@@ -36,7 +36,7 @@ void ids::DorisObsRinex::read() {
   char line[MAX_RECORD_CHARS];
   RinexDataRecordHeader hdr;
   std::vector<BeaconObservations> obsvec;
-  ngpt::datetime<ngpt::nanoseconds> last_epoch;
+  dso::datetime<dso::nanoseconds> last_epoch;
 
   while (m_stream && m_stream.getline(line, MAX_RECORD_CHARS)) {
     if (m_stream.eof())
@@ -48,7 +48,7 @@ void ids::DorisObsRinex::read() {
       return;
     }
     hdr.apply_clock_offset();
-    std::cout << "Read Epoch : "<<ngpt::strftime_ymd_hms(hdr.m_epoch) ;
+    std::cout << "Read Epoch : "<<dso::strftime_ymd_hms(hdr.m_epoch) ;
     std::cout << " diff in seconds: " << hdr.m_epoch.delta_sec(last_epoch).as_underlying_type()/1000000000L << "\n";
     last_epoch = hdr.m_epoch;
     // std::cout << "\nResolved line: \"" << line << "\"";
@@ -195,7 +195,7 @@ int ids::DorisObsRinex::resolve_data_epoch(
   int status = 0;
 
   try {
-    hdr.m_epoch = ngpt::strptime_ymd_hms<ngpt::nanoseconds>(line + 2, &end);
+    hdr.m_epoch = dso::strptime_ymd_hms<dso::nanoseconds>(line + 2, &end);
   } catch (std::exception &e) {
     status = status ? status : 2;
   }
