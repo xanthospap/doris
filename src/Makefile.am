@@ -9,19 +9,19 @@ lib_LTLIBRARIES = libcppdoris.la
 ## ----------------------------------------------------
 ##
 libcppdoris_la_CXXFLAGS = \
--std=c++17 \
--g \
--pg \
--Wall \
--Wextra \
--Werror \
--pedantic \
--W \
--Wshadow \
--Winline \
--Wdisabled-optimization \
--march=native \
--DDEBUG
+  -std=c++17 \
+  -g \
+  -pg \
+  -Wall \
+  -Wextra \
+  -Werror \
+  -pedantic \
+  -W \
+  -Wshadow \
+  -Winline \
+  -Wdisabled-optimization \
+  -march=native \
+  -DDEBUG
 
 ##
 ##  Header files (distributed) installed in /$(includedir)/$(package name).
@@ -39,4 +39,5 @@ pkginclude_HEADERS = \
 dist_libcppdoris_la_SOURCES = \
   doris_system_info.cpp \
   read_rnx_header.cpp \
-  doris_rinex.cpp
+  doris_rinex.cpp \
+  extract_doppler_count.cpp

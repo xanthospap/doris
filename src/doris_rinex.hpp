@@ -207,6 +207,8 @@ public:
   ///                start of the data block.
   void skip_data_block(const RinexDataRecordHeader &hdr) noexcept;
 
+  int get_doppler_counts() noexcept;
+
 #ifdef DEBUG
   void read();
 #endif
