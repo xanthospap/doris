@@ -20,18 +20,20 @@ int compute_ndop(const std::vector<ids::BeaconObservations> &obsvec,
     newid = newobs.m_beacon_id;
 
     auto it = std::find_if(data.begin(), data.end(),
-        [&](const BeaconObservationData &bod) noexcept {
-        return !std::strcmp(bod.obs.m_beacon_id, newid);
-        });
-    if (it == data.end()) return 1;
+                           [&](const BeaconObservationData &bod) noexcept {
+                             return !std::strcmp(bod.obs.m_beacon_id, newid);
+                           });
+    if (it != data.end()) {
+      double dl1 = newobs.m_values[0].m_value - it->obs.m_values[0].m_value;
+      double dl2 = newobs.m_values[1].m_value - it->obs.m_values[1].m_value;
+      // double dsec = (t.as_undelying_type() - it->t.as_underlying_type()) *
+      // dso::nanoseconds::sec_factor<double>();
+      auto tdsec = t.delta_sec(it->t);
+      double dsec = static_cast<double>(tdsec.as_underlying_type()) /
+                    dso::nanoseconds::sec_factor<double>();
 
-    double dl1 = newobs.m_values[0].m_value - it->obs.m_values[0].m_value;
-    double dl2 = newobs.m_values[1].m_value - it->obs.m_values[1].m_value;
-    // double dsec = (t.as_undelying_type() - it->t.as_underlying_type()) * dso::nanoseconds::sec_factor<double>();
-    auto tdsec = t.delta_sec(it->t);
-    double dsec = static_cast<double>(tdsec.as_underlying_type()) / dso::nanoseconds::sec_factor<double>();
-
-    printf("%s %.5f %.5f %.7f\n", newid, dl1, dl2, dsec);
+      printf("%s %.5f %.5f %.7f\n", newid, dl1, dl2, dsec);
+    }
   }
 
   return 0;
@@ -114,9 +116,6 @@ int ids::DorisObsRinex::get_doppler_counts() noexcept {
   // update latest data for beacons
   update(obsvec, hdr.m_epoch, latest_data);
 
-  // l1_ref = ref_obsvec.m_values[l1_idx].m_value;
-  // l2_ref = ref_obsvec.m_values[l2_idx].m_value;
-
   while (m_stream.getline(line, MAX_RECORD_CHARS)) {
     
     // resolve data block header ...
@@ -131,14 +130,8 @@ int ids::DorisObsRinex::get_doppler_counts() noexcept {
       return 3;
     }
   
-    // l1_nxt = nxt_obsvec.m_values[l1_idx].m_value;
-    // l2_nxt = nxt_obsvec.m_values[l2_idx].m_value;
-
-    // // compute the Doppler count in L1 and L2
-    // double ndpo_l1 = next_obsvec.m_values[l1_idx].m_value - l1_ref;
-    // double ndpo_l2 = next_obsvec.m_values[l2_idx].m_value - l2_ref;
-
-    // compute Doppler ...
+    // compute Doppler counts for each beacon (if a previous observation is 
+    // preseent)
     if (compute_ndop(obsvec, hdr.m_epoch, latest_data)) {
       fprintf(stderr,"[ERROR] Failed computing ndop (traceback: %s)\n", __func__);
       return 5;
