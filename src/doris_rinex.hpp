@@ -3,7 +3,6 @@
 
 #include "doris_system_info.hpp"
 #include "ggdatetime/dtcalendar.hpp"
-#include "ggdatetime/dtfund.hpp"
 #include <fstream>
 #include <vector>
 
@@ -208,6 +207,10 @@ public:
   void skip_data_block(const RinexDataRecordHeader &hdr) noexcept;
 
   int get_doppler_counts() noexcept;
+
+  std::vector<BeaconStation> stations() const noexcept { return m_stations; }
+
+  auto ref_datetime() const noexcept { return m_time_ref_stat;}
 
 #ifdef DEBUG
   void read();

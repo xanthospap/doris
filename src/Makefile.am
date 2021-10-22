@@ -30,7 +30,8 @@ libcppdoris_la_CXXFLAGS = \
 pkginclude_HEADERS = \
   doris_system_info.hpp \
   doris_rinex.hpp \
-  antenna_pcv.hpp
+  antenna_pcv.hpp \
+  doris_utils.hpp
 
 ##
 ##  Source files (distributed).
@@ -40,4 +41,5 @@ dist_libcppdoris_la_SOURCES = \
   doris_system_info.cpp \
   read_rnx_header.cpp \
   doris_rinex.cpp \
-  extract_doppler_count.cpp
+  extract_doppler_count.cpp \
+  get_pdop_crd.cpp

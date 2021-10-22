@@ -26,13 +26,11 @@ int compute_ndop(const std::vector<ids::BeaconObservations> &obsvec,
     if (it != data.end()) {
       double dl1 = newobs.m_values[0].m_value - it->obs.m_values[0].m_value;
       double dl2 = newobs.m_values[1].m_value - it->obs.m_values[1].m_value;
-      // double dsec = (t.as_undelying_type() - it->t.as_underlying_type()) *
-      // dso::nanoseconds::sec_factor<double>();
       auto tdsec = t.delta_sec(it->t);
       double dsec = static_cast<double>(tdsec.as_underlying_type()) /
                     dso::nanoseconds::sec_factor<double>();
 
-      printf("%s %.5f %.5f %.7f\n", newid, dl1, dl2, dsec);
+      printf("%s %.5f %.5f %.5f %.7f\n", newid, t.as_mjd(), dl1, dl2, dsec);
     }
   }
 
