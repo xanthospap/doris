@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libcppdoris.la
 ## ----------------------------------------------------
 ##
 libcppdoris_la_CXXFLAGS = \
-  -std=c++17 \
+  -std=c++20 \
   -g \
   -pg \
   -Wall \

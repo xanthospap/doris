@@ -1,0 +1,89 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\graphicspath{ {./figures/} }
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{imakeidx} % for index
+\makeindex[columns=3, title=Alphabetical Index]
+\usepackage{soul} % allow wrapping of underlined text, via \ul{...}
+\usepackage{natbib} % for bibliography
+\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
+\usepackage{tikz} % add a few drawings ...
+\usetikzlibrary{shapes.geometric, arrows} % for creating tikz flowcharts 
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\usepackage{listings} % include source code files
+% Solarized colour scheme for listings
+\definecolor{solarized@base03}{HTML}{002B36}
+\definecolor{solarized@base02}{HTML}{073642}
+\definecolor{solarized@base01}{HTML}{586e75}
+\definecolor{solarized@base00}{HTML}{657b83}
+\definecolor{solarized@base0}{HTML}{839496}
+\definecolor{solarized@base1}{HTML}{93a1a1}
+\definecolor{solarized@base2}{HTML}{EEE8D5}
+\definecolor{solarized@base3}{HTML}{FDF6E3}
+\definecolor{solarized@yellow}{HTML}{B58900}
+\definecolor{solarized@orange}{HTML}{CB4B16}
+\definecolor{solarized@red}{HTML}{DC322F}
+\definecolor{solarized@magenta}{HTML}{D33682}
+\definecolor{solarized@violet}{HTML}{6C71C4}
+\definecolor{solarized@blue}{HTML}{268BD2}
+\definecolor{solarized@cyan}{HTML}{2AA198}
+\definecolor{solarized@green}{HTML}{859900}
+
+% Define C++ syntax highlighting colour scheme
+\lstset{language=C++,
+        basicstyle=\footnotesize\ttfamily,
+        numbers=left,
+        numberstyle=\tiny,
+        tabsize=2,
+        breaklines=true,
+        escapeinside={@}{@},
+        numberstyle=\tiny\color{solarized@base01},
+        keywordstyle=\color{solarized@green},
+        stringstyle=\color{solarized@cyan}\ttfamily,
+        identifierstyle=\color{solarized@blue},
+        commentstyle=\color{solarized@base01},
+        emphstyle=\color{solarized@red},
+        frame=single,
+        rulecolor=\color{solarized@base2},
+        rulesepcolor=\color{solarized@base2},
+        showstringspaces=false
+}
+
+% include the external source file, instead of pasting its contents directly 
+% into the LaTeX documen
+\newcommand{\codelst}[1]{\lstinputlisting[caption=\texttt{\protect\detokenize{#1}}]{#1}\newpage}
+
+% augment the paragraph skip ... a bit more clear text
+\setlength{\parskip}{1em}
+
+\bibliographystyle{plainnat}
+
+\title{PhD Memo and Notes}
+\author{Xanthos}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\end{titlepage}
+
+%\frontmatter
+\tableofcontents
+\listoffigures
+\listoftables
+
+\include{chapters/station_coordinates}
+
+\bibliography{doris}
+
+\printindex
+
+\end{document}

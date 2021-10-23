@@ -58,18 +58,13 @@ int ids::extrapolate_sinex_coordinates(
     const char *snx_fn, char **station_ids, int num_stations,
     const dso::datetime<dso::microseconds> &t) noexcept {
   
-  printf(">> Instanciating SINEX file");
-  printf(" in function %s\n", __func__);
-
   // initialize the sinex instance
   dso::Sinex snx(snx_fn);
-  printf(">> SINEX file instanciated! Blocks parsed first run!\n");
 
   // a vector of SiteId to hold results
   std::vector<dso::sinex::SiteId> site_vec;
 
   // parse the block SITE/ID to collect info for the given sites
-  printf(">> parsing SINEX block SITE/ID ...");
   int error = snx.parse_block_site_id(site_vec, num_stations, station_ids);
   if (error || (int)site_vec.size() != num_stations) {
     fprintf(stderr,
@@ -78,13 +73,11 @@ int ids::extrapolate_sinex_coordinates(
             snx.filename().c_str(), __func__);
     return 1;
   }
-  printf(" block parsed!\n");
 
   // first declare a vector of SolutionEstimate to hold results
   std::vector<dso::sinex::SolutionEstimate> est_vec;
 
   // get the solution estimates for the sites
-  printf(">> parsing SINEX block SOLUTION/ESTIMATE ...");
   error = snx.parse_block_solution_estimate(est_vec, site_vec);
   if (error || (int)est_vec.size() < num_stations * 6) {
     fprintf(stderr,
@@ -94,12 +87,10 @@ int ids::extrapolate_sinex_coordinates(
             snx.filename().c_str(), __func__);
     return 1;
   }
-  printf(" block parsed!\n");
 
   // for each of the stations, extrapolate the coordinate estimates per
   // component
   double pos[3];
-  printf(">> extrapolating coordinates ...\n");
   for (int i = 0; i < num_stations; i++) {
     const char *sid = station_ids[i];
     if (extrapolate_coordinates(sid, est_vec, t, pos)) {

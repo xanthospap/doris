@@ -1,7 +1,7 @@
 noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation
 
 MCXXFLAGS = \
-  -std=c++17 \
+  -std=c++20 \
   -g \
   -pg \
   -Wno-unused-variable \
