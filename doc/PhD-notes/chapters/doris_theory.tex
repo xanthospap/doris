@@ -1,0 +1,154 @@
+\chapter{DORIS System Theoretical Implications}
+\label{ch:doris-theory}
+
+\section{Theoretical Model of Doppler Observations}
+According to \cite{lemoine-2016}, we define four basic events:
+\begin{enumerate}
+    \item beginning of emission of the 1\textsubscript{st} cycle by the emitter, 
+    \(\tau_{e1}\) in the proper time scale of the emitter and \(t_1\) in the coordinate 
+    time
+    
+    \item beginning of reception of the the 1\textsubscript{st} cycle by the receiver, 
+    \(\tau_{r1'}\) in the proper time scale of the receiver and 
+    \(t_{1'}\) in the coordinate time
+
+    \item end of emission of the N\textsubscript{th} cycle by the emitter, 
+    \(\tau_{e2}\) in the proper time scale of the emitter and \(t_2\) in the coordinate 
+    time
+    
+    \item end of reception of the N\textsubscript{th} cycle by the receiver, 
+    \(\tau_{r2'}\) in the proper time scale of the receiver and 
+    \(t_{2'}\) in the coordinate time
+\end{enumerate}
+
+During the proper time interval \(\Delta\tau_{r} = \tau_{r2'} - \tau_{r1'}\), 
+the receiver has received the \(N_e\) cycles sent by the emitter, with \(N_e = f_e \Delta\tau_e\), 
+\(f_e\) being the proper frequency of the emitter. The receiver is also equipped with
+an oscilator and during the proper time interval \(\Delta\tau_{r}\) has generated 
+a number \(N_r = f_r \Delta\tau_r\) of cycles, \(f_r\) being the proper frequency of the 
+receiver.
+
+The Doppler measurement is the count, by the receiver electronics, of the number 
+of cycles of difference between \(N_e\) and \(N_r\):
+\begin{equation}
+    \begin{split}
+    N_{DOP} & = N_e - N_r\\
+            & = f_e \Delta\tau_e - f_r \Delta\tau_r
+    \end{split}
+\end{equation}
+
+\emph{In the RINEX files, this Doppler count is the difference between two phase measurements 
+done at different time tags in the proper time-scale of the receiver.}
+
+After a series of assumptions and simplifications, we can derive the theoretical 
+formula for the Doppler count \cite{lemoine-2016}:
+\begin{equation}
+    \begin{split}
+        \frac{c}{f_e \Delta\tau_r} N_{DOP} & \approx c \frac{f_e - f_r}{f_e} \\
+        & - (1 - \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) \frac{\rho_2 - \rho_1}{\Delta\tau_r}\\
+        & + \frac{1}{c} (U_r - U_e + \frac{{V_r}^2 - {V_e}^2}{2}) \\
+        & + \frac{2 \mu}{c^2 \Delta\tau_r} [\ln{(\frac{R_1 + R_{1'} + \rho_1}{R_1 + R_{1'} - \rho_1})} - \ln{(\frac{R_2 + R_{2'} + \rho_2}{R_2 + R_{2'} - \rho_2})}]
+    \end{split}
+\end{equation}
+
+where \(U\) is the gravitational potential, \(V\) is the velocity of the clock, \(R\) 
+is the geometric distance and \(\rho\) is the curvlinear trajectory (of the photon(s)).
+
+The above equation can be (arbitrarily) split into two parts, one containing the ``measured'' 
+quantities and one with the ``theoretical'' terms, as \cite{lemoine-2016}:
+\begin{equation}
+    \label{eq:lem12}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{c}{f_e} (f_e - f_r -
+         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} \\
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2})
+    \end{aligned}
+\right\}
+\end{equation}
+
+with
+\begin{equation}
+    \begin{split}
+        \Delta u_{REL} &= \frac{1}{c} (U_r - U_e + \frac{{V_r}^2 - {V_e}^2}{2}) \\
+        & + \frac{2 \mu}{c^2 \Delta\tau_r} [\ln{(\frac{R_1 + R_{1'} + \rho_1}{R_1 + R_{1'} - \rho_1})} - \ln{(\frac{R_2 + R_{2'} + \rho_2}{R_2 + R_{2'} - \rho_2})}]
+    \end{split}
+\end{equation}
+
+We now need to introduce some additional corrections:
+\(\Delta u_{IONO}\) and \(\Delta u_{TROPO}\), are the propagation corrections of 
+the radio electric signal through the ionosphere and troposphere respectively. 
+
+Additionaly, in the actual case (measurements), the nominal frequencies \(f_e\) and \(f_r\) 
+are not the ``true'' ones; we hence need to apply a relative correction (e.g. for the 
+emmiter) \(f_{eT} = f_{eN} (1 + \frac{\Delta f_e}{f_{eN}})\), where the subscript \(T\) 
+denotes the ``True'' frequency and \(N\) the nominal one. Thus in \ref{eq:lem12} the 
+terms \(f_e\) and \(f_r\) need to be substituted by \(f_{eT}\) and \(f_{rT}\) respectively.
+
+We will place \(\Delta u_{IONO}\) and \(\Delta u_{REL}\) (which do not involve adjusted parameters) 
+on the ``measured'' part of \ref{eq:lem12} and \(\Delta u_{TROPO}\) and \(\frac{\Delta f_e}{f_{eN}}\) 
+on the ``theoretical'' part; neglecting some minor terms, we reach the equation \cite{lemoine-2016}:
+\begin{equation}
+    \label{eq:lem13}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{c}{f_{eN}} (f_{eN} - f_{rT} -
+         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + \Delta u_{IONO}\\
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{rT})}{f_{eN}} \frac{\Delta f_e}{f_{eN}}
+    \end{aligned}
+\right\}
+\end{equation}
+
+where 
+\begin{itemize}
+    \item \(u_{measured}\) is the measured relative velocity between the emitter and 
+    the receiver between the events 1' and 2', based on the Doppler count \(N_{DOP}\), 
+    corrected for the ionospheric and relativistic effects.
+
+    \item \(u_{theo}\) is the the theoretical (computed) emitter/receiver relative velocity 
+    between the events 1' and 2', corrected for the tropospheric effect and for a solved-for 
+    frequency bias \(\frac{\Delta f_e}{f_{eN}}\) of the emitter. \(f_{rT} = f_{rN} (1 + \frac{\Delta f_r}{f_{rN}})\) 
+    is an estimate of the proper frequency of the receiver.
+
+    \item \(\Delta u_{REL} = \Delta u_{{REL}_c} + \Delta u_{{REL}_r}\) is the relativistic 
+    correction, composed of two parts: the clock correction \(\Delta u_{{REL}_c}\) and the 
+    travel correction \(\Delta u_{{REL}_r}\)
+    \begin{equation}
+        \left.\begin{aligned}
+            \Delta u_{{REL}_c} & = \frac{1}{c} (U_r - U_e + \frac{{V_r}^2 - {V_e}^2}{2})\\
+            \Delta u_{{REL}_r} & = \frac{2 \mu}{c^2 \Delta\tau_r} [\ln{(\frac{R_1 + R_{1'} + \rho_1}{R_1 + R_{1'} - \rho_1})} - \ln{(\frac{R_2 + R_{2'} + \rho_2}{R_2 + R_{2'} - \rho_2})}]
+        \end{aligned}
+    \right\}
+    \end{equation}
+\end{itemize}
+
+\emph{Usually, one frequency offset and one tropospheric zenithal bias are adjusted per pass.}
+
+\section{Implementation of the Doppler Observation Model}
+
+\subsection{Correction of Aberration}
+
+\subsection{Geopotential}
+For a station on the geoid, the potential at the level of the station is the sum 
+of the gravitational potential and the centrifugal potential due to the Earth's 
+rotation: \(U_{GEO} = U_e + \frac{{V_e}^2}{2}\), which is a constant. For a station 
+not located on the geoid, the quantity \(U_e + \frac{{V_e}^2}{2}\) will only depend 
+on the height of the beacon above the geoid.
+
+For the computation of the gravitational potential for Low Earth Orbit (LEO) satellites, 
+the pottential \(U_r\) cannot be restricted to the central term only and we must 
+take into account the \(J_2\) term (at least, in addition to \(\mu / r\). The formula 
+for the computation of the potential in this case is \cite{lemoine-2016}:
+\begin{equation}
+    U_r = \frac{\mu}{r} (1-{\frac{\alpha_e}{r}}^2 J_2 \frac{3 sin^2(\phi) - 1}{2})
+\end{equation}
+with \(\alpha_e\) the equatorial radious of the earth, \(r\) radial distance of the 
+satellite (to the Earth's center), \(\phi\) latitude of the satellite and \(J_2 = 1.0826359 \dot 10^{-3}\) 
+in the zero-tide system.
+
+\subsection{True Proper Frequency of the Receiver}
+\label{ssec:true-proprtfrequency-of-the-receiver}
+
+Fot the term \(f_{rT}\) that appears in \ref{eq:lem13}, we need an estimate of \(\Delta f_{r} / f_{rN}\). 
+This estimate can be obtained in one of the following ways \cite{lemoine-2012}:
+\begin{enumerate}
+    \item via the field ``F'' recorded for every single measurement in the DORIS RINEX file (see \ref{ssec:relative-frequency-offset})
+\end{enumerate}
