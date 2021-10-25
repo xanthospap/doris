@@ -147,8 +147,19 @@ in the zero-tide system.
 \subsection{True Proper Frequency of the Receiver}
 \label{ssec:true-proprtfrequency-of-the-receiver}
 
-Fot the term \(f_{rT}\) that appears in \ref{eq:lem13}, we need an estimate of \(\Delta f_{r} / f_{rN}\). 
-This estimate can be obtained in one of the following ways \cite{lemoine-2012}:
+For the term \(f_{rT}\) that appears in \ref{eq:lem13}, we need an estimate of \(\Delta f_{r} / f_{rN}\). 
+This estimate can be obtained in one of the following ways \cite{lemoine-2016}:
 \begin{enumerate}
-    \item via the field ``F'' recorded for every single measurement in the DORIS RINEX file (see \ref{ssec:relative-frequency-offset})
+    \item via the field ``F'' recorded for every single measurement in the DORIS 
+    RINEX file (see \ref{ssec:relative-frequency-offset}); not that this estimation 
+    is not very smooth, as noticed by \cite{GAO2015} and it is advisable, before 
+    using it in \ref{eq:lem13}, to perform a linear (or polynomial) regression of 
+    these estimates over one or a few days.
+
+    \item It can also be obtained from a polynomial regression
+    over the frequency oﬀsets estimated during the passes
+    over the master beacons
+
+    \item It can ﬁnally be estimated by the users themselves as a
+    by-product of their re-computation of the timetagging polynomial (see \cite{MERCIER2010})
 \end{enumerate}

@@ -76,6 +76,9 @@ public:
   /// @throw std::runtime_error if the passed-in frequency is not valid.
   ObservationCode(ObservationType type, int_fast8_t freq = 0);
 
+  /// @brief get the ObservationType
+  auto type() const noexcept { return m_type; }
+
   /// @brief Equality comparisson; checks both ObservationType and frequency.
   bool operator==(const ObservationCode &oc) const noexcept {
     return m_type == oc.m_type && m_freq == oc.m_freq;

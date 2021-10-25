@@ -212,6 +212,10 @@ public:
 
   auto ref_datetime() const noexcept { return m_time_ref_stat;}
 
+  std::ifstream& stream() noexcept { return m_stream; }
+
+  std::vector<ObservationCode> observation_codes() const noexcept { return m_obs_codes;}
+
 #ifdef DEBUG
   void read();
 #endif
