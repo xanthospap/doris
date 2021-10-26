@@ -155,16 +155,6 @@ private:
   /// @brief read and resolve a RINEX header record.
   int read_header() noexcept;
 
-  /// @brief Given a data record header line, resolve it to a
-  ///        RinexDataRecordHeader instance.
-  /// @param[in]  line A RINEX data record header line
-  /// @param[out] hdr A RinexDataRecordHeader; at output it will hold the info
-  ///             resolved from the input line.
-  /// @return Anything other than 0 denotes an error; in this case, the hdr
-  ///         instance may hold erronuous values and should not be used.
-  int resolve_data_epoch(const char *line,
-                         RinexDataRecordHeader &hdr) const noexcept;
-
 public:
   /// @brief Constructor from filename
   explicit DorisObsRinex(const char *);
@@ -185,6 +175,16 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
+  
+  /// @brief Given a data record header line, resolve it to a
+  ///        RinexDataRecordHeader instance.
+  /// @param[in]  line A RINEX data record header line
+  /// @param[out] hdr A RinexDataRecordHeader; at output it will hold the info
+  ///             resolved from the input line.
+  /// @return Anything other than 0 denotes an error; in this case, the hdr
+  ///         instance may hold erronuous values and should not be used.
+  int resolve_data_epoch(const char *line,
+                         RinexDataRecordHeader &hdr) const noexcept;
 
   /// @brief Read next RINEX data block
   /// @param[in] hdr A RinexDataRecordHeader; the data header record (that
@@ -220,6 +220,8 @@ public:
   void read();
 #endif
 }; // DorisObsRinex
+
+int fit_relative_frequency_offset(char **rinex_fn, int num_rinex) noexcept;
 
 } // namespace ids
 

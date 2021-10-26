@@ -1,4 +1,4 @@
-noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation
+noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation testRinexRfoFit
 
 MCXXFLAGS = \
   -std=c++20 \
@@ -32,3 +32,7 @@ testAntennaPcv_LDADD     = $(top_srcdir)/src/libcppdoris.la
 testDpodExtrapolation_SOURCES   = test_pdop_crd.cc
 testDpodExtrapolation_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
 testDpodExtrapolation_LDADD     = $(top_srcdir)/src/libcppdoris.la
+
+testRinexRfoFit_SOURCES   = test_rnx_fit_rfo.cc
+testRinexRfoFit_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
+testRinexRfoFit_LDADD     = $(top_srcdir)/src/libcppdoris.la

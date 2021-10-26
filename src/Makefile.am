@@ -42,4 +42,5 @@ dist_libcppdoris_la_SOURCES = \
   read_rnx_header.cpp \
   doris_rinex.cpp \
   extract_doppler_count.cpp \
-  get_pdop_crd.cpp
+  get_pdop_crd.cpp \
+  fit_rfo.cpp

@@ -14,8 +14,7 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
     : m_filename(fn), m_stream(fn, std::ios_base::in) {
   int status = read_header();
   if (status) {
-    std::cerr << "\n[ERROR] Failed reading RINEX header; filename : \"" << fn
-              << "\", Error Code: " << status;
+    fprintf(stderr, "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: %s)\n", fn, status, __func__);
     throw std::runtime_error("[ERROR] Cannot read RINEX header");
   }
   m_lines_per_beacon = lines_per_beacon();
