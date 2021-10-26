@@ -13,6 +13,7 @@ MCXXFLAGS = \
   -Wshadow \
   -Wdisabled-optimization \
   -march=native \
+  --param max-inline-insns-single=850 \
   -DDEBUG
 
 AM_LDFLAGS = -lsinex -lggeodesy -lggdatetime

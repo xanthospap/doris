@@ -297,7 +297,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       m_end_of_head = m_stream.tellg();
       break;
     } else {
-      std::cout << "\n[DEBUG] Skipping RINEX header line:\n" << line;
+      printf("[DEBUG] Ignoring header line [%s] (traceback: %s)\n", line, __func__);
     }
   }
 

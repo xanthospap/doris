@@ -160,7 +160,7 @@ public:
   explicit DorisObsRinex(const char *);
 
   /// @brief Destructor
-  // ~DorisObsRinex() noexcept;
+  ~DorisObsRinex() noexcept;// = default;
 
   /// @brief Copy not allowed !
   DorisObsRinex(const DorisObsRinex &) = delete;

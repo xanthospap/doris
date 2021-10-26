@@ -19,6 +19,7 @@ libcppdoris_la_CXXFLAGS = \
   -W \
   -Wshadow \
   -Winline \
+  --param max-inline-insns-single=850 \
   -Wdisabled-optimization \
   -march=native \
   -DDEBUG

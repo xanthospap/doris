@@ -20,6 +20,8 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
   m_lines_per_beacon = lines_per_beacon();
 }
 
+ids::DorisObsRinex::~DorisObsRinex() noexcept = default;
+
 void ids::DorisObsRinex::skip_data_block(
     const ids::RinexDataRecordHeader &hdr) noexcept {
   char line[MAX_RECORD_CHARS];
