@@ -9,11 +9,13 @@ import os
 import datetime
 import urllib.request
 import argparse
-from pybern.products.downloaders.retrieve import ftp_retrieve
+from pybern.products.downloaders.retrieve import web_retrieve
 
-satellite_abbreviation_dct = { 'jason-2': 'ja2', 'cryosat-2': 'cs2', 'hy-2a': 'h2a', 'saral': 'srl' }
+satellite_abbreviation_dct = { 'jason-2': 'ja2', 'cryosat-2': 'cs2', 'hy-2a': 'h2a', 'saral': 's3a', 'jason-3': 'ja3', 'sentinel-3a': 's3b', 'sentinel-3b': 'srl', 'hy-2c':'h2c'}
+sats = [k for k in satellite_abbreviation_dct]
 
 data_center_url = { 'cddis': 'ftp://cddis.gsfc.nasa.gov/pub/', 'ign': 'ftp://doris.ensg.ign.fr/pub/' }
+data_center_credentials = {'cddis': {'username':'xanthos', 'password':'Xanthos1984'}}
 
 def make_target_filename(sat_name, dt, version_nr=1):
     sss = satellite_abbreviation_dct[sat_name.lower()] if len(sat_name)>3 else sat_name
@@ -80,7 +82,7 @@ parser.add_argument(
 parser.add_argument(
     '-s',
     '--satellite',
-    choices=['jason-2', 'cryosat-2', 'HY-2A', 'saral'],
+    choices=sats,
     metavar='SATELLITE',
     dest='satellite',
     required=True,
@@ -127,9 +129,11 @@ if __name__ == '__main__':
         input_dct['save_as'] = args.save_as
     if args.save_dir:
         input_dct['save_dir'] = args.save_dir
+    input_dct['username'] = data_center_credentials[args.data_center]['username']
+    input_dct['password'] = data_center_credentials[args.data_center]['password']
 
     target_rinex = make_target_filename(args.satellite, t, args.version_nr)
     target_path = make_target_path(args.satellite, t)
     url = data_center_url[args.data_center] + target_path + target_rinex 
-    status, target, saveas = ftp_retrieve(url, **input_dct)
+    status, target, saveas = web_retrieve(url, **input_dct)
     sys.exit(status)

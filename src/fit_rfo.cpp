@@ -36,42 +36,28 @@ public:
      * measurement z(k) := a + b *t => H = [1 t]
      * model: y(k+1) = y(k) (a and b are constant), aka F=I(2x2)
      */
-    F = np.eye(2, 2)
-    H = np.mat([ 1e0, dt ])
-    newx = F *self.x 
-    newP = F * self.P * F.transpose()
-    K = newP * H.transpose() / (H * newP * H.transpose() + self.R) 
-    self.x = newx + K * (z - H * newx) 
-    self.P = (np.eye(2) - K * H) *newP + self.Q
-
-    // measurement pre-fit residual
-    double y = z - state[0];
-    // pre-fit residual covariance
-    double s = P[0] + R;
-    assert(s != 0e0);
-    // kalman gain
-    K[0] = P[0] / s;
-    K[1] = P[2] / s;
-    // updated state estimate
-    state[0] += K[0] * y;
-    state[1] += K[1] * y;
-    // update estimate covariance
-    double p0 = (1e0 - K[0]) * P[0];
-    double p1 = (1e0 - K[0]) * P[1];
-    double p2 = P[2];
+    // F = np.eye(2, 2)
+    // H = np.mat([ 1e0, dt ])
+    // newx = F *self.x
+    // newP = F * self.P * F.transpose()
+    double hpht = P[0] + 2e0 * P[1] * dt + P[2] * dt * dt + R;
+    K[0] = (P[0] + dt * P[1]) / hpht;
+    K[1] = (P[1] + dt * P[2]) / hpht;
+    // K = newP * H.transpose() / (H * newP * H.transpose() + self.R)
+    double res = z - (state[0] + state[1] * dt);
+    state[0] += K[0] * res;
+    state[1] += K[1] * res;
+    // self.x = newx + K * (z - H * newx)
+    double p0 = (1e0 - K[0]) * P[0] - K[0] * dt * P[1];
+    double p1 = ((1e0 - K[0]) * P[1] - P[2] * K[0] * dt +
+                 (-K[1] * P[0] + (1e0 - K[1] * dt) * P[1])) /
+                2e0;
+    double p2 = -K[1] * P[1] + (1e0 - K[1] * dt) * P[2];
+    // self.P = (np.eye(2) - K * H) *newP + self.Q
     P[0] = p0;
     P[1] = p1;
     P[2] = p2;
-    // predicted state estimate
-    state[0] = state[0] + state[1] * dt;
-    state[1] = state[1];
-    // predicted estimate covariance
-    p0 = P[0] + dt * P[1] + dt * (P[1] + dt * P[2]);
-    p1 = P[1] + P[2] * dt;
-    p2 = P[2];
-    P[0] = p0; //+ q[0];
-    P[1] = p1; //+ q[1];
-    P[2] = p2; //+ q[2];
+
     return;
   }
 
@@ -82,7 +68,8 @@ public:
   dso::datetime<dso::nanoseconds> tref;
 };
 
-int get_starting_rfo(const char *rnx_fn, double &rfo) noexcept {
+int get_starting_rfo(const char *rnx_fn, double &rfo,
+                     dso::datetime<dso::nanoseconds> &reft) noexcept {
   using namespace ids;
 
   DorisObsRinex rnx(rnx_fn); // may throw ....
@@ -125,6 +112,9 @@ int get_starting_rfo(const char *rnx_fn, double &rfo) noexcept {
 
   // for a single block, all F measurements/values should be the same!
   rfo = obsvec[0].m_values[findex].m_value;
+
+  // get & assign the header time
+  reft = hdr.m_epoch;
 
   // return, all ok
   return 0;
@@ -209,18 +199,18 @@ int get_rinex_rfo(const char *rnx_fn, long &rfo_collected,
 }
 
 int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
-                                       double sigma_x,
-                                       double sigma_vx,
+                                       double sigma_x, double sigma_vx,
                                        double sigma_z) noexcept {
 
   long rfo_collected = 0;
   int error = 0;
 
   // let's get an initial estimate for RFO using the first measurement in the
-  // first RINEX file
+  // first RINEX file; also get reference time for kalman
+  dso::datetime<dso::nanoseconds> reft;
   double rfo_0 = 0e0;
   try {
-    if (get_starting_rfo(rinex_fns[0], rfo_0)) {
+    if (get_starting_rfo(rinex_fns[0], rfo_0, reft)) {
       fprintf(stderr,
               "[ERROR] Failed to read F value from RINEX %s (traceback: %s)\n",
               rinex_fns[0], __func__);
@@ -235,13 +225,11 @@ int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
     return 1;
   }
 
+  // initialize the (linear) kalman filter
   double x[] = {rfo_0, 1e-1};
   double xstd[] = {sigma_x, sigma_vx};
   double snoise = sigma_z;
-  LinearKalman kalman(x, xstd, snoise,
-                      dso::datetime<dso::nanoseconds>{dso::year(2021),
-                                                      dso::month(1),
-                                                      dso::day_of_month(1)});
+  LinearKalman kalman(x, xstd, snoise, reft);
 
   // for every rinex in the list ...
   for (int i = 0; i < num_rinex; i++) {
@@ -264,12 +252,12 @@ int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
 
   // just for debuging ... reconstruct the model
   auto t1 = dso::datetime<dso::nanoseconds>{dso::year(2021), dso::month(1),
-                                            dso::day_of_month(3)};
+                                            dso::day_of_month(1)};
   auto t2 = dso::datetime<dso::nanoseconds>{dso::year(2021), dso::month(1),
-                                            dso::day_of_month(4)};
+                                            dso::day_of_month(8)};
   while (t1 < t2) {
     printf("Fit: %.8f %.8f\n", t1.as_mjd(), kalman.model_value(t1));
-    t1.add_seconds(dso::seconds(3));
+    t1.add_seconds(dso::seconds(30));
   }
 
   return 0;

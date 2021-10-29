@@ -18,6 +18,8 @@
 \graphicspath{ {./figures/} }
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{soul} % for \st{...} aka strikethrough
+\usepackage{amsmath} % for math ...
 
 \usepackage{natbib}
 \bibliographystyle{plainnat}
@@ -56,7 +58,7 @@
 \begin{frame}\frametitle{goals ...}\framesubtitle{13/10/2021}
 
 \begin{itemize}
-    \item Perform Sp3 (polynomial) interpolation (\textit{ready to some extend})
+    \item \st{Perform Sp3 (polynomial) interpolation (\textit{ready to some extend})}
     \item Start implementing basic processing techniques from \cite{lemoine-2016}
 \end{itemize}
 
@@ -67,7 +69,8 @@
 Fine Points:
 \begin{itemize}
     \item perform Doppler-like processing to remove ambiguity bias
-    \item tropospheric delay (iers-2010 standards) -- \textit{maybe use a "static" model to begin with, e.g. Saastamoinen} --
+    \item \st{tropospheric delay (iers-2010 standards) -- \textit{maybe use a "static" model to begin with, e.g. Saastamoinen} --} 
+      use GPT3 model for tropospheric delay
     \item ionospheric delay (use iono-free LC)
     \item time, clocks and synchronization ...
     \item go for a Kalman filter (for estimation), not LS, so that we can later build on it
@@ -94,6 +97,19 @@ Could use more explicit references/documentation on DORIS processing
   \vspace{.2cm}
 
   What about data screening/pre-processing? (e.g. Sigma-Clipping, see \citep{Ramanathan})
+\end{frame}
+
+\begin{frame}\frametitle{Observation Equation}
+  Following \cite{lemoine-2016}
+  \begin{equation}
+    \label{eq:lem13}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{c}{f_{eN}} (f_{eN} - f_{rT} -
+         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + \Delta u_{IONO}\\
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{rT})}{f_{eN}} \frac{\Delta f_e}{f_{eN}}
+    \end{aligned}
+\right\}
+\end{equation}
 \end{frame}
 
 \begin{frame}\frametitle{Parameters}\framesubtitle{SV coordinates}

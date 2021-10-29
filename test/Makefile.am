@@ -1,4 +1,4 @@
-noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation testRinexRfoFit testLinearKalman
+noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation testRinexRfoFit
 
 MCXXFLAGS = \
   -std=c++20 \
@@ -37,7 +37,3 @@ testDpodExtrapolation_LDADD     = $(top_srcdir)/src/libcppdoris.la
 testRinexRfoFit_SOURCES   = test_rnx_fit_rfo.cc
 testRinexRfoFit_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
 testRinexRfoFit_LDADD     = $(top_srcdir)/src/libcppdoris.la
-
-testLinearKalman_SOURCES   = test_kalman.cc
-testLinearKalman_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
-testLinearKalman_LDADD     = $(top_srcdir)/src/libcppdoris.la
