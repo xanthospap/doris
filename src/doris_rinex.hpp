@@ -221,7 +221,10 @@ public:
 #endif
 }; // DorisObsRinex
 
-int fit_relative_frequency_offset(char **rinex_fn, int num_rinex) noexcept;
+int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
+                                       double sigma_x = 1e-1,
+                                       double sigma_vx = 1e-3,
+                                       double sigma_z = 1e1) noexcept;
 
 } // namespace ids
 
