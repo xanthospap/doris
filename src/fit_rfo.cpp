@@ -4,67 +4,83 @@
 // Reminder: in the RINEX files, the F value (aka relative frequency offset for
 // the receiver's oscillator) is given in units: 1e-11
 
-class LinearKalman {
-public:
-  LinearKalman(const double *state0, const double *state_stddev, double snoise,
+struct LinearKalman {
+  LinearKalman(const double *x0, const double *x0_stddev, double obs_stddev,
                const dso::datetime<dso::nanoseconds> &reft) noexcept {
-    state[0] = state0[0];
-    state[1] = state0[1];
-    P[0] = state_stddev[0] * state_stddev[0]; // P(1,1)
-    P[1] = state_stddev[0] * state_stddev[1]; // P(1,2) = P(2,1)
-    P[2] = state_stddev[1] * state_stddev[1]; // P(2,2)
-    R = snoise * snoise;
+    x[0] = x0[0];
+    x[1] = x0[1];
+    P[0] = x0_stddev[0] * x0_stddev[0]; // P(1,1)
+    P[1] = 0e0; // x0_stddev[0] * x0_stddev[1]; // P(1,2) = P(2,1)
+    P[2] = x0_stddev[1] * x0_stddev[1]; // P(2,2)
+    R = obs_stddev * obs_stddev;
     tref = reft;
   }
 
-  double model_value(const dso::datetime<dso::nanoseconds> &t) const noexcept {
-    double dt = sdt(t);
-    return state[0] + dt * state[1];
+  double value_at(const dso::datetime<dso::nanoseconds> &t) const noexcept {
+    double dt = t2d(t);
+    return x[0] + dt * x[1];
   }
 
-  double sdt(const dso::datetime<dso::nanoseconds> &t) const {
+  double t2d(const dso::datetime<dso::nanoseconds> &t) const {
     auto nsec = t.delta_sec(tref);
-    // return nsec.to_fractional_seconds();
     return nsec.fractional_days();
   }
 
   void update(double z, const dso::datetime<dso::nanoseconds> &t) noexcept {
-    double dt = sdt(t);
+    double dt = t2d(t);
 
-    /* model y = a + b * t
-     * Notes:
-     * measurement z(k) := a + b *t => H = [1 t]
-     * model: y(k+1) = y(k) (a and b are constant), aka F=I(2x2)
-     */
-    // F = np.eye(2, 2)
-    // H = np.mat([ 1e0, dt ])
-    // newx = F *self.x
-    // newP = F * self.P * F.transpose()
-    double hpht = P[0] + 2e0 * P[1] * dt + P[2] * dt * dt + R;
-    K[0] = (P[0] + dt * P[1]) / hpht;
-    K[1] = (P[1] + dt * P[2]) / hpht;
-    // K = newP * H.transpose() / (H * newP * H.transpose() + self.R)
-    double res = z - (state[0] + state[1] * dt);
-    state[0] += K[0] * res;
-    state[1] += K[1] * res;
-    // self.x = newx + K * (z - H * newx)
-    double p0 = (1e0 - K[0]) * P[0] - K[0] * dt * P[1];
-    double p1 = ((1e0 - K[0]) * P[1] - P[2] * K[0] * dt +
-                 (-K[1] * P[0] + (1e0 - K[1] * dt) * P[1])) /
-                2e0;
-    double p2 = -K[1] * P[1] + (1e0 - K[1] * dt) * P[2];
-    // self.P = (np.eye(2) - K * H) *newP + self.Q
+    double y = z - value_at(t);
+    double p0p1dt = P[0] + P[1]*dt;
+    double p1p2dt = P[1] + P[2]*dt;
+    double s = p0p1dt + dt*p1p2dt + R;
+    double k0 = p0p1dt / s;
+    double k1 = p1p2dt / s;
+    x[0] += k0*y;
+    x[1] += k1*y;
+    double p0 = (1e0-k0)*P[0] - P[1]*k0*dt;
+    double p1 = ( ((1e0-k0)*P[1] - P[2]*k0*dt) +
+      (-k1*P[0] + (1e0-k1*dt)*P[1]) ) / 2e0;
+    double p2 = -k1*P[1] + (1e0-k1*dt) * P[2];
     P[0] = p0;
     P[1] = p1;
     P[2] = p2;
 
+    /* predict
+    x[0] += dt * x[1];
+    x[1] = x[1];
+
+    double p0p1dt = P[0] + P[1]*dt;
+    double p1p2dt = P[1] + P[2]*dt;
+    P[0] = p0p1dt + dt*p1p2dt + Q[0];
+    P[1] = p1p2dt;
+    P[2] = P[2] + Q[1];
+
+    // update
+    double y = z - value_at(t);
+    double s = P[0] + R;
+    double k0 = P[0] / s;
+    double k1 = P[1] / s;
+    x[0] += k0 * y;
+    x[1] += k1 * y;
+
+    double p0 = P[0] * (1e0-k0);
+    double p1 = (P[1] * (1e0-k0) + P[1] - k1*P[0]) / 2e0;
+    printf(">> diff =%.8f\n", P[1] * (1e0 - k0) - P[1] + k1 * P[0]);
+    double p2 = P[2] - k1*P[1];
+
+    P[0] = p0;
+    P[1] = p1;
+    P[2] = p2;
+    */
+
     return;
   }
 
-  double state[2];
-  double R;
+  double x[2];
   double K[2];
   double P[3];
+  double R;
+  double Q[2] = {0e0, 0e0};
   dso::datetime<dso::nanoseconds> tref;
 };
 
@@ -160,11 +176,11 @@ int get_rinex_rfo(const char *rnx_fn, long &rfo_collected,
     }
 
     // get the measurements
-    if (int status = rnx.read_data_block(hdr, obsvec); status) {
+    if (int error = rnx.read_data_block(hdr, obsvec); error) {
       fprintf(
           stderr,
           "[ERROR] Failed to resolve data block! error=%d (traceback: %s)\n",
-          status, __func__);
+          error, __func__);
       return 1;
     }
 
@@ -183,7 +199,7 @@ int get_rinex_rfo(const char *rnx_fn, long &rfo_collected,
     // update via kalman using this new F value
     filter->update(rfo, hdr.m_epoch);
     printf("%.8f %.8f %.8f +/- %.10f %.8f +/- %.10f\n", hdr.m_epoch.as_mjd(),
-           rfo, filter->state[0], std::sqrt(filter->P[0]), filter->state[1],
+           rfo, filter->x[0], std::sqrt(filter->P[0]), filter->x[1],
            std::sqrt(filter->P[2]));
     ++idx;
   }
@@ -226,10 +242,9 @@ int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
   }
 
   // initialize the (linear) kalman filter
-  double x[] = {rfo_0, 1e-1};
-  double xstd[] = {sigma_x, sigma_vx};
-  double snoise = sigma_z;
-  LinearKalman kalman(x, xstd, snoise, reft);
+  double x[2] = {rfo_0, 3e0};
+  double xstd[2] = {sigma_x, sigma_vx};
+  LinearKalman kalman(x, xstd, sigma_z, reft);
 
   // for every rinex in the list ...
   for (int i = 0; i < num_rinex; i++) {
@@ -256,9 +271,10 @@ int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
   auto t2 = dso::datetime<dso::nanoseconds>{dso::year(2021), dso::month(1),
                                             dso::day_of_month(8)};
   while (t1 < t2) {
-    printf("Fit: %.8f %.8f\n", t1.as_mjd(), kalman.model_value(t1));
+    printf("Fit: %.8f %.8f\n", t1.as_mjd(), kalman.value_at(t1));
     t1.add_seconds(dso::seconds(30));
   }
+  printf("Model: %.4f + %.4f * x\n", kalman.x[0], kalman.x[1]);
 
   return 0;
 }

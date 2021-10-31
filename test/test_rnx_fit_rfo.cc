@@ -1,5 +1,6 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
+#include <cmath>
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
@@ -18,14 +19,14 @@ int main(int argc, char *argv[]) {
     std::strcpy(rinex_fns[i], argv[i+1]);
   }
 
-  // try to model the RFO parameter using the values extracted from the RINEX's
-    int error = ids::fit_relative_frequency_offset(rinex_fns, num_rinex, 5.0e0, 5.0e0, 10.0e0);
-    printf("All done! fit function returned %d\n", error);
+  int error = ids::fit_relative_frequency_offset(rinex_fns, num_rinex,
+      1e0, 1e0, 5e0);
+  printf("All done! fit function returned %d\n", error);
 
   // deallocate memmory
   for (int i = 0; i < num_rinex; i++)
     delete[] rinex_fns[i];
   delete[] rinex_fns;
 
-  return error;
+  return 0;
 }
