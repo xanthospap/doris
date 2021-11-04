@@ -120,9 +120,30 @@ where
     \end{equation}
 \end{itemize}
 
+Note that \ref{eq:lem13} can be further simplified to \ref{eq:lem17} by ommiting small terms (\ref{ssec:small-terms}).
+
 \emph{Usually, one frequency offset and one tropospheric zenithal bias are adjusted per pass.}
 
 \section{Implementation of the Doppler Observation Model}
+
+\subsection{Small Terms}
+\label{ssec:small-terms}
+
+In \ref{eq:lem13}, the smallest terms are \(-U_e / c^2 - {V_e}^2 / 2 c^2\) and 
+\(\Delta u_{{REL}_T}\); in the case of DORIS they ammount to \(11.\) and \(1. 10^{-6} m/s\) 
+respectively (\cite{lemoine-2016}). Furthermore, since the emitters are located on the 
+ground, the term \(-U_e / c^2 - {V_e}^2 / 2 c^2\) is constant per station. This small 
+relativistic offset is absorbed by the adjustment of \(\Delta f_e / f_{eN}\). So it is 
+possibly to furher simplify \ref{eq:lem13} to:
+\begin{equation}
+    \label{eq:lem17}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{c}{f_{eN}} (f_{eN} - f_{rT} -
+         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + \Delta u_{IONO}\\
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{rT})}{f_{eN}} \frac{\Delta f_e}{f_{eN}}
+    \end{aligned}
+\right\}
+\end{equation}
 
 \subsection{Correction of Aberration}
 
@@ -163,3 +184,25 @@ This estimate can be obtained in one of the following ways \cite{lemoine-2016}:
     \item It can ﬁnally be estimated by the users themselves as a
     by-product of their re-computation of the timetagging polynomial (see \cite{MERCIER2010})
 \end{enumerate}
+
+\subsection{Ionospheric Correction}
+A ﬁrst-order iono-free pseudo-range measurement on the 2 GHz channel is built by combining
+the 400 MHz and 2 GHz measurements in the following way:
+\(C_{iono-free-2GHz} = \frac{\gamma C_{2GHz} - C_{400MHz}}{\gamma - 1}\)
+where \(\gamma\) is the square of the frequency ratio: 
+\(\gamma = {(\frac{f_{2GHz}}{f_{400MHz}})}^2\).
+
+Converting to iono-free phase measurement on the 2 GHz channel using \(c\)  the speed 
+of light and \(L_{\alpha}\) is the phase measurements on the \(\alpha\) channel 
+(\(\alpha = 2GHz or 400 MHz\)), we get:
+
+\(L_{iono-free-2GHz} = \frac{\gamma L_{2GHz} - \sqrt{\gamma}L_{400MHz}}{\gamma - 1} 
+= L_{2GHz} + \frac{L_{2GHz} - \sqrt{\gamma}L_{400MHz}}{\gamma - 1} \)
+
+The coordinates of the iono-free phase centers are given by the following formula:
+\(\vec{r}_{iono-free-2GHz} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}\)
+where \(\vec{r}_{iono-free-2GHz}\) is the vector from the 2 GHz phase center to 
+the iono-free phase center and \(\vec{r}_{400MHz,2GHz}\) is the vector from the 
+400 MHz to the 2 GHz phase center. In DORIS, the iono-free phase centers are
+located a few mm away from the 2 GHz phase centers, in the direction opposite to 
+the 400 MHz phase centers.

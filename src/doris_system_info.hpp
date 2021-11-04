@@ -18,6 +18,16 @@ static constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
 static constexpr double OBSERVATION_VALUE_MISSING =
     std::numeric_limits<double>::min();
 
+/// @brief the 2 GHz fundamental DORIS frequency
+constexpr double DORIS_FREQ1_MHZ = 2.036250e3;
+
+/// @brief the 400 MHz fundamental DORIS frequency
+constexpr double DORIS_FREQ2_MHZ = 401.250e0;
+
+/// @brief the (freq1 / freq2)^2 factor (normally used for iono-free l. 
+/// combination)
+constexpr double GAMMA_FACTOR = (DORIS_FREQ1_MHZ/DORIS_FREQ2_MHZ) * (DORIS_FREQ1_MHZ/DORIS_FREQ2_MHZ);
+
 /// @enum ObservationType
 /// DORIS Observation Types as defined in RINEX DORIS 3.0 (Issue 1.7)
 enum class ObservationType : int_fast8_t {
