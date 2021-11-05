@@ -12,6 +12,8 @@
 \usepackage{soul} % allow wrapping of underlined text, via \ul{...}
 \usepackage{natbib} % for bibliography
 \usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
+\usepackage{siunitx} %% SI Units
+\usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
 
 %% TikZ stuff %%
 \usepackage{tikz} % add a few drawings ...
@@ -72,6 +74,11 @@
 
 \bibliographystyle{plainnat}
 
+\makeglossaries
+\newacronym{ids}{IDS}{International DORIS Service}
+\newacronym{antex}{ANTEX}{Antenna Exchange Format}
+\newacronym{pcv}{PCV}{Phase Center Variations}
+
 \title{PhD Memo and Notes}
 \author{Xanthos}
 \date{\today}
@@ -93,6 +100,9 @@
 \include{chapters/ground_segment}
 
 \bibliography{doris}
+
+\glsaddall
+\printglossary[type=\acronymtype,title=Acronyms]
 
 \printindex
 
