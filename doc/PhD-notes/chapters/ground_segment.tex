@@ -1,0 +1,94 @@
+\chapter{DORIS Ground Segment}
+\label{ch:doris-ground-segment}
+
+\tikzset{cross/.style={cross out, draw=black, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt},
+%default radius will be 1pt. 
+cross/.default={1pt}}
+
+\section{Geometry of Ground Antennae}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+    \draw (2,-2) -- (2,-7); %% left vertical
+    \coordinate (LT) at (2,-2);
+    \draw (5,-2) -- (5,-7); %% right vertical
+    \coordinate (RT) at (5,-2);
+    \coordinate (L2PC) at (3.5, -4.0);
+    \coordinate (L1PC) at (3.5, -3.0);
+    \coordinate (BRP) at (3.5, -7.0);
+    \draw (LT) to[out=60, in=120] (RT); %% dome
+    \draw (LT) to (RT); %% top horizontal (under dome)
+    \draw (1,-7) -- (6,-7); %% reference plain
+    \draw (1, -7) -- (1, -7.5); %% left minor vertical
+    \draw (6, -7) -- (6, -7.5); %% right minor vertical
+    \draw [line width=0.25mm] (0,-7.5) -- (9,-7.5); %% ground
+    \draw [-stealth] (3.5,-7.5) --node[anchor=west]{local vertical} (3.5, -8.5); %% local vertical to ground
+    \draw [dotted] (3.5, 0) -- (3.5, -7.5); %% local vertical from dome
+    \draw (L1PC) circle (2pt) node[anchor=south west]{phase center 2 GHz}; %% 2GHz pc
+    \draw (L1PC) node[cross=3pt, rotate=0] {}; %% 2GHz cross
+    \draw [dotted] (L1PC) -- (9, -3.0); %% horizontal from 2GHz PC
+    \draw (L2PC) circle (2pt) node[anchor=south west]{phase center 400 MHz}; %% 400 MHz pc
+    \draw (L2PC) node[cross=3pt, rotate=0] {}; %% 400MHz cross
+    \draw [dotted] (L2PC) -- (9, -4.0); %% horizontal from 400MHz PC
+    \draw (BRP) circle (2pt) node[anchor=south west]{DORIS reference point}; %% reference point
+    \draw (BRP) node[cross=3pt, rotate=0] {}; %% RP cross
+    \draw [dotted] (BRP) -- (10, -7.0); %% horizontal from RP
+    \draw (10, -7) node[anchor=north west]{DORIS reference plane};
+    \path (8, -7.0) -- node[](hl2){h\textsubscript{400MHz}} (8, -4.0);
+    \draw [<-] (8, -7.0)--(hl2); \draw[->] (hl2)--(8, -4.0);
+    \path (9, -7.0) -- node[](hl1){h\textsubscript{2GHz}} (9, -3.0);
+    \draw [<-] (9, -7.0)--(hl1); \draw [->] (hl1)--(9, -3.0);
+    \node[rectangle, align=left] (rptext) at (-1,-3.5) {DORIS reference point \\ \(\begin{bmatrix} x_s y_s z_s \end{bmatrix}^{T} \) beacon \\position in earth reference \\frame};
+    \draw [-stealth] (rptext) to ($(BRP)-(3pt,-3pt)$);
+    \node[above,font=\large\bfseries] at (current bounding box.north) {ALCATEL DORIS Ground Antenna};
+\end{tikzpicture}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+    \coordinate (top) at (4,-1);
+    \coordinate (tl) at (3.8, -1.3);
+    \coordinate (tr) at (4.2, -1.3);
+    \coordinate (blt) at (3.8, -3.0);
+    \coordinate (brt) at (4.2, -3.0);
+    \coordinate (blb) at (3.5, -3.3);
+    \coordinate (brb) at (4.5, -3.3);
+    \draw (top) to (tl);
+    \draw (tl) to (blt);
+    \draw (blt) to (blb);
+    \draw (top) to (tr);
+    \draw (tr) to (brt);
+    \draw (brt) to (brb);
+    \draw (blb) to (3.5, -9);
+    \draw (brb) to (4.5, -9);
+    \draw (3.5, -9) to (3.0, -9);
+    \draw (3.0, -9) to (3.0, -9.3);
+    \draw (4.5, -9) to (5.0, -9);
+    \draw (5.0, -9) to (5.0, -9.3);
+    \draw (3.0, -9.3) to (5.0, -9.3);
+
+    \draw [dotted] (top) -- (4.0, -9.3); %% local vertical from top
+    \draw [-stealth] (4.0, -9.3) -- node[anchor=west]{local vertical} (4.0, -10.3); %% local vertical arrow
+
+    \coordinate (l1pc) at (4, -2.0);
+    \draw (l1pc) circle (2pt) node[anchor=south west]{phase center 2 GHz}; %% 2GHz pc
+    \draw (l1pc) node[cross=3pt, rotate=0] {}; %% 2GHz cross
+    \draw (l1pc) to (10, -2.0);
+    
+    \coordinate (l2pc) at (4, -6.0);
+    \draw [fill=black] (l2pc) circle (2pt) node[anchor=south west]{phase center 400 MHz}; %% 400MHz pc
+    \draw (l2pc) node[cross=3pt, rotate=0] {}; %% 400MHz cross
+    \draw ($(l2pc)-(1.0,0.0)$) -- node[below]{DORIS reference plane} (10, -6.0);
+
+    \path ($(l1pc)+(5.5, 0.0)$) -- node[](h2g){h\textsubscript{2GHz}} ($(l2pc)+(5.5, 0.0)$);
+    \draw [<-] ($(l1pc)+(5.5, 0.0)$) -- (h2g); \draw [->] (h2g) -- ($(l2pc)+(5.5, 0.0)$);
+
+    \node[above,font=\large\bfseries] at (current bounding box.north) {STAREC DORIS Ground Antenna};
+\end{tikzpicture}
+\caption{Geometry of Alcatel STAREC Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
