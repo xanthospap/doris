@@ -80,19 +80,19 @@ the radio electric signal through the ionosphere and troposphere respectively.
 
 Additionaly, in the actual case (measurements), the nominal frequencies \(f_e\) and \(f_r\) 
 are not the ``true'' ones; we hence need to apply a relative correction (e.g. for the 
-emmiter) \(f_{eT} = f_{eN} (1 + \frac{\Delta f_e}{f_{eN}})\), where the subscript \(T\) 
+emmiter) \(f_{e_T} = f_{e_N} (1 + \frac{\Delta f_e}{f_{e_N}})\), where the subscript \(T\) 
 denotes the ``True'' frequency and \(N\) the nominal one. Thus in \ref{eq:lem12} the 
-terms \(f_e\) and \(f_r\) need to be substituted by \(f_{eT}\) and \(f_{rT}\) respectively.
+terms \(f_e\) and \(f_r\) need to be substituted by \(f_{e_T}\) and \(f_{r_T}\) respectively.
 
 We will place \(\Delta u_{IONO}\) and \(\Delta u_{REL}\) (which do not involve adjusted parameters) 
-on the ``measured'' part of \ref{eq:lem12} and \(\Delta u_{TROPO}\) and \(\frac{\Delta f_e}{f_{eN}}\) 
+on the ``measured'' part of \ref{eq:lem12} and \(\Delta u_{TROPO}\) and \(\frac{\Delta f_e}{f_{e_N}}\) 
 on the ``theoretical'' part; neglecting some minor terms, we reach the equation \cite{lemoine-2016}:
 \begin{equation}
     \label{eq:lem13}
     \left.\begin{aligned}
-        u_{measured} & = \frac{c}{f_{eN}} (f_{eN} - f_{rT} -
+        u_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
          \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + \Delta u_{IONO}\\
-        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{rT})}{f_{eN}} \frac{\Delta f_e}{f_{eN}}
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} \frac{\Delta f_e}{f_{e_N}}
     \end{aligned}
 \right\}
 \end{equation}
@@ -105,7 +105,7 @@ where
 
     \item \(u_{theo}\) is the the theoretical (computed) emitter/receiver relative velocity 
     between the events 1' and 2', corrected for the tropospheric effect and for a solved-for 
-    frequency bias \(\frac{\Delta f_e}{f_{eN}}\) of the emitter. \(f_{rT} = f_{rN} (1 + \frac{\Delta f_r}{f_{rN}})\) 
+    frequency bias \(\frac{\Delta f_e}{f_{e_N}}\) of the emitter. \(f_{r_T} = f_{r_N} (1 + \frac{\Delta f_r}{f_{r_N}})\) 
     is an estimate of the proper frequency of the receiver.
 
     \item \(\Delta u_{REL} = \Delta u_{{REL}_c} + \Delta u_{{REL}_r}\) is the relativistic 
@@ -138,9 +138,9 @@ possibly to furher simplify \ref{eq:lem13} to:
 \begin{equation}
     \label{eq:lem17}
     \left.\begin{aligned}
-        u_{measured} & = \frac{c}{f_{eN}} (f_{eN} - f_{rT} -
-         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + \Delta u_{IONO}\\
-        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{rT})}{f_{eN}} \frac{\Delta f_e}{f_{eN}}
+        u_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
+         \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{{REL}_C} + \Delta u_{IONO}\\
+        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} + \Delta u_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} \frac{\Delta f_e}{f_{e_N}}
     \end{aligned}
 \right\}
 \end{equation}
@@ -168,7 +168,7 @@ in the zero-tide system.
 \subsection{True Proper Frequency of the Receiver}
 \label{ssec:true-proprtfrequency-of-the-receiver}
 
-For the term \(f_{rT}\) that appears in \ref{eq:lem13}, we need an estimate of \(\Delta f_{r} / f_{rN}\). 
+For the term \(f_{r_T}\) that appears in \ref{eq:lem13}, we need an estimate of \(\Delta f_{r} / f_{r_N}\). 
 This estimate can be obtained in one of the following ways \cite{lemoine-2016}:
 \begin{enumerate}
     \item via the field ``F'' recorded for every single measurement in the DORIS 
@@ -194,7 +194,7 @@ where \(\gamma\) is the square of the frequency ratio:
 
 Converting to iono-free phase measurement on the \SI{2}{\GHz} channel using \(c\)  the speed 
 of light and \(L_{\alpha}\) is the phase measurements on the \(\alpha\) channel 
-(\(\alpha = 2GHz or 400 MHz\)), we get:
+(\(\alpha\) = \SI{2}{\GHz} or \SI{400}{\MHz}), we get:
 
 \(L_{iono-free-2GHz} = \frac{\gamma L_{2GHz} - \sqrt{\gamma}L_{400MHz}}{\gamma - 1} 
 = L_{2GHz} + \frac{L_{2GHz} - \sqrt{\gamma}L_{400MHz}}{\gamma - 1} \)

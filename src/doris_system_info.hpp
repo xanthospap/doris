@@ -4,6 +4,7 @@
 #include <limits>
 #include <stdexcept>
 #include <stdint.h>
+#include <cmath>
 
 namespace ids {
 
@@ -24,9 +25,30 @@ constexpr double DORIS_FREQ1_MHZ = 2.036250e3;
 /// @brief the 400 MHz fundamental DORIS frequency
 constexpr double DORIS_FREQ2_MHZ = 401.250e0;
 
-/// @brief the (freq1 / freq2)^2 factor (normally used for iono-free l. 
+/// @brief the (freq1 / freq2)^2 factor (normally used for iono-free l.
 /// combination)
-constexpr double GAMMA_FACTOR = (DORIS_FREQ1_MHZ/DORIS_FREQ2_MHZ) * (DORIS_FREQ1_MHZ/DORIS_FREQ2_MHZ);
+constexpr double GAMMA_FACTOR =
+    (DORIS_FREQ1_MHZ / DORIS_FREQ2_MHZ) * (DORIS_FREQ1_MHZ / DORIS_FREQ2_MHZ);
+
+/// @brief F0, aka USO frequency in Hz
+constexpr double USO_F0 = 5e6;
+
+/// @brief Compute the S1 and U2 (aka 2GHz and 400 MHz) nominal frequencies for
+///        a DORIS beacon
+/// @param[in] shift_factor The beacon's shift factor (e.g. as extracted from 
+///        the 'STATION REFERENCE' field from a DORIS RINEX file)
+/// @param[out] s1_freq The S1 (aka 2GHz) nominal frequency in Hz
+/// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in Hz
+constexpr int beacon_nominal_frequency(int shift_factor, double &s1_freq,
+                                       double &u2_freq) noexcept {
+  constexpr long two26 = std::pow(2, 26);
+  constexpr double fac1 = USO_F0 * (3e0 / 4e0);
+  const double fac2 =
+      (USO_F0 * (87e0 * shift_factor)) / (5e0 * static_cast<double>(two26));
+  s1_freq = 543e0 * fac1 + 543e0 * fac2;
+  u2_freq = 107e0 * fac1 + 107e0 * fac2;
+  return 0;
+}
 
 /// @enum ObservationType
 /// DORIS Observation Types as defined in RINEX DORIS 3.0 (Issue 1.7)
