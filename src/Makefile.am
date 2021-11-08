@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libcppdoris.la
 ## ----------------------------------------------------
 ##
 libcppdoris_la_CXXFLAGS = \
-  -std=c++20 \
+  -std=c++17 \
   -g \
   -pg \
   -Wall \
@@ -19,7 +19,6 @@ libcppdoris_la_CXXFLAGS = \
   -W \
   -Wshadow \
   -Winline \
-  --param max-inline-insns-single=850 \
   -Wdisabled-optimization \
   -march=native \
   -DDEBUG

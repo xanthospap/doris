@@ -41,7 +41,7 @@ constexpr double USO_F0 = 5e6;
 /// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in Hz
 constexpr int beacon_nominal_frequency(int shift_factor, double &s1_freq,
                                        double &u2_freq) noexcept {
-  constexpr long two26 = std::pow(2, 26);
+  const long two26 = std::pow(2, 26);
   constexpr double fac1 = USO_F0 * (3e0 / 4e0);
   const double fac2 =
       (USO_F0 * (87e0 * shift_factor)) / (5e0 * static_cast<double>(two26));
@@ -89,19 +89,17 @@ bool observationType_has_frequency(ObservationType type) noexcept;
 /// ObservationType::pseudorange and ObservationType::power_level. In any other
 /// case, m_freq is irrelevant and set to 0.
 /// Frequency is defined by an integer, which can be:
-/// * 1 to denote the S1 DORIS frequency, or
-/// * 2 to denote the U2 DORIS frequency
+/// * 1 to denote the S1 DORIS frequency (on 2 GHz), or
+/// * 2 to denote the U2 DORIS frequency (on 400 MHz)
 /// @warning m_freq MUST be set to 0, if m_type is one of:
 ///          * frequency_offset,
 ///          * ground_pressure,
 ///          * ground_temperature,
 ///          * ground_humidity
-class ObservationCode {
-private:
+struct ObservationCode {
   ObservationType m_type;
   int_fast8_t m_freq{0};
 
-public:
   /// @brief Constructor; may throw if the frequency is not valid.
   /// @param[in] type The Observation Type
   /// @param[in] freq The corresponding frequency (if any)

@@ -56,7 +56,7 @@ int extrapolate_coordinates(
 
 int ids::extrapolate_sinex_coordinates(
     const char *snx_fn, char **station_ids, int num_stations,
-    const dso::datetime<dso::microseconds> &t) noexcept {
+    const dso::datetime<dso::microseconds> &t, ids::BeaconCoordinates *result_array) noexcept {
   
   // initialize the sinex instance
   dso::Sinex snx(snx_fn);
@@ -100,7 +100,11 @@ int ids::extrapolate_sinex_coordinates(
               sid, snx.filename().c_str(), __func__);
       return 1;
     }
-    printf("%s %20.5f %20.5f %20.5f\n", sid, pos[0], pos[1], pos[2]);
+    std::memcpy(result_array[i].id, sid, 4);
+    result_array[i].x = pos[0];
+    result_array[i].y = pos[1];
+    result_array[i].z = pos[2];
+    // printf("%s %20.5f %20.5f %20.5f\n", sid, pos[0], pos[1], pos[2]);
   }
 
   return 0;

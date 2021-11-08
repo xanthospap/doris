@@ -1,6 +1,7 @@
 #include "doris_rinex.hpp"
 #include "ggdatetime/datetime_read.hpp"
 #include <cctype>
+#include <algorithm>
 #include <stdexcept>
 #ifdef DEBUG
 #include "ggdatetime/datetime_write.hpp"
@@ -21,6 +22,24 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
 }
 
 ids::DorisObsRinex::~DorisObsRinex() noexcept = default;
+  
+int ids::DorisObsRinex::get_observation_code_index(ids::ObservationCode tp) const noexcept {
+  auto it = std::find(m_obs_codes.begin(), m_obs_codes.end(), tp);
+  if (it == m_obs_codes.end()) return -1;
+  return std::distance(m_obs_codes.begin(), it);
+}
+
+const char *
+ids::DorisObsRinex::beacon_internal_id2id(const char *inid) const noexcept {
+  auto it = std::find_if(m_stations.begin(), m_stations.end(),
+                         [&](const BeaconStation &bcn) {
+                           return !std::strncmp(inid, bcn.m_internal_code, 3);
+                         });
+  if (it == m_stations.end())
+    return nullptr;
+  auto idx = std::distance(m_stations.begin(), it);
+  return m_stations[idx].m_station_id;
+}
 
 void ids::DorisObsRinex::skip_data_block(
     const ids::RinexDataRecordHeader &hdr) noexcept {
@@ -249,4 +268,33 @@ int ids::DorisObsRinex::resolve_data_epoch(
   }
 
   return status;
+}
+
+int ids::RinexDataBlockIterator::next() noexcept {
+  char line[DorisObsRinex::MAX_RECORD_CHARS];
+
+  // try getting the next line from the RINEX stream ...
+  if (!rnx->stream().getline(line, DorisObsRinex::MAX_RECORD_CHARS)) {
+    if (rnx->stream().eof())  return -1;
+    fprintf(stderr, "Failed to read lines from RINEX file (traceback: %s)\n",
+            __func__);
+    return 1;
+  }
+
+  // ... this should be a data record line; resolve it
+  if (int error = rnx->resolve_data_epoch(line, cheader); error) {
+    fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n",
+            __func__);
+    fprintf(stderr, "Line is: \"%s\"\n", line);
+    return 2;
+  }
+
+  // get block of observations that follow ...
+  if (int error = rnx->read_data_block(cheader, cblock); error) {
+    fprintf(stderr, "Failed parsing data block line! (traceback: %s)\n",
+            __func__);
+    return 3;
+  }
+
+  return 0;
 }

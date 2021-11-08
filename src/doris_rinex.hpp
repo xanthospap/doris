@@ -95,61 +95,61 @@ public:
   static constexpr int MAX_RECORD_CHARS{124};
 
 private:
-  /// The name of the file
-  std::string m_filename;
-  /// The infput (file) stream; open at constructor
-  std::ifstream m_stream;
-  /// RINEX version
-  float m_version;
-  /// Satellite name
-  char m_satellite_name[60];
-  /// COSPAR number
-  char m_cospar_number[20];
-  /// DORIS chain used (chain1 or chain2), exp. “CHAIN1”
-  char m_rec_chain[20];
-  /// DORIS instrument type; exp. “DGXX”
-  char m_rec_type[20];
-  /// The software version used on board DORIS/DIODE, exp. “1.00”
-  char m_rec_version[20];
-  /// The antenna type is “STAREC”
-  char m_antenna_type[20];
-  /// The antenna number is “DORIS”
-  char m_antenna_number[20];
-  /// Position of 2 GHz phase center, in the platform reference frame (Units:
-  /// Meters, System: ITRS recommended)
-  float m_approx_position[3];
-  /// The center of mass of the vehicle (for space borne receivers):
-  /// CENTER OF MASS: XYZ, defined at the beginning of the mission.
-  float m_center_mass[3];
-  /// A vector of ObservationCode contained in the RINEX file
-  std::vector<ObservationCode> m_obs_codes;
-  /// A vector of scale factors corresponding to m_obs_codes (aka they have
-  /// the same size with a one-to-one correspondance
-  std::vector<int> m_obs_scale_factors;
-  /// Datetime of first observation in RINEX
-  dso::datetime<dso::nanoseconds> m_time_of_first_obs;
-  /// This date corresponds to the day of the first measurement performed on
-  /// the first time reference beacon in the DORIS RINEX product, at
-  /// 00h 00mn 00s.
-  dso::datetime<dso::nanoseconds> m_time_ref_stat;
-  /// Constant shift between the date of the 400MHz phase measurement and the
-  /// date of the 2GHz phase measurement in microseconds
-  double m_l12_date_offset;
-  /// List of stations/beacons recorded in file
-  std::vector<BeaconStation> m_stations;
-  /// List of time-reference stations in file (also included in m_stations)
-  std::vector<TimeReferenceStation> m_ref_stations;
-  /// Mark the 'END OF HEADER' field (next line is record line)
-  pos_type m_end_of_head;
-  /// Record lines for each beacon (in data record blocks)
-  int m_lines_per_beacon;
+/// The name of the file
+std::string m_filename;
+/// The infput (file) stream; open at constructor
+std::ifstream m_stream;
+/// RINEX version
+float m_version;
+/// Satellite name
+char m_satellite_name[60];
+/// COSPAR number
+char m_cospar_number[20];
+/// DORIS chain used (chain1 or chain2), exp. “CHAIN1”
+char m_rec_chain[20];
+/// DORIS instrument type; exp. “DGXX”
+char m_rec_type[20];
+/// The software version used on board DORIS/DIODE, exp. “1.00”
+char m_rec_version[20];
+/// The antenna type is “STAREC”
+char m_antenna_type[20];
+/// The antenna number is “DORIS”
+char m_antenna_number[20];
+/// Position of 2 GHz phase center, in the platform reference frame (Units:
+/// Meters, System: ITRS recommended)
+float m_approx_position[3];
+/// The center of mass of the vehicle (for space borne receivers):
+/// CENTER OF MASS: XYZ, defined at the beginning of the mission.
+float m_center_mass[3];
+/// A vector of ObservationCode contained in the RINEX file
+std::vector<ObservationCode> m_obs_codes;
+/// A vector of scale factors corresponding to m_obs_codes (aka they have
+/// the same size with a one-to-one correspondance
+std::vector<int> m_obs_scale_factors;
+/// Datetime of first observation in RINEX
+dso::datetime<dso::nanoseconds> m_time_of_first_obs;
+/// This date corresponds to the day of the first measurement performed on
+/// the first time reference beacon in the DORIS RINEX product, at
+/// 00h 00mn 00s.
+dso::datetime<dso::nanoseconds> m_time_ref_stat;
+/// Constant shift between the date of the 400MHz phase measurement and the
+/// date of the 2GHz phase measurement in microseconds
+double m_l12_date_offset;
+/// List of stations/beacons recorded in file
+std::vector<BeaconStation> m_stations;
+/// List of time-reference stations in file (also included in m_stations)
+std::vector<TimeReferenceStation> m_ref_stations;
+/// Mark the 'END OF HEADER' field (next line is record line)
+pos_type m_end_of_head;
+/// Record lines for each beacon (in data record blocks)
+int m_lines_per_beacon;
 
-  /// @brief Depending on the number of observables, compute the number of
-  /// lines needed to hold a full data record. Each data line can hold up to 5
-  /// observable values.
-  int lines_per_beacon() const noexcept {
-    int obs = m_obs_codes.size();
-    return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
+/// @brief Depending on the number of observables, compute the number of
+/// lines needed to hold a full data record. Each data line can hold up to 5
+/// observable values.
+int lines_per_beacon() const noexcept {
+  int obs = m_obs_codes.size();
+  return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
   }
 
   /// @brief read and resolve a RINEX header record.
@@ -216,6 +216,10 @@ public:
 
   std::vector<ObservationCode> observation_codes() const noexcept { return m_obs_codes;}
 
+  int get_observation_code_index(ObservationCode t) const noexcept;
+
+  const char *beacon_internal_id2id(const char *inid) const noexcept;
+
 #ifdef DEBUG
   void read();
 #endif
@@ -225,6 +229,21 @@ int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
                                        double sigma_x = 1e-1,
                                        double sigma_vx = 1e-3,
                                        double sigma_z = 1e1) noexcept;
+
+struct RinexDataBlockIterator {
+  using value_type = RinexDataRecordHeader;
+  using pointer = value_type *;
+  using reference = value_type &;
+
+  RinexDataRecordHeader cheader;
+  std::vector<BeaconObservations> cblock;
+  DorisObsRinex *rnx;
+
+  RinexDataBlockIterator(DorisObsRinex *drnx) noexcept : rnx(drnx) {};
+
+  int next() noexcept;
+
+}; // BlockIterator
 
 } // namespace ids
 

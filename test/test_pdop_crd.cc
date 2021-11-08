@@ -30,9 +30,11 @@ int main(int argc, char *argv[]) {
     std::strncpy(sites[i], beacons[i].m_station_id, 4);
   }
 
+  ids::BeaconCoordinates *result_array = new ids::BeaconCoordinates[num_sites];
+
   // etrapolate coordinates for the reference time of RINEX
   dso::datetime<dso::nanoseconds> t = rnx.ref_datetime();
-  int error = ids::extrapolate_sinex_coordinates(argv[2], sites, num_sites, t);
+  int error = ids::extrapolate_sinex_coordinates(argv[2], sites, num_sites, t, result_array);
   if (error)
     fprintf(stderr, "[ERROR] Failed to extrapolate coordinates! (error=%d)\n",
             error);
@@ -41,6 +43,8 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < num_sites; i++)
     delete[] sites[i];
   delete[] sites;
+
+  delete[] result_array; 
 
   return error;
 }
