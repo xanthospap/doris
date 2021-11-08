@@ -214,7 +214,7 @@ public:
 
   std::ifstream& stream() noexcept { return m_stream; }
 
-  std::vector<ObservationCode> observation_codes() const noexcept { return m_obs_codes;}
+  const std::vector<ObservationCode>& observation_codes() const noexcept { return m_obs_codes;}
 
   int get_observation_code_index(ObservationCode t) const noexcept;
 
