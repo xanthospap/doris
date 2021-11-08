@@ -4,7 +4,7 @@
 #include <algorithm>
 
 struct LatestBeaconData {
-  ids::BeaconObservations obs;
+  ids::BeaconObservations obs{};
   dso::datetime<dso::nanoseconds> t;
 };
 
@@ -23,11 +23,13 @@ int beacon_vector2str_array(const std::vector<ids::BeaconStation> &beacons,
 
 int beacon_shift_factor(const char *beacon_id, const ids::DorisObsRinex *rnx,
                         int &k) noexcept {
-  printf("..searching for beacon shift factor .. num stations=%d\n", (int)rnx->stations().size());
+  //printf("..searching for beacon shift factor .. num stations=%d, capacity=%d\n", (int)rnx->stations().size(), (int)rnx->stations().capacity());
+  //std::for_each(rnx->stations().begin(), rnx->stations().end(),[](ids::BeaconStation b){printf("[%.3s]", b.m_internal_code);});
+  //printf("\n");
+
   auto it = std::find_if(
       rnx->stations().begin(), rnx->stations().end(),
       [&](const ids::BeaconStation &b) {
-        printf("...comparing [%.3s] to [%.3s]\n", beacon_id, b.m_internal_code);
         return !std::strncmp(beacon_id, b.m_internal_code, 3);
       });
 
@@ -55,19 +57,19 @@ int main(int argc, char *argv[]) {
   }
 
   // get an interpolator for the Sp3 file
-  //dso::Sp3c sp3(argv[2]);
-  //if (sp3.num_sats() != 1) {
-  //    fprintf(stderr, "More than one satellites found in sp3 file!\n");
-  //    return 5;
-  //}
-  //dso::sp3::SatelliteId sv("XXX");
-  //sv.set_id(sp3.sattellite_vector()[0].id);
-  //dso::SvInterpolator sv_intrp(sv, sp3);
-  //printf("Fed interpolator with %d data points\n", sv_intrp.num_data_points());
-  //double xyz[3] = {0}, dxdydz[3] = {0};
+  dso::Sp3c sp3(argv[2]);
+  if (sp3.num_sats() != 1) {
+      fprintf(stderr, "More than one satellites found in sp3 file!\n");
+      return 5;
+  }
+  dso::sp3::SatelliteId sv("XXX");
+  sv.set_id(sp3.sattellite_vector()[0].id);
+  dso::SvInterpolator sv_intrp(sv, sp3);
+  double xyz[3] = {0}, dxdydz[3] = {0};
 
   // DORIS RINEX instance
   ids::DorisObsRinex rnx(argv[1]);
+  rnx.print_metadata();
 
   // latest data records from all beacons
   std::vector<LatestBeaconData> prv_data;
@@ -124,28 +126,32 @@ int main(int argc, char *argv[]) {
 
     // satellite position for current epoch
     // TODO need to cast nanoseconds date to microseconds date ....
-    //dso::datetime<dso::microseconds> now_ms = tnow.cast_to<dso::microseconds>();
-    //sv_intrp.interpolate_at(now_ms, xyz, dxdydz);
+    dso::datetime<dso::microseconds> now_ms = tnow.cast_to<dso::microseconds>();
+    sv_intrp.interpolate_at(now_ms, xyz);
 
-    for (const auto &bo : it.cblock) {
+    auto beaconobs_set = it.cblock.begin(); // Cureent beacons's observattion set
+    while (beaconobs_set != it.cblock.end()) {
+      // internal 3char name of beacon
+      const char *beacon_internal_id = beaconobs_set->m_beacon_id;
+
       // get shift factor and nominal frequency (Hz)
       int k;
-      if (beacon_shift_factor(bo.m_beacon_id, &rnx, k)) {
+      if (beacon_shift_factor(beacon_internal_id, it.rnx, k)) {
         fprintf(stderr,
                 "[ERROR] Failed to match beacon shift factor for beacon %.3s\n",
-                bo.m_beacon_id);
+                beacon_internal_id);
         return 101;
       }
       ids::beacon_nominal_frequency(k, nf2g, nf4m);
 
       // get doppler count (if previous obs exists)
-      auto beac_it = match_beacon(bo.m_beacon_id, prv_data);
+      auto beac_it = match_beacon(beacon_internal_id, prv_data);
       if (beac_it == prv_data.end()) { // no previous obs; just update the array
-        prv_data.emplace_back(LatestBeaconData{bo, tnow});
+        prv_data.emplace_back(LatestBeaconData{*beaconobs_set, tnow});
       } else {
         // previous data exists! get Ndop and update array
         double pvalue = beac_it->obs.m_values[l1_idx].m_value;
-        double cvalue = bo.m_values[l1_idx].m_value;
+        double cvalue = beaconobs_set->m_values[l1_idx].m_value;
         double Ndop = cvalue - pvalue;
 
         // get delta time (receiver time)
@@ -153,15 +159,16 @@ int main(int argc, char *argv[]) {
         double Dtsec = Dt_nsec.to_fractional_seconds();
 
         // get the relative frequency offset (Df/f0)
-        double Df0 = bo.m_values[f_idx].m_value;
+        double Df0 = beaconobs_set->m_values[f_idx].m_value;
 
         // update the data array
-        beac_it->obs = bo;
+        beac_it->obs = *beaconobs_set;
         beac_it->t = tnow;
 
-        printf("%.3s %.5f %.5f %.5f %.8f %.5f\n", bo.m_beacon_id, tnow.as_mjd(),
+        printf("%.3s %.5f %.5f %.5f %.8f %.5f\n", beacon_internal_id, tnow.as_mjd(),
                nf2g, Ndop, Dtsec, Df0);
       }
+    ++beaconobs_set;
     }
   }
 

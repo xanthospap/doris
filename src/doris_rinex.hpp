@@ -208,7 +208,7 @@ public:
 
   int get_doppler_counts() noexcept;
 
-  std::vector<BeaconStation> stations() const noexcept { return m_stations; }
+  const std::vector<BeaconStation>& stations() const noexcept { return m_stations; }
 
   auto ref_datetime() const noexcept { return m_time_ref_stat;}
 
@@ -219,6 +219,8 @@ public:
   int get_observation_code_index(ObservationCode t) const noexcept;
 
   const char *beacon_internal_id2id(const char *inid) const noexcept;
+
+  int print_metadata() const noexcept;
 
 #ifdef DEBUG
   void read();
@@ -239,7 +241,9 @@ struct RinexDataBlockIterator {
   std::vector<BeaconObservations> cblock;
   DorisObsRinex *rnx;
 
-  RinexDataBlockIterator(DorisObsRinex *drnx) noexcept : rnx(drnx) {};
+  RinexDataBlockIterator(DorisObsRinex *drnx) noexcept : rnx(drnx) {
+    cblock.reserve(5);
+  };
 
   int next() noexcept;
 

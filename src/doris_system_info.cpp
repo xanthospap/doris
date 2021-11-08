@@ -1,5 +1,6 @@
 #include "doris_system_info.hpp"
 #include <cstring>
+#include <cassert>
 #include <stdexcept>
 
 char ids::ObservationType_to_char(ids::ObservationType o) {
@@ -112,7 +113,26 @@ int ids::BeaconStation::set_from_rinex_line(const char *line) noexcept {
     errno = 0;
     return 3;
   }
+
+  // remove trailing whitespace characters from stations name
+  char *s = m_station_name + (sizeof m_station_name) - 1;
+  while (*s==' ' && (s-m_station_name)>0) *s-- = '\0';
+  s = m_station_domes + (sizeof m_station_domes) - 1;
+  while (*s==' ' && (s-m_station_domes)>0) *s-- = '\0';
+
   return 0;
+}
+
+char *ids::BeaconStation::to_str(char *buffer) const noexcept {
+  std::sprintf(buffer, "[%.3s/%.4s_%.9s](%s)", m_internal_code, m_station_id,
+               m_station_domes, m_station_name);
+  return buffer;
+}
+
+char *ids::ObservationCode::to_str(char *buffer) const noexcept {
+  assert(m_freq<10);
+  std::sprintf(buffer, "%c%1d", ObservationType_to_char(m_type), m_freq);
+  return buffer;
 }
 
 ids::GroundAntennaType ids::BeaconStation::type() const {

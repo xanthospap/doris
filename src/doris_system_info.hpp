@@ -121,6 +121,11 @@ struct ObservationCode {
 
   /// @brief Check if the ObservationCode has a corresponding frequency
   bool has_frequency() const noexcept;
+
+  /// @brief Format to string (string length=2+null terminating char)
+  /// @param[in] buffer A char array of length >= 3 chars
+  /// @return a pointer to the (formatted) buffer string
+  char* to_str(char *buffer) const noexcept;
 }; // ObservationCode
 
 /// @brief The type of a ground antenna (aka a beacon)
@@ -150,6 +155,11 @@ struct BeaconStation {
 
   /// @return the antenna type (see enum GroundAntennaType)
   GroundAntennaType type() const;
+
+  /// @brief Concatenate Beacon information to a string
+  /// @param[in] buffer A char array of length > 51 chars
+  /// @return a pointer to the (formatted) buffer string
+  char *to_str(char *buffer) const noexcept;
 
   /// @brief Set instance's member as resolved from a DORIS RINEX record.
   /// @param[in] line A RINEX 'STATION REFERENCE' record line

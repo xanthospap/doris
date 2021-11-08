@@ -13,11 +13,19 @@
 /// If any of the above fails, then an std::runtime_error will be thrown.
 ids::DorisObsRinex::DorisObsRinex(const char *fn)
     : m_filename(fn), m_stream(fn, std::ios_base::in) {
+  // pre-allocate vectors ..
+  m_obs_codes.reserve(10);
+  m_obs_scale_factors.reserve(10);
+  m_stations.reserve(60);
+  m_ref_stations.reserve(7);
+  
+  // read the header ..
   int status = read_header();
   if (status) {
     fprintf(stderr, "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: %s)\n", fn, status, __func__);
     throw std::runtime_error("[ERROR] Cannot read RINEX header");
   }
+
   m_lines_per_beacon = lines_per_beacon();
 }
 
@@ -295,6 +303,31 @@ int ids::RinexDataBlockIterator::next() noexcept {
             __func__);
     return 3;
   }
+
+  return 0;
+}
+
+int ids::DorisObsRinex::print_metadata() const noexcept {
+  char buf[64];
+  printf("RINEX filename: %s\n", m_filename.c_str());
+  printf("RINEX version : %.2f\n", m_version);
+  printf("Satellite Name: %s\n", m_satellite_name);
+  printf("COSPAR NR     : %s\n", m_cospar_number);
+  printf("Recvr Chain   : %s\n", m_rec_chain);
+  printf("Recvr Type    : %s\n", m_rec_type);
+  printf("Recvr Version : %s\n", m_rec_version);
+  printf("Antenna Type  : %s\n", m_antenna_type);
+  printf("Antenna Number: %s\n", m_antenna_number);
+  printf("Apprx Position: [%.3f, %.3f, %.3f]\n", m_approx_position[0], m_approx_position[1], m_approx_position[2]);
+  printf("Mass Center   : [%.3f, %.3f, %.3f]\n", m_center_mass[0], m_center_mass[1], m_center_mass[2]);
+  printf("Obs. Codes    : (%d) ", (int)m_obs_codes.size());
+  for (const auto &c : m_obs_codes) printf("[%s]", c.to_str(buf));
+  printf("\n");
+  printf("Scale Factors : (%d) ", (int)m_obs_scale_factors.size());
+  for (const auto &c : m_obs_scale_factors) printf("[%2d]", c);
+  printf("\n");
+  printf("Beacons       : (%d)\n", (int)m_stations.size());
+  for (const auto &c : m_stations) printf("\t%s\n", c.to_str(buf));
 
   return 0;
 }
