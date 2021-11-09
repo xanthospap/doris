@@ -7,7 +7,7 @@
 
 namespace ids {
 
-/// @brief This structure is mean to hold beacon coordinates and std. deviations
+/// @brief This structure is meant to hold beacon coordinates and std. deviations
 struct BeaconCoordinates {
     char id[4];
     double x, y, z;

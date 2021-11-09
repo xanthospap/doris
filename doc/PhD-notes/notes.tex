@@ -202,7 +202,13 @@ and \(k\) is the station frequency shift factor (\textit{signed integer, usually
 
 \(N_{DOP}\) is the Doppler count, aka the difference of two consecutive phase observations 
 on the 2 GHz carrier (for the same beacon). 
-\textbf{We can form this value using the RINEX file(s).}
+\textbf{We can form this value using the RINEX file(s)}. Normally, ``consecutive'' observations 
+are 3 or 7 sec away.
+\begin{block}{}
+In the RINEX files, this Doppler count is the difference between two phase measurements
+done at different time tags in the proper time-scale of the receiver.
+\end{block}
+
 \end{frame}
 
 \begin{frame}\frametitle{Parameters}\framesubtitle{Proper Receiver Frequency \(f_{r_T}\) (1/2)}
@@ -232,7 +238,7 @@ on the 2 GHz carrier (for the same beacon).
 \end{frame}
 
 \begin{frame}\frametitle{Parameters}\framesubtitle{Proper Receiver Frequency \(f_{r_T}\) (2/2)}
-  We need a value for  \(\Delta f_r / f_{r_N})\) (every epoch). The values can be 
+  We need a value for  \(\Delta f_r / f_{r_N}\) (every epoch). The values can be 
   estimated or \textbf{extracted from RINEX files}, under the ``F'' measurement (one value 
   per obervation block). It is recommended to smooth values over one or more days.
 
@@ -256,15 +262,42 @@ on the 2 GHz carrier (for the same beacon).
             \Delta\tau_r
           } + 
           \textcolor{red}{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
-          \textcolor{red}{\frac{\Delta f_e}{f_{e_N}}}
+          \textcolor{blue}{\frac{\Delta f_e}{f_{e_N}}}
     \end{aligned}
 \right\}
 \end{equation*}
 
 \(\Delta\tau_r = \tau_{r2} - \tau_{r1}\), where \(\tau_{r1}\) is the beginning of reception 
-of the the 1\textsubscript{st} cycle by the receiver, in the receiver proper time and 
-\(\tau_{r2}\) end of reception of the N\textsubscript{th} cycle by the receiver, in the 
-proper time scale of the receiver.
+of the the 1\textsubscript{st} cycle by the receiver, and 
+\(\tau_{r2}\) the end of reception of the N\textsubscript{th} cycle by the receiver, \underline{in the 
+proper time scale of the receiver}, that is ...
+
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Satellite-Beacon distance \(\rho\)}
+  \begin{equation*}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{\color{red}c}{\color{red}f_{e_N}} 
+          (\textcolor{red}{f_{e_N}} - 
+            \textcolor{red}{f_{r_T}} -
+            \frac{\color{red}N_{DOP}}{\textcolor{red}{\Delta\tau_r}}) + 
+          \Delta u_{{REL}_C} + 
+          \Delta u_{IONO}\\
+        u_{theo} &= \frac{\tikz[baseline]{
+          \node[fill=red!35, ellipse, anchor=base]
+          {$\rho_2 - \rho_1$};
+        }
+        }{\textcolor{red}{\Delta\tau_r}} + 
+          \Delta u_{TROPO} - 
+          \frac{\textcolor{red}c(\frac{\textcolor{red}{N_{DOP}}}{
+            \textcolor{red}{\Delta\tau_r}
+          } + 
+          \textcolor{red}{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
+          \textcolor{blue}{\frac{\Delta f_e}{f_{e_N}}}
+    \end{aligned}
+\right\}
+\end{equation*}
+
 
 \end{frame}
 

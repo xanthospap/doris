@@ -2,11 +2,46 @@
 #include "doris_utils.hpp"
 #include "cppsp3/sv_interpolate.hpp"
 #include <algorithm>
+#include <cmath>
 
 struct LatestBeaconData {
   ids::BeaconObservations obs{};
   dso::datetime<dso::nanoseconds> t;
+  double sv_beacon_rho; // distance between satellite and beacon at time t
 };
+
+int beacon_sv_distance(const char *beacon_4charid,
+                       const ids::BeaconCoordinates* bpos, int num_beacons,
+                       const double *svpos, double &distance) noexcept {
+  //auto it =
+  //    std::find_if(bpos.begin(), bpos.end(), [&](const ids::BeaconCoordinates &pos) {
+  //      return !(std::strncmp(beacon_4charid, pos.id, 4));
+  //    });
+  //if (it == bpos.end()) {
+  //  fprintf(stderr, "[ERROR] Failed to find beacon coordinates for %.4s\n",
+  //          beacon_4charid);
+  //  return 1;
+  //}
+  int index = -1;
+  for (int i=0; i<num_beacons; i++) {
+    if (!(std::strncmp(beacon_4charid, bpos[i].id, 4))) {
+      index = i;
+      break;
+    }
+  }
+  
+  if (index == -1) {
+    fprintf(stderr, "[ERROR] Failed to find beacon coordinates for %.4s\n",
+            beacon_4charid);
+    return 1;
+  }
+
+  double dx = svpos[0] - bpos[index].x * 1e3;
+  double dy = svpos[1] - bpos[index].y * 1e3;
+  double dz = svpos[2] - bpos[index].z * 1e3;
+  distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+  return 0;
+}
 
 int beacon_vector2str_array(const std::vector<ids::BeaconStation> &beacons,
                             char **&strarray) noexcept {
@@ -65,7 +100,7 @@ int main(int argc, char *argv[]) {
   dso::sp3::SatelliteId sv("XXX");
   sv.set_id(sp3.sattellite_vector()[0].id);
   dso::SvInterpolator sv_intrp(sv, sp3);
-  double xyz[3] = {0}, dxdydz[3] = {0};
+  double xyz[3] = {0}, dxyz[3] = {0};
 
   // DORIS RINEX instance
   ids::DorisObsRinex rnx(argv[1]);
@@ -99,13 +134,18 @@ int main(int argc, char *argv[]) {
 
   // use the SINEX file to extract beacon coordinates (for reference time of 
   // RINEX)
-  //ids::BeaconCoordinates *crd = new ids::BeaconCoordinates[rnx.stations().size()];
-  //char **sites_array = nullptr;
-  //beacon_vector2str_array(rnx.stations(), sites_array);
-  //if (ids::extrapolate_sinex_coordinates(argv[3], sites_array, rnx.stations().size(), rnx.ref_datetime(), crd)) {
-  //  fprintf(stderr, "Failed to extrapolate beacon coordinates!\n");
-  //  return 9;
-  //}
+  ids::BeaconCoordinates *crd = new ids::BeaconCoordinates[rnx.stations().size()];
+  char **sites_array = nullptr;
+  beacon_vector2str_array(rnx.stations(), sites_array);
+  if (ids::extrapolate_sinex_coordinates(argv[3], sites_array, rnx.stations().size(), rnx.ref_datetime(), crd)) {
+    fprintf(stderr, "Failed to extrapolate beacon coordinates!\n");
+    return 9;
+  }
+  // dealocate memory
+  for (int i = 0; i < (int)rnx.stations().size(); i++)
+    delete[] sites_array[i];
+  delete[] sites_array;
+
 
   // get an iterator to the RINEXs data blocks
   ids::RinexDataBlockIterator it(&rnx);
@@ -127,9 +167,9 @@ int main(int argc, char *argv[]) {
     // satellite position for current epoch
     // TODO need to cast nanoseconds date to microseconds date ....
     dso::datetime<dso::microseconds> now_ms = tnow.cast_to<dso::microseconds>();
-    sv_intrp.interpolate_at(now_ms, xyz);
+    sv_intrp.interpolate_at(now_ms, xyz, dxyz);
 
-    auto beaconobs_set = it.cblock.begin(); // Cureent beacons's observattion set
+    auto beaconobs_set = it.cblock.begin(); // Current beacons's observation set
     while (beaconobs_set != it.cblock.end()) {
       // internal 3char name of beacon
       const char *beacon_internal_id = beaconobs_set->m_beacon_id;
@@ -144,10 +184,16 @@ int main(int argc, char *argv[]) {
       }
       ids::beacon_nominal_frequency(k, nf2g, nf4m);
 
+      // sv-beacon distance
+      double rho;
+      if (beacon_sv_distance(rnx.beacon_internal_id2id(beacon_internal_id), crd,
+                             rnx.stations().size(), xyz, rho))
+        return 120;
+
       // get doppler count (if previous obs exists)
       auto beac_it = match_beacon(beacon_internal_id, prv_data);
       if (beac_it == prv_data.end()) { // no previous obs; just update the array
-        prv_data.emplace_back(LatestBeaconData{*beaconobs_set, tnow});
+        prv_data.emplace_back(LatestBeaconData{*beaconobs_set, tnow, rho});
       } else {
         // previous data exists! get Ndop and update array
         double pvalue = beac_it->obs.m_values[l1_idx].m_value;
@@ -164,14 +210,17 @@ int main(int argc, char *argv[]) {
         // update the data array
         beac_it->obs = *beaconobs_set;
         beac_it->t = tnow;
+        double rho0 = beac_it->sv_beacon_rho;
+        beac_it->sv_beacon_rho = rho;
 
-        printf("%.3s %.5f %.5f %.5f %.8f %.5f\n", beacon_internal_id, tnow.as_mjd(),
-               nf2g, Ndop, Dtsec, Df0);
-      }
+        printf("%.3s %.5f %.5f %.5f %.8f %.5f %.8f\n", beacon_internal_id,
+               tnow.as_mjd(), nf2g, Ndop, Dtsec, Df0, (rho-rho0)/Dtsec);
+        }
     ++beaconobs_set;
     }
   }
 
   printf("Read lines; ended with %d\n", error);
+
   return 0;
 }
