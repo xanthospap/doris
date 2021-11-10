@@ -49,6 +49,9 @@
   {\tikzmarknode[upper node]{above-\theHighLight}{\textbf #2}}
 }
 
+%% define a box ...
+\setbeamercolor{postit}{fg=black,bg=example text.fg!75!black!10!bg}
+
 \usepackage{natbib}
 \bibliographystyle{plainnat}
 
@@ -204,10 +207,11 @@ and \(k\) is the station frequency shift factor (\textit{signed integer, usually
 on the 2 GHz carrier (for the same beacon). 
 \textbf{We can form this value using the RINEX file(s)}. Normally, ``consecutive'' observations 
 are 3 or 7 sec away.
-\begin{block}{}
+
+\begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=true]{postit}
 In the RINEX files, this Doppler count is the difference between two phase measurements
 done at different time tags in the proper time-scale of the receiver.
-\end{block}
+\end{beamercolorbox}
 
 \end{frame}
 
@@ -224,7 +228,7 @@ done at different time tags in the proper time-scale of the receiver.
           \Delta u_{TROPO} - 
           \frac{\textcolor{red}c(\frac{\textcolor{red}{N_{DOP}}}{\Delta\tau_r} + 
           \highlight[upper=ellipse]{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
-          \highlightwu[upper={ellipse, fill=blue!30}, ,line={black,latex-}]{\frac{\Delta f_e}{f_{e_N}}}{estimate}
+          \highlightwu[upper={ellipse, fill=blue!30}, line={black,latex-}]{\frac{\Delta f_e}{f_{e_N}}}{estimate}
     \end{aligned}
 \right\}
 \end{equation*}
@@ -270,11 +274,11 @@ done at different time tags in the proper time-scale of the receiver.
 \(\Delta\tau_r = \tau_{r2} - \tau_{r1}\), where \(\tau_{r1}\) is the beginning of reception 
 of the the 1\textsubscript{st} cycle by the receiver, and 
 \(\tau_{r2}\) the end of reception of the N\textsubscript{th} cycle by the receiver, \underline{in the 
-proper time scale of the receiver}, that is ...
+proper time scale of the receiver}.
 
 \end{frame}
 
-\begin{frame}\frametitle{Parameters}\framesubtitle{Satellite-Beacon distance \(\rho\)}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Satellite-Beacon distance \(\rho\) (1/3)}
   \begin{equation*}
     \left.\begin{aligned}
         u_{measured} & = \frac{\color{red}c}{\color{red}f_{e_N}} 
@@ -298,6 +302,40 @@ proper time scale of the receiver}, that is ...
 \right\}
 \end{equation*}
 
+where:
+  \begin{equation*}
+    \rho_i = \Vert \vec{X}_{sat}|_{t \gets\tau_{ri}} - \vec{X}_{beacon} \Vert , i=1,2
+  \end{equation*}
+We need beacon and satellite position vectors for each epoch (aka every \(\tau_{r1}\) 
+and \(\tau_{r2}\)). Both in the same, earth-fixed, reference frame ...
+
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Satellite-Beacon distance \(\rho\) (2/3)}
+  \textbf{Satellite position vector for \(\tau_{r1}\) and \(\tau_{r2}\),  \(\vec{X}_{sat}|_{t \gets\tau_{ri}}\)}:\\
+  \vspace{.2cm}
+  Interpolate from IDS-pubished Sp3 files. Usually, these files contain more than one days; 
+  they record the satellite's state vector (both position and velocity) typically every 
+  60 sec, in ITRF.\\
+  \vspace{.2cm}
+  Interpolation is performed via (slightly modified) Neville's method. Typically 9 
+  neighbourhing points are used (6 on each side).
+
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Satellite-Beacon distance \(\rho\) (3/3)}
+  \textbf{Beacon position vector for \(\tau_{r1}\) and \(\tau_{r2}\),  \(\vec{X}_{beacon}\)}:\\
+  \vspace{.2cm}
+  \underline{Simplification:} for now we assume no significant displacement of the beacon 
+  within one day. This is generally not true (see tides, etc ...); later model using iers2010 
+  models.\\
+  \vspace{.2cm}
+  Beacon coordinates are extrapolated using the IDS-published DPOD SINEX file.\\
+  \vspace{.1cm}
+  \begin{beamercolorbox}[wd=\textwidth,rounded=true,shadow=true]{postit}
+  PDOP is a “DORIS extension of the ITRF for Precise Orbit Determination”
+  estimated and delivered by the IDS Combination Center.
+  \end{beamercolorbox}
 
 \end{frame}
 

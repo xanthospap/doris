@@ -165,9 +165,7 @@ int main(int argc, char *argv[]) {
     auto tnow = it.cheader.m_epoch;
 
     // satellite position for current epoch
-    // TODO need to cast nanoseconds date to microseconds date ....
-    dso::datetime<dso::microseconds> now_ms = tnow.cast_to<dso::microseconds>();
-    sv_intrp.interpolate_at(now_ms, xyz, dxyz);
+    sv_intrp.interpolate_at(tnow, xyz, dxyz);
 
     auto beaconobs_set = it.cblock.begin(); // Current beacons's observation set
     while (beaconobs_set != it.cblock.end()) {
