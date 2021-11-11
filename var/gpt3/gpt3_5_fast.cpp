@@ -1,13 +1,14 @@
 #include <cmath>
+#include "gpt3.hpp"
 #include "ggdatetime/dtcalendar.hpp"
 #include "ggeodesy/units.hpp"
 
 template <typename T> int sgn(T val) { return (T(0) < val) - (val < T(0)); }
 
 // function [p,T,dT,Tm,e,ah,aw,la,undu,Gn_h,Ge_h,Gn_w,Ge_w] = gpt3_5_fast (mjd,lat,lon,h_ell,it,grid)
-int gpt3_5_fast(const dso::datetime<dso::nanoseconds> &t, const double *lat,
-                const double *lon, const double *hell, int it,
-                const char *grid_file, int num_stations) noexcept {
+int dso::gpt3_5_fast(const dso::datetime<dso::nanoseconds> &t, const double *lat,
+                const double *lon, const double *hell, int num_stations, int it,
+                const char *grid_file) noexcept {
 
   // determine the GPT3 coefficients
   // mean gravity in m/s**2
@@ -157,40 +158,65 @@ int gpt3_5_fast(const dso::datetime<dso::nanoseconds> &t, const double *lat,
 
       // transforming ellipsoidal height to orthometric height : 
       // Hortho = -N + Hell
-      double undul = u_grid[indx];
-      double hgt = h_ell[k] - undul;
+      double undul[4], hgt[4];
+      grid.undul_slice(indx, undul);
+      for (int i=0; i<4; i++) {
+        hgt[i] = h_ell[k] - undul[i];
+      }
 
       // pressure, temperature at the height of the grid
-      double T0 = T_grid[indx, 0] + T_grid[indx, 1] * cosfy +
-                  T_grid[indx, 2] * sinfy + T_grid[indx, 3] * coshy +
-                  T_grid[indx, 4] * sinhy;
-      double p0 = p_grid[indx, 0] + p_grid[indx, 1] * cosfy +
-                  p_grid[indx, 2] * sinfy + p_grid[indx, 3] * coshy +
-                  p_grid[indx, 4] * sinhy;
-
+      double T0[4], p0[4];
+      for (int i = 0; i < 4; i++) {
+        T0[i] = T_grid[indx[i], 0] + T_grid[indx[i], 1] * cosfy +
+                T_grid[indx[i], 2] * sinfy + T_grid[indx[i], 3] * coshy +
+                T_grid[indx[i], 4] * sinhy;
+      }
+      for (int i = 0; i < 4; i++) {
+        p0[i] = p_grid[indx[i], 0] + p_grid[indx[i], 1] * cosfy +
+                p_grid[indx[i], 2] * sinfy + p_grid[indx[i], 3] * coshy +
+                p_grid[indx[i], 4] * sinhy;
+      }
       // humidity
-      double Ql = Q_grid[indx, 0] + Q_grid[indx, 1] * cosfy +
-                  Q_grid[indx, 2] * sinfy + Q_grid[indx, 3] * coshy +
-                  Q_grid[indx, 4] * sinhy;
+      double Ql[4];
+      for (int i=0; i<4; i++) {
+      Ql[i] = Q_grid[indx[i], 0] + Q_grid[indx[i], 1] * cosfy +
+                  Q_grid[indx[i], 2] * sinfy + Q_grid[indx[i], 3] * coshy +
+                  Q_grid[indx[i], 4] * sinhy;
+      }
 
       // reduction = stationheight - gridheight
-      double Hs1 = Hs_grid[indx];
-      double redh = hgt - Hs1;
+      //double Hs1 = Hs_grid[indx];
+      //double redh = hgt - Hs1;
+      double Hs1[4], redh[4];
+      grid.Hsgrid_slice(index, Hs1);
+      for (int i=0; i<4; i++) redh[i] = hgt[i] - Hs1[i]
 
       // lapse rate of the temperature in degree / m
-      double dTl = dT_grid[indx, 0] + dT_grid[indx, 1] * cosfy +
-                   dT_grid[indx, 2] * sinfy + dT_grid[indx, 3] * coshy +
-                   dT_grid[indx, 4] * sinhy;
+      double dT1[4];
+      for (int i=0; i<4; i++) {
+      dTl[i] = dT_grid[indx[i], 0] + dT_grid[indx[i], 1] * cosfy +
+                   dT_grid[indx[i], 2] * sinfy + dT_grid[indx[i], 3] * coshy +
+                   dT_grid[indx[i], 4] * sinhy;
+      }
 
       // temperature reduction to station height
-      Tl = T0 + dTl.*redh - 273.15e0;
+      double Tl[4];
+      for (int i=0; i<4; i++) {
+        Tl[i] = T0[i] + dTl[i]*redh[i] - 273.15e0;
+      }
 
       // virtual temperature
-      double Tv = T0.*(1e0 + 0.6077e0 * Ql);
-      double c = gm * dMtr./ (Rg * Tv);
+      double Tv[4], c[4];
+      for (int i = 0; i < 4; i++) {
+        Tv[i] = T0[i] * (1e0 + 0.6077e0 * Ql[i]);
+        c[i] = gm * dMtr / (Rg * Tv[i]);
+      }
 
       // pressure in hPa
-      double pl = (p0.*std::exp(-c.*redh)) / 100e0;
+      double pl[4];
+      for (int i=0; i<4; i++) {
+      pl[i] = (p0[i]*std::exp(-c[i]*redh[i])) / 100e0;
+      }
 
       // hydrostatic and wet coefficients ah and aw
       ahl = ah_grid[indx, 0] + ah_grid[indx, 1] * cosfy +
