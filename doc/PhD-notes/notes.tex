@@ -21,6 +21,7 @@
 \usepackage{soul} % for \st{...} aka strikethrough
 \usepackage{amsmath} % for math ...
 \usepackage{tikz} % drawing stuff ..
+\usepackage{enumitem}
 \usetikzlibrary{tikzmark,shapes}
 
 \tikzset{upper node/.style={fill=red!40},
@@ -337,6 +338,58 @@ and \(\tau_{r2}\)). Both in the same, earth-fixed, reference frame ...
   estimated and delivered by the IDS Combination Center.
   \end{beamercolorbox}
 
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (1/)}
+  \begin{equation*}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{\color{red}c}{\color{red}f_{e_N}} 
+          (\textcolor{red}{f_{e_N}} - 
+            \textcolor{red}{f_{r_T}} -
+            \frac{\color{red}N_{DOP}}{\textcolor{red}{\Delta\tau_r}}) + 
+          \Delta u_{{REL}_C} + 
+          \Delta u_{IONO}\\
+        u_{theo} &= \frac{\textcolor{red}{\rho_2 - \rho_1}}{\textcolor{red}{\Delta\tau_r}} + 
+        \tikz[baseline]{
+          \node[fill=red!35, ellipse, anchor=base]
+          {$\Delta u_{TROPO}$};
+        }
+          - \frac{\textcolor{red}c(\frac{\textcolor{red}{N_{DOP}}}{
+            \textcolor{red}{\Delta\tau_r}
+          } + 
+          \textcolor{red}{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
+          \textcolor{blue}{\frac{\Delta f_e}{f_{e_N}}}
+    \end{aligned}
+\right\}
+\end{equation*}
+
+We choose to model the tropospheric delay using the (empirical) GPT3 mapping functions, 
+that is:
+\begin{equation*}
+  \Delta u_{TROPO} = \Delta {L_{h}}^{z} \cdot mf_h(\epsilon) + \Delta {L_{w}}^{z} \cdot mf_w(\epsilon)
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (2/)}
+Derivation follows \cite{Landskron2018}
+
+For each beacon
+\begin{enumerate}[label=\textbf{T.\arabic*},ref=T.\arabic*]
+  \item \label{gpt3call} call \texttt{gpt3(mjd, $\phi$, $\lambda$)}; this returns a list of parameters including the \textbf{mapping coefficients \texttt{$\alpha _h$, $\alpha _w$}}
+  \item call \texttt{vmf3(\(\alpha _h, \alpha _w\), ...)} to get \textbf{\(mf_h(\epsilon)\) and \(mf_w(\epsilon)\)}
+  \item use \begin{equation*}
+    \Delta {L_{h}}^{z} = \frac{0.0022768 \cdot p}{1-0.00266 \cdot \cos(2\phi) - 0.28 \cdot 10^{-6} \cdot h_{ell}}
+  \end{equation*}
+  where $p$ is the pressure at the site, which can be obtained from either \ref{gpt3call} 
+  or the RINEX file (each epoch) and $h_{ell}$ is the ellipsoidal height.
+  \item use \begin{equation*}
+    \Delta {L_{w}}^{z} = 10^{-6} \cdot ( k_2 + \frac{k_3}{T_m}) \cdot \frac{R_d e}{g_m (\lambda +1)}
+  \end{equation*}
+  where $e$ is water vapour pressure, $T_m$ is mean 
+  temperature weighted with the water vapor and $\lambda$ is the water vapour 
+  decrease factor; all of these are obtained from the call to \ref{gpt3call}
+\end{enumerate}
 \end{frame}
 
 %\begin{frame}\frametitle{Parameters}\framesubtitle{SV coordinates}

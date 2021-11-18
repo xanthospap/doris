@@ -1,4 +1,4 @@
-noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation testRinexRfoFit testOnePass
+noinst_PROGRAMS = testDorisRinex testAntennaPcv testNdop testDpodExtrapolation testRinexRfoFit testOnePass testTropoH
 
 MCXXFLAGS = \
   -std=c++17 \
@@ -15,7 +15,7 @@ MCXXFLAGS = \
   -march=native \
   -DDEBUG
 
-AM_LDFLAGS =-lcppsp3 -lsinex -lggeodesy -lggdatetime
+AM_LDFLAGS =-lcppsp3 -lsinex -liers2010 -lggeodesy -lggdatetime
 
 testDorisRinex_SOURCES   = read_rinex.cc
 testDorisRinex_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
@@ -40,3 +40,7 @@ testRinexRfoFit_LDADD     = $(top_srcdir)/src/libcppdoris.la
 testOnePass_SOURCES   = test_one_pass.cc
 testOnePass_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
 testOnePass_LDADD     = $(top_srcdir)/src/libcppdoris.la
+
+testTropoH_SOURCES   = test_tropo_h.cpp
+testTropoH_CXXFLAGS  = $(MCXXFLAGS) -I$(top_srcdir)/src
+testTropoH_LDADD     = $(top_srcdir)/src/libcppdoris.la
