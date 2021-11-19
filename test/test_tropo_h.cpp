@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 
   // DORIS RINEX instance
   ids::DorisObsRinex rnx(argv[1]);
-  rnx.print_metadata();
+  // rnx.print_metadata();
 
   // index of the F measurement (relative frequency offset)
   int p_idx = rnx.get_observation_code_index(
@@ -87,6 +87,7 @@ int main(int argc, char *argv[]) {
     return error;
   }
 
+    ids::BeaconCoordinates *tls_ptr = nullptr;
   // for every new data block in the RINEX file ...
   while (!(error = it.next())) {
     // the current time ...
@@ -97,12 +98,16 @@ int main(int argc, char *argv[]) {
       // internal 3char name of beacon
       const char *beacon_internal_id = beaconobs_set->m_beacon_id;
 
+      // only process if beacon is Toulousse
+      if (!std::strncmp(rnx.beacon_internal_id2id(beacon_internal_id), "TLS",3)) {
+
       // get the value of pressure for the time/beacon
       double p = beaconobs_set->m_values[p_idx].m_value;
       // compute hydrostatic delay using p observation
       ids::BeaconCoordinates *crd_ptr =
           get_beacon_crd(rnx.beacon_internal_id2id(beacon_internal_id), crd,
                          rnx.stations().size());
+      tls_ptr = crd_ptr;
       if (!crd_ptr) {
         fprintf(
             stderr, "[ERROR] Failed to get coordinates for beacon %.3s/%.4s\n",
@@ -122,12 +127,13 @@ int main(int argc, char *argv[]) {
       printf("%.4s %.12f %.5f %.5f %.5f %.5f\n",
              rnx.beacon_internal_id2id(beacon_internal_id), tnow.as_mjd(), p,
              g3out.p, hydr_rnx, hydr_gpt);
-
+      }// beacon is TLS?
       ++beaconobs_set;
     }
   }
 
 printf("Read lines; ended with %d\n", error);
+printf("TLS coordinates: lat: %.20f, longitude: %.20f, hell: %.15f\n", tls_ptr->x, tls_ptr->y, tls_ptr->z);
 
 return 0;
 }

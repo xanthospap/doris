@@ -376,13 +376,17 @@ Derivation follows \cite{Landskron2018}
 
 For each beacon
 \begin{enumerate}[label=\textbf{T.\arabic*},ref=T.\arabic*]
-  \item \label{gpt3call} call \texttt{gpt3(mjd, $\phi$, $\lambda$)}; this returns a list of parameters including the \textbf{mapping coefficients \texttt{$\alpha _h$, $\alpha _w$}}
+  \item \label{gpt3call} call \texttt{gpt3(mjd, $\phi$, $\lambda$)}; this returns a 
+  list of parameters including the \textbf{mapping coefficients \texttt{$\alpha _h$, $\alpha _w$}}
+  
   \item call \texttt{vmf3(\(\alpha _h, \alpha _w\), ...)} to get \textbf{\(mf_h(\epsilon)\) and \(mf_w(\epsilon)\)}
+  
   \item use \begin{equation*}
     \Delta {L_{h}}^{z} = \frac{0.0022768 \cdot p}{1-0.00266 \cdot \cos(2\phi) - 0.28 \cdot 10^{-6} \cdot h_{ell}}
   \end{equation*}
   where $p$ is the pressure at the site, which can be obtained from either \ref{gpt3call} 
   or the RINEX file (each epoch) and $h_{ell}$ is the ellipsoidal height.
+  
   \item use \begin{equation*}
     \Delta {L_{w}}^{z} = 10^{-6} \cdot ( k_2 + \frac{k_3}{T_m}) \cdot \frac{R_d e}{g_m (\lambda +1)}
   \end{equation*}
@@ -390,29 +394,73 @@ For each beacon
   temperature weighted with the water vapor and $\lambda$ is the water vapour 
   decrease factor; all of these are obtained from the call to \ref{gpt3call}
 \end{enumerate}
+
 \end{frame}
 
-%\begin{frame}\frametitle{Parameters}\framesubtitle{SV coordinates}
-%    Extract satellite coordinates (or bettter yet state vector) from Sp3 files 
-%    using some kind of interpolation.\\
-%    \vspace{.2cm}
-%    
-%    At this point use polynomial interpolation using a (slightly modified) Neville's \citet{numrec3}
-%    method.\\
-%    \vspace{.2cm}
-%    
-%    Functions for reading/parsing Sp3 files are included in \href{https://github.com/xanthospap/sp3}{sp3}
-%
-%    \includegraphics[scale=.4]{l93x}
+%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (3/)}
+%  One day of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values ...
+%  %\begin{center}
+%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-pressure}%
+%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-ztdh}
+%  %\end{center}
 %\end{frame}
 
-\begin{frame}\frametitle{Parameters}\framesubtitle{Station/Beacon coordinates}
-    Extract station coordinates in ITRF2014\\
-    \vspace{.3cm}
+%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (4/)}
+%  One week of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values for beacon TLSB (France)
+%  %\begin{center}
+%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-pressure12}%
+%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-ztdh}
+%    \begin{tikzpicture}[overlay, remember picture] 
+%      \node at (current page.north east) 
+%          [
+%          anchor=north east,
+%          xshift=-3cm,
+%          yshift=-7cm
+%          ] 
+%      {
+%      \includegraphics[width=0.3\textwidth]{gpt3_pressure_one_week}
+%      };
+%      \end{tikzpicture}
+%  %\end{center}
+%\end{frame}
 
-    Implementation ready (for all stations included in the corresponding .psd files).\\
-    \vspace{.3cm}
+%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (5/)}
+%  Elevation Vs Total tropospheric delay; SV: Saral, orbital period = 100.6 minutes
+%  \includegraphics[angle=-90, width=0.9\textwidth]{srlrx21001.001-tropo-correction-one-day}%
+%  \begin{tikzpicture}[overlay, remember picture] 
+%    \node at (current page.north east) 
+%        [
+%        anchor=north east,
+%        xshift=-4cm,
+%        yshift=-3cm
+%        ] 
+%    {
+%    \includegraphics[angle=-90, width=0.5\textwidth]{srlrx21001.001-tropo-correction-half-day}
+%    };
+%    \end{tikzpicture}
+%\end{frame}
 
+%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (6/)}
+%  Elevation Vs Total tropospheric delay; SV: Sentinel-6A, orbital period =  minutes
+%  \includegraphics[angle=-90, width=0.85\textwidth]{s6arx21004.001-tropo-correction-one-day.png}%
+%  \begin{tikzpicture}[overlay, remember picture] 
+%    \node at (current page.north east) 
+%        [
+%        anchor=north east,
+%        xshift=-2.5cm,
+%        yshift=-3cm
+%        ] 
+%    {
+%    \includegraphics[angle=-90, width=0.5\textwidth]{s6arx21004.001-tropo-correction-half-day.png}
+%    };
+%    \end{tikzpicture}
+%\end{frame}
+
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (7/)}
+  Elevation Vs Total tropospheric delay; SV: Cryosat, orbital period = 99.16 minutes
+  \begin{center}
+  \includegraphics[angle=-90, width=0.8\textwidth]{cs2rx21005.001-tropo-correction}
+  \end{center}
 \end{frame}
 
 \begin{frame}\frametitle{Parameters}\framesubtitle{Time tagging}
