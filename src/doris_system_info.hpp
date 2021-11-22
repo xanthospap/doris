@@ -25,10 +25,13 @@ constexpr double DORIS_FREQ1_MHZ = 2.036250e3;
 /// @brief the 400 MHz fundamental DORIS frequency
 constexpr double DORIS_FREQ2_MHZ = 401.250e0;
 
+/// @brief the (freq1 / freq2) factor (normally used for iono-free l.
+/// combination)
+constexpr double GAMMA_FACTOR_SQRT = DORIS_FREQ1_MHZ / DORIS_FREQ2_MHZ;
+
 /// @brief the (freq1 / freq2)^2 factor (normally used for iono-free l.
 /// combination)
-constexpr double GAMMA_FACTOR =
-    (DORIS_FREQ1_MHZ / DORIS_FREQ2_MHZ) * (DORIS_FREQ1_MHZ / DORIS_FREQ2_MHZ);
+constexpr double GAMMA_FACTOR = GAMMA_FACTOR_SQRT * GAMMA_FACTOR_SQRT;
 
 /// @brief F0, aka USO frequency in Hz
 constexpr double USO_F0 = 5e6;

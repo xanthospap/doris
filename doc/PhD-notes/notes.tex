@@ -10,16 +10,14 @@
 } 
 
 \usepackage[utf8]{inputenc}
-% \usepackage[english,greek]{babel}
 \usepackage{epstopdf}
-% \newcommand{\en}{\selectlanguage{english}}
-% \newcommand{\el}{\selectlanguage{greek}}
 \usepackage{graphicx}
 \graphicspath{ {../figures/} }
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{soul} % for \st{...} aka strikethrough
 \usepackage{amsmath} % for math ...
+\usepackage{gensymb} % degree and other symbols ...
 \usepackage{tikz} % drawing stuff ..
 \usepackage{enumitem}
 \usetikzlibrary{tikzmark,shapes}
@@ -53,6 +51,12 @@
 %% define a box ...
 \setbeamercolor{postit}{fg=black,bg=example text.fg!75!black!10!bg}
 
+%% some itemize styles
+\newcommand{\citem}{\item[\checkmark]}
+\newcommand{\bitem}{\item[\textbullet]}
+\newcommand{\ditem}{\item[\textendash]}
+\newcommand{\aitem}{\item[\textasteriskcentered]}
+
 \usepackage{natbib}
 \bibliographystyle{plainnat}
 
@@ -72,64 +76,74 @@
 %  \tableofcontents
 %\end{frame}
 
-\section{Done}
-
-\begin{frame}\frametitle{done to date ...}\framesubtitle{13/10/2021}
-
-\begin{itemize}
-    \item DORIS RINEX v3.x parser (tested)
-    \item Sp3(c) parser (tested); works for all satellites
-\end{itemize}
-
+\begin{frame}\frametitle{So far ...}\framesubtitle{}
+  \begin{itemize}
+    \citem Meeting on 15 Oct 2021
+  \end{itemize}
 \end{frame}
 
-\section{Immediate Goals}
-
-\begin{frame}\frametitle{goals ...}\framesubtitle{13/10/2021}
-
-\begin{itemize}
-    \item \st{Perform Sp3 (polynomial) interpolation (\textit{ready to some extend})}
-    \item Start implementing basic processing techniques from \cite{lemoine-2016}
-\end{itemize}
-
-\vspace{0.3cm}
-
-\underline{Goal:} Estimate station coordinates using "fixed" orbits (from sp3)\\
-
-Fine Points:
-\begin{itemize}
-    \item perform Doppler-like processing to remove ambiguity bias
-    \item \st{tropospheric delay (iers-2010 standards) -- \textit{maybe use a "static" model to begin with, e.g. Saastamoinen} --} 
-      use GPT3 model for tropospheric delay
-    \item ionospheric delay (use iono-free LC)
-    \item time, clocks and synchronization ...
-    \item go for a Kalman filter (for estimation), not LS, so that we can later build on it
-\end{itemize}
-
-Could use more explicit references/documentation on DORIS processing
-
-\end{frame}
-
-\section{Implementation Details}
-
-\begin{frame}\frametitle{RINEX observations}\framesubtitle{}
+\begin{frame}\frametitle{RINEX observations}\framesubtitle{Observables}
   DORIS RINEX files contain (as observables):
   \begin{itemize}
-    \item L1 \& L2 phase data
-    \item C1 \& C2 pseudo range data (only for time-tagging)
-    \item W1 \& W2 power level data (data screening ?)
-    \item Relative frequency data
-    \item P, T \& H meteorological data (later to be used for tropospheric dealy)
+    \bitem L1 \& L2 phase data
+    \bitem C1 \& C2 pseudo range data (only for time-tagging)
+    \bitem W1 \& W2 power level data (data screening ?)
+    \bitem Relative frequency data
+    \bitem P, T \& H meteorological data (later to be used for tropospheric dealy)
   \end{itemize}
   \vspace{.2cm}
 
   All observations include a complicated set of flags\\
   \vspace{.2cm}
-
-  What about data screening/pre-processing? (e.g. Sigma-Clipping, see \citep{Ramanathan})
 \end{frame}
 
-\begin{frame}\frametitle{Observation Equation}
+\begin{frame}\frametitle{RINEX observations}\framesubtitle{Data Screening (1/2)}
+  \underline{Observation screening:}\\
+  At this point use the observation flags read off from the \(L_{2GHz}\) observation. 
+  In case a discontinuity is recorded in the RINEX file, start a new arc and diregard 
+  the marked observation.
+
+  \includegraphics[angle=-90, width=0.50\textwidth]{THUB-srlrx21003.001-allobs}%
+  \includegraphics[angle=-90, width=0.50\textwidth]{THUB-srlrx21003.001-screened}
+
+\end{frame}
+
+\begin{frame}\frametitle{RINEX observations}\framesubtitle{Data Screening (2/2)}
+\begin{table}
+\caption{Flagged $L_{2GHZ}$ observations per RINEX file; some examples}
+\label{tab:table}
+{\tiny
+\begin{tabular}{|c|c|c|c|}
+\hline \hline
+  RINEX & Satellite & Total $L_{2GHz}$ obs & Flagged $L_{2GHz}$ Obs (\%) \\
+  \hline
+  srlrx21001.001 & Saral & 34153 & 10.1 \\
+  srlrx21002.001 && 34213 & 10.1 \\
+  srlrx21003.001 && 3281 & 9.6 \\
+  s6arx21001.001 & Sentinel-6A & 3655 & 6.9 \\
+  s6arx21002.001 && 3854 & 7.2 \\
+  s6arx21003.001 && 3748 & 6.9 \\
+  s6arx21004.001 && 3796 & 7.1 \\
+  s6arx21005.001 && 3724 & 6.9 \\
+  ja3rx21001.001 & Jason-3 & 53115 & 6.9 \\
+  ja3rx21002.001 && 53830  & 7.2 \\
+  ja3rx21003.001 && 54399 & 6.8 \\
+  ja3rx21004.001 && 53243 & 7.2 \\
+  ja3rx21005.001 && 54335 & 6.9 \\
+\hline\hline
+\end{tabular}
+}
+
+\begin{itemize}
+  \aitem \textcolor{red}{Could later use a more sophisticated algorithm; e.g. linear/polynomial fitting 
+  of phase observables (like GNSS, turboedit/MAUPRP)}
+\end{itemize}
+\end{table}
+
+
+\end{frame}
+
+\begin{frame}\frametitle{Observation Equation}\framesubtitle{Starting Point}
   The following equation \cite{lemoine-2016} will be the basis for data processing:
   \begin{equation*}
     \label{eq:lem17}
@@ -147,6 +161,8 @@ Could use more explicit references/documentation on DORIS processing
     \end{aligned}
 \right\}
 \end{equation*}
+
+Need to figure out each term in the equation to formulate the observation equation.
 \end{frame}
 
 \begin{frame}[shrink=20]\frametitle{Parameters}\framesubtitle{Nominal Frequencies \(f_{r_N}\) and \(f_{e_N}\)}
@@ -235,10 +251,10 @@ done at different time tags in the proper time-scale of the receiver.
 \end{equation*}
 
 \begin{itemize}
-  \item nominal frequencies (\(f_{{[r|e]}_{N}}\)) are not equal to the ``true'' frequencies (\(f_{{[r|e]}_{T}}\))
-  \item in the observation equation we need to have the ``true'' frequencies, \(f_{e_T} = f_{e_N} (1 + \Delta f_e / f_{e_N})\)
-  \item \(\Delta f_e\) and \(\Delta f_r\) are 100\% correlated, only one of them can be ajusted; choose \(\Delta f_e\)
-  \item we need good a-priori estimates of \(\Delta f_r\)
+  \bitem nominal frequencies (\(f_{{[r|e]}_{N}}\)) are not equal to the ``true'' frequencies (\(f_{{[r|e]}_{T}}\))
+  \bitem in the observation equation we need to have the ``true'' frequencies, \(f_{e_T} = f_{e_N} (1 + \Delta f_e / f_{e_N})\)
+  \bitem \(\Delta f_e\) and \(\Delta f_r\) are 100\% correlated, only one of them can be ajusted; choose \(\Delta f_e\)
+  \bitem we need good a-priori estimates of \(\Delta f_r\)
 \end{itemize}
 \end{frame}
 
@@ -258,14 +274,21 @@ done at different time tags in the proper time-scale of the receiver.
         u_{measured} & = \frac{\color{red}c}{\color{red}f_{e_N}} 
           (\textcolor{red}{f_{e_N}} - 
             \textcolor{red}{f_{r_T}} -
-            \frac{\color{red}N_{DOP}}{\Delta\tau_r}) + 
+            \frac{\color{red}N_{DOP}}{
+        \tikz[baseline]{
+          \node[fill=red!35, ellipse, anchor=base]
+          {$\Delta\tau_r$};
+        }} +
           \Delta u_{{REL}_C} + 
           \Delta u_{IONO}\\
-        u_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} + 
+        u_{theo} &= \frac{\rho_2 - \rho_1}{
+          } + 
           \Delta u_{TROPO} - 
           \frac{\textcolor{red}c(\frac{\textcolor{red}{N_{DOP}}}{
-            \Delta\tau_r
-          } + 
+        \tikz[baseline]{
+          \node[fill=red!35, ellipse, anchor=base]
+          {$\Delta\tau_r$};
+          }} +
           \textcolor{red}{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
           \textcolor{blue}{\frac{\Delta f_e}{f_{e_N}}}
     \end{aligned}
@@ -397,64 +420,66 @@ For each beacon
 
 \end{frame}
 
-%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (3/)}
-%  One day of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values ...
-%  %\begin{center}
-%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-pressure}%
-%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-ztdh}
-%  %\end{center}
-%\end{frame}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (3/)}
+  We need the pressure (at each beacon) to compute  \(\Delta {L_{h}}^{z}\); we can either 
+  use the values provided in the RINEX files, or the one computed from GPT3.
+  One day of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values ...
+  %\begin{center}
+    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-pressure}%
+    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-allbeacons-ztdh}
+  %\end{center}
+\end{frame}
 
-%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (4/)}
-%  One week of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values for beacon TLSB (France)
-%  %\begin{center}
-%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-pressure12}%
-%    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-ztdh}
-%    \begin{tikzpicture}[overlay, remember picture] 
-%      \node at (current page.north east) 
-%          [
-%          anchor=north east,
-%          xshift=-3cm,
-%          yshift=-7cm
-%          ] 
-%      {
-%      \includegraphics[width=0.3\textwidth]{gpt3_pressure_one_week}
-%      };
-%      \end{tikzpicture}
-%  %\end{center}
-%\end{frame}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (4/)}
+  One week of Saral data; Pressure (hPa) and \(ZTD_H\) (m) from RINEX Vs GPT3 derived values for beacon TLSB (France)
+  %\begin{center}
+    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-pressure12}%
+    \includegraphics[angle=-90, width=0.5\textwidth]{Saral-TLSB-ztdh}
+    \begin{tikzpicture}[overlay, remember picture] 
+      \node at (current page.north east) 
+          [
+          anchor=north east,
+          xshift=-3cm,
+          yshift=-7cm
+          ] 
+      {
+      \includegraphics[width=0.3\textwidth]{gpt3_pressure_one_week}
+      };
+      \end{tikzpicture}
+  %\end{center}
+\end{frame}
 
-%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (5/)}
-%  Elevation Vs Total tropospheric delay; SV: Saral, orbital period = 100.6 minutes
-%  \includegraphics[angle=-90, width=0.9\textwidth]{srlrx21001.001-tropo-correction-one-day}%
-%  \begin{tikzpicture}[overlay, remember picture] 
-%    \node at (current page.north east) 
-%        [
-%        anchor=north east,
-%        xshift=-4cm,
-%        yshift=-3cm
-%        ] 
-%    {
-%    \includegraphics[angle=-90, width=0.5\textwidth]{srlrx21001.001-tropo-correction-half-day}
-%    };
-%    \end{tikzpicture}
-%\end{frame}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (5/)}
+  Elevation Vs Total tropospheric delay; SV: Saral, orbital period = 100.6 minutes
+  \includegraphics[angle=-90, width=0.9\textwidth]{srlrx21001.001-tropo-correction-one-day}%
+  \begin{tikzpicture}[overlay, remember picture] 
+    \node at (current page.north east) 
+        [
+        anchor=north east,
+        xshift=-4cm,
+        yshift=-3cm
+        ] 
+    {
+    \includegraphics[angle=-90, width=0.5\textwidth]{srlrx21001.001-tropo-correction-half-day}
+    };
+    \end{tikzpicture}
+\end{frame}
 
-%\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (6/)}
-%  Elevation Vs Total tropospheric delay; SV: Sentinel-6A, orbital period =  minutes
-%  \includegraphics[angle=-90, width=0.85\textwidth]{s6arx21004.001-tropo-correction-one-day.png}%
-%  \begin{tikzpicture}[overlay, remember picture] 
-%    \node at (current page.north east) 
-%        [
-%        anchor=north east,
-%        xshift=-2.5cm,
-%        yshift=-3cm
-%        ] 
-%    {
-%    \includegraphics[angle=-90, width=0.5\textwidth]{s6arx21004.001-tropo-correction-half-day.png}
-%    };
-%    \end{tikzpicture}
-%\end{frame}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (6/)}
+  Elevation Vs Total tropospheric delay; SV: Sentinel-6A, orbital period =  minutes
+  \includegraphics[angle=-90, width=0.85\textwidth]{s6arx21004.001-tropo-correction-one-day.png}%
+  \begin{tikzpicture}[overlay, remember picture] 
+    \node at (current page.north east) 
+        [
+        anchor=north east,
+        xshift=-2.5cm,
+        yshift=-3cm
+        ] 
+    {
+    \includegraphics[angle=-90, width=0.5\textwidth]{s6arx21004.001-tropo-correction-half-day.png}
+    };
+    \end{tikzpicture}
+\end{frame}
 
 \begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (7/)}
   Elevation Vs Total tropospheric delay; SV: Cryosat, orbital period = 99.16 minutes
@@ -463,36 +488,63 @@ For each beacon
   \end{center}
 \end{frame}
 
-\begin{frame}\frametitle{Parameters}\framesubtitle{Time tagging}
-    Quite complicated in DORIS ....
-    \vspace{.3cm}
-
-    Synchronize to TAI\\
-    \vspace{.3cm}
-
+\begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (8/)}
+  \textcolor{red}{Todo:}
   \begin{itemize}
-      \item Use RINEX data (clock offsets) \textcolor{red}{use this first}
-      \item Model clock using own model
+    \bitem use the more precise \(1 \degree \times 1 \degree \) gpt3 grid (currently using the \(5 \degree \times 5 \degree \) version)
+    \bitem \(ZTD_{wet}\) should be estimated (instead of computed)
+    \bitem include gradients (map azimouthal ZTD dependency)
+    \bitem use more DORIS-derived measurements (e.g. temperature) to model tropospheric delay
   \end{itemize}
-    \vspace{.3cm}
-
 \end{frame}
 
-\begin{frame}\frametitle{Parameters}\framesubtitle{Antenna PCO/PCV}
-    Corrections for phase centre offset/variations\\
-    \vspace{.3cm}
+\begin{frame}\frametitle{Parameters}\framesubtitle{Ionospheric Delay \(\Delta u_{IONO}\) (1/)}
+  \begin{equation*}
+    \left.\begin{aligned}
+        u_{measured} & = \frac{\color{red}c}{\color{red}f_{e_N}} 
+          (\textcolor{red}{f_{e_N}} - 
+            \textcolor{red}{f_{r_T}} -
+            \frac{\color{red}N_{DOP}}{\textcolor{red}{\Delta\tau_r}}) + 
+          \Delta u_{{REL}_C} + 
+          \tikz[baseline]{
+          \node[fill=red!35, ellipse, anchor=base]
+          {$\Delta u_{IONO}$};
+        }\\
+        u_{theo} &= \frac{\textcolor{red}{\rho_2 - \rho_1}}{\textcolor{red}{\Delta\tau_r}} + 
+          \textcolor{red}{\Delta u_{TROPO}}
+          - \frac{\textcolor{red}c(\frac{\textcolor{red}{N_{DOP}}}
+          {\textcolor{red}{\Delta\tau_r}} +
+          \textcolor{red}{f_{r_T}})}{\textcolor{red}{f_{e_N}}} 
+          \textcolor{blue}{\frac{\Delta f_e}{f_{e_N}}}
+    \end{aligned}
+\right\}
+\end{equation*}
 
-  Implemented for all ground antenna types,
-  \begin{itemize}
-      \item Alcatel
-      \item StarecB/StarecC
-  \end{itemize}
-  \vspace{.3cm}
+According to \cite{lemoine-2016}, we can convert to iono-free phase measurements on the 
+2GHz channel via the relationship:
+\begin{equation*}
+  L_{iono-free-2GHz} = L_{2GHz} + \frac{L_{2GHz} - \sqrt{\gamma} \cdot L{400MHz}}{\gamma - 1}
+\end{equation*}
 
-  Not yet implemented for SV's
-  \vspace{.3cm}
-
+Note:
+\begin{itemize}
+  \bitem applying the above equation was not possible with the previous file formats 
+  (doris2.1 and doris2.2). Only RINEX data provide dual frequency measurements
+  \bitem in RINEX processing we need to reduce the iono-free phase mearurement to the 
+  corresponding iono-free phase center
+\end{itemize}
 \end{frame}
+
+%\begin{frame}[fragile=singleslide]\frametitle{Where are we?}\framesubtitle{}
+%testOnePass data/Jason-3/ja3rx21005.001 data/Jason-3/ssaja320.b20362.e21006.DG\_.sp3.001 ../data/dpod2014\_053.snx data/gpt3\_5.grd
+%Bcn MJD         Nominal Freq.    NDOP         Dt (sec.)  Df/f0      r2-r1 / Dt    zen   DL\_hydro mf\_hydor DL\_wet   mf\_wet      Tropo   
+%D01 59219.00048 2036250000.00000 264411.72448 7.00000000 9071.93100 1.61088508 t: 19.94 2.301670 1.063602 0.091015 1.063692 :t 2.54487 690448.25887
+%D02 59219.00048 2036250000.00000 -265911.49176 7.00000000 9071.93100 -6.25423881 t: 29.17 2.186291 1.144796 0.042343 1.145036 :t 2.55134 -1.68543
+%D03 59219.00048 2036250000.00000 147595.79654 7.00000000 9071.93100 2.16015203 t: 18.98 2.323912 1.057344 0.136422 1.057429 :t 2.60143 690450.90265
+%D04 59219.00048 2036250000.00000 82415.23358 7.00000000 9071.93100 -2.75326865 t: 21.53 2.222343 1.074815 0.039761 1.074928 :t 2.43135 169449.57396
+%D01 59219.00051 2036250000.00000 113529.11211 3.00000000 9071.93100 1.61195914 t: 20.26 2.301670 1.065780 0.091015 1.065874 :t 2.55008 690448.36298
+%D02 59219.00051 2036250000.00000 -113821.79822 3.00000000 9071.93100 -6.25840823 t: 28.67 2.186291 1.139339 0.042343 1.139569 :t 2.53918 -1.77965
+%\end{frame}
 
 \bibliography{doris}
 

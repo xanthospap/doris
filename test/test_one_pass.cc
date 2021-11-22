@@ -9,11 +9,41 @@
 #include <algorithm>
 #include <cmath>
 
+int apply_iono_correction = 1;
+int new_arc_on_discontinuity = 1;
+
 struct LatestBeaconData {
   ids::BeaconObservations obs{};
   dso::datetime<dso::nanoseconds> t;
   double sv_beacon_rho; // distance between satellite and beacon at time t
+  double l2gh_iono_cor; // iono correction
+  int start_new_arc{0};
 };
+
+void update_beacon_obs(
+    const char *beacon_id, std::vector<std::pair<long,long>> &beacon_obs,
+    const std::vector<ids::BeaconStation> &beacons) noexcept {
+  auto it = std::find_if(beacons.begin(), beacons.end(),
+                         [&](const ids::BeaconStation &sta) {
+                           return !std::strncmp(sta.m_station_id, beacon_id, 4);
+                         });
+  assert(it != beacons.end());
+  int idx = std::distance(beacons.begin(), it);
+  beacon_obs[idx].first++;
+  return;
+}
+void update_missed_beacon_obs(
+    const char *beacon_id, std::vector<std::pair<long, long>> &beacon_obs,
+    const std::vector<ids::BeaconStation> &beacons) noexcept {
+  auto it = std::find_if(beacons.begin(), beacons.end(),
+                         [&](const ids::BeaconStation &sta) {
+                           return !std::strncmp(sta.m_station_id, beacon_id, 4);
+                         });
+  assert(it != beacons.end());
+  int idx = std::distance(beacons.begin(), it);
+  beacon_obs[idx].second++;
+  return;
+}
 
 ids::BeaconCoordinates *get_beacon_crd(const char *beacon_4char_id,
                                        ids::BeaconCoordinates *crd_vec,
@@ -98,6 +128,13 @@ auto match_beacon(const char *beacon_id,
   return it;
 }
 
+double iono_correction(double l2ghz, double l400mhz) noexcept {
+  constexpr double gamma = ids::GAMMA_FACTOR;
+  constexpr double sqrt_g = ids::GAMMA_FACTOR_SQRT;
+  constexpr double denom = gamma - 1e0;
+  return (l2ghz - sqrt_g*l400mhz) / denom;
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 5) {
     fprintf(stderr,
@@ -138,6 +175,17 @@ int main(int argc, char *argv[]) {
   if (l1_idx < 0) {
     fprintf(stderr,
             "[ERROR] Failed to find ObservationType L1 in RINEX\'s observation "
+            "types vector! (traceback: %s)\n",
+            __func__);
+    return 1;
+  }
+
+  // index of the 400MHz phase measurement (need for iono-free reduction)
+  int l2_idx = rnx.get_observation_code_index(
+      ids::ObservationCode{ids::ObservationType::phase, 2});
+  if (l2_idx < 0) {
+    fprintf(stderr,
+            "[ERROR] Failed to find ObservationType L2 in RINEX\'s observation "
             "types vector! (traceback: %s)\n",
             __func__);
     return 1;
@@ -190,6 +238,10 @@ int main(int argc, char *argv[]) {
         crd[i].x, crd[i].y, crd[i].z, crd_ell[i].x, crd_ell[i].y, crd_ell[i].z);
   }
 
+  // just a counter for number of measurements per beacon ... to have a summary 
+  // at the end (and number of unconsidered obs)
+  std::vector<std::pair<long,long>> beacon_obs (rnx.stations().size(), {0L,0L});
+
   // get an iterator to the RINEXs data blocks
   ids::RinexDataBlockIterator it(&rnx);
 
@@ -215,6 +267,11 @@ int main(int argc, char *argv[]) {
       // internal 3char name of beacon
       const char *beacon_internal_id = beaconobs_set->m_beacon_id;
 
+      // get this out of the way first; record that we have a new obs for this
+      // beacon
+      update_beacon_obs(rnx.beacon_internal_id2id(beacon_internal_id),
+                        beacon_obs, rnx.stations());
+
       // get shift factor and nominal frequency (Hz)
       int k;
       if (beacon_shift_factor(beacon_internal_id, it.rnx, k)) {
@@ -231,14 +288,51 @@ int main(int argc, char *argv[]) {
                              rnx.stations().size(), xyz, rho))
         return 120;
 
+      // get the iono correction
+      double iono_cor =
+          iono_correction(beaconobs_set->m_values[l1_idx].m_value,
+                          beaconobs_set->m_values[l2_idx].m_value);
+
+      // check if the 2GHz observation is marked for discontinuity
+      int discontinuity =
+          (beaconobs_set->m_values[l1_idx].m_flag2 == '1') ? 1 : 0;
+
       // get doppler count (if previous obs exists)
       auto beac_it = match_beacon(beacon_internal_id, prv_data);
       if (beac_it == prv_data.end()) { // no previous obs; just update the array
-        prv_data.emplace_back(LatestBeaconData{*beaconobs_set, tnow, rho});
+        if (!new_arc_on_discontinuity ||
+            (new_arc_on_discontinuity && !discontinuity))
+          prv_data.emplace_back(
+              LatestBeaconData{*beaconobs_set, tnow, rho, iono_cor});
+        else
+          update_missed_beacon_obs(rnx.beacon_internal_id2id(beacon_internal_id),
+                            beacon_obs, rnx.stations());
+
+        // previous obs exist but this is a discontinuity; start new arc
+      } else if (beac_it != prv_data.end() &&
+                 ((new_arc_on_discontinuity && discontinuity))) {
+        beac_it->start_new_arc = 1;
+        update_missed_beacon_obs(rnx.beacon_internal_id2id(beacon_internal_id),
+                          beacon_obs, rnx.stations());
+
+        // previous obs exist and is marked with new arc; re-ignite the arc, add
+        // this as previous measurement
+      } else if (beac_it != prv_data.end() &&
+                 ((new_arc_on_discontinuity && !discontinuity && beac_it->start_new_arc))) {
+        beac_it->start_new_arc = 0;
+        beac_it->obs = *beaconobs_set;
+        beac_it->t = tnow;
+        double rho0 = beac_it->sv_beacon_rho;
+        beac_it->sv_beacon_rho = rho;
+        beac_it->l2gh_iono_cor = iono_cor;
+
       } else {
-        // previous data exists! get Ndop and update array
-        double pvalue = beac_it->obs.m_values[l1_idx].m_value;
-        double cvalue = beaconobs_set->m_values[l1_idx].m_value;
+        // previous data exists! get Ndop and update array (apply iono
+        // correction if needed)
+        double pvalue = beac_it->obs.m_values[l1_idx].m_value +
+                        apply_iono_correction * beac_it->l2gh_iono_cor;
+        double cvalue = beaconobs_set->m_values[l1_idx].m_value +
+                        apply_iono_correction * iono_cor;
         double Ndop = cvalue - pvalue;
 
         // get delta time (receiver time)
@@ -298,18 +392,37 @@ int main(int argc, char *argv[]) {
         beac_it->t = tnow;
         double rho0 = beac_it->sv_beacon_rho;
         beac_it->sv_beacon_rho = rho;
+        beac_it->l2gh_iono_cor = iono_cor;
 
-        printf(
-            "%.3s %.5f %.5f %.5f %.8f %.5f %.8f t: %.2f %.6f %.6f %.6f %.6f :t %.5f\n",
-            beacon_internal_id, tnow.as_mjd(), nf2g, Ndop, Dtsec, Df0,
-            (rho - rho0) / Dtsec, dso::rad2deg(zenith), ztd_hydro, mfh, ztd_wet, mfw,
-            ztd_hydro * mfh + ztd_wet * mfw);
+        printf("%.3s %.5f %.5f %.5f %.8f %.5f %.8f t: %.2f %.6f %.6f %.6f %.6f "
+               ":t %.5f %.5f [%c%c]\n",
+               beacon_internal_id, tnow.as_mjd(), nf2g, Ndop, Dtsec, Df0,
+               (rho - rho0) / Dtsec, dso::rad2deg(zenith), ztd_hydro, mfh,
+               ztd_wet, mfw, ztd_hydro * mfh + ztd_wet * mfw, iono_cor,
+               beaconobs_set->m_values[l1_idx].m_flag1,
+               beaconobs_set->m_values[l1_idx].m_flag2);
       }
       ++beaconobs_set;
     }
   }
 
+  unsigned long all_obs=0, flagged_obs=0;
   printf("Read lines; ended with %d\n", error);
+  printf("Number of epochs per beacon:\n");
+  int index = 0;
+  for (const auto &b : rnx.stations()) {
+    double precent_obs_removed =
+        (double)beacon_obs[index].second * 100 /
+        (double)beacon_obs[index].first;
+    printf(
+            "%.4s (%.3s) %6ld/%6ld missed: %.1f%%\n", b.m_station_id, b.m_internal_code,
+            beacon_obs[index].first, beacon_obs[index].second, precent_obs_removed);
+    all_obs += beacon_obs[index].first;
+    flagged_obs += beacon_obs[index].second;
+    ++ index;
+  }
+  printf("Total number of L2GHz obs=%lu, flagged=%lu, percent flagged=%.1f%%\n",
+         all_obs, flagged_obs, flagged_obs * 100 / (double)all_obs);
 
-  return 0;
+      return 0;
 }
