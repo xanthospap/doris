@@ -17,9 +17,10 @@
 \usepackage{hyperref}
 \usepackage{soul} % for \st{...} aka strikethrough
 \usepackage{amsmath} % for math ...
-\usepackage{gensymb} % degree and other symbols ...
+% \usepackage{gensymb} % degree and other symbols ...
 \usepackage{tikz} % drawing stuff ..
 \usepackage{enumitem}
+\usepackage{siunitx} %% SI Units
 \usetikzlibrary{tikzmark,shapes}
 
 \tikzset{upper node/.style={fill=red!40},
@@ -474,7 +475,7 @@ For each beacon
         anchor=north east,
         xshift=-2.5cm,
         yshift=-3cm
-        ] 
+        ]
     {
     \includegraphics[angle=-90, width=0.5\textwidth]{s6arx21004.001-tropo-correction-half-day.png}
     };
@@ -491,7 +492,8 @@ For each beacon
 \begin{frame}\frametitle{Parameters}\framesubtitle{Tropospheric Delay \(\Delta u_{TROPO}\) (8/)}
   \textcolor{red}{Todo:}
   \begin{itemize}
-    \bitem use the more precise \(1 \degree \times 1 \degree \) gpt3 grid (currently using the \(5 \degree \times 5 \degree \) version)
+    %\bitem use the more precise \(1 \degree \times 1 \degree \) gpt3 grid (currently using the \(5 \degree \times 5 \degree \) version)
+    \bitem use the more precise \(1^\circ \times 1^\circ \) gpt3 grid (currently using the \(5^\circ \times 5^\circ \) version)
     \bitem \(ZTD_{wet}\) should be estimated (instead of computed)
     \bitem include gradients (map azimouthal ZTD dependency)
     \bitem use more DORIS-derived measurements (e.g. temperature) to model tropospheric delay
@@ -533,6 +535,25 @@ Note:
   \bitem in RINEX processing we need to reduce the iono-free phase mearurement to the 
   corresponding iono-free phase center
 \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Phase Center Offsets and Variations}\framesubtitle{PCO}
+  Need to apply PCO to the observed quantities; since we are using the iono-free 
+  LC, we must compute the iono-free PCO, which is (\cite{lemoine-2016}):
+  \begin{equation*}
+    \vec{r}_{2GHz,iono-free} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}
+  \end{equation*}
+
+where $\vec{r}_{2GHz,iono-free}$ is the vector from the \SI{2}{\GHz} phase
+center to the iono-free phase center and $\vec{r}_{400MHz,2GHz}$ is
+the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center. This vector 
+should be added to the \SI{2}{\GHz} PCO.
+\textcolor{red}{Note the signs!!}
+\end{frame}
+
+\begin{frame}\frametitle{Phase Center Offsets and Variations}\framesubtitle{PCV}
+  Apply Phase-Law rules (aka PCV) for each observation, depending on antenna type 
+  and zenith angle.
 \end{frame}
 
 %\begin{frame}[fragile=singleslide]\frametitle{Where are we?}\framesubtitle{}

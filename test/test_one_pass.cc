@@ -1,6 +1,7 @@
 #include "cppsp3/sv_interpolate.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
+#include "antenna_pcv.hpp"
 #include "ggeodesy/car2ell.hpp"
 #include "ggeodesy/car2top.hpp"
 #include "ggeodesy/geodesy.hpp"
@@ -135,6 +136,55 @@ double iono_correction(double l2ghz, double l400mhz) noexcept {
   return (l2ghz - sqrt_g*l400mhz) / denom;
 }
 
+// Starec[BC] PCO in mm
+void starec_iono_free_pco(double *pco) noexcept {
+  using ids::GroundAntennaType;
+  using ids::AntennaOffset;
+
+  pco[0] = AntennaOffset<GroundAntennaType::Starec_B, 1>::dnorth();
+  pco[1] = AntennaOffset<GroundAntennaType::Starec_B, 1>::deast();
+  pco[2] = AntennaOffset<GroundAntennaType::Starec_B, 1>::dup();
+  const double nl2 = AntennaOffset<GroundAntennaType::Starec_B, 2>::dnorth();
+  const double el2 = AntennaOffset<GroundAntennaType::Starec_B, 2>::deast();
+  const double ul2 = AntennaOffset<GroundAntennaType::Starec_B, 2>::dup();
+
+  double dn1 = nl2 - pco[0];
+  double de1 = el2 - pco[1];
+  double du1 = ul2 - pco[2];
+
+  constexpr double denom = ids::GAMMA_FACTOR - 1e0;
+  pco[0] += dn1 / denom;
+  pco[1] += de1 / denom;
+  pco[2] += du1 / denom;
+}
+
+double iono_free_pcv(const ids::BeaconStation *beacon, double z, int &error) noexcept {
+  using ids::GroundAntennaType;
+  
+  GroundAntennaType type = beacon->type();
+  
+  double pcv_l1=0e0, pcv_l2=0e0;
+  int err1=1, err2=1;
+  switch (type) {
+    case ids::GroundAntennaType::Starec_B:
+      pcv_l1 = ids::AntennaOffset<GroundAntennaType::Starec_B, 1>::pcv(z, err1);
+      pcv_l2 = ids::AntennaOffset<GroundAntennaType::Starec_B, 2>::pcv(z, err2);
+      break;
+    case ids::GroundAntennaType::Starec_C:
+      pcv_l1 = ids::AntennaOffset<GroundAntennaType::Starec_C, 1>::pcv(z, err1);
+      pcv_l2 = ids::AntennaOffset<GroundAntennaType::Starec_C, 2>::pcv(z, err2);
+      break;
+    case ids::GroundAntennaType::Alcatel:
+      pcv_l1 = ids::AntennaOffset<GroundAntennaType::Alcatel, 1>::pcv(z, err1);
+      pcv_l2 = ids::AntennaOffset<GroundAntennaType::Alcatel, 2>::pcv(z, err2);
+  }
+  error = err1 + err2;
+  assert(!error);
+
+  constexpr double denom = ids::GAMMA_FACTOR - 1e0;
+  return (pcv_l2 - pcv_l1) / denom;
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 5) {
     fprintf(stderr,
@@ -236,6 +286,16 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < (int)rnx.stations().size(); i++) {
     dso::car2ell<dso::ellipsoid::grs80>(
         crd[i].x, crd[i].y, crd[i].z, crd_ell[i].x, crd_ell[i].y, crd_ell[i].z);
+  }
+  
+  // starec Iono-free PCO (do we have alcatele antennas?)
+  double ifpco[3];
+  starec_iono_free_pco(ifpco);
+  for (int i=0; i<(int)rnx.stations().size(); i++) {
+    if (rnx.stations()[i].m_station_id[3] == 'A') {
+      fprintf(stderr, "[ERROR] Non-STAREC antenna found ... need more code!\n");
+      return 2;
+    }
   }
 
   // just a counter for number of measurements per beacon ... to have a summary 
@@ -387,6 +447,16 @@ int main(int argc, char *argv[]) {
         // TZD wet
         double ztd_wet = dso::asknewet(g3out.e, g3out.Tm, g3out.la);
 
+        // get PCV (in mm)
+        int err1 = 0, err2 = 0;
+        double pcv_l1 =
+            ids::AntennaOffset<ids::GroundAntennaType::Starec_B, 1>::pcv(zenith,
+                                                                         err1);
+        double pcv_l2 =
+            ids::AntennaOffset<ids::GroundAntennaType::Starec_B, 2>::pcv(zenith,
+                                                                         err2);
+        assert(!(err1 + err2));
+
         // update the data array
         beac_it->obs = *beaconobs_set;
         beac_it->t = tnow;
@@ -395,10 +465,11 @@ int main(int argc, char *argv[]) {
         beac_it->l2gh_iono_cor = iono_cor;
 
         printf("%.3s %.5f %.5f %.5f %.8f %.5f %.8f t: %.2f %.6f %.6f %.6f %.6f "
-               ":t %.5f %.5f [%c%c]\n",
+               ":t %.5f %.5f %.6f %.6f [%c%c]\n",
                beacon_internal_id, tnow.as_mjd(), nf2g, Ndop, Dtsec, Df0,
                (rho - rho0) / Dtsec, dso::rad2deg(zenith), ztd_hydro, mfh,
                ztd_wet, mfw, ztd_hydro * mfh + ztd_wet * mfw, iono_cor,
+               pcv_l1, pcv_l2,
                beaconobs_set->m_values[l1_idx].m_flag1,
                beaconobs_set->m_values[l1_idx].m_flag2);
       }
@@ -423,6 +494,8 @@ int main(int argc, char *argv[]) {
   }
   printf("Total number of L2GHz obs=%lu, flagged=%lu, percent flagged=%.1f%%\n",
          all_obs, flagged_obs, flagged_obs * 100 / (double)all_obs);
+  
+  printf("Iono-free PCO: n=%.3f e=%.3f u=%.3f\n", ifpco[0], ifpco[1], ifpco[2]);
 
       return 0;
 }
