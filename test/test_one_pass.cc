@@ -355,7 +355,8 @@ int main(int argc, char *argv[]) {
 
       // check if the 2GHz observation is marked for discontinuity
       int discontinuity =
-          (beaconobs_set->m_values[l1_idx].m_flag2 == '1') ? 1 : 0;
+          (beaconobs_set->m_values[l1_idx].m_flag2 == '1')  + 
+          (beaconobs_set->m_values[l2_idx].m_flag2 == '1');
 
       // get doppler count (if previous obs exists)
       auto beac_it = match_beacon(beacon_internal_id, prv_data);
