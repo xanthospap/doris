@@ -26,12 +26,12 @@ sats = [k for k in satellite_abbreviation_dct]
 cddis_url = { 'domain': 'gdc.cddis.eosdis.nasa.gov', 'root_dir': '/pub/doris/data/' }
 cddis_credentials = { 'username':'xanthos', 'password':'Xanthos1984'}
 
-def fetch_file(target_dir, target_fn, local=None):
-    local = target_fn if local is None else local
+def fetch_file(target_dir, target_fn, local_dir, local_fn=None):
+    local_fn = target_fn if local_fn is None else local_fn
+    local_fn = os.path.join(local_dir, local_fn)
 
     url = '{:}://{:}'.format('https', cddis_url['domain'])
-
-    print('Downloading remote file {:} ...'.format(url+target_dir+target_fn))
+    # print('Downloading remote file {:} ...'.format(url+target_dir+target_fn))
 
     error = 0
     try:
@@ -39,7 +39,7 @@ def fetch_file(target_dir, target_fn, local=None):
         ftps.login(user='anonymous', passwd='xanthos@mail.ntua.gr')
         ftps.prot_p()
         ftps.cwd(target_dir)
-        ftps.retrbinary("RETR " + target_fn, open(target_fn, 'wb').write)
+        ftps.retrbinary("RETR " + target_fn, open(local_fn, 'wb').write)
     except:
         print('ERROR Failed to download file!')
         if os.path.isfile(target_fn): os.remove(target_fn)
@@ -93,13 +93,13 @@ parser.add_argument('-d',
                     required=False,
                     help='The day-of-year (doy) of date.')
 
-parser.add_argument(
-    '-o',
-    '--output',
-    metavar='OUTPUT',
-    dest='save_as',
-    required=False,
-    help='Save the downloaded file using this file(name); can include path.')
+#parser.add_argument(
+#    '-o',
+#    '--output',
+#    metavar='OUTPUT',
+#    dest='save_as',
+#    required=False,
+#    help='Save the downloaded file using this file(name); can include path.')
 
 parser.add_argument(
     '-O',
@@ -107,6 +107,7 @@ parser.add_argument(
     metavar='OUTPUT_DIR',
     dest='save_dir',
     required=False,
+    default=os.getcwd(),
     help='Save the downloaded file under the given directory name.')
 
 parser.add_argument(
@@ -154,12 +155,10 @@ if __name__ == '__main__':
     else:
         t = datetime.datetime.now()
 
-    input_dct = {}
-    if args.save_as:
-        input_dct['save_as'] = args.save_as
-    if args.save_dir:
-        input_dct['save_dir'] = args.save_dir
+    if not os.path.isdir(args.save_dir):
+        print('ERROR! Failed to find directory {:}'.format(args.save_dir))
+        sys.exit(1)
 
     target_rinex = make_target_filename(args.satellite, t, args.version_nr)
     target_path = make_target_path(args.satellite, t)
-    sys.exit(fetch_file(target_path, target_rinex))
+    sys.exit(fetch_file(target_path, target_rinex, args.save_dir))
