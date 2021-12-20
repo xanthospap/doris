@@ -11,11 +11,11 @@ import datetime
 import argparse
 from ftplib import FTP_TLS
 
+cddis_url = { 'domain': 'gdc.cddis.eosdis.nasa.gov', 'root_dir': '/pub/doris/data/' }
+
 analysis_center = { 'grg': 'CNES/GRGS', 'gsc': 'NASA/GSFC', 'lca': 'LEGOS-CLS', 'ssa': 'SSALTO'}
 all_acn = [ k for k in analysis_center ]
 all_acn += [ analysis_center[k] for k in analysis_center ]
-cddis_url = { 'domain': 'gdc.cddis.eosdis.nasa.gov', 'root_dir': '/pub/doris/data/' }
-cddis_credentials = { 'username':'xanthos', 'password':'Xanthos1984'}
 
 satellite_names = {
     'cs2' : 'Cryosat-2',
@@ -33,15 +33,16 @@ satellite_names = {
     'sp5' : 'SPOT-5',
     'srl' : 'Saral',
     'top' : 'TOPEX/Poseidon'}
-all_sat_names = [ k for k in satellite_names ]
-all_sat_names += [ satellite_names[k] for k in satellite_names ]
+sats = [ k for k in satellite_names ]
+sats += [ satellite_names[k] for k in satellite_names ]
+##
 
 def fetch_file(target_dir, target_fn, local_dir, local_fn=None):
     local_fn = target_fn if local_fn is None else local_fn
     local_fn = os.path.join(local_dir, local_fn)
 
     url = '{:}://{:}'.format('https', cddis_url['domain'])
-    # print('Downloading remote file {:} ...'.format(url+target_dir+target_fn))
+    print('Downloading remote file {:} to {:} ...'.format(target_fn, local_fn), end='')
 
     error = 0
     try:
@@ -50,6 +51,7 @@ def fetch_file(target_dir, target_fn, local_dir, local_fn=None):
         ftps.prot_p()
         ftps.cwd(target_dir)
         ftps.retrbinary("RETR " + target_fn, open(local_fn, 'wb').write)
+        print("done!")
     except:
         print('ERROR Failed to download file!')
         if os.path.isfile(target_fn): os.remove(target_fn)
@@ -58,7 +60,7 @@ def fetch_file(target_dir, target_fn, local_dir, local_fn=None):
     return error
 
 def listFD(target_dir):
-    ftps = FTP_TLS(host = 'gdc.cddis.eosdis.nasa.gov')
+    ftps = FTP_TLS(host = cddis_url['domain'])
     ftps.login(user='anonymous', passwd="xanthos@mail.ntua.gr")
     ftps.prot_p()
     ftps.cwd(target_dir)
@@ -116,17 +118,8 @@ def make_target_filename(acn='ssa', sss='cs2', vv='[012]{2}', has_doris=True, ha
                 acn = k
                 break
     if acn not in analysis_center:
-        print('[ERROR] Invalid analysis center \'{:}\''.format(acn))
+        print('[ERROR] Invalid analysis center \'{:}\''.format(acn), file=sys.stderr)
         raise RuntimeError('Invalid analysis center')
-
-    if sss not in satellite_names:
-        for k,v in satellite_names.items():
-            if sss == v:
-                sss=k
-                break
-    if sss not in satellite_names:
-        print('[ERROR] Invalid satellite id')
-        raise RuntimeError('Invalid satellite id')
 
     if lll < 0:
         lll = '[0-9]{3}'
@@ -168,17 +161,8 @@ def make_target_dir(acn='ssa', sss='cs2'):
                 acn = k
                 break
     if acn not in analysis_center:
-        print('[ERROR] Invalid analysis center \'{:}\''.format(acn))
+        print('[ERROR] Invalid analysis center \'{:}\''.format(acn), file=sys.stderr)
         raise RuntimeError('Invalid analysis center')
-
-    if sss not in satellite_names:
-        for k,v in satellite_names.items():
-            if sss == v:
-                sss=k
-                break
-    if sss not in satellite_names:
-        print('[ERROR] Invalid satellite id')
-        raise RuntimeError('Invalid satellite id')
 
     return '{:}/{:}/{:}/'.format('/doris/products/orbits', acn, sss)
 
@@ -234,7 +218,7 @@ parser.add_argument(
 parser.add_argument(
     '-s',
     '--satellite',
-    choices=all_sat_names,
+    choices=sats,
     metavar='SATELLITE',
     dest='satellite',
     required=True,
@@ -276,14 +260,27 @@ if __name__ == '__main__':
         version = '{:02d}'.format(args.version_nr)
     
     if not os.path.isdir(args.save_dir):
-        print('ERROR! Failed to find directory {:}'.format(args.save_dir))
+        print('ERROR! Failed to find directory {:}'.format(args.save_dir), file=sys.stderr)
         sys.exit(1)
+    
+    if args.satellite not in sats:
+        print('ERROR! Invalid satellite name; choose one from:', file=sys.stderr)
+        for shortn, longn in satellite_names.items():
+            print("\t{:10s} aka {:15s}".format(shortn, longn), file=sys.stderr)
+        sys.exit(1)
+    elif args.satellite in satellite_names:
+        satellite = args.satellite
+    else:
+        for shortn, longn in satellite_names.items():
+            if args.satellite == longn:
+                satellite = shortn
+                break
 
     ## make a list of target sp3 filenames
-    target_sp3 = make_target_filename(args.data_center, args.satellite, version, True, False, False, 1)
+    target_sp3 = make_target_filename(args.data_center, satellite, version, True, False, False, 1)
 
     ## make the directory path
-    target_dir = make_target_dir(args.data_center, args.satellite)
+    target_dir = make_target_dir(args.data_center, satellite)
 
     ## get the remote directory listing
     ftp_file_list = listFD(target_dir)
@@ -297,4 +294,8 @@ if __name__ == '__main__':
         print('WARNING: More than one orbit files match the description:')
         for rfn in matched_remote_fns: print('\t Matched file: {:}'.format(rfn))
 
-    sys.exit(fetch_file(target_dir, matched_remote_fns[0], args.save_dir))
+    if len(matched_remote_fns) > 0:
+        sys.exit(fetch_file(target_dir, matched_remote_fns[0], args.save_dir))
+    else:
+        print('No orbit file matches pattern; cannot find orbit for given satellite/date')
+        sys.exit(0)
