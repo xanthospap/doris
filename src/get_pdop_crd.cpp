@@ -1,5 +1,5 @@
 #include "doris_utils.hpp"
-#include "sinex.hpp"
+#include "sinex/sinex.hpp"
 #include <cstring>
 
 int extrapolate_coordinates(

@@ -2,9 +2,9 @@
 #include "doris_system_info.hpp"
 #include <cstring>
 #include <algorithm>
-#include <ggdatetime/dtfund.hpp>
+#include <datetime/dtfund.hpp>
 #ifdef DEBUG
-#include "ggdatetime/datetime_write.hpp"
+#include "datetime/datetime_write.hpp"
 #endif
 
 struct BeaconObservationData {

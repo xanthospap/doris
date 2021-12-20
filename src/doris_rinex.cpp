@@ -1,10 +1,10 @@
 #include "doris_rinex.hpp"
-#include "ggdatetime/datetime_read.hpp"
+#include "datetime/datetime_read.hpp"
 #include <cctype>
 #include <algorithm>
 #include <stdexcept>
 #ifdef DEBUG
-#include "ggdatetime/datetime_write.hpp"
+#include "datetime/datetime_write.hpp"
 #endif
 
 /// The constructor will try to:

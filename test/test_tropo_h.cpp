@@ -1,7 +1,7 @@
-#include "cppsp3/sv_interpolate.hpp"
+#include "sp3/sv_interpolate.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
-#include "ggeodesy/car2ell.hpp"
+#include "geodesy/car2ell.hpp"
 #include "iers2010/tropo.hpp"
 #include <algorithm>
 #include <cmath>
