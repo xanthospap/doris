@@ -118,7 +118,8 @@ int main(int argc, char *argv[]) {
 
       // compute hydrostatic delay using gpt3/saastamoinen
       dso::gpt3_result g3out;
-      if (dso::gpt3_5_fast(tnow, &crd_ptr->x, &crd_ptr->y, &crd_ptr->z, 1, 0, argv[3], &g3out)) {
+      int grid_step = 5;
+      if (dso::gpt3_fast(tnow, &crd_ptr->x, &crd_ptr->y, &crd_ptr->z, 1, 0, argv[3], &g3out, grid_step)) {
           fprintf(stderr, "[ERROR] Failed to compute gpt3!\n");
           return 20;
       }
