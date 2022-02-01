@@ -1,0 +1,64 @@
+import os
+import sys
+import glob
+
+## Prefic for install(ed) files
+prefix = "/usr/local"
+
+## Library version
+lib_version = "0.1.0"
+## Library name
+lib_name = "egrav"
+## Include dir (following prefix) if any
+inc_dir = "egrav"
+## the rootdir of the project
+root_dir = os.path.abspath(os.getcwd())
+
+## get number of CPUs and use for parallel builds
+num_cpu = int(os.environ.get('NUM_CPU', 2))
+SetOption('num_jobs', num_cpu)
+print("running with -j %s" % GetOption('num_jobs'))
+
+AddOption('--cxx',
+          dest='cxx',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='CXX',
+          help='C++ Compiler',
+          default=None)
+
+## Source files (for lib)
+lib_src_files = glob.glob(r"src/*.cpp")
+
+## Headers (for lib)
+hdr_src_files = glob.glob(r"src/*.hpp")
+
+## Environments ...
+denv = Environment(
+    CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Winline -Wdisabled-optimization -DDEBUG')
+penv = Environment(
+    CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Winline -O2 -march=native')
+
+## Command line arguments ...
+debug = ARGUMENTS.get('debug', 0)
+
+## Construct the build enviroment
+env = denv.Clone() if int(debug) else penv.Clone()
+
+## What compiler should we be using ?
+if GetOption('cxx') is not None:
+    env['CXX'] = GetOption('cxx')
+
+## (shared) library ...
+vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=[
+                         '.'], SHLIBVERSION=lib_version)
+
+## Build ....
+env.Program(source=['test/test_icgem.cpp'] +
+            [lib_src_files], target='bin/test_icgem.out', CPPPATH=['src/'])
+
+env.Alias(target='install', source=env.Install(
+    dir=os.path.join(prefix, 'include', inc_dir), source=hdr_src_files))
+env.Alias(target='install', source=env.InstallVersionedLib(
+    dir=os.path.join(prefix, 'lib'), source=vlib))
