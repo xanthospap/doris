@@ -35,9 +35,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char yn;
     // print coefficients
     #ifdef DEBUG
+    char yn;
     printf("Want to see the coefficients [y/n]?\n");
     std::scanf("%c", &yn);
     if (yn=='y' || yn=='Y') hc.print();

@@ -16,7 +16,7 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
-  constexpr std::size_t num_elements() noexcept {
+  constexpr std::size_t num_elements() const noexcept {
     if (rows == cols) {
       std::size_t n = rows;
       return (n*(n+1)) / 2;
@@ -122,6 +122,10 @@ public :
   void fill_with(double val) noexcept {
     std::fill(m_data, m_data+m_storage.num_elements(), val);
   }
+  const double *data() const noexcept {return m_data;}
+  #ifdef DEBUG
+  double *data() noexcept {return m_data;}
+  #endif
 
   Mat2D(int rows, int cols) noexcept
       : m_storage(rows, cols), m_data(new double[m_storage.num_elements()]){};

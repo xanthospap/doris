@@ -13,4 +13,8 @@ int lagrange_polynomials(double x, double y, double z, double R, int l, int k,
                          Mat2D<MatrixStorageType::Trapezoid> &V,
                          Mat2D<MatrixStorageType::Trapezoid> &W) noexcept;
 
+int grav_potential_accel(int degree, int order, double Re, double GM,
+                         const Mat2D<MatrixStorageType::Trapezoid> &V,
+                         const Mat2D<MatrixStorageType::Trapezoid> &W,
+                         const HarmonicCoeffs &hc, double *acc) noexcept;
 #endif

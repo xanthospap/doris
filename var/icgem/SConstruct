@@ -59,6 +59,8 @@ env.Program(source=['test/test_icgem.cpp'] +
             [lib_src_files], target='bin/test_icgem.out', CPPPATH=['src/'])
 env.Program(source=['test/test_grav1.cpp'] +
             [lib_src_files], target='bin/test_grav1.out', CPPPATH=['src/'])
+env.Program(source=['test/test_gravacc.cpp'] +
+            [lib_src_files], target='bin/test_gravacc.out', CPPPATH=['src/'])
 
 env.Alias(target='install', source=env.Install(
     dir=os.path.join(prefix, 'include', inc_dir), source=hdr_src_files))

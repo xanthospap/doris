@@ -28,6 +28,8 @@ public:
     ~Icgem() noexcept {};
 
     int degree() const noexcept { return max_degree; }
+    double earth_radius() const noexcept { return radius; }
+    double gm() const noexcept { return earth_gravity_constant; }
 
     #ifdef DEBUG
     void print_details();
