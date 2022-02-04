@@ -36,6 +36,8 @@ void print(double scale=1e0) noexcept {
 
 int degree() const noexcept {return m_degree;}
 
+int denormalize(int order=-1) noexcept;
+
 double *C_row(int degree) noexcept {
     return m_data[degree]; // C(degree,0)-> C(degree, degree)
 }

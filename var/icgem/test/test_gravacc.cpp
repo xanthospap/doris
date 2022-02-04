@@ -34,6 +34,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // de-normalize the harmonics coeffs
+  hc.denormalize();
+
   // ok, we now have the harmonic coefficients; we need the Lagrange
   // polynomials.
   // Note that we need to compute V and W for degree + 1 (see Montenbruck,
