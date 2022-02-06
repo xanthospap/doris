@@ -58,21 +58,21 @@ public:
   int degree() const noexcept { return m_degree; }
 
   /// @brief De-normalize harmonic coefficients.
-  /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications; see
-  /// Eq. 3.13 in Chapter 3.2
+  /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
+  /// See Eq. 3.13 in Chapter 3.2
   int denormalize(int order = -1) noexcept;
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
-  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point to
-  /// the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
+  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point
+  /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
   /// coefficient (that is degree=5 and order=5).
   double *C_row(int degree) noexcept {
     return m_data[degree]; // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
-  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point to
-  /// the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
+  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point
+  /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
   /// coefficient (that is degree=5 and order=5).
   const double *C_row(int degree) const noexcept {
     return m_data[degree]; // C(degree,0)-> C(degree, degree)
@@ -85,12 +85,12 @@ public:
   const double &C(int i, int j) const noexcept { return C_row(i)[j]; }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
-  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are not
-  ///          stored in the data array. Hence, in contrast to the corresponding
-  ///          S_row() function, this function will not return a pointer to
-  ///          S_0m, a pointer to S_1m.
-  /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point to
-  /// the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
+  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are 
+  ///          not stored in the data array. Hence, in contrast to the 
+  ///          corresponding S_row() function, this function will not return a 
+  ///          pointer to S_0m, a pointer to S_1m.
+  /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point
+  /// to the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).
   double *S_row(int degree) noexcept {
     int off = m_degree - degree;
@@ -98,10 +98,10 @@ public:
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
-  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are not
-  ///          stored in the data array. Hence, in contrast to the corresponding
-  ///          S_row() function, this function will not return a pointer to
-  ///          S_0m, a pointer to S_1m.
+  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are 
+  ///          not stored in the data array. Hence, in contrast to the 
+  ///          corresponding S_row() function, this function will not return a 
+  ///          pointer to S_0m, a pointer to S_1m.
   /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point to
   /// the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).

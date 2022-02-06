@@ -7,9 +7,9 @@
 #include <cstdio>
 #endif
 
-/// Naive implementation of 2Dimensional matrices; note that this implementation
-/// targets 2-dimensional matrices that are only mean to store data NOT perform
-/// arithmetic operations.
+/// @file Naive implementation of 2Dimensional matrices; note that this 
+/// implementation targets 2-dimensional matrices that are only mean to store 
+/// data NOT perform arithmetic operations.
 
 namespace dso {
 
@@ -18,9 +18,10 @@ enum class MatrixStorageType : char {
   RowWise,    ///< Row-Wise storage
   ColumnWise, ///< Column-Wise storage
   Trapezoid   ///< a trapezoid matrix with row-wise storage
-}; // MatrixStorageType
+};// MatrixStorageType
 
-///< implementation details depending on storage type, aka MatrixStorageType
+/// @brief implementation details depending on storage type, aka 
+///        MatrixStorageType
 template <MatrixStorageType S> struct StorageImplementation {};
 
 /// @brief Implementation details for a 2-d trapezoid matrix, holding data in
@@ -258,6 +259,6 @@ public:
 
 }; // Mat2D
 
-}// dso
+} // namespace dso
 
 #endif

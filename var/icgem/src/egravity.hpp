@@ -5,10 +5,12 @@
 #include "harmonic_coeffs.hpp"
 
 namespace dso {
+
 #ifdef DEBUG
-int lagrange_polynomials(double x, double y, double z, double R, int l, int k,
-                         dso::Mat2D<dso::MatrixStorageType::RowWise> &V,
-                         dso::Mat2D<dso::MatrixStorageType::RowWise> &W) noexcept;
+int lagrange_polynomials(
+    double x, double y, double z, double R, int l, int k,
+    dso::Mat2D<dso::MatrixStorageType::RowWise> &V,
+    dso::Mat2D<dso::MatrixStorageType::RowWise> &W) noexcept;
 #endif
 
 /// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian) 
@@ -21,11 +23,13 @@ int lagrange_polynomials(double x, double y, double z, double R, int l, int k,
 /// @param[in] k max order (k <= l)
 /// @param[out] V Computed values of V lagrange polynomials
 /// @param[out] W Computed values for W lagrange polynomials
+/// 
 /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      ch. 3.2.4, p. 66
-int lagrange_polynomials(double x, double y, double z, double R, int l, int k,
-                         dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
-                         dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
+int lagrange_polynomials(
+    double x, double y, double z, double R, int l, int k,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
 
 /// @brief Computes the acceleration due to the harmonic gravity field of the
 /// central body
@@ -34,8 +38,15 @@ int lagrange_polynomials(double x, double y, double z, double R, int l, int k,
 /// @param[in] hc Spherical harmonics coefficients
 /// @param[in] degree Maximum degree; less or equal to the degree of the hc
 /// @param[in] order Maximum order (m_max<=n_max; m_max=0 for zonals, only)
+/// @param[out] V Computed values of V lagrange polynomials
+/// @param[out] W Computed values for W lagrange polynomials
 /// @param[out] acc Acceleration (a=d^2r/dt^2) in x, y, z components
-///
+/// @warning Note that if we need to compute the potential, aka the harmonic
+///          expansion of degree N and order M, then we need the V and W values
+///          for degree N+1 and order M+1. Hence, when allocating the structs,
+///          users should do something like:
+///          Mat2D<MatrixStorageType::Trapezoid> V(degree + 2, order + 2);
+///          See Montenbruck 3.2.5 and the example program test_gravacc.cpp.
 /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      ch. 3.2.5, p. 68
 int grav_potential_accel(int degree, int order, double Re, double GM,

@@ -8,21 +8,20 @@
 #include <cassert>
 #endif
 
-int dso::grav_potential_accel(int degree, int order, double Re, double GM,
-                         const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
-                         const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
-                         const dso::HarmonicCoeffs &hc, double *acc) noexcept {
+int dso::grav_potential_accel(
+    int degree, int order, double Re, double GM,
+    const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
+    const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
+    const dso::HarmonicCoeffs &hc, double *acc) noexcept {
 
   double xacc(0e0), yacc(0e0), zacc(0e0);
 
-  // printf("ax=");
   // m = 0 part
   for (int i = 0; i <= degree; i++) {
-    const double Cn0 = hc.C(i,0);
-    zacc += -(i+1) * Cn0 * V(i+1,0);
+    const double Cn0 = hc.C(i, 0);
+    zacc += -(i + 1) * Cn0 * V(i + 1, 0);
     xacc += -Cn0 * V(i + 1, 1);
     yacc += -Cn0 * W(i + 1, 1);
-    //printf("-%8.4e * %8.4e\n", Cn0, V(i + 1, 1));
   }
 
   double xacc2(0e0), yacc2(0e0);
@@ -37,18 +36,15 @@ int dso::grav_potential_accel(int degree, int order, double Re, double GM,
       const double Wnp1mm1 = W(i + 1, j - 1);
       const double Wnp1mp0 = W(i + 1, j);
       const double Wnp1mp1 = W(i + 1, j + 1);
-      const double fac = (i-j+1) * (i-j+2) / 2e0;
+      const double fac = (i - j + 1) * (i - j + 2) / 2e0;
 
       xacc2 += 0.5e0 * (-Cnm * Vnp1mp1 - Snm * Wnp1mp1) +
                fac * (Cnm * Vnp1mm1 + Snm * Wnp1mm1);
-      // printf("+0.5 * (-%8.4e * %8.4e - %8.4e * %8.4e)\n", Cnm, Vnp1mp1, Snm, Wnp1mp1);
-      // printf("+%8.4e * (%8.4e * %8.4e + %8.4e * %8.4e)\n", fac, Cnm, Vnp1mm1, Snm, Wnp1mm1);
       yacc2 += 0.5e0 * (-Cnm * Wnp1mp1 + Snm * Vnp1mp1) +
                fac * (-Cnm * Vnp1mm1 + Snm * Wnp1mm1);
       zacc += (i - j + 1) * (-Cnm * Vnp1mp0 - Snm * Wnp1mp0);
     }
   }
-  // printf("\n");
 
   xacc += xacc2;
   xacc *= GM / (Re * Re);

@@ -6,21 +6,21 @@
 
 constexpr int max_header_lines = 1000;
 constexpr int bsz = 256;
-    
+
 #ifdef DEBUG
-    void dso::Icgem::print_details() {
-      printf("Details of igem parsed header for file: %s\n", filename.c_str());
-      printf("Product Type : %s\n", product_type);
-      printf("Model Name   : %s\n", modelname);
-      printf("Tide System  : %s\n", tide_system);
-      printf("Normalization: %s\n", norm);
-      printf("Errors       : %s\n", errors);
-      printf("GM           : %15.10f\n", earth_gravity_constant);
-      printf("R            : %15.10f\n", radius);
-      printf("Max Degree   : %d\n", max_degree);
-      return;
-    }
-    #endif
+void dso::Icgem::print_details() {
+  printf("Details of igem parsed header for file: %s\n", filename.c_str());
+  printf("Product Type : %s\n", product_type);
+  printf("Model Name   : %s\n", modelname);
+  printf("Tide System  : %s\n", tide_system);
+  printf("Normalization: %s\n", norm);
+  printf("Errors       : %s\n", errors);
+  printf("GM           : %15.10f\n", earth_gravity_constant);
+  printf("R            : %15.10f\n", radius);
+  printf("Max Degree   : %d\n", max_degree);
+  return;
+}
+#endif
 
 const char *next_non_ws_char(const char *line) noexcept {
   const char *s = line;
