@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cassert>
 
+using namespace dso;
+
 int main(int argc, char *argv[]) {
   if (argc != 2 && argc != 3) {
     fprintf(stderr, "Usage: %s <GRAVITY MODEL FILE> [DEGREE - optional]\n",
@@ -36,6 +38,8 @@ int main(int argc, char *argv[]) {
 
   // de-normalize the harmonics coeffs
   hc.denormalize();
+  // hc.print();
+  // printf("\n");
 
   // ok, we now have the harmonic coefficients; we need the Lagrange
   // polynomials.

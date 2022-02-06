@@ -1,6 +1,8 @@
 #include "icgemio.hpp"
 #include <cstdio>
 
+using namespace dso;
+
 int main(int argc, char *argv[]) {
     if (argc!=2 && argc!=3) {
         fprintf(stderr, "Usage: %s <icgem-file> [MAX DEGREE (optional)]\n", argv[0]);

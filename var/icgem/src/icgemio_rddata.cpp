@@ -9,16 +9,15 @@
 constexpr std::size_t max_data_line = 512;
 
 bool starts_with(const char *pattern, const char *line) noexcept {
-  if (line) {
+  if (line)
     return !std::strncmp(pattern, line, std::strlen(pattern));
-  }
   return false;
 }
 
 std::size_t coeffs_nr(int l, int m) noexcept {
   if (l == m) {
     std::size_t n = l + 1;
-    return (n*(n-1))/2 + n;
+    return (n * (n - 1)) / 2 + n;
   }
 
   std::size_t sum = 0;
@@ -29,7 +28,7 @@ std::size_t coeffs_nr(int l, int m) noexcept {
 
 /// @warning coeffs should have already been initialized and allocated with
 ///          enough memmory to hold the (to-be-) parsed coefficients.
-int Icgem::parse_data(int l, int m, HarmonicCoeffs *coeffs) noexcept {
+int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
 
   if (l > max_degree || m > l) {
     fprintf(
@@ -139,17 +138,20 @@ int Icgem::parse_data(int l, int m, HarmonicCoeffs *coeffs) noexcept {
   if (coeffs_read < coeffs_to_read) {
     // before reporting an error, see if we are in the case described in
     // note (1)
-    if (coeffs_to_read-coeffs_read == 2 && (coeffs->C(1, 0)==coeffs->C(1, 1) && coeffs->C(1, 1)==-999e0)) {
-      printf("[NOTE] The coefficients C(1,0) and C(1,1) are not explicitly written in the icgem file: %s\n", filename.c_str());
+    if (coeffs_to_read - coeffs_read == 2 &&
+        (coeffs->C(1, 0) == coeffs->C(1, 1) && coeffs->C(1, 1) == -999e0)) {
+      printf("[NOTE] The coefficients C(1,0) and C(1,1) are not explicitly "
+             "written in the icgem file: %s\n",
+             filename.c_str());
       printf("[NOTE] Setting C(1, 0) = C(1, 1) = 0e0\n");
       coeffs->C(1, 0) = 0e0;
       coeffs->C(1, 1) = 0e0;
     } else {
-    fprintf(stderr,
-            "[ERROR] EOF reached before reading all Snm/Cnm coefficients! "
-            "read/expected %lu/%lu; icgem file %s (traceback: %s)\n",
-            coeffs_read, coeffs_to_read, filename.c_str(), __func__);
-    return 2;
+      fprintf(stderr,
+              "[ERROR] EOF reached before reading all Snm/Cnm coefficients! "
+              "read/expected %lu/%lu; icgem file %s (traceback: %s)\n",
+              coeffs_read, coeffs_to_read, filename.c_str(), __func__);
+      return 2;
     }
   }
 

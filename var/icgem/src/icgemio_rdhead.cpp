@@ -8,7 +8,7 @@ constexpr int max_header_lines = 1000;
 constexpr int bsz = 256;
     
 #ifdef DEBUG
-    void Icgem::print_details() {
+    void dso::Icgem::print_details() {
       printf("Details of igem parsed header for file: %s\n", filename.c_str());
       printf("Product Type : %s\n", product_type);
       printf("Model Name   : %s\n", modelname);
@@ -57,7 +57,7 @@ const char *resolve_header_keyword(const char *parameter_name, const char *line,
 /// @warning this function assumes that comment and header lines do not exceed
 ///          256 characters; this is not guaranteed by the icgem format, but
 ///          practically holds for all cases.
-int Icgem::parse_header() noexcept {
+int dso::Icgem::parse_header() noexcept {
   std::ifstream fin(filename.c_str());
   if (!fin.is_open()) {
     fprintf(stderr, "[ERROR] Failed opening icgem file %s (traceback: %s)\n",

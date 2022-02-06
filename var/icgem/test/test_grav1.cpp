@@ -1,6 +1,8 @@
 #include "egravity.hpp"
 #include <cstdio>
 
+using namespace dso;
+
 int main(int argc, char *argv[]) {
   if (argc != 1) {
     fprintf(stderr, "Usage: %s [GRAVITY MODEL FILE]\n", argv[0]);

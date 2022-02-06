@@ -4,14 +4,14 @@
 #include <algorithm>
 #include <cassert>
 
-int HarmonicCoeffs::allocate() noexcept {
+int dso::HarmonicCoeffs::allocate() noexcept {
     m_data = new double*[m_degree+1];
     for (int i=0; i<=m_degree; i++)
         m_data[i] = new double[m_degree+1];
     return 0;
 }
 
-int HarmonicCoeffs::deallocate() noexcept {
+int dso::HarmonicCoeffs::deallocate() noexcept {
   if (m_data) {
     for (int i = 0; i <= m_degree; i++)
       delete[] m_data[i];
@@ -20,7 +20,7 @@ int HarmonicCoeffs::deallocate() noexcept {
   return 0;
 }
 
-HarmonicCoeffs::HarmonicCoeffs(HarmonicCoeffs &&h) noexcept {
+dso::HarmonicCoeffs::HarmonicCoeffs(dso::HarmonicCoeffs &&h) noexcept {
   this->deallocate();
   this->m_degree = h.m_degree;
   this->m_data = h.m_data;
@@ -28,7 +28,7 @@ HarmonicCoeffs::HarmonicCoeffs(HarmonicCoeffs &&h) noexcept {
   h.m_data = nullptr;
 }
 
-HarmonicCoeffs &HarmonicCoeffs::operator=(HarmonicCoeffs &&h) noexcept {
+dso::HarmonicCoeffs &dso::HarmonicCoeffs::operator=(dso::HarmonicCoeffs &&h) noexcept {
   this->m_degree = h.m_degree;
   this->m_data = h.m_data;
   h.m_degree = 0;
@@ -36,22 +36,22 @@ HarmonicCoeffs &HarmonicCoeffs::operator=(HarmonicCoeffs &&h) noexcept {
   return *this;
 }
 
-double fsum(int n, int m) noexcept {
-  if (!m) return 1e0;
+double _sum(int n, int m) noexcept {
+  if (m==0) return 1e0;
   int start = n-m+1;
   int stop = n+m;
-  double sum = 1e0;
-  for (int i=start; i<=stop; i++) sum *= (double)i;
-  return sum;
+  double fac = 1e0;
+  for (int i=start; i<=stop; i++) fac *= (double)i;
+  return fac;
 }
 
 int compute_fac(int n, int m, double *fac) noexcept {
   for (int i=0; i<=m; i++)
-    fac[m] = std::sqrt(fsum(n,i) / (2*n+1) / (2-(i==0)));
+    fac[i] = std::sqrt( _sum(n,i) / (2*n+1) / (2-(i==0)) );
   return 0;
 }
 
-int HarmonicCoeffs::denormalize(int order) noexcept {
+int dso::HarmonicCoeffs::denormalize(int order) noexcept {
   if (order < 0)
     order = m_degree;
   if (order > m_degree) {
@@ -61,10 +61,9 @@ int HarmonicCoeffs::denormalize(int order) noexcept {
             order, m_degree, __func__);
     return 1;
   }
-  printf("Denormalizing with degree=%d and order=%d\n", m_degree, order);
 
   assert(m_degree>0);
-  double *facs = new double[m_degree];
+  double *facs = new double[m_degree+1];
   for (int n = 1; n <= m_degree; n++) {
     int mm = std::min(order, n);
     compute_fac(n, mm, facs);
@@ -77,7 +76,7 @@ int HarmonicCoeffs::denormalize(int order) noexcept {
     // S coeffs, 1--std::min(order,n)
     double *s = this->S_row(n);
     for (int m = 1; m <= mm; m++)
-      s[m-1] /= facs[m-1];
+      s[m-1] /= facs[m];
   }
   delete[] facs;
 
