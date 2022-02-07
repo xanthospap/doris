@@ -35,7 +35,7 @@ int lagrange_polynomials(
 /// central body
 /// @param[in] GM Gravitational coefficient (corresponding to given harmonics)
 /// @param[in] Re Reference radius (corresponding to given harmonics)
-/// @param[in] hc Spherical harmonics coefficients
+/// @param[in] hc Spherical harmonics coefficients (un-normalized)
 /// @param[in] degree Maximum degree; less or equal to the degree of the hc
 /// @param[in] order Maximum order (m_max<=n_max; m_max=0 for zonals, only)
 /// @param[out] V Computed values of V lagrange polynomials
