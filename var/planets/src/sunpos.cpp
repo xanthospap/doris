@@ -5,9 +5,9 @@
 using std::sin;
 using std::cos;
 
-int dso::sun_vector(double tt_mjd, double *rsun) noexcept {
-  const double t =
-      (tt_mjd - /*MJD_J2000*/ 51544e5) / 36525e0; // Julian cent. since J2000
+int dso::sun_vector(double t, double *rsun) noexcept {
+  /*const double t =
+      (tt_mjd - 51544e5) / 36525e0; */
 
     constexpr double f1 = dso::deg2rad<double>(357.5256e0);
     constexpr double f2 = dso::deg2rad<double>(35999.049e0);
