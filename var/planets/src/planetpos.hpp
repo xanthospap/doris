@@ -30,6 +30,8 @@ int sun_vector(const dso::datetime<T> &t, double *rsun) noexcept {
 ///             to the mean equator and equinox of J2000 (EME2000, ICRF)
 /// @see Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      Chapter 3.3.2
+/// @note that the accuracy here is several arcminutes for lunar longitude and 
+///       latitude and  about 500 km fot the lunar distance.
 int moon_vector(double tt_mjd, double *rsun) noexcept;
 
 #if __cplusplus >= 202002L

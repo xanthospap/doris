@@ -8,10 +8,10 @@
 using std::cos;
 using std::sin;
 
-double Frac(double x) noexcept { return x - floor(x); }
 constexpr double pi2 = iers2010::D2PI;
 
 int dso::moon_vector(double t, double *rsun) noexcept {
+    double ipart; // dummy var
 
   // fundamental arguments using IAU conventions [rad]:
   // mean anomaly of the Moon.
@@ -23,7 +23,7 @@ int dso::moon_vector(double t, double *rsun) noexcept {
   // mean elongation of the Moon from the Sun.
   const double D = iers2010::sofa::fad03(t);
   // mean longitude of the moon w.r.t. J2000 equinox
-  const double L0 = pi2 * Frac(0.606433 + 1336.851344 * t);
+  const double L0 = pi2 * std::modf(0.606433 + 1336.851344 * t, &ipart);
 
   // lunar longitude correction [sec]
   const double dlambda =

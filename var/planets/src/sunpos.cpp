@@ -1,39 +1,36 @@
-#include "planetpos.hpp"
-#include "geodesy/units.hpp"
 #include "celgeo/iau.hpp"
+#include "geodesy/units.hpp"
+#include "planetpos.hpp"
 
-using std::sin;
 using std::cos;
+using std::sin;
+
+// double Frac(double x) noexcept { return x - floor(x); }
+constexpr double pi2 = iers2010::D2PI;
 
 int dso::sun_vector(double t, double *rsun) noexcept {
-  /*const double t =
-      (tt_mjd - 51544e5) / 36525e0; */
+  double ipart; // dummy var
 
-    constexpr double f1 = dso::deg2rad<double>(357.5256e0);
-    constexpr double f2 = dso::deg2rad<double>(35999.049e0);
-    const double M = f1 + f2 * t;
+  // Mean anomaly [rad], ecliptic longitude [rad] and radius [m]
+  const double M = pi2 * std::modf(0.9931267e0 + 99.9973583e0 * t, &ipart);
+  const double L =
+      pi2 * std::modf(0.7859444e0 + M / pi2 +
+                          (6892e0 * sin(M) + 72e0 * sin(2e0 * M)) / 1296.0e3,
+                      &ipart);
+  const double r = 149.619e9 - 2.499e9 * cos(M) - 0.021e9 * cos(2 * M);
 
-    constexpr double omega_sum = dso::deg2rad<double>(282.94e0);
-    const double sinM = sin(M);
-    const double sin2M = sin(2e0*M);
-    const double cosM = cos(M);
-    const double cos2M = cos(2e0*M);
-    
-    // Sun's ecliptic logitude (rad)
-    const double lambda = omega_sum + M + 6892e0 * sinM + 72e0 * sin2M;
-    // distance (m)
-    const double r = 149.619e0 - 2.499e0 * cosM - 0.021e0 * cos2M;
+  // auxilary values
+  const double x = r * cos(L);
+  const double y = r * sin(L);
 
-    constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111);
-    constexpr double sinEps = sin(ecliptic_obliquity);
-    constexpr double cosEps = cos(ecliptic_obliquity);
-    const double sinl = sin(lambda);
-    const double cosl = cos(lambda);
-    
-    rsun[0] = r * cosl;
-    rsun[1] = r * sinl * cosEps;
-    rsun[2] = r * sinl * sinEps;
+  constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
+  constexpr double C = cos(-ecliptic_obliquity);
+  constexpr double S = sin(-ecliptic_obliquity);
 
-    return 0;
+  // X = R_x(-epsilon) * Vec
+  rsun[0] = x;
+  rsun[1] = C * y;
+  rsun[2] = -S * y;
+
+  return 0;
 }
-
