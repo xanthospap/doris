@@ -8,7 +8,7 @@ using std::sin;
 // double Frac(double x) noexcept { return x - floor(x); }
 constexpr double pi2 = iers2010::D2PI;
 
-int dso::sun_vector(double t, double *rsun) noexcept {
+int dso::sun_vector_approx(double t, double *rsun) noexcept {
   double ipart; // dummy var
 
   // Mean anomaly [rad], ecliptic longitude [rad] and radius [m]
@@ -19,9 +19,9 @@ int dso::sun_vector(double t, double *rsun) noexcept {
                       &ipart);
   const double r = 149.619e9 - 2.499e9 * cos(M) - 0.021e9 * cos(2 * M);
 
-  // auxilary values
-  const double x = r * cos(L);
-  const double y = r * sin(L);
+  // auxilary values [km]
+  const double x = (r * cos(L)) / 1e3;
+  const double y = (r * sin(L)) / 1e3;
 
   constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
   constexpr double C = cos(-ecliptic_obliquity);

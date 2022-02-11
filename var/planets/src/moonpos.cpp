@@ -10,7 +10,7 @@ using std::sin;
 
 constexpr double pi2 = iers2010::D2PI;
 
-int dso::moon_vector(double t, double *rsun) noexcept {
+int dso::moon_vector_approx(double t, double *rsun) noexcept {
     double ipart; // dummy var
 
   // fundamental arguments using IAU conventions [rad]:
@@ -58,10 +58,10 @@ int dso::moon_vector(double t, double *rsun) noexcept {
                     171e0 * cos(l + 2 * D) - 152e0 * cos(l + lp - 2 * D)) *
                    1e3;
 
-  // auxilary values
-  const double x = r * cos(lambda) * cos(beta);
-  const double y = r * sin(lambda) * cos(beta);
-  const double z = r * sin(beta);
+  // auxilary values [km]
+  const double x = (r * cos(lambda) * cos(beta)) / 1e3;
+  const double y = (r * sin(lambda) * cos(beta)) / 1e3;
+  const double z = (r * sin(beta)) / 1e3;
 
   constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
   const double C = cos(-ecliptic_obliquity);

@@ -56,7 +56,7 @@ vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=[
 
 ## Build ....
 env.Program(source=['test/test_lunar_pos.cpp'] +
-            [lib_src_files], target='bin/test_lunar_pos.out', CPPPATH=['src/'], LIBS=['celgeo', 'geodesy', 'datetime'])
+            [lib_src_files], target='bin/test_lunar_pos.out', CPPPATH=['src/'], LIBS=['celgeo', 'geodesy', 'datetime', 'cspice.a', 'csupport'])
 
 env.Alias(target='install', source=env.Install(
     dir=os.path.join(prefix, 'include', inc_dir), source=hdr_src_files))
