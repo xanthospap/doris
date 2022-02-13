@@ -4,7 +4,13 @@
 #include "datetime/dtcalendar.hpp"
 #include "cppspice/SpiceUsr.h"
 
-namespace dso{
+///
+/// @todo I have not tested run speeds, but i should make the approximate
+/// functions as efficient as possible cause then, what is the point? Users
+/// could extract sun/moon coordinates from planetary ephemeris (cspice)
+///
+
+namespace dso {
 
 namespace cspice {
   /// @brief Load a cspice kernel (of any type)
@@ -68,7 +74,28 @@ namespace cspice {
 ///             to the mean equator and equinox of J2000 (EME2000, ICRF)
 /// @see Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      Chapter 3.3.2
-int sun_vector_approx(double tt_jdc, double *rsun) noexcept;
+int sun_vector_montenbruck(double tt_jdc, double *rsun) noexcept;
+
+
+/// @brief Sun's geocentric position using a low precision analytical series
+/// @param[in] tt_jdc Terestrial time as Modified Julian cent. since J2000
+/// @param[out] rsun Components of the Solar position vector [km] with respect
+///             to the mean equator and equinox of J2000 (EME2000, ICRF)
+/// @see Vallado, Fundamentals of Astrodynamics and Applications, Fourth 
+///             Edition, Chapter 5.1.1
+int sun_vector_vallado(double tt_jdc, double *rsun) noexcept;
+#ifdef DEBUG
+int sun_vector_approx21(double tt_jdc, double *rsun) noexcept;
+#endif
+
+
+/// @brief Sun's geocentric position using a low precision analytical series
+/// @param[in] tt_jdc Terestrial time as Modified Julian cent. since J2000
+/// @param[out] rsun Components of the Solar position vector [km] with respect
+///             to the mean equator and equinox of J2000 (EME2000, ICRF)
+/// @see Curtis, Orbital Mechanics for Engineering Students, Fourth Edition,
+///             Chapter 12.9
+int sun_vector_curtis(double n, double *rsun) noexcept;
 
 /// @brief Sun's geocentric position using planetary ephemeris via cspice
 /// The reference frame for the returned vector is J2000 and the (returned)
@@ -89,7 +116,7 @@ template <class T,
           typename = std::enable_if_t<(T::is_of_sec_type)>>
 #endif
 int sun_vector_cspice(const dso::datetime<T> &t, double *rsun) noexcept {
-  const double jd = t.as_mjd() + dso::mjd0_jd; // date as jd (TT)
+  const double jd = t.as_jd(); // date as jd (TT)
   return cspice::j2planet_pos_from(cspice::jd2et(jd), 10, 399, rsun);
 }
 
@@ -100,8 +127,30 @@ requires(T::is_of_sec_type)
 template <class T,
           typename = std::enable_if_t<(T::is_of_sec_type)>>
 #endif
-int sun_vector_approx(const dso::datetime<T> &t, double *rsun) noexcept {
-    return sun_vector_approx(t.jcenturies_sinceJ2000(), rsun);
+int sun_vector_montenbruck(const dso::datetime<T> &t, double *rsun) noexcept {
+    return sun_vector_montenbruck(t.jcenturies_sinceJ2000(), rsun);
+}
+
+#if __cplusplus >= 202002L
+template <typename T>
+requires(T::is_of_sec_type)
+#else
+template <class T,
+          typename = std::enable_if_t<(T::is_of_sec_type)>>
+#endif
+int sun_vector_vallado(const dso::datetime<T> &t, double *rsun) noexcept {
+    return sun_vector_vallado(t.jcenturies_sinceJ2000(), rsun);
+}
+
+#if __cplusplus >= 202002L
+template <typename T>
+requires(T::is_of_sec_type)
+#else
+template <class T,
+          typename = std::enable_if_t<(T::is_of_sec_type)>>
+#endif
+int sun_vector_curtis(const dso::datetime<T> &t, double *rsun) noexcept {
+    return sun_vector_curtis(t.as_jd() - dso::j2000_jd, rsun);
 }
 
 /// @brief Moon's geocentric position using a low precision analytical series
@@ -114,6 +163,13 @@ int sun_vector_approx(const dso::datetime<T> &t, double *rsun) noexcept {
 ///       latitude and  about 500 km fot the lunar distance.
 int moon_vector_approx(double tt_mjd, double *rsun) noexcept;
 
+/// @brief Moon's equatoria geocentric position using an approximate formula
+/// @param[in] tdb_jc TDB time as Julian cent. since J2000
+/// @param[out] rmon Components of the Lunar position vector [km]
+/// @see Vallado, Fundamentals of Astrodynamics and Applications, Fourth 
+///             Edition, Chapter 5.2
+int moon_vector_vallado(double tt_mjd, double *rsun) noexcept;
+
 #if __cplusplus >= 202002L
 template <typename T>
 requires(T::is_of_sec_type)
@@ -123,6 +179,16 @@ template <class T,
 #endif
 int moon_vector_approx(const dso::datetime<T> &t, double *rmoon) noexcept {
     return moon_vector_approx(t.jcenturies_sinceJ2000(), rmoon);
+}
+#if __cplusplus >= 202002L
+template <typename T>
+requires(T::is_of_sec_type)
+#else
+template <class T,
+          typename = std::enable_if_t<(T::is_of_sec_type)>>
+#endif
+int moon_vector_vallado(const dso::datetime<T> &t, double *rmoon) noexcept {
+    return moon_vector_vallado(t.jcenturies_sinceJ2000(), rmoon);
 }
 
 /// @brief Moon's geocentric position using planetary ephemeris via cspice

@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   printf(" Date [TT]                  Position [km]\n");
   t1 = t;
   for (int i = 0; i <= n_steps; i++) {
-    dso::sun_vector_approx(t1, pos);
+    dso::sun_vector_approx2(t1, pos);
     dso::sun_vector_cspice(t1, cpos);
     printf(
         "%s %15.3f %15.3f %15.3f %15.3f %15.3f %15.3f %15.3f %15.3f %15.3f\n",
