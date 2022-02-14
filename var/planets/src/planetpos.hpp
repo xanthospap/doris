@@ -4,11 +4,9 @@
 #include "datetime/dtcalendar.hpp"
 #include "cppspice/SpiceUsr.h"
 
-///
 /// @todo I have not tested run speeds, but i should make the approximate
 /// functions as efficient as possible cause then, what is the point? Users
 /// could extract sun/moon coordinates from planetary ephemeris (cspice)
-///
 
 namespace dso {
 
