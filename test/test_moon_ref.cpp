@@ -78,6 +78,14 @@ int main(int argc, char *argv[]) {
   dso::moon_vector_cspice(tb, vmoon_ref);
   printf("Note, book example: %15.1f %15.1f %15.1f\n", vmoon2[0],vmoon2[1],vmoon2[2]);
   printf("CSPICE            : %15.1f %15.1f %15.1f\n", vmoon_ref[0],vmoon_ref[1],vmoon_ref[2]);
+  
+  dso::datetime<dso::seconds> tc(
+        dso::year(2013), dso::month(7),
+        dso::day_of_month(25), dso::seconds(8*3600L));
+  dso::moon_vector_vallado(tc, vmoon2);
+  dso::moon_vector_cspice(tc, vmoon_ref);
+  printf("Note, book example: %15.1f %15.1f %15.1f\n", vmoon2[0],vmoon2[1],vmoon2[2]);
+  printf("CSPICE            : %15.1f %15.1f %15.1f\n", vmoon_ref[0],vmoon_ref[1],vmoon_ref[2]);
 
   return 0;
 }

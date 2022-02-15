@@ -1,4 +1,4 @@
-#include "celgeo/iau.hpp"
+#include "iers2010/iau.hpp"
 #include "geodesy/units.hpp"
 #include "planetpos.hpp"
 #ifdef DEBUG
@@ -117,7 +117,7 @@ int dso::moon_vector_vallado(double t, double *rmoon) noexcept {
   const double m = Ce * Cf * Sl - Se * Sf;
   const double n = Se * Cf * Sl + Ce * Sf;
   // moon position vector in km
-  const double Rm = iers2010::Re / 1e3 / sin(R); // [km]
+  const double Rm = /*iers2010::Re*/6378136.6e0 / 1e3 / sin(R); // [km]
   rmoon[0] = Rm * l;
   rmoon[1] = Rm * m;
   rmoon[2] = Rm * n;

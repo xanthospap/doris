@@ -3,8 +3,24 @@
 
 #include "compact2dmat.hpp"
 #include "harmonic_coeffs.hpp"
+#include "celgeo/matvec.hpp"
 
 namespace dso {
+
+/// @brief Computes the perturbational acceleration due to a point mass
+/// E.g. use this function we can compute the perturbing acceleration affecting
+/// a satellite via sun or moon.
+/// @param[in] rsat Satellite position vector
+/// @param[in] robj Point mass position vector (e.g. moon)
+/// @return A vector containing the acceleration components
+/// @see e.g. Curtis, Chapter 10.10
+Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
+                         double GM) noexcept {
+  //  Relative position vector of satellite w.r.t. point mass
+  auto d = rsat - robj;
+  // Acceleration
+  return -GM * (d / std::pow(d.norm(), 3) + robj / std::pow(robj.norm(), 3));
+}
 
 #ifdef DEBUG
 int lagrange_polynomials(

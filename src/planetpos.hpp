@@ -81,6 +81,8 @@ int sun_vector_montenbruck(double tt_jdc, double *rsun) noexcept;
 ///             to the mean equator and equinox of J2000 (EME2000, ICRF)
 /// @see Vallado, Fundamentals of Astrodynamics and Applications, Fourth 
 ///             Edition, Chapter 5.1.1
+/// @note This is the same algorithm as also described in Orbital Mechanics for
+/// Engineering Students, H. D. Curtis, (Fourth Edition), Chapter 10.10
 int sun_vector_vallado(double tt_jdc, double *rsun) noexcept;
 #ifdef DEBUG
 int sun_vector_approx21(double tt_jdc, double *rsun) noexcept;

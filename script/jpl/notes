@@ -1,0 +1,25 @@
+Notes on the NAIF/SCPICE JPL library, see https://naif.jpl.nasa.gov/naif/
+
+  * this library is used (its C version that is) to parse kernel files (aka 
+    planetary ephemeris and leap-second files) to compute planet position 
+    vectors, namely for Sun and Moon.
+
+  * Download the C version (toolkit) of the library from 
+    https://naif.jpl.nasa.gov/naif/toolkit.html
+
+  * Before building, we need to wrap the header files in preprocessor macros, 
+    so that we can easily call the lib within C++. Use the c2cpp_header.py
+    script file to transform **ALL** header files
+
+  * Change the makefiles to use a C++ compiler (instead of the defined C 
+    compiler). To do this, change the script named 'mkprodct.csh' in **ALL** 
+    folders within the src/ directory to use the default (or any preferred)
+    C++ compiler. Aka, find the line:
+    set TKCOMPILER  =  "gcc", and change it to
+    set TKCOMPILER  =  "g++"
+
+  * Call the top-level directory 'makeall.csh' to build the library
+
+  * Use the script 'install.sh' to install the library and header files for
+    all users, aka system-wide. The header files will be installed in the 
+    directory: '/usr/local/include/cppspice'.
