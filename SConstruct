@@ -46,6 +46,11 @@ AddOption('--std',
           metavar='STD',
           help='C++ Standard [11/14/17/20]',
           default='17')
+AddOption('--branchless',
+          dest='branchls',
+          action='store_true',
+          help='Trigger built with BRANCHLESS defined',
+          default=False)
 
 ## Source files (for lib)
 lib_src_files = glob.glob(r"src/*.cpp")
@@ -53,6 +58,7 @@ lib_src_files += glob.glob(r"src/doris/*.cpp")
 lib_src_files += glob.glob(r"src/rinex/*.cpp")
 lib_src_files += glob.glob(r"src/planets/*.cpp")
 lib_src_files += glob.glob(r"src/gravity/*.cpp")
+lib_src_files += glob.glob(r"src/satellite/*.cpp")
 
 ## Headers (for lib)
 hdr_src_files = glob.glob(r"src/*.hpp")
@@ -73,6 +79,9 @@ if GetOption('cxx') is not None: env['CXX'] = GetOption('cxx')
 ## Set the C++ standard
 cxxstd = GetOption('std')
 env.Append(CXXFLAGS=' --std=c++{}'.format(cxxstd))
+
+## Get options from command line ...
+if GetOption('branchls'): env.Append(CXXFLAGS=' -DBRANCHLESS')
 
 ## (shared) library ...
 vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=['src/'], SHLIBVERSION=lib_version)
