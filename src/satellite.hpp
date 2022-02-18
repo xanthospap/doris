@@ -75,6 +75,11 @@ namespace dso {
   ///      Edition), Chapter 10
   /// @see Satellite Orbits, Models, Methods, Applications, O. Montenbruck, E. 
   ///      Gill, Chapter 3.5
+  /// @note Vallado[1] gives a more detailed formula for computing the 
+  /// satellite's velocity vector relative to the rotating atmosphere, 
+  /// including wind variations. However, such data are usually not available.
+  /// [1] Fundamentals of Astrodynamics and Applications, A. Vallado, 
+  ///     Chapter 8.6.2
   Vector3 drag_accel(const Vector3 &r, const Vector3 &v, double Area,
                         double mass, double CD, double atmdens) noexcept;
 }// dso
