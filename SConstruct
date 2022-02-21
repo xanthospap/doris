@@ -59,6 +59,7 @@ lib_src_files += glob.glob(r"src/rinex/*.cpp")
 lib_src_files += glob.glob(r"src/planets/*.cpp")
 lib_src_files += glob.glob(r"src/gravity/*.cpp")
 lib_src_files += glob.glob(r"src/satellite/*.cpp")
+lib_src_files += glob.glob(r"src/atmosphere/*.cpp")
 
 ## Headers (for lib)
 hdr_src_files = glob.glob(r"src/*.hpp")
