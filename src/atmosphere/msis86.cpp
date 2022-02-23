@@ -5,6 +5,8 @@
 
 using dso::MatrixStorageType;
 
+/// @class trignums Structure to hold trigonometric numbers for avoiding 
+/// re-computation
 struct trignums {
   double trigs[6];
   void compute(double hr, double tloc) noexcept {
@@ -371,17 +373,9 @@ double ccor(double alt, double r, double h1, double zh) noexcept {
   // eq. a20a or eq. a21
   const double e = (alt - zh) / h1;
 
-  double ccor;
-  if (e > 70e0) {
-    ccor = 0e0;
-  } else {
-    if (e < -70e0) {
-      ccor = r;
-    } else {
-      ccor = r / (1e0 + std::exp(e));
-    }
-  }
-
+  double ccor = 0e0;
+  if (e<=70e0)
+    ccor = (e < -70e0) ? r : r / (1e0 + std::exp(e));
   return std::exp(ccor);
 }
 
