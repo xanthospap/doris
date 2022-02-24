@@ -387,16 +387,10 @@ double dnet(double dd, double dm, double zhm, double xmm, double xm) noexcept {
   // eq. a12a
   const double ylog = a * std::log(dm / dd);
 
-  double dnet;
-  if (ylog < -10e0) {
-    dnet = dd;
-  } else {
-    if (ylog > 10e0) {
-      dnet = dm;
-    } else {
-      dnet = dd * std::pow((1e0 + std::exp(ylog)), (1e0 / a));
-    }
-  }
+  double dnet = dd;
+  if (ylog >= -10e0)
+    dnet =
+        (ylog > 10e0) ? dm : dd * std::pow(1e0 + std::exp(ylog), 1e0 / a);
 
   return dnet;
 }
@@ -406,36 +400,36 @@ double glob5l(double day, const double *p, const double *apt, double dfa,
               double apdf, const double *sw, const double *swc,
               const dso::Mat2D<MatrixStorageType::RowWise> &plg,
               const trignums &trigs) noexcept {
-  // printf("\tglob5l   p[0:5]=[%10.5f,%10.5f,%10.5f,%10.5f,%10.5f]\n", p[0],
-  // p[1], p[2], p[3], p[4]); printf("\tglob5l apt[0:2]=[%10.5f,%10.5f],
-  // dfa=%15.10f, apdf=%15.10f\n", apt[0], apt[1], dfa, apdf);
-  const double dr = 1.72142e-2;
+  constexpr const double dr = 1.72142e-2;
   double t[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double dayl = -1e0;
-  double p7 = -1000e0;
-  double p9 = -1000e0;
-  double p11 = -1000e0;
+  //double dayl = -1e0;
+  //double p7 = -1000e0;
+  //double p9 = -1000e0;
+  //double p11 = -1000e0;
 
-  double cd7 = 0e0, cd9 = 0e0, cd11 = 0e0;
-  if ((day != dayl) || (p7 != p[6]))
-    cd7 = std::cos(dr * (day - p[6]));
-  if ((day != dayl) || (p9 != p[8]))
-    cd9 = std::cos(2e0 * dr * (day - p[8]));
-  if ((day != dayl) || (p11 != p[10]))
-    cd11 = std::cos(dr * (day - p[10]));
+  //double cd7 = 0e0, cd9 = 0e0, cd11 = 0e0;
+  //if ((day != dayl) || (p7 != p[6]))
+  //  cd7 = std::cos(dr * (day - p[6]));
+  //if ((day != dayl) || (p9 != p[8]))
+  //  cd9 = std::cos(2e0 * dr * (day - p[8]));
+  //if ((day != dayl) || (p11 != p[10]))
+  //  cd11 = std::cos(dr * (day - p[10]));
+  const double cd7 = std::cos(dr * (day - p[6]));
+  const double cd9 = std::cos(2e0 * dr * (day - p[8]));
+  const double cd11 = std::cos(dr * (day - p[10]));
 
-  dayl = day;
-  p7 = p[6];
-  p9 = p[8];
-  p11 = p[10];
+  //dayl = day;
+  //p7 = p[6];
+  //p9 = p[8];
+  //p11 = p[10];
 
   t[0] = p[1] * dfa;
   t[1] = p[3] * plg(2, 0);
   t[2] = p[5] * cd7;
   t[3] = p[7] * cd9;
   t[4] = (p[9] * plg(1, 0) + p[21] * plg(3, 0)) * cd11;
-  t[5] = 0.0;
+  t[5] = 0e0;
   t[6] = p[13] * plg(1, 1) * trigs.ctloc() + p[14] * plg(1, 1) * trigs.stloc();
   t[7] = (p[15] * plg(2, 2) + p[17] * plg(4, 2) +
           (p[19] * plg(5, 2)) * cd11 * swc[4]) *
@@ -460,9 +454,9 @@ double glob5l(double day, const double *p, const double *apt, double dfa,
 }
 
 // todo: fmod not needed here!
-void tselect(const int *sv, double *sav, double *sw, double *swc) noexcept {
+void tselect(const int *sv, /*double *sav,*/ double *sw, double *swc) noexcept {
   for (int i = 0; i < 24; i++) {
-    sav[i] = sv[i];
+    // sav[i] = sv[i];
     sw[i] = std::fmod(sv[i], 2e0);
     swc[i] = 1e0 * (std::abs(sv[i] > 0e0));
   }
@@ -505,12 +499,12 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
               double &apdf, double &day_,
               dso::Mat2D<MatrixStorageType::RowWise> &plg,
               double *apt) noexcept {
-  int nsw = 14;
+  const int nsw = 14;
   double t[15] = {0e0};
-  const double dgtr = 1.74533e-2;
-  const double dr = 1.72142e-2;
-  const double hr = .2618e0;
-  const double sr = 7.2722e-5;
+  constexpr const double dgtr = 1.74533e-2;
+  constexpr const double dr = 1.72142e-2;
+  constexpr const double hr = .2618e0;
+  constexpr const double sr = 7.2722e-5;
 
   day_ = yrd - std::trunc(yrd / 1e3) * 1e3;
   double dayl = -1e0;
@@ -846,8 +840,8 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   // int imr = 0;
 
   //
-  double sav[24], sw[24], swc[24];
-  tselect(switches, sav, sw, swc);
+  double /*sav[24],*/ sw[24], swc[24];
+  tselect(switches, /*sav,*/ sw, swc);
 
   // eq. a7
   double gggg = globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pt, sw, swc,
