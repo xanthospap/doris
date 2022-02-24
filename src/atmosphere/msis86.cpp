@@ -9,6 +9,7 @@ using dso::MatrixStorageType;
 /// re-computation
 struct trignums {
   double trigs[6];
+  
   void compute(double hr, double tloc) noexcept {
     trigs[0] = std::sin(hr * tloc);
     trigs[1] = std::cos(hr * tloc);
@@ -17,12 +18,14 @@ struct trignums {
     trigs[4] = std::sin(3e0 * hr * tloc);
     trigs[5] = std::cos(3e0 * hr * tloc);
   }
+
   double &stloc() noexcept { return trigs[0]; }
   double &ctloc() noexcept { return trigs[1]; }
   double &s2tloc() noexcept { return trigs[2]; }
   double &c2tloc() noexcept { return trigs[3]; }
   double &s3tloc() noexcept { return trigs[4]; }
   double &c3tloc() noexcept { return trigs[5]; }
+  
   const double &stloc() const noexcept { return trigs[0]; }
   const double &ctloc() const noexcept { return trigs[1]; }
   const double &s2tloc() const noexcept { return trigs[2]; }
@@ -403,26 +406,10 @@ double glob5l(double day, const double *p, const double *apt, double dfa,
   constexpr const double dr = 1.72142e-2;
   double t[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  //double dayl = -1e0;
-  //double p7 = -1000e0;
-  //double p9 = -1000e0;
-  //double p11 = -1000e0;
-
-  //double cd7 = 0e0, cd9 = 0e0, cd11 = 0e0;
-  //if ((day != dayl) || (p7 != p[6]))
-  //  cd7 = std::cos(dr * (day - p[6]));
-  //if ((day != dayl) || (p9 != p[8]))
-  //  cd9 = std::cos(2e0 * dr * (day - p[8]));
-  //if ((day != dayl) || (p11 != p[10]))
-  //  cd11 = std::cos(dr * (day - p[10]));
+  
   const double cd7 = std::cos(dr * (day - p[6]));
   const double cd9 = std::cos(2e0 * dr * (day - p[8]));
   const double cd11 = std::cos(dr * (day - p[10]));
-
-  //dayl = day;
-  //p7 = p[6];
-  //p9 = p[8];
-  //p11 = p[10];
 
   t[0] = p[1] * dfa;
   t[1] = p[3] * plg(2, 0);
@@ -507,11 +494,12 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   constexpr const double sr = 7.2722e-5;
 
   day_ = yrd - std::trunc(yrd / 1e3) * 1e3;
-  double dayl = -1e0;
 
-  double xl = 1000e0;
+  // Legendre polynomials only dependent on lat; do not recompute if lat has
+  // not changed!
+  static double last_slat = std::numeric_limits<double>::min();
   // eq. a22 (remainder of code)
-  if (xl != lat) {
+  if (last_slat != lat) {
     // calculate legendre polynomials
     const double c = std::sin(lat * dgtr);
     const double s = std::cos(lat * dgtr);
@@ -541,45 +529,19 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
     plg(4, 3) = 105.0 * s2 * s * c;
     plg(5, 3) = (9.0 * c * plg(4, 3) - 7.0 * plg(3, 3)) / 2.0;
     plg(6, 3) = (11.0 * c * plg(5, 3) - 8.0 * plg(4, 3)) / 3.0;
-    xl = lat;
+    last_slat = lat;
   }
 
-  double tll = 1000e0;
-  if (tll != tloc) {
+  // trigonometric numbers based on local apparent solar time (only recompute
+  // if needed)
+  static double last_stloc = std::numeric_limits<double>::min();
+  if (tloc != last_stloc)
     trigs.compute(hr, tloc);
-    tll = tloc;
-  }
 
-  double p14 = -1000e0;
-  double cd14 = 0e0; //, c2d14;
-  if ((day_ != dayl) || (p[13] != p14)) {
-    cd14 = std::cos(dr * (day_ - p[13]));
-    // c2d14 = std::cos(dr * 2.0 * (day_ - p[13]));
-    p14 = p[13];
-  }
-
-  double p18 = -1000e0;
-  double cd18 = 0e0;
-  if ((day_ != dayl) || (p[17] != p18)) {
-    cd18 = std::cos(2.0 * dr * (day_ - p[17]));
-    p18 = p[17];
-  }
-
-  double p32 = -1000e0;
-  double cd32 = 0e0;
-  if ((day_ != dayl) || (p[31] != p32)) {
-    cd32 = std::cos(dr * (day_ - p[31]));
-    p32 = p[31];
-  }
-
-  double p39 = -1000e0;
-  double cd39 = 0e0;
-  if ((day_ != dayl) || (p[38] != p39)) {
-    cd39 = std::cos(2.0 * dr * (day_ - p[38]));
-    p39 = p[38];
-  }
-
-  dayl = day_;
+  const double cd14 = std::cos(dr * (day_ - p[13]));
+  const double cd18 = std::cos(2e0 * dr * (day_ - p[17]));
+  const double cd32 = std::cos(dr * (day_ - p[31]));
+  const double cd39 = std::cos(2e0 * dr * (day_ - p[38]));
 
   // f10.7 effect
   double df = f107 - f107a;
@@ -632,17 +594,12 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   if ((sw[8] == -1e0) && (p[51] != 0e0)) {
     double exp1 = std::exp(-10800e0 * std::abs(p[51]) /
                            (1e0 + p[138] * (45e0 - std::abs(lat))));
-    if (exp1 > .99999e0) {
+    if (exp1 > .99999e0)
       exp1 = .99999e0;
-    }
     double exp2 = std::exp(-10800e0 * std::abs(p[53]));
-    if (exp2 > .99999e0) {
+    if (exp2 > .99999e0)
       exp2 = .99999e0;
-    }
     double p24 = (p[24] < 1.e-4) ? 1.e-4 : p[24];
-    // if (p[24] < 1.e-4) {
-    //   p[24] = 1.e-4;
-    // }
     apt[0] = sg0(exp1, ap, p, p24);
     apt[2] = sg0(exp2, ap, p, p24);
     t[8] = apt[0] *
@@ -723,14 +680,8 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   if (sw[8] == -1e0)
     tinf = p[30];
 
-  // printf("\ttrigs: %8.5f, %8.5f, %8.5f, %8.5f (swc[0]=%5.2f,
-  // swc[4]=%5.2f)\n", trigs.stloc(),
-  //        trigs.ctloc(), trigs.s2tloc(), trigs.c2tloc(), swc[0], swc[4]);
-  for (int i = 0; i < nsw; i++) {
-    // printf("\t[%s] iteration %d: tinf += %15.10f * %15.10f\n", __func__, i +
-    // 1, std::abs(sw[i]), t[i]);
+  for (int i = 0; i < nsw; i++)
     tinf += std::abs(sw[i]) * t[i];
-  }
 
   return tinf;
 }
@@ -742,9 +693,6 @@ double zeta(double zz, double zl) noexcept {
 double denss(double alt, double dlb, double tinf, double tlb, double xm,
              double alpha, double zlb, double s2, double t0, double za,
              double z0, double tr12, double &tz) noexcept {
-  // printf("\tdenss(%10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f, "
-  //       "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f)\n", alt, dlb, tinf, tlb, xm,
-  //       alpha, zlb, s2, t0, za, z0, tr12);
 
   // calculate temperature and density profiles for msis models
   const double rgas = 831.4e0;
@@ -792,6 +740,7 @@ double denss(double alt, double dlb, double tinf, double tlb, double xm,
       ta = tlb;
       tz = tlb;
     }
+  
   // calculate density above za, eq. a17a
   double f2 = (1e0 + zlb / re) * (1e0 + zlb / re);
   double glb = gsurf / f2;
@@ -829,24 +778,19 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   for (int i = 0; i < 2; i++)
     t[i] = 0e0;
 
-  // const int mt[] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14};
   const double altl[] = {200e0, 400e0, 150e0, 200e0,
                          240e0, 450e0, 320e0, 450e0};
   double dfa, apdf, day_;
   trignums trigs;
   dso::Mat2D<MatrixStorageType::RowWise> plg(8, 8);
   double apt[4];
-  // int ifl = 0;
-  // int imr = 0;
 
-  //
   double /*sav[24],*/ sw[24], swc[24];
   tselect(switches, /*sav,*/ sw, swc);
 
   // eq. a7
   double gggg = globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pt, sw, swc,
                        trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", gggg);
 
   double tinf = ptm[0] * (1e0 + sw[15] * gggg) * pt[0];
   double za = ptm[4] * pdl_1[15];
@@ -873,7 +817,7 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
       ptm[3] * ps[0] *
       (1e0 + sw[18] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap, ps,
                              sw, swc, trigs, dfa, apdf, day_, plg, apt));
-  // printf(">>globe5(...) -> %15.10f\n", g0);
+  
   //  eq. a5
   double s = g0 / (tinf - tlb);
   // eq. a11 (need pd(3,101:125))
@@ -892,14 +836,10 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   double tz;
   // eq. a18
   const double db28 = pdm[0][2] * std::exp(g28) * pd[2][0];
-  // printf("\tdb28 = %15.10f *exp(%15.10f)*%15.10f\n", pdm[0][2], g28,
-  // pd[2][0]);
   //  eq. a13 - a17
   d[2] =
       denss(alt, db28, tinf, tlb, 28e0, 0e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[2]);
   t[1] = tz;
-  // double dd = d[2];
   // eq. a19
   double zh28 = pdm[2][2];
   double zhm28 = pdm[3][2] * pdl_1[5];
@@ -917,14 +857,11 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   // eq. a18
   double g4 = sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap,
                               pd[0], sw, swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g4);
   double db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
   // eq. a13 - a17
   d[0] =
       denss(alt, db04, tinf, tlb, 4e0, -.40e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[0]);
   t[1] = tz;
-  // dd = d[0];
   if ((alt < altl[0]) && (sw[14] != 0e0)) {
     // eq. a19
     double zh04 = pdm[2][0];
@@ -950,14 +887,11 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   double g16 =
       sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pd[1], sw,
                       swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g16);
   double db16 = pdm[0][1] * std::exp(g16) * pd[1][0];
   // eq. a13 - a17
   d[1] =
       denss(alt, db16, tinf, tlb, 16e0, 0e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[1]);
   t[1] = tz;
-  // dd = d[1];
   if ((alt <= altl[1]) && (sw[14] != 0e0)) {
     // corrected from pdm(3,1) to pdm(3,2)  12/2/85
     // eq. a19
@@ -989,14 +923,11 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   double g32 =
       sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pd[3], sw,
                       swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g32);
   double db32 = pdm[0][3] * std::exp(g32) * pd[3][0];
   // eq. a13 - a17
   d[3] =
       denss(alt, db32, tinf, tlb, 32.0, 0.0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[3]);
   t[1] = tz;
-  // dd = d[3];
   if ((alt <= altl[3]) && (sw[14] != 0.0)) {
     // eq. a19
     double zh32 = pdm[2][3];
@@ -1022,14 +953,11 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   double g40 =
       sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pd[4], sw,
                       swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g40);
   double db40 = pdm[0][4] * std::exp(g40) * pd[4][0];
   // eq. a13 - a17
   d[4] =
       denss(alt, db40, tinf, tlb, 40e0, 0e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[4]);
   t[1] = tz;
-  // dd = d[4];
   if ((alt <= altl[4]) && (sw[14] != 0e0)) {
     // eq. a19
     double zh40 = pdm[2][4];
@@ -1054,12 +982,10 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   // eq. a18
   double g1 = sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap,
                               pd[5], sw, swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g1);
   double db01 = pdm[0][5] * std::exp(g1) * pd[5][0];
   // eq. a13 - a17
   d[6] =
       denss(alt, db01, tinf, tlb, 1e0, -.40e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[6]);
   t[1] = tz;
   // dd = d[6];
   if ((alt <= altl[6]) && (sw[14] != 0e0)) {
@@ -1092,14 +1018,11 @@ int dso::air_density_models::msis86::msis86(int doy, double sec, double alt,
   double g14 =
       sw[20] * globe5(doy, sec, glat, glong, stl, f107a, f107, ap, pd[6], sw,
                       swc, trigs, dfa, apdf, day_, plg, apt);
-  // printf(">>globe5(...) -> %15.10f\n", g14);
   double db14 = pdm[0][6] * std::exp(g14) * pd[6][0];
   // eq. a13 - a17
   d[7] =
       denss(alt, db14, tinf, tlb, 14e0, 0e0, ptm[5], s, t0, za, z0, tr12, tz);
-  // printf(">>denss(...) -> %15.10f\n", d[7]);
   t[1] = tz;
-  // dd = d[7];
   if ((alt <= altl[7]) && (sw[14] != 0e0)) {
     // eq. a19
     double zh14 = pdm[2][6];
