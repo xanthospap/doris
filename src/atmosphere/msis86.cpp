@@ -2,6 +2,7 @@
 #include "compact2dmat.hpp"
 #include <cmath>
 #include <cstdio>
+#include <limits>
 
 using dso::MatrixStorageType;
 
@@ -407,15 +408,35 @@ double glob5l(double day, const double *p, const double *apt, double dfa,
   double t[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   
+  //static double day_last = std::numeric_limits<double>::min();
+  //static double p7 = std::numeric_limits<double>::min();
+  //static double p9 = std::numeric_limits<double>::min();
+  //static double p11 = std::numeric_limits<double>::min();
+
+  //printf("globl->%15.5f %15.5f %20.5f %20.5f\n", day, day_last, p[6], p7);
+  //const double cd7 =
+  //    (day_last != day || p7 != p[6]) ? std::cos(dr * (day - p[6])) : 0e0;
+  //const double cd9 =
+  //    (day_last != day || p9 != p[8]) ? std::cos(2e0 * dr * (day - p[8])) : 0e0;
+  //const double cd11 =
+  //    (day_last != day || p11 != p[10]) ? std::cos(dr * (day - p[10])) : 0e0;
   const double cd7 = std::cos(dr * (day - p[6]));
   const double cd9 = std::cos(2e0 * dr * (day - p[8]));
   const double cd11 = std::cos(dr * (day - p[10]));
+  
+  // assign static variables
+  //day_last = day;
+  //p7 = p[6];
+  //p9 = p[8];
+  //p11 = p[10];
 
   t[0] = p[1] * dfa;
   t[1] = p[3] * plg(2, 0);
   t[2] = p[5] * cd7;
   t[3] = p[7] * cd9;
   t[4] = (p[9] * plg(1, 0) + p[21] * plg(3, 0)) * cd11;
+  printf("globl:t[4] = %20.15f %20.15f %20.15f %20.15f %20.15f\n",
+        p[9], plg(1, 0), p[21], plg(3, 0), cd11);
   t[5] = 0e0;
   t[6] = p[13] * plg(1, 1) * trigs.ctloc() + p[14] * plg(1, 1) * trigs.stloc();
   t[7] = (p[15] * plg(2, 2) + p[17] * plg(4, 2) +
@@ -435,8 +456,12 @@ double glob5l(double day, const double *p, const double *apt, double dfa,
 
   // params not used: 13
   double tt = 0e0;
-  for (int i = 0; i < 14; i++)
+  for (int i = 0; i < 14; i++) {
+    printf("\ttt += %.1f * %20.15f\n", std::abs(sw[i]), t[i]);
     tt += std::abs(sw[i]) * t[i];
+  }
+  
+  printf("\tglob5l result = %20.15f\n", tt);
   return tt;
 }
 
@@ -483,7 +508,7 @@ double sg0(double ex, const double *ap, const double *p, double p24) noexcept {
 double globe5(double yrd, double sec, double lat, double along, double tloc,
               double f107a, double f107, const double *ap, const double *p,
               const double *sw, const double *swc, trignums &trigs, double &dfa,
-              double &apdf, double &day_,
+              double &apdf, double &day,
               dso::Mat2D<MatrixStorageType::RowWise> &plg,
               double *apt) noexcept {
   const int nsw = 14;
@@ -493,7 +518,13 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   constexpr const double hr = .2618e0;
   constexpr const double sr = 7.2722e-5;
 
-  day_ = yrd - std::trunc(yrd / 1e3) * 1e3;
+  static double day_last = std::numeric_limits<double>::min();
+  static double p14 = std::numeric_limits<double>::min();
+  static double p18 = std::numeric_limits<double>::min();
+  static double p32 = std::numeric_limits<double>::min();
+  static double p39 = std::numeric_limits<double>::min();
+
+  day = yrd - std::trunc(yrd / 1e3) * 1e3;
 
   // Legendre polynomials only dependent on lat; do not recompute if lat has
   // not changed!
@@ -535,13 +566,29 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   // trigonometric numbers based on local apparent solar time (only recompute
   // if needed)
   static double last_stloc = std::numeric_limits<double>::min();
-  if (tloc != last_stloc)
+  if (tloc != last_stloc) {
     trigs.compute(hr, tloc);
+    last_stloc = tloc;
+  }
 
-  const double cd14 = std::cos(dr * (day_ - p[13]));
-  const double cd18 = std::cos(2e0 * dr * (day_ - p[17]));
-  const double cd32 = std::cos(dr * (day_ - p[31]));
-  const double cd39 = std::cos(2e0 * dr * (day_ - p[38]));
+  const double cd14 =
+      (day != day_last || p[13] != p14) ? std::cos(dr * (day - p[13])) : 0e0;
+  // printf("glob5:cd14 = %.5f %.5f %.5f %.5f\n", dr, day, p[13], cd14);
+  const double cd18 = (day != day_last || p[17] != p18)
+                          ? std::cos(2e0 * dr * (day - p[17]))
+                          : 0e0;
+  const double cd32 =
+      (day != day_last || p[31] != p32) ? std::cos(dr * (day - p[31])) : 0e0;
+  const double cd39 = (day != day_last || p[38] != p39)
+                          ? std::cos(2e0 * dr * (day - p[38]))
+                          : 0e0;
+  
+  // assign static variables
+  day_last = day;
+  p14 = p[13];
+  p18 = p[17];
+  p32 = p[31];
+  p39 = p[38];
 
   // f10.7 effect
   double df = f107 - f107a;
@@ -564,6 +611,8 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
 
   // asymmetrical annual
   t[4] = f1 * (p[9] * plg(1, 0) + p[10] * plg(3, 0)) * cd14;
+  //printf("glob5:t[4]=%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n", f1, p[9],
+  //       plg(1, 0), p[10], plg(3, 0), cd14);
 
   // asymmetrical semiannual
   t[5] = p[37] * plg(1, 0) * cd39;
@@ -680,9 +729,12 @@ double globe5(double yrd, double sec, double lat, double along, double tloc,
   if (sw[8] == -1e0)
     tinf = p[30];
 
-  for (int i = 0; i < nsw; i++)
+  for (int i = 0; i < nsw; i++) {
+    //printf("\ttinf += %.1f * %.15f\n", std::abs(sw[i]), t[i]);
     tinf += std::abs(sw[i]) * t[i];
+  }
 
+  printf("glob5=%20.15f\n", tinf);
   return tinf;
 }
 
@@ -763,6 +815,7 @@ double denss(double alt, double dlb, double tinf, double tlb, double xm,
                              dd * (x2 * x2 * x2 * x - 1e0) / 7e0));
   }
 
+  printf("denss result=%20.5f, tz=%20.15f\n", denss, tz);
   return denss;
 }
 

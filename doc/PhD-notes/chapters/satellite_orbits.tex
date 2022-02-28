@@ -1,0 +1,96 @@
+\chapter{Satellite Orbits}
+\label{ch:satellite-orbits}
+
+\section{Geopotential}
+For precise orbit determination, we need to drop the assumption of the total mass 
+of the Earth being concentrated in the center of the coordinate system. For the
+following discussion of a more realistic model is adopted, where it is convenient 
+to use an equivalent representation involving the gradient of the corresponding 
+gravity potential \(U\)
+\begin{equation}
+    \ddot{\vec{r}} = \nabla U \textrm{ where } U = G M_{\Earth} \frac{1}{r}
+\end{equation}
+
+This expression for the potential may easily be generalized to an arbitrary mass
+distribution by summing up the contributions created by individual mass elements
+\(dm = \rho(\vec{s}) d^3 \vec{s}\) according to (\cite{Montenbruck2000})
+\begin{equation}
+    U = G \int{\frac{\rho(\vec{s}) d^3 \vec{s}}{\lvert \vec{r} - \vec{s} \rvert}}
+\end{equation}
+
+For computations, the Earth's gravity potential at point \((\phi , \lambda)\) 
+can be approximated using a spherical harmonics expansion 
+(e.g. \cite{Montenbruck2000})
+\begin{equation}
+    U = \frac{G M_{\Earth}}{r} \sum_{n=0}^\infty \sum_{m=0}^n 
+    \frac{R_{\Earth}^n}{r^n} P_{nm}(sin\phi) 
+    (C_{nm} cos(m\lambda) + S_{nm} sin(m\lambda))
+\end{equation}
+
+with the coefficients \(C_{nm}\) and \(S_{nm}\) describing the dependence on the 
+Earth's internal mass distribution. These coefficients can be extracted from a 
+suitable  \emph{geopotential model}.
+
+Note that Geopotential coefficients with \(m=0\) are called  \emph{zonal} coefficients, 
+since they describe the part of the potential that does not depend on the longitude. 
+All \(S_{n0}\) vanish due to their definition, and the notation \(J_n = -C_{n0}\) 
+is commonly used for the remaining zonal terms. The other geopotential coefficients
+are known as \emph{tesseral} and \emph{sectorial} coefficients for \(m<n\) and 
+\(m = n\), respectively.
+
+\fbox{\begin{minipage}{.9\textwidth}
+To compute the acceleration \(\ddot{\vec{r}}\), which is equal to the 
+gradient of \(U\), we use the recursion formulas described in \cite{Montenbruck2000}.
+Note that these expressions, use the \underline{non-normalized} harmonic 
+coefficients. 
+\end{minipage}}
+
+\subsection{Gravity Models}
+The \href{International Centre for Global Earth Models (ICGEM)}{http://icgem.gfz-potsdam.de/home} 
+(\cite{icgempub}) web service hosts a large number of gravity field models, 
+published in what is called the \emph{The ICGEM-format}(\cite{ICGEMFormat}). 
+
+Such static model files can be parsed and the respective harmonic coeefficients 
+(\(C_{nm}\) and \(S_{nm}\)) be used to compute satellite acceleration induced by 
+the geopotential.
+
+\section{Sun and Moon Perturbing Acceleration}
+According to Newton's law of gravity, the acceleration of a satellite by a point 
+mass \(M\) is given by:
+\begin{equation}
+    \label{eq:mon335}
+    \ddot{\vec{r}} = G M \frac{\vec{s}-\vec{r}}{\lvert \vec{s} - \vec{r} \rvert ^3}
+\end{equation}
+where \(\vec{r}\) and \(\vec{s}\) are the geocentric coordinates of the satellite 
+and of \(M\) respectively. Some care is required, however, before this expression 
+can be used for describing the satellite's motion with respect to the center of 
+the Earth. The value of \(\ddot{\vec{r}}\) in \ref{eq:mon335} refers to an 
+inertial or Newtonian coordinate system in which the Earth is not at rest, but 
+is itself subject to an acceleration
+\begin{equation}
+    \ddot{\vec{r}} = G M \frac{\vec{s}}{\lvert \vec{s} \rvert ^3}
+\end{equation}
+due to M. Both values have to be subtracted to obtain the second derivative
+\begin{equation}
+    \label{eq:mon337}
+    \ddot{\vec{r}} = G M (\frac{\vec{s}-\vec{r}}{\lvert \vec{s} - \vec{r} \rvert ^3} - \frac{\vec{s}}{\lvert \vec{s} \rvert ^3})
+\end{equation}
+of the satellite's Earth-centered position vector.
+
+\subsection{Sun, Moon and Planetary Ephemerides}
+To use the formula \ref{eq:mon337} we need the (geocentric) coordinates of the 
+Sun and Moon. To that end, we can either use low-precision solar and lunar 
+coordinates (as described e.g. in \cite{Montenbruck2000} and \cite{Vallado}) or 
+use JPL Ephemerides. Both options are available.
+
+\subsubsection{JPL Ephemerides}
+Jet Propulsion Laboratory Development Ephemeris (abbreved JPL DE(number), or 
+simply DE(number)) designates one of a series of mathematical models of the 
+Solar System produced at the Jet Propulsion Laboratory for use in spacecraft 
+navigation and astronomy. The models consist of numeric representations of 
+positions, velocities and accelerations of major Solar System bodies, tabulated 
+at equally spaced intervals of time, covering a specified span of years.
+
+We use an interface to the JPL-provided Observation Geometry System
+for Space Science Missions (\href{SPICE}{https://naif.jpl.nasa.gov/naif/}) 
+software library to extract planet coordinates.
