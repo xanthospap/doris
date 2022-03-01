@@ -105,7 +105,8 @@ Next to the oblateness of the Earth, atmospheric drag most strongly influences t
 motion of a satellite near Earth; in fact, during the last few revolutions of the satellite's
 life, drag effects can be more dominant than those from the Earth's oblateness. For more
 distant satellites, third-body effects and solar-radiation pressure dominate more than
-oblateness and drag (\cite{Vallado}).
+oblateness and drag (\cite{Vallado}). Atmospheric forces represent the largest 
+non-gravitational perturbations acting on low altitude satellites.
 
 The cause of drag is the atmospheric particles, which retard the satellite's motion.
 Calculating density is extremely complex for real-world problems.
@@ -117,7 +118,7 @@ as a specific force or acceleration (\cite{Vallado}):
     \label{eq:val828}
     \ddot{\vec{r}} = -\frac{1}{2} \frac{c_D A}{m} \rho 
     \dot{\vec{r_{rel}}^2} 
-    \frac{\vec{r_{rel}}}{\lvert \vec{r_{rel}} \rvert}
+    \frac{\dot{\vec{r_{rel}}}}{\lvert \dot{\vec{r_{rel}}} \rvert}
 \end{equation}
 
 where:
@@ -130,13 +131,18 @@ where:
     to the satellite's velocity vector.
     \item \(m/(c_D A)\) is called the ballistic coefficient.
 \end{itemize}
+The direction of the drag acceleration is always (anti-)parallel to the relative 
+velocity vector, indicated by the unit vector 
+\(\vec{e_u} = \dot{\vec{r_{rel}}} / \lvert \dot{\vec{r_{rel}}} \rvert \)
 
 Note that in \ref{eq:val828}, \(\vec{r_{rel}}\) is not the velocity vector 
 typically found in the state vector. This velocity vector is relative to the 
-atmosphere. The velocity vector relative to the rotating atmosphere is:
+atmosphere, which depends on complex atmospheric dynamics. However, a reasonable 
+approximation of the relative velocity is obtained with the assumption that the 
+atmosphere co-rotates with the Earth:
 \begin{equation}
     %\begin{align}
-    \dot{\vec{r}} = \frac{d\vec{r}}{dt} - \vec{\omega}_{\Earth} \times \vec{r} = 
+    \dot{\vec{r_{rel}}} = \frac{d\vec{r}}{dt} - \vec{\omega}_{\Earth} \times \vec{r} = 
         \begin{bmatrix}
         \frac{dx}{dt}+{\omega}_{\Earth}y \\
         \frac{dy}{dt}-{\omega}_{\Earth}x \\
@@ -144,4 +150,8 @@ atmosphere. The velocity vector relative to the rotating atmosphere is:
         \end{bmatrix}
     %\end{align} 
 \end{equation}
-%[\frac{dx}{dt}+{\omega}_{\Earth}y \frac{dy}{dt}-{\omega}_{\Earth}x \frac{dz}{dt}]^T
+with the inertial satellite velocity vector \(d\vec{r}/{dt}\), the position vector 
+\(\vec{r}\), and the Earth's angular velocity vector \(\vec{\omega}_{\Earth}\). 
+As the drag force depends on the atmospheric density \(\rho\) at the satellite 
+location, the modeling of the complex properties and dynamics of the Earth's 
+atmosphere is a challenging task of modern precision orbit determination.

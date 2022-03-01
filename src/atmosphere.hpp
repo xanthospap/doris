@@ -8,7 +8,19 @@ namespace dso {
 namespace air_density_models {
 
 namespace exponential {
-
+  /// @brief Calculate Atmospheric Density based on Exponential Model
+  /// This simple, static model assumes the density of the atmosphere decays 
+  /// exponentially with increasing altitude. It also assumes a spherically 
+  /// symmetrical distribution of particles, in which the density, r, varies 
+  /// exponentially.
+  /// Although a very simple approach, this method yields moderate results for 
+  /// general studies.
+  /// @param[in] sat_altitude_km Satellite altitude in [km] (note that altitude
+  ///            is found by substracting the satellite's radius from the 
+  ///            Earth's radius)
+  /// @return Atmospheric density at given altitude in [km/m^3]
+  /// @see Fundamentals of Astrodynamics, Vallado, Chapter 8.6.2
+  double density(double sat_altitude_km) noexcept;
 }// namespace exponential
 
 namespace nrlmsise00 {

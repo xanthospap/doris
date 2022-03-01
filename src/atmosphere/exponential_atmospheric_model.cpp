@@ -1,12 +1,16 @@
 #include "atmosphere.hpp"
+#include <cassert>
 #include <cmath>
+#ifdef DEBUG
+#include <cstdio>
+#endif
 
 struct AtmLayer {
-    int limit_low; // [km]
-    int limit_high; // [km]
-    int base_altitude; // [km]
-    double nominal_density; // [kg/m3]
-    double scale_height; // [km]
+  int limit_low;          // [km]
+  int limit_high;         // [km]
+  int base_altitude;      // [km]
+  double nominal_density; // [kg/m3]
+  double scale_height;    // [km]
 };
 
 const AtmLayer AtmTable[] = {
@@ -37,22 +41,27 @@ const AtmLayer AtmTable[] = {
     {700, 800, 700, 3.614e-14, 88.667e0},
     {800, 900, 800, 1.170e-14, 124.64e0},
     {900, 1000, 900, 5.245e-15, 181.05e0},
-    {1000, std::numeric_limits<int>(max), 1000, 3.019e-15, 268.00e0},
+    {1000, -1, 1000, 3.019e-15, 268.00e0},
 };
 
 const int table_sz = sizeof(AtmTable) / sizeof(AtmLayer);
 
-double density(double sat_distance) noexcept {
+double
+dso::air_density_models::exponential::density(double sat_altitude_km) noexcept {
+  assert(sat_altitude_km>0e0);
+
   // compute altitude, found by subtracting the Earth’s radius from the
   // satellite’s radius
-  const double sat_altitude = (sat_distance - iers2010::Re) * 1e3; // [km]
-  const int alt = std::trunc(sat_altitude);
-  int i;
-  for (i=0; i<table_sz-1; i++) {
-    if (alt >= AtmTable[i].limit_low && alt < AtmTable[i].limit_high)
-        break;
+  const int alt = std::trunc(sat_altitude_km);
+  int layer_nr = table_sz - 1;
+  for (int i = 0; i < table_sz - 1; i++) {
+    if (alt >= AtmTable[i].limit_low && alt < AtmTable[i].limit_high) {
+      layer_nr = i;
+      break;
+    }
   }
-  return AtmTable[i].nominal_density *
-         std::exp(-(sat_altitude - AtmTable[i].base_altitude) / AtmTable[i].scale_height);
+  return AtmTable[layer_nr].nominal_density *
+         std::exp(-(sat_altitude_km -
+                    static_cast<double>(AtmTable[layer_nr].base_altitude)) /
+                  AtmTable[layer_nr].scale_height); // [kg/m3]
 }
-
