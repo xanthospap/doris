@@ -26,6 +26,11 @@ namespace exponential {
 namespace nrlmsise00 {
 /// @brief NRLMSISE-00 Model, 2001
 /// @see https://ccmc.gsfc.nasa.gov/modelweb/atmos/nrlmsise00.html
+void gtd7(
+    const int *switches, /*const double *p,*/ int doy, double fsec, double glat,
+    double glon, double lst, double f107, double f107A, double alt,
+    const double *magnetic_array, 
+    double *outd, double *outt) noexcept;
 } // namespace nrlmsise00
 
 namespace msis86 {

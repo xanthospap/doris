@@ -346,7 +346,7 @@ static double pd[9][150] = {
      0.00000e+00,  0.00000e+00, 0.00000e+00, 0.00000e+00,  0.00000e+00}};
 
 // S param
-double ps[150] = {
+const double ps[150] = {
     9.56827e-01, 6.20637e-02, 3.18433e-02,  0.00000e+00,  0.00000e+00,
     3.94900e-02, 0.00000e+00, 0.00000e+00,  -9.24882e-03, -7.94023e-03,
     0.00000e+00, 0.00000e+00, 0.00000e+00,  1.74712e+02,  0.00000e+00,
@@ -379,7 +379,7 @@ double ps[150] = {
     0.00000e+00, 0.00000e+00, 0.00000e+00,  0.00000e+00,  0.00000e+00};
 
 // turbo
-static double pdl[2][25] = {
+const double pdl[2][25] = {
     {1.09930e+00, 3.90631e+00, 3.07165e+00, 9.86161e-01, 1.63536e+01,
      4.63830e+00, 1.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00,
      0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00,
@@ -392,11 +392,11 @@ static double pdl[2][25] = {
      1.72783e+02, 1.15020e+00,  3.44689e+00, -7.46230e-01, 9.49154e-01}};
 
 // lower boundary
-static const double ptm[50] = {
+const double ptm[50] = {
     1.04130e+03, 3.86000e+02, 1.95000e+02, 1.66728e+01,  2.13000e+02,
     1.20000e+02, 2.40000e+02, 1.87000e+02, -2.00000e+00, 0.00000e+00};
 
-static const double pdm[8][10] = {
+const double pdm[8][10] = {
     {2.45600e+07, 6.71072e-06, 1.00000e+02, 0.00000e+00, 1.10000e+02,
      1.00000e+01, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00},
     {8.59400e+10, 1.00000e+00, 1.05000e+02, -8.00000e+00, 1.10000e+02,
@@ -414,7 +414,7 @@ static const double pdm[8][10] = {
     {1.00000e+06, 1.00000e+00, 1.05000e+02, -8.00000e+00, 5.50000e+02,
      7.60000e+01, 9.00000e+01, 2.00000e+00, 0.00000e+00, 4.00000e+03}};
 
-static double ptl[4][100] = {
+const double ptl[4][100] = {
     // TN1(2)
     {1.00858e+00,  4.56011e-02,  -2.22972e-02, -5.44388e-02, 5.23136e-04,
      -1.88849e-02, 5.23707e-02,  -9.43646e-03, 6.31707e-03,  -7.80460e-02,
@@ -500,7 +500,7 @@ static double ptl[4][100] = {
      -1.10080e-03, -9.39310e-05, 1.39638e-04,  0.00000e+00,  0.00000e+00,
      0.00000e+00,  0.00000e+00,  0.00000e+00,  0.00000e+00,  2.00000e+00}};
 
-static double pma[10][100] = {
+const double pma[10][100] = {
     // TN2(2)
     {9.81637e-01,  -1.41317e-03, 3.87323e-02,  0.00000e+00,  0.00000e+00,
      0.00000e+00,  0.00000e+00,  0.00000e+00,  0.00000e+00,  -3.58707e-02,
@@ -713,7 +713,7 @@ static double pma[10][100] = {
      0.00000e+00,  0.00000e+00,  0.00000E+00,  0.00000E+00,  2.00000e+00}};
 
 // semiannual mult sam
-static const double sam[100] = {
+const double sam[100] = {
     1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00,
     1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00,
     1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00, 1.00000e+00,
@@ -736,7 +736,7 @@ static const double sam[100] = {
     0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00};
 
 // middle atmosphere averages
-static const double pavgm[10] = {
+const double pavgm[10] = {
     2.61000e+02, 2.64000e+02, 2.29000e+02,  2.17000e+02, 2.17000e+02,
     2.23000e+02, 2.86760e+02, -2.93940e+00, 2.50000e+00, 0.00000e+00};
 
@@ -745,10 +745,10 @@ static const double pavgm[10] = {
 //static double re;
 //
 //// gts3c
-//static double dd;
+// static double dd;
 //
 //// dmix
-//static double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
+static double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
 //
 //// lpoly
 //static double dfa;
@@ -759,22 +759,22 @@ static const double pavgm[10] = {
 //static double apdf, apt[4];
 //
 //// meso7
-//static double meso_tn1[5];
-//static double meso_tn2[4];
-//static double meso_tn3[5];
-//static double meso_tgn1[2];
-//static double meso_tgn2[2];
-//static double meso_tgn3[2];
+static double meso_tn1[5];
+static double meso_tn2[4];
+static double meso_tn3[5];
+static double meso_tgn1[2];
+static double meso_tgn2[2];
+static double meso_tgn3[2];
 
 /// @param[out] sw  An array of 24 doubles
 /// @param[out] swc An array of 24 doubles
 void tselec(const int *switches, double *sw, double *swc) noexcept {
-  for (int i=0; i<24; i++) {
-    sw[i] = (switches[i]==1) * 1e0;
-    swc[i] = (switches[i]>0) * 1e0;
+  for (int i = 0; i < 24; i++) {
+    sw[i] = (switches[i] == 1) * 1e0;
+    swc[i] = (switches[i] > 0) * 1e0;
   }
-  sw[9]=switches[9];
-  swc[9]=switches[9];
+  sw[9] = switches[9];
+  swc[9] = switches[9];
 }
 
 void glatf(double lat, double &gv, double &reff) noexcept {
@@ -823,8 +823,7 @@ double scalh(double alt, double xm, double temp, double gsurf,
   return rgas * temp / (g * xm);
 }
 
-double dnet(double dd, double dm, double zhm, double xmm,
-            double xm) noexcept {
+double dnet(double dd, double dm, double zhm, double xmm, double xm) noexcept {
   // TURBOPAUSE CORRECTION FOR MSIS MODELS
   //  Root mean density
   //   DD - diffusive density
@@ -835,8 +834,8 @@ double dnet(double dd, double dm, double zhm, double xmm,
   //   DNET - combined density
   double a = zhm / (xmm - xm);
   if (!((dm > 0) && (dd > 0))) {
-    fprintf(stderr, "[ERROR] dnet log error %e %e %e (traceback: %s)\n", dm,
-            dd, xm, __func__);
+    fprintf(stderr, "[ERROR] dnet log error %e %e %e (traceback: %s)\n", dm, dd,
+            xm, __func__);
     if ((dd == 0) && (dm == 0))
       dd = 1;
     if (dm == 0)
@@ -975,7 +974,8 @@ inline double zeta(double zz, double zl, double re) noexcept {
 /// @param[in] zn2 Array
 double densm(double alt, double d0, double xm, double &tz, int mn3,
              const double *zn3, const double *tn3, const double *tgn3, int mn2,
-             const double *zn2, const double *tn2, const double *tgn2, double gsurf, double re) {
+             const double *zn2, const double *tn2, const double *tgn2,
+             double gsurf, double re) {
   // Calculate Temperature and Density Profiles for lower atmos.
   double xs[10], ys[10], y2out[10];
   constexpr double rgas = 831.4e0;
@@ -1078,12 +1078,13 @@ double densm(double alt, double d0, double xm, double &tz, int mn3,
     densm_tmp = densm_tmp * (t1 / tz) * std::exp(-expl);
   }
 
-  return (xm==0e0)? tz : densm_tmp;
+  return (xm == 0e0) ? tz : densm_tmp;
 }
 
 double densu(double alt, double dlb, double tinf, double tlb, double xm,
              double alpha, double &tz, double zlb, double s2, int mn1,
-             const double *zn1, double *tn1, double *tgn1, double gsurf, double re) noexcept {
+             const double *zn1, double *tn1, double *tgn1, double gsurf,
+             double re) noexcept {
   // Calculate Temperature and Density Profiles for MSIS models
   // New lower thermo polynomial
   constexpr const double rgas = 831.4e0;
@@ -1200,11 +1201,11 @@ inline double sg0(double ex, const double *p, const double *ap) {
          sumex(ex);
 }
 
-double globe7(const double *p, int doy, double fsec, double glat,
-              double glon, double lst, double f107, double f107A,
-              const double *sw, const double *swc, const double *magnetic_array,
-              double *apt, dso::Mat2D<dso::MatrixStorageType::RowWise> &plg,
-              trignums &trigs, double &dfa, double &apdf) noexcept {
+double globe7(const double *p, int doy, double fsec, double glat, double glon,
+              double lst, double f107, double f107A, const double *sw,
+              const double *swc, const double *magnetic_array, double *apt,
+              dso::Mat2D<dso::MatrixStorageType::RowWise> &plg, trignums &trigs,
+              double &dfa, double &apdf) noexcept {
   // CALCULATE G(L) FUNCTION
   // Upper Thermosphere Parameters
   double t[15] = {0};
@@ -1223,31 +1224,31 @@ double globe7(const double *p, int doy, double fsec, double glat,
   const double s2 = s * s;
 
   // double plg[4][9];
-  plg(0,1) = c;
-  plg(0,2) = 0.5 * (3.0 * c2 - 1.0);
-  plg(0,3) = 0.5 * (5.0 * c * c2 - 3.0 * c);
-  plg(0,4) = (35.0 * c4 - 30.0 * c2 + 3.0) / 8.0;
-  plg(0,5) = (63.0 * c2 * c2 * c - 70.0 * c2 * c + 15.0 * c) / 8.0;
-  plg(0,6) = (11.0 * c * plg(0,5) - 5.0 * plg(0,4)) / 6.0;
+  plg(0, 1) = c;
+  plg(0, 2) = 0.5 * (3.0 * c2 - 1.0);
+  plg(0, 3) = 0.5 * (5.0 * c * c2 - 3.0 * c);
+  plg(0, 4) = (35.0 * c4 - 30.0 * c2 + 3.0) / 8.0;
+  plg(0, 5) = (63.0 * c2 * c2 * c - 70.0 * c2 * c + 15.0 * c) / 8.0;
+  plg(0, 6) = (11.0 * c * plg(0, 5) - 5.0 * plg(0, 4)) / 6.0;
   // plg(0,7) = (13.0*c*plg(0,6) - 6.0*plg(0,5))/7.0;
-  plg(1,1) = s;
-  plg(1,2) = 3.0 * c * s;
-  plg(1,3) = 1.5 * (5.0 * c2 - 1.0) * s;
-  plg(1,4) = 2.5 * (7.0 * c2 * c - 3.0 * c) * s;
-  plg(1,5) = 1.875 * (21.0 * c4 - 14.0 * c2 + 1.0) * s;
-  plg(1,6) = (11.0 * c * plg(1,5) - 6.0 * plg(1,4)) / 5.0;
+  plg(1, 1) = s;
+  plg(1, 2) = 3.0 * c * s;
+  plg(1, 3) = 1.5 * (5.0 * c2 - 1.0) * s;
+  plg(1, 4) = 2.5 * (7.0 * c2 * c - 3.0 * c) * s;
+  plg(1, 5) = 1.875 * (21.0 * c4 - 14.0 * c2 + 1.0) * s;
+  plg(1, 6) = (11.0 * c * plg(1, 5) - 6.0 * plg(1, 4)) / 5.0;
   // plg(1,7) = (13.0*c*plg(1,6)-7.0*plg(1,5))/6.0;
   // plg(1,8) = (15.0*c*plg(1,7)-8.0*plg(1,6))/7.0;
-  plg(2,2) = 3.0 * s2;
-  plg(2,3) = 15.0 * s2 * c;
-  plg(2,4) = 7.5 * (7.0 * c2 - 1.0) * s2;
-  plg(2,5) = 3.0 * c * plg(2,4) - 2.0 * plg(2,3);
-  plg(2,6) = (11.0 * c * plg(2,5) - 7.0 * plg(2,4)) / 4.0;
-  plg(2,7) = (13.0 * c * plg(2,6) - 8.0 * plg(2,5)) / 5.0;
-  plg(3,3) = 15.0 * s2 * s;
-  plg(3,4) = 105.0 * s2 * s * c;
-  plg(3,5) = (9.0 * c * plg(3,4) - 7. * plg(3,3)) / 2.0;
-  plg(3,6) = (11.0 * c * plg(3,5) - 8. * plg(3,4)) / 3.0;
+  plg(2, 2) = 3.0 * s2;
+  plg(2, 3) = 15.0 * s2 * c;
+  plg(2, 4) = 7.5 * (7.0 * c2 - 1.0) * s2;
+  plg(2, 5) = 3.0 * c * plg(2, 4) - 2.0 * plg(2, 3);
+  plg(2, 6) = (11.0 * c * plg(2, 5) - 7.0 * plg(2, 4)) / 4.0;
+  plg(2, 7) = (13.0 * c * plg(2, 6) - 8.0 * plg(2, 5)) / 5.0;
+  plg(3, 3) = 15.0 * s2 * s;
+  plg(3, 4) = 105.0 * s2 * s * c;
+  plg(3, 5) = (9.0 * c * plg(3, 4) - 7. * plg(3, 3)) / 2.0;
+  plg(3, 6) = (11.0 * c * plg(3, 5) - 8. * plg(3, 4)) / 3.0;
 
   if (!(((sw[7] == 0) && (sw[8] == 0)) && (sw[14] == 0))) {
     trigs.compute(hr, tloc);
@@ -1267,56 +1268,55 @@ double globe7(const double *p, int doy, double fsec, double glat,
   const double f2 = 1e0 + (p[49] * dfa + p[19] * df + p[20] * df * df) * swc[1];
 
   //  time independent
-  t[1] = (p[1] * plg(0,2) + p[2] * plg(0,4) + p[22] * plg(0,6)) +
-         (p[14] * plg(0,2)) * dfa * swc[1] + p[26] * plg(0,1);
+  t[1] = (p[1] * plg(0, 2) + p[2] * plg(0, 4) + p[22] * plg(0, 6)) +
+         (p[14] * plg(0, 2)) * dfa * swc[1] + p[26] * plg(0, 1);
 
   //  symmetrical annual
   t[2] = p[18] * cd32;
 
   //  symmetrical semiannual
-  t[3] = (p[15] + p[16] * plg(0,2)) * cd18;
+  t[3] = (p[15] + p[16] * plg(0, 2)) * cd18;
 
   //  asymmetrical annual
-  t[4] = f1 * (p[9] * plg(0,1) + p[10] * plg(0,3)) * cd14;
+  t[4] = f1 * (p[9] * plg(0, 1) + p[10] * plg(0, 3)) * cd14;
 
   //  asymmetrical semiannual
-  t[5] = p[37] * plg(0,1) * cd39;
+  t[5] = p[37] * plg(0, 1) * cd39;
 
   // diurnal
   if (sw[7]) {
-    const double t71 = (p[11] * plg(1,2)) * cd14 * swc[5];
-    const double t72 = (p[12] * plg(1,2)) * cd14 * swc[5];
+    const double t71 = (p[11] * plg(1, 2)) * cd14 * swc[5];
+    const double t72 = (p[12] * plg(1, 2)) * cd14 * swc[5];
     t[6] =
-        f2 * ((p[3] * plg(1,1) + p[4] * plg(1,3) + p[27] * plg(1,5) + t71) *
+        f2 * ((p[3] * plg(1, 1) + p[4] * plg(1, 3) + p[27] * plg(1, 5) + t71) *
                   trigs.ctloc() +
-              (p[6] * plg(1,1) + p[7] * plg(1,3) + p[28] * plg(1,5) + t72) *
+              (p[6] * plg(1, 1) + p[7] * plg(1, 3) + p[28] * plg(1, 5) + t72) *
                   trigs.stloc());
   }
 
   // semidiurnal
   if (sw[8]) {
-    const double t81 = (p[23] * plg(2,3) + p[35] * plg(2,5)) * cd14 * swc[5];
-    const double t82 = (p[33] * plg(2,3) + p[36] * plg(2,5)) * cd14 * swc[5];
-    t[7] = f2 * ((p[5] * plg(2,2) + p[41] * plg(2,4) + t81) * trigs.c2tloc() +
-                 (p[8] * plg(2,2) + p[42] * plg(2,4) + t82) * trigs.s2tloc());
+    const double t81 = (p[23] * plg(2, 3) + p[35] * plg(2, 5)) * cd14 * swc[5];
+    const double t82 = (p[33] * plg(2, 3) + p[36] * plg(2, 5)) * cd14 * swc[5];
+    t[7] = f2 * ((p[5] * plg(2, 2) + p[41] * plg(2, 4) + t81) * trigs.c2tloc() +
+                 (p[8] * plg(2, 2) + p[42] * plg(2, 4) + t82) * trigs.s2tloc());
   }
 
   // terdiurnal
   if (sw[14]) {
-    t[13] = f2 * ((p[39] * plg(3,3) +
-                   (p[93] * plg(3,4) + p[46] * plg(3,6)) * cd14 * swc[5]) *
+    t[13] = f2 * ((p[39] * plg(3, 3) +
+                   (p[93] * plg(3, 4) + p[46] * plg(3, 6)) * cd14 * swc[5]) *
                       trigs.s3tloc() +
-                  (p[40] * plg(3,3) +
-                   (p[94] * plg(3,4) + p[48] * plg(3,6)) * cd14 * swc[5]) *
+                  (p[40] * plg(3, 3) +
+                   (p[94] * plg(3, 4) + p[48] * plg(3, 6)) * cd14 * swc[5]) *
                       trigs.c3tloc());
   }
 
   // magnetic activity based on daily ap
   if (sw[9] == -1) {
     if (p[51] != 0) {
-      double exp1 =
-          std::exp(-10800e0 * std::sqrt(p[51] * p[51]) /
-                   (1e0 + p[138] * (45e0 - std::sqrt(glat * glat))));
+      double exp1 = std::exp(-10800e0 * std::sqrt(p[51] * p[51]) /
+                             (1e0 + p[138] * (45e0 - std::sqrt(glat * glat))));
       if (exp1 > 0.99999)
         exp1 = 0.99999;
       // if (p[24] < 1.0e-4)
@@ -1327,10 +1327,10 @@ double globe7(const double *p, int doy, double fsec, double glat,
       // apt[3]=sg2(exp2,p,ap->a);
       if (sw[9]) {
         t[8] = apt[0] *
-               (p[50] + p[96] * plg(0,2) + p[54] * plg(0,4) +
-                (p[125] * plg(0,1) + p[126] * plg(0,3) + p[127] * plg(0,5)) *
+               (p[50] + p[96] * plg(0, 2) + p[54] * plg(0, 4) +
+                (p[125] * plg(0, 1) + p[126] * plg(0, 3) + p[127] * plg(0, 5)) *
                     cd14 * swc[5] +
-                (p[128] * plg(1,1) + p[129] * plg(1,3) + p[130] * plg(1,5)) *
+                (p[128] * plg(1, 1) + p[129] * plg(1, 3) + p[130] * plg(1, 5)) *
                     swc[7] * std::cos(hr * (tloc - p[131])));
       }
     }
@@ -1343,10 +1343,10 @@ double globe7(const double *p, int doy, double fsec, double glat,
     apdf = apd + (p45 - 1.0) * (apd + (std::exp(-p44 * apd) - 1.0) / p44);
     if (sw[9]) {
       t[8] = apdf *
-             (p[32] + p[45] * plg(0,2) + p[34] * plg(0,4) +
-              (p[100] * plg(0,1) + p[101] * plg(0,3) + p[102] * plg(0,5)) *
+             (p[32] + p[45] * plg(0, 2) + p[34] * plg(0, 4) +
+              (p[100] * plg(0, 1) + p[101] * plg(0, 3) + p[102] * plg(0, 5)) *
                   cd14 * swc[5] +
-              (p[121] * plg(1,1) + p[122] * plg(1,3) + p[123] * plg(1,5)) *
+              (p[121] * plg(1, 1) + p[122] * plg(1, 3) + p[123] * plg(1, 5)) *
                   swc[7] * cos(hr * (tloc - p[124])));
     }
   }
@@ -1357,28 +1357,28 @@ double globe7(const double *p, int doy, double fsec, double glat,
     if (sw[11]) {
       t[10] =
           (1.0 + p[80] * dfa * swc[1]) *
-          ((p[64] * plg(1,2) + p[65] * plg(1,4) + p[66] * plg(1,6) +
-            p[103] * plg(1,1) + p[104] * plg(1,3) + p[105] * plg(1,5) +
+          ((p[64] * plg(1, 2) + p[65] * plg(1, 4) + p[66] * plg(1, 6) +
+            p[103] * plg(1, 1) + p[104] * plg(1, 3) + p[105] * plg(1, 5) +
             swc[5] *
-                (p[109] * plg(1,1) + p[110] * plg(1,3) + p[111] * plg(1,5)) *
+                (p[109] * plg(1, 1) + p[110] * plg(1, 3) + p[111] * plg(1, 5)) *
                 cd14) *
                std::cos(dgtr * glon) +
-           (p[90] * plg(1,2) + p[91] * plg(1,4) + p[92] * plg(1,6) +
-            p[106] * plg(1,1) + p[107] * plg(1,3) + p[108] * plg(1,5) +
+           (p[90] * plg(1, 2) + p[91] * plg(1, 4) + p[92] * plg(1, 6) +
+            p[106] * plg(1, 1) + p[107] * plg(1, 3) + p[108] * plg(1, 5) +
             swc[5] *
-                (p[112] * plg(1,1) + p[113] * plg(1,3) + p[114] * plg(1,5)) *
+                (p[112] * plg(1, 1) + p[113] * plg(1, 3) + p[114] * plg(1, 5)) *
                 cd14) *
                std::sin(dgtr * glon));
     }
 
     // ut and mixed ut, longitude
     if (sw[12]) {
-      t[11] = (1.0 + p[95] * plg(0,1)) * (1.0 + p[81] * dfa * swc[1]) *
-              (1.0 + p[119] * plg(0,1) * swc[5] * cd14) *
-              ((p[68] * plg(0,1) + p[69] * plg(0,3) + p[70] * plg(0,5)) *
+      t[11] = (1.0 + p[95] * plg(0, 1)) * (1.0 + p[81] * dfa * swc[1]) *
+              (1.0 + p[119] * plg(0, 1) * swc[5] * cd14) *
+              ((p[68] * plg(0, 1) + p[69] * plg(0, 3) + p[70] * plg(0, 5)) *
                std::cos(sr * (fsec - p[71])));
       t[11] += swc[11] *
-               (p[76] * plg(2,3) + p[77] * plg(2,5) + p[78] * plg(2,7)) *
+               (p[76] * plg(2, 3) + p[77] * plg(2, 5) + p[78] * plg(2, 7)) *
                std::cos(sr * (fsec - p[79]) + 2.0 * dgtr * glon) *
                (1.0 + p[137] * dfa * swc[1]);
     }
@@ -1388,27 +1388,27 @@ double globe7(const double *p, int doy, double fsec, double glat,
       if (sw[9] == -1) {
         if (p[51]) {
           t[12] =
-              apt[0] * swc[11] * (1. + p[132] * plg(0,1)) *
-                  ((p[52] * plg(1,2) + p[98] * plg(1,4) + p[67] * plg(1,6)) *
+              apt[0] * swc[11] * (1. + p[132] * plg(0, 1)) *
+                  ((p[52] * plg(1, 2) + p[98] * plg(1, 4) + p[67] * plg(1, 6)) *
                    std::cos(dgtr * (glon - p[97]))) +
               apt[0] * swc[11] * swc[5] *
-                  (p[133] * plg(1,1) + p[134] * plg(1,3) +
-                   p[135] * plg(1,5)) *
+                  (p[133] * plg(1, 1) + p[134] * plg(1, 3) +
+                   p[135] * plg(1, 5)) *
                   cd14 * std::cos(dgtr * (glon - p[136])) +
               apt[0] * swc[12] *
-                  (p[55] * plg(0,1) + p[56] * plg(0,3) + p[57] * plg(0,5)) *
+                  (p[55] * plg(0, 1) + p[56] * plg(0, 3) + p[57] * plg(0, 5)) *
                   std::cos(sr * (fsec - p[58]));
         }
       } else {
         t[12] =
-            apdf * swc[11] * (1.0 + p[120] * plg(0,1)) *
-                ((p[60] * plg(1,2) + p[61] * plg(1,4) + p[62] * plg(1,6)) *
+            apdf * swc[11] * (1.0 + p[120] * plg(0, 1)) *
+                ((p[60] * plg(1, 2) + p[61] * plg(1, 4) + p[62] * plg(1, 6)) *
                  std::cos(dgtr * (glon - p[63]))) +
             apdf * swc[11] * swc[5] *
-                (p[115] * plg(1,1) + p[116] * plg(1,3) + p[117] * plg(1,5)) *
+                (p[115] * plg(1, 1) + p[116] * plg(1, 3) + p[117] * plg(1, 5)) *
                 cd14 * std::cos(dgtr * (glon - p[118])) +
             apdf * swc[12] *
-                (p[83] * plg(0,1) + p[84] * plg(0,3) + p[85] * plg(0,5)) *
+                (p[83] * plg(0, 1) + p[84] * plg(0, 3) + p[85] * plg(0, 5)) *
                 std::cos(sr * (fsec - p[75]));
       }
     }
@@ -1421,22 +1421,24 @@ double globe7(const double *p, int doy, double fsec, double glat,
   return tinf;
 }
 
-double glob7s(const double *p,  int doy, 
-              double glon,
-              const double *sw, const double *swc, const double *apt,
+double glob7s(const double *p, int doy, double glon, const double *sw,
+              const double *swc, const double *apt,
               const dso::Mat2D<dso::MatrixStorageType::RowWise> &plg,
               const trignums &trigs, double dfa, double apdf) noexcept {
   // version of globe for lower atmosphere 10/26/99
   double t[14] = {0};
   const double dr = 1.72142e-2;
   const double dgtr = 1.74533e-2;
-  // confirm parameter set
-  #ifdef DEBUG
+// confirm parameter set
+#ifdef DEBUG
   const double pset = 2.0;
-  if (p[99] == 0 || p[99]!=pset) {
-    fprintf(stderr, "WARNING! Value of p[99] is %15.10f (should be %15.10f, traceback: %s)\n", p[99], pset, __func__);
+  if (p[99] == 0 || p[99] != pset) {
+    fprintf(stderr,
+            "WARNING! Value of p[99] is %15.10f (should be %15.10f, traceback: "
+            "%s)\n",
+            p[99], pset, __func__);
   }
-  #endif
+#endif
   const double cd32 = std::cos(dr * (doy - p[31]));
   const double cd18 = std::cos(2e0 * dr * (doy - p[17]));
   const double cd14 = std::cos(dr * (doy - p[13]));
@@ -1446,61 +1448,62 @@ double glob7s(const double *p,  int doy,
   t[0] = p[21] * dfa;
 
   // time independent
-  t[1] = p[1] * plg(0,2) + p[2] * plg(0,4) + p[22] * plg(0,6) +
-         p[26] * plg(0,1) + p[14] * plg(0,3) + p[59] * plg(0,5);
+  t[1] = p[1] * plg(0, 2) + p[2] * plg(0, 4) + p[22] * plg(0, 6) +
+         p[26] * plg(0, 1) + p[14] * plg(0, 3) + p[59] * plg(0, 5);
 
   // symmetrical annual
-  t[2] = (p[18] + p[47] * plg(0,2) + p[29] * plg(0,4)) * cd32;
+  t[2] = (p[18] + p[47] * plg(0, 2) + p[29] * plg(0, 4)) * cd32;
 
   // symmetrical semiannual
-  t[3] = (p[15] + p[16] * plg(0,2) + p[30] * plg(0,4)) * cd18;
+  t[3] = (p[15] + p[16] * plg(0, 2) + p[30] * plg(0, 4)) * cd18;
 
   // asymmetrical annual
-  t[4] = (p[9] * plg(0,1) + p[10] * plg(0,3) + p[20] * plg(0,5)) * cd14;
+  t[4] = (p[9] * plg(0, 1) + p[10] * plg(0, 3) + p[20] * plg(0, 5)) * cd14;
 
   // asymmetrical semiannual
-  t[5] = (p[37] * plg(0,1)) * cd39;
+  t[5] = (p[37] * plg(0, 1)) * cd39;
 
   // diurnal
   if (sw[7]) {
-    double t71 = p[11] * plg(1,2) * cd14 * swc[5];
-    double t72 = p[12] * plg(1,2) * cd14 * swc[5];
-    t[6] = ((p[3] * plg(1,1) + p[4] * plg(1,3) + t71) * trigs.ctloc() +
-            (p[6] * plg(1,1) + p[7] * plg(1,3) + t72) * trigs.stloc());
+    double t71 = p[11] * plg(1, 2) * cd14 * swc[5];
+    double t72 = p[12] * plg(1, 2) * cd14 * swc[5];
+    t[6] = ((p[3] * plg(1, 1) + p[4] * plg(1, 3) + t71) * trigs.ctloc() +
+            (p[6] * plg(1, 1) + p[7] * plg(1, 3) + t72) * trigs.stloc());
   }
 
   // semidiurnal
   if (sw[8]) {
-    double t81 = (p[23] * plg(2,3) + p[35] * plg(2,5)) * cd14 * swc[5];
-    double t82 = (p[33] * plg(2,3) + p[36] * plg(2,5)) * cd14 * swc[5];
-    t[7] = ((p[5] * plg(2,2) + p[41] * plg(2,4) + t81) * trigs.c2tloc() +
-            (p[8] * plg(2,2) + p[42] * plg(2,4) + t82) * trigs.s2tloc());
+    double t81 = (p[23] * plg(2, 3) + p[35] * plg(2, 5)) * cd14 * swc[5];
+    double t82 = (p[33] * plg(2, 3) + p[36] * plg(2, 5)) * cd14 * swc[5];
+    t[7] = ((p[5] * plg(2, 2) + p[41] * plg(2, 4) + t81) * trigs.c2tloc() +
+            (p[8] * plg(2, 2) + p[42] * plg(2, 4) + t82) * trigs.s2tloc());
   }
 
   // terdiurnal
   if (sw[14])
-    t[13] = p[39] * plg(3,3) * trigs.s3tloc() + p[40] * plg(3,3) * trigs.c3tloc();
+    t[13] =
+        p[39] * plg(3, 3) * trigs.s3tloc() + p[40] * plg(3, 3) * trigs.c3tloc();
 
   // magnetic activity
   if (sw[9]) {
     if (sw[9] == 1)
-      t[8] = apdf * (p[32] + p[45] * plg(0,2) * swc[2]);
+      t[8] = apdf * (p[32] + p[45] * plg(0, 2) * swc[2]);
     if (sw[9] == -1)
-      t[8] = (p[50] * apt[0] + p[96] * plg(0,2) * apt[0] * swc[2]);
+      t[8] = (p[50] * apt[0] + p[96] * plg(0, 2) * apt[0] * swc[2]);
   }
 
   // longitudinal
   if (!((sw[10] == 0) || (sw[11] == 0) || (glon <= -1000.0))) {
     t[10] = (1e0 +
-             plg(0,1) * (p[80] * swc[5] * std::cos(dr * (doy - p[81])) +
+             plg(0, 1) * (p[80] * swc[5] * std::cos(dr * (doy - p[81])) +
                           p[85] * swc[6] * std::cos(2.0 * dr * (doy - p[86]))) +
              p[83] * swc[3] * std::cos(dr * (doy - p[84])) +
              p[87] * swc[4] * std::cos(2.0 * dr * (doy - p[88]))) *
-            ((p[64] * plg(1,2) + p[65] * plg(1,4) + p[66] * plg(1,6) +
-              p[74] * plg(1,1) + p[75] * plg(1,3) + p[76] * plg(1,5)) *
+            ((p[64] * plg(1, 2) + p[65] * plg(1, 4) + p[66] * plg(1, 6) +
+              p[74] * plg(1, 1) + p[75] * plg(1, 3) + p[76] * plg(1, 5)) *
                  std::cos(dgtr * glon) +
-             (p[90] * plg(1,2) + p[91] * plg(1,4) + p[92] * plg(1,6) +
-              p[77] * plg(1,1) + p[78] * plg(1,3) + p[79] * plg(1,5)) *
+             (p[90] * plg(1, 2) + p[91] * plg(1, 4) + p[92] * plg(1, 6) +
+              p[77] * plg(1, 1) + p[78] * plg(1, 3) + p[79] * plg(1, 5)) *
                  std::sin(dgtr * glon));
   }
   double tt = 0;
@@ -1509,13 +1512,403 @@ double glob7s(const double *p,  int doy,
   return tt;
 }
 
+/*
+void dso::air_density_models::nrlmsise00::gtd7d(
+    const nrlmsise_input &input, const nrlmsise_flags &flags,
+    flag_arena &f_arena, nrlmsise_output &output) noexcept {
+  gtd7(input, flags, output);
+  output.d[5] =
+      1.66e-24 * (4.0 * output.d[0] + 16.0 * output.d[1] + 28.0 * output.d[2] +
+                  32.0 * output.d[3] + 40.0 * output.d[4] + output.d[6] +
+                  14.0 * output.d[7] + 16.0 * output.d[8]);
+  // if (flags.sw[0])
+  if (f_arena.SW[0])
+    output.d[5] /= 1e3;
+}
+*/
+
+void /*dso::air_density_models::nrlmsise00::*/gts7(
+    /*const double *p,*/ int doy, double fsec, double glat, double glon, double lst,
+    double alt, double f107, double f107A, const double *sw, const double *swc,
+    const double *magnetic_array, double gsurf, double re,
+    dso::Mat2D<dso::MatrixStorageType::RowWise> &plg, trignums &trigs, double *apt,
+    double &dfa, double &apdf, double *outd, double *outt) noexcept {
+  // Thermospheric portion of NRLMSISE-00
+  // See GTD7 for more extensive comments
+  // alt > 72.5 km!
+
+  double zn1[5] = {120.0, 110.0, 100.0, 90.0, 72.5};
+  const int mn1 = 5;
+  const double dgtr = 1.74533E-2;
+  const double dr = 1.72142E-2;
+  const double alpha[9] = {-0.38, 0.0, 0.0, 0.0, 0.17, 0.0, -0.38, 0.0, 0.0};
+  const double altl[8] = {200.0, 300.0, 160.0, 250.0,
+                          240.0, 450.0, 320.0, 450.0};
+  const double za = pdl[1][15];
+  zn1[0] = za;
+  for (int j = 0; j < 9; j++)
+    outd[j] = 0;
+
+  // dso::Mat2D<dso::MatrixStorageType::RowWise> plg(8, 8);
+  // trignums trigs;
+
+  // tinf variations not important below za or zn1(1)
+  double tinf;
+  if (alt > zn1[0])
+    tinf = ptm[0] * pt[0] *
+           (1e0 + sw[16] * globe7(pt, doy, fsec, glat, glon, lst, f107, f107A,
+                                  sw, swc, magnetic_array, apt, plg, trigs, dfa,
+                                  apdf));
+  else
+    tinf = ptm[0] * pt[0];
+  outt[0] = tinf;
+
+  //  gradient variations not important below zn1(5)
+  double g0;
+  if (alt > zn1[4])
+    g0 = ptm[3] * ps[0] *
+         (1e0 + sw[19] * globe7(ps, doy, fsec, glat, glon, lst, f107, f107A, sw,
+                                swc, magnetic_array, apt, plg, trigs, dfa,
+                                apdf));
+  else
+    g0 = ptm[3] * ps[0];
+  double tlb =
+      ptm[1] *
+      (1e0 + sw[17] * globe7(pd[3], doy, fsec, glat, glon, lst, f107, f107A, sw,
+                             swc, magnetic_array, apt, plg, trigs, dfa, apdf)) *
+      pd[3][0];
+  double s = g0 / (tinf - tlb);
+
+  // Lower thermosphere temp variations not significant for
+  // density above 300 km
+  const double indoy = doy;
+  const double inlon = glon;
+  if (alt < 300e0) {
+    meso_tn1[1] = ptm[6] * ptl[0][0] /
+                  (1e0 - sw[18] * glob7s(ptl[0], indoy, inlon, sw, swc, apt,
+                                         plg, trigs, dfa, apdf));
+    meso_tn1[2] = ptm[2] * ptl[1][0] /
+                  (1e0 - sw[18] * glob7s(ptl[1], indoy, inlon, sw, swc, apt,
+                                         plg, trigs, dfa, apdf));
+    meso_tn1[3] = ptm[7] * ptl[2][0] /
+                  (1e0 - sw[18] * glob7s(ptl[2], indoy, inlon, sw, swc, apt,
+                                         plg, trigs, dfa, apdf));
+    meso_tn1[4] = ptm[4] * ptl[3][0] /
+                  (1e0 - sw[18] * sw[20] *
+                             glob7s(ptl[3], indoy, inlon, sw, swc, apt, plg,
+                                    trigs, dfa, apdf));
+    meso_tgn1[1] = ptm[8] * pma[8][0] *
+                   (1e0 + sw[18] * sw[20] *
+                              glob7s(pma[8], indoy, inlon, sw, swc, apt, plg,
+                                     trigs, dfa, apdf)) *
+                   meso_tn1[4] * meso_tn1[4] /
+                   (std::pow((ptm[4] * ptl[3][0]), 2e0));
+  } else {
+    meso_tn1[1] = ptm[6] * ptl[0][0];
+    meso_tn1[2] = ptm[2] * ptl[1][0];
+    meso_tn1[3] = ptm[7] * ptl[2][0];
+    meso_tn1[4] = ptm[4] * ptl[3][0];
+    meso_tgn1[1] = ptm[8] * pma[8][0] * meso_tn1[4] * meso_tn1[4] /
+                   (std::pow((ptm[4] * ptl[3][0]), 2.0));
+  }
+
+  // N2 variation factor at Zlb
+  double g28 =
+      sw[21] * globe7(pd[2], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+
+  // variation of turbopause height
+  double zhf = pdl[1][24] * (1e0 + sw[5] * pdl[0][24] * std::sin(dgtr * glat) *
+                                       std::cos(dr * (doy - pt[13])));
+  outt[0] = tinf;
+  double xmm = pdm[2][4];
+  double z = alt;
+
+  // N2 density
+  // --------------------------------------------------------------------------
+  // Diffusive density at Zlb
+  double db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
+  // Diffusive density at Alt
+  outd[2] = densu(z, db28, tinf, tlb, 28e0, alpha[2], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[2];
+  // Turbopause
+  double zh28 = pdm[2][2] * zhf;
+  double zhm28 = pdm[2][3] * pdl[1][5];
+  double xmd = 28e0 - xmm;
+  // Mixed density at Zlb
+  double tz;
+  const double b28 = densu(zh28, db28, tinf, tlb, xmd, (alpha[2] - 1e0), tz,
+                           ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+  if ((sw[15]) && (z <= altl[2])) {
+    //  Mixed density at Alt
+    dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Net density at Alt
+    outd[2] = dnet(outd[2], dm28, zhm28, xmm, 28e0);
+  }
+
+  // HE density
+  // --------------------------------------------------------------------------
+  // Density variation factor at Zlb
+  double g4 =
+      sw[21] * globe7(pd[0], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  double db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
+  //  Diffusive density at Alt
+  outd[0] = densu(z, db04, tinf, tlb, 4e0, alpha[0], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[0];
+  if ((sw[15]) && (z < altl[0])) {
+    //  Turbopause
+    const double zh04 = pdm[0][2];
+    //  Mixed density at Zlb
+    const double b04 =
+        densu(zh04, db04, tinf, tlb, 4e0 - xmm, alpha[0] - 1e0, outt[1], ptm[5],
+              s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Mixed density at Alt
+   /*static*/dm04 = densu(z, b04, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    const double zhm04 = zhm28;
+    //  Net density at Alt
+    outd[0] = dnet(outd[0], dm04, zhm04, xmm, 4e0);
+    //  Correction to specified mixing ratio at ground
+    const double rl = std::log(b28 * pdm[0][1] / b04);
+    const double zc04 = pdm[0][4] * pdl[1][0];
+    const double hc04 = pdm[0][5] * pdl[1][1];
+    //  Net density corrected at Alt
+    outd[0] *= ccor(z, rl, hc04, zc04);
+  }
+
+  // O density
+  // --------------------------------------------------------------------------
+  //  Density variation factor at Zlb
+  const double g16 =
+      sw[21] * globe7(pd[1], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  const double db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
+  //   Diffusive density at Alt
+  outd[1] = densu(z, db16, tinf, tlb, 16e0, alpha[1], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[1];
+  if ((sw[15]) && (z <= altl[1])) {
+    //   Turbopause
+    const double zh16 = pdm[1][2];
+    //  Mixed density at Zlb
+    const double b16 =
+        densu(zh16, db16, tinf, tlb, 16e0 - xmm, (alpha[1] - 1e0), outt[1],
+              ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Mixed density at Alt
+    /*static*/dm16 = densu(z, b16, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    double zhm16 = zhm28;
+    //  Net density at Alt
+    outd[1] = dnet(outd[1], dm16, zhm16, xmm, 16e0);
+    const double rl =
+        pdm[1][1] * pdl[1][16] * (1e0 + sw[1] * pdl[0][23] * (f107A - 150e0));
+    const double hc16 = pdm[1][5] * pdl[1][3];
+    const double zc16 = pdm[1][4] * pdl[1][2];
+    const double hc216 = pdm[1][5] * pdl[1][4];
+    outd[1] = outd[1] * ccor2(z, rl, hc16, zc16, hc216);
+    //   Chemistry correction
+    const double hcc16 = pdm[1][7] * pdl[1][13];
+    const double zcc16 = pdm[1][6] * pdl[1][12];
+    const double rc16 = pdm[1][3] * pdl[1][14];
+    //  Net density corrected at Alt
+    outd[1] *= ccor(z, rc16, hcc16, zcc16);
+  }
+
+  // O2 density
+  // --------------------------------------------------------------------------
+  //   Density variation factor at Zlb
+  const double g32 =
+      sw[21] * globe7(pd[4], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  const double db32 = pdm[3][0] * std::exp(g32) * pd[4][0];
+  //   Diffusive density at Alt
+  outd[3] = densu(z, db32, tinf, tlb, 32e0, alpha[3], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[3];
+  if (sw[15]) {
+    if (z <= altl[3]) {
+      //   Turbopause
+      const double zh32 = pdm[3][2];
+      //  Mixed density at Zlb
+      const double b32 =
+          densu(zh32, db32, tinf, tlb, 32e0 - xmm, alpha[3] - 1e0, outt[1],
+                ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+      //  Mixed density at Alt
+      /*static*/dm32 = densu(z, b32, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                                mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+      const double zhm32 = zhm28;
+      //  Net density at Alt
+      outd[3] = dnet(outd[3], dm32, zhm32, xmm, 32e0);
+      //   Correction to specified mixing ratio at ground
+      const double rl = std::log(b28 * pdm[3][1] / b32);
+      const double hc32 = pdm[3][5] * pdl[1][7];
+      const double zc32 = pdm[3][4] * pdl[1][6];
+      outd[3] *= ccor(z, rl, hc32, zc32);
+    }
+    //  Correction for general departure from diffusive equilibrium above Zlb
+    const double hcc32 = pdm[3][7] * pdl[1][22];
+    const double hcc232 = pdm[3][7] * pdl[0][22];
+    const double zcc32 = pdm[3][6] * pdl[1][21];
+    const double rc32 =
+        pdm[3][3] * pdl[1][23] * (1e0 + sw[1] * pdl[0][23] * (f107A - 150e0));
+    //  Net density corrected at Alt
+    outd[3] *= ccor2(z, rc32, hcc32, zcc32, hcc232);
+  }
+
+  // AR density
+  // --------------------------------------------------------------------------
+  // Density variation factor at Zlb
+  const double g40 =
+      sw[21] * globe7(pd[5], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  const double db40 = pdm[4][0] * std::exp(g40) * pd[5][0];
+  //   Diffusive density at Alt
+  outd[4] = densu(z, db40, tinf, tlb, 40e0, alpha[4], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[4];
+  if ((sw[15]) && (z <= altl[4])) {
+    //   Turbopause
+    const double zh40 = pdm[4][2];
+    //  Mixed density at Zlb
+    const double b40 =
+        densu(zh40, db40, tinf, tlb, 40e0 - xmm, alpha[4] - 1e0, outt[1],
+              ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Mixed density at Alt
+    /*static*/dm40 = densu(z, b40, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    const double zhm40 = zhm28;
+    //  Net density at Alt
+    outd[4] = dnet(outd[4], dm40, zhm40, xmm, 40.);
+    //   Correction to specified mixing ratio at ground
+    const double rl = std::log(b28 * pdm[4][1] / b40);
+    const double hc40 = pdm[4][5] * pdl[1][9];
+    const double zc40 = pdm[4][4] * pdl[1][8];
+    //  Net density corrected at Alt
+    outd[4] = outd[4] * ccor(z, rl, hc40, zc40);
+  }
+
+  // hydrogen density
+  // --------------------------------------------------------------------------
+  // Density variation factor at Zlb
+  const double g1 =
+      sw[21] * globe7(pd[6], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  const double db01 = pdm[5][0] * std::exp(g1) * pd[6][0];
+  //   Diffusive density at Alt
+  outd[6] = densu(z, db01, tinf, tlb, 1e0, alpha[6], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[6];
+  if ((sw[15]) && (z <= altl[6])) {
+    //   Turbopause
+    const double zh01 = pdm[5][2];
+    //  Mixed density at Zlb
+    const double b01 =
+        densu(zh01, db01, tinf, tlb, 1e0 - xmm, alpha[6] - 1e0, outt[1], ptm[5],
+              s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Mixed density at Alt
+    /*static*/dm01 = densu(z, b01, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    const double zhm01 = zhm28;
+    //  Net density at Alt
+    outd[6] = dnet(outd[6], dm01, zhm01, xmm, 1e0);
+    //   Correction to specified mixing ratio at ground
+    const double rl =
+        std::log(b28 * pdm[5][1] * std::sqrt(pdl[1][17] * pdl[1][17]) / b01);
+    const double hc01 = pdm[5][5] * pdl[1][11];
+    const double zc01 = pdm[5][4] * pdl[1][10];
+    outd[6] *= ccor(z, rl, hc01, zc01);
+    //   Chemistry correction
+    const double hcc01 = pdm[5][7] * pdl[1][19];
+    const double zcc01 = pdm[5][6] * pdl[1][18];
+    const double rc01 = pdm[5][3] * pdl[1][20];
+    //  Net density corrected at Alt
+    outd[6] *= ccor(z, rc01, hcc01, zcc01);
+  }
+
+  // atomic nitrogen density
+  // --------------------------------------------------------------------------
+  // Density variation factor at Zlb
+  const double g14 =
+      sw[21] * globe7(pd[7], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  //  Diffusive density at Zlb
+  const double db14 = pdm[6][0] * std::exp(g14) * pd[7][0];
+  //   Diffusive density at Alt
+  outd[7] = densu(z, db14, tinf, tlb, 14e0, alpha[7], outt[1], ptm[5], s, mn1,
+                  zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // dd = outd[7];
+  if ((sw[15]) && (z <= altl[7])) {
+    //   Turbopause
+    const double zh14 = pdm[6][2];
+    //  Mixed density at Zlb
+    const double b14 =
+        densu(zh14, db14, tinf, tlb, 14e0 - xmm, alpha[7] - 1e0, outt[1],
+              ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    //  Mixed density at Alt
+    /*static*/dm14 = densu(z, b14, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+    const double zhm14 = zhm28;
+    //  Net density at Alt
+    outd[7] = dnet(outd[7], dm14, zhm14, xmm, 14e0);
+    //   Correction to specified mixing ratio at ground
+    const double rl =
+        std::log(b28 * pdm[6][1] * std::sqrt(pdl[0][2] * pdl[0][2]) / b14);
+    const double hc14 = pdm[6][5] * pdl[0][1];
+    const double zc14 = pdm[6][4] * pdl[0][0];
+    outd[7] *= ccor(z, rl, hc14, zc14);
+    //   Chemistry correction
+    const double hcc14 = pdm[6][7] * pdl[0][4];
+    const double zcc14 = pdm[6][6] * pdl[0][3];
+    const double rc14 = pdm[6][3] * pdl[0][5];
+    //  Net density corrected at Alt
+    outd[7] *= ccor(z, rc14, hcc14, zcc14);
+  }
+
+  // Anomalous oxygen density
+  // --------------------------------------------------------------------------
+  const double g16h =
+      sw[21] * globe7(pd[8], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
+                      magnetic_array, apt, plg, trigs, dfa, apdf);
+  const double db16h = pdm[7][0] * std::exp(g16h) * pd[8][0];
+  const double tho = pdm[7][9] * pdl[0][6];
+  const double dd = densu(z, db16h, tho, tho, 16e0, alpha[8], outt[1], ptm[5],
+                          s, mn1, zn1, meso_tn1, meso_tgn1, gsurf, re);
+  const double zsht = pdm[7][5];
+  const double zmho = pdm[7][4];
+  const double zsho = scalh(zmho, 16e0, tho, gsurf, re);
+  outd[8] = dd * std::exp(-zsht / zsho * (std::exp(-(z - zmho) / zsht) - 1e0));
+
+  // total mass density
+  outd[5] =
+      1.66e-24 * (4e0 * outd[0] + 16e0 * outd[1] + 28e0 * outd[2] +
+                  32e0 * outd[3] + 40e0 * outd[4] + outd[6] + 14e0 * outd[7]);
+
+  // temperature
+  z = std::sqrt(alt * alt);
+  /*double ddum = */ densu(z, 1e0, tinf, tlb, 0e0, 0e0, outt[1], ptm[5], s, mn1,
+                           zn1, meso_tn1, meso_tgn1, gsurf, re);
+  // (void) ddum; // silence gcc
+  if (sw[0]) {
+    for (int i = 0; i < 9; i++)
+      outd[i] *= 1e6;
+    outd[5] = outd[5] / 1000;
+  }
+}
+
 void dso::air_density_models::nrlmsise00::gtd7(
-  const int *switches, 
-  const double *p, int doy, double fsec, double glat,
-              double glon, double lst, double f107, double f107A, double alt,
-              const double *magnetic_array,
-              double *apt, dso::Mat2D<dso::MatrixStorageType::RowWise> &plg,
-              trignums &trigs, double &dfa, double &apdf) noexcept {
+    const int *switches,/* const double *p,*/ int doy, double fsec, double glat,
+    double glon, double lst, double f107, double f107A, double alt,
+    const double *magnetic_array, /*double *apt,*/
+    /*double &dfa, double &apdf,*/ double *outd, double *outt) noexcept {
   int mn3 = 5;
   double zn3[5] = {32.5, 20.0, 15.0, 10.0, 0.0};
   int mn2 = 4;
@@ -1534,36 +1927,23 @@ void dso::air_density_models::nrlmsise00::gtd7(
 
   const double xmm = pdm[2][4];
 
-// thermosphere / mesosphere (above zn2[0])
-  double altt;
-  if (alt > zn2[0])
-    altt = alt;
-  else
-    altt = zn2[0];
+  // thermosphere / mesosphere (above zn2[0])
+  double altt = (alt > zn2[0]) ? alt : zn2[0];
 
-  // double tmp = input.alt;
-  // input.alt = altt;
-  // gts7(input, flags, soutput);
-  // altt = input.alt;
-  // input.alt = tmp;
-  auto tmpin = input;
-  tmpin.alt = altt;
-  gts7(tmpin, /*flags,*/ f_arena, soutput);
+  dso::Mat2D<dso::MatrixStorageType::RowWise> plg(8, 8);
+  trignums trigs;
+  double dfa, apdf;
+  double apt[4];
+  gts7(/*p,*/ doy, fsec, glat, glon, lst, altt, f107,
+                                 f107A, sw, swc, magnetic_array, gsurf, re, plg,
+                                 trigs, apt, dfa, apdf, outd, outt);
 
-  double dm28m;
+  double dm28m = dm28;
   if (sw[0]) // metric adjustment
     dm28m = dm28 * 1.0E6;
-  else
-    dm28m = dm28;
 
-  output.t[0] = soutput.t[0];
-  output.t[1] = soutput.t[1];
-  if (input.alt >= zn2[0]) {
-    // for (int i = 0; i < 9; i++)
-    //  output.d[i] = soutput.d[i];
-    std::memcpy(output.d, soutput.d, sizeof(double) * 9);
+  if (alt >= zn2[0])
     return;
-  }
 
   // Lower mesosphere/upper stratosphere (between zn3[0] and zn2[0])
   // Temperature at nodes and gradients at end nodes
@@ -1572,445 +1952,89 @@ void dso::air_density_models::nrlmsise00::gtd7(
   meso_tn2[0] = meso_tn1[4];
   meso_tn2[1] =
       pma[0][0] * pavgm[0] /
-      (1.0 - sw[20] * glob7s(pma[0], input.doy, input.g_lon, f_arena));
+      (1.0 - sw[20] * glob7s(pma[0], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf));
   meso_tn2[2] =
       pma[1][0] * pavgm[1] /
-      (1.0 - sw[20] * glob7s(pma[1], input.doy, input.g_lon, f_arena));
+      (1.0 - sw[20] * glob7s(pma[1], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf));
   meso_tn2[3] =
       pma[2][0] * pavgm[2] /
-      (1.0 - sw[20] * sw[22] * glob7s(pma[2], input.doy, input.g_lon, f_arena));
+      (1.0 - sw[20] * sw[22] * glob7s(pma[2], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf ));
   meso_tgn2[1] = pavgm[8] * pma[9][0] *
                  (1.0 + sw[20] * sw[22] *
-                            glob7s(pma[9], input.doy, input.g_lon, f_arena)) *
+                            glob7s(pma[9], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf )) *
                  meso_tn2[3] * meso_tn2[3] /
                  (std::pow((pma[2][0] * pavgm[2]), 2.0));
   meso_tn3[0] = meso_tn2[3];
 
-  if (input.alt <= zn3[0]) {
+  if (alt <= zn3[0]) {
     // Lower stratosphere and troposphere (below zn3[0])
     // Temperature at nodes and gradients at end nodes
     // Inverse temperature a linear function of spherical harmonics
     meso_tgn3[0] = meso_tgn2[1];
     meso_tn3[1] =
         pma[3][0] * pavgm[3] /
-        (1.0 - sw[22] * glob7s(pma[3], input.doy, input.g_lon, f_arena));
+        (1.0 - sw[22] * glob7s(pma[3], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf ));
     meso_tn3[2] =
         pma[4][0] * pavgm[4] /
-        (1.0 - sw[22] * glob7s(pma[4], input.doy, input.g_lon, f_arena));
+        (1.0 - sw[22] * glob7s(pma[4], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf ));
     meso_tn3[3] =
         pma[5][0] * pavgm[5] /
-        (1.0 - sw[22] * glob7s(pma[5], input.doy, input.g_lon, f_arena));
+        (1.0 - sw[22] * glob7s(pma[5], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf ));
     meso_tn3[4] =
         pma[6][0] * pavgm[6] /
-        (1.0 - sw[22] * glob7s(pma[6], input.doy, input.g_lon, f_arena));
+        (1.0 - sw[22] * glob7s(pma[6], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf ));
     meso_tgn3[1] =
         pma[7][0] * pavgm[7] *
-        (1.0 + sw[22] * glob7s(pma[7], input.doy, input.g_lon, f_arena)) *
+        (1.0 + sw[22] * glob7s(pma[7], doy, glon, sw, swc, apt, plg, trigs, dfa, apdf )) *
         meso_tn3[4] * meso_tn3[4] / (std::pow((pma[6][0] * pavgm[6]), 2.0));
   }
 
   // linear transition to full mixing below zn2[0]
   double dmc = 0;
-  if (input.alt > zmix)
-    dmc = 1.0 - (zn2[0] - input.alt) / (zn2[0] - zmix);
-  const double dz28 = output.d[2];
+  if (alt > zmix)
+    dmc = 1e0 - (zn2[0] - alt) / (zn2[0] - zmix);
+  const double dz28 = outd[2];
 
   // N2 density
-  double dmr = output.d[2] / dm28m - 1.0;
+  double dmr = outd[2] / dm28m - 1e0;
   double tz;
-  output.d[2] = densm(input.alt, dm28m, xmm, tz, mn3, zn3, meso_tn3, meso_tgn3,
-                      mn2, zn2, meso_tn2, meso_tgn2);
-  output.d[2] *= (1.0 + dmr * dmc);
+  outd[2] = densm(alt, dm28m, xmm, tz, mn3, zn3, meso_tn3, meso_tgn3,
+                      mn2, zn2, meso_tn2, meso_tgn2, gsurf, re);
+  outd[2] *= (1e0 + dmr * dmc);
 
   // HE density
-  dmr = output.d[0] / (dz28 * pdm[0][1]) - 1.0;
-  output.d[0] *= (pdm[0][1] * (1.0 + dmr * dmc));
+  dmr = outd[0] / (dz28 * pdm[0][1]) - 1e0;
+  outd[0] *= (pdm[0][1] * (1e0 + dmr * dmc));
 
   // O density
-  output.d[1] = 0e0;
-  output.d[8] = 0e0;
+  outd[1] = 0e0;
+  outd[8] = 0e0;
 
   // O2 density
-  dmr = output.d[3] / (dz28 * pdm[3][1]) - 1.0;
-  output.d[3] = output.d[2] * pdm[3][1] * (1.0 + dmr * dmc);
+  dmr = outd[3] / (dz28 * pdm[3][1]) - 1e0;
+  outd[3] = outd[2] * pdm[3][1] * (1e0 + dmr * dmc);
 
   // AR density
-  dmr = output.d[4] / (dz28 * pdm[4][1]) - 1.0;
-  output.d[4] = output.d[2] * pdm[4][1] * (1.0 + dmr * dmc);
+  dmr = outd[4] / (dz28 * pdm[4][1]) - 1e0;
+  outd[4] = outd[2] * pdm[4][1] * (1e0 + dmr * dmc);
 
   // Hydrogen density
-  output.d[6] = 0e0;
+  outd[6] = 0e0;
 
   // Atomic nitrogen density
-  output.d[7] = 0e0;
+  outd[7] = 0e0;
 
   // Total mass density
-  output.d[5] =
-      1.66e-24 * (4.0 * output.d[0] + 16.0 * output.d[1] + 28.0 * output.d[2] +
-                  32.0 * output.d[3] + 40.0 * output.d[4] + output.d[6] +
-                  14.0 * output.d[7]);
+  outd[5] =
+      1.66e-24 * (4e0 * outd[0] + 16e0 * outd[1] + 28e0 * outd[2] +
+                  32e0 * outd[3] + 40e0 * outd[4] + outd[6] +
+                  14e0 * outd[7]);
 
   if (sw[0])
-    output.d[5] /= 1000e0;
+    outd[5] *= 1e-3;
 
   // temperature at altitude
-  dd = densm(input.alt, 1.0, 0, tz, mn3, zn3, meso_tn3, meso_tgn3, mn2, zn2,
-             meso_tn2, meso_tgn2);
-  output.t[1] = tz;
-}
-
-void dso::air_density_models::nrlmsise00::gtd7d(
-    const nrlmsise_input &input, const nrlmsise_flags &flags, flag_arena &f_arena, 
-    nrlmsise_output &output) noexcept {
-  gtd7(input, flags, output);
-  output.d[5] =
-      1.66e-24 * (4.0 * output.d[0] + 16.0 * output.d[1] + 28.0 * output.d[2] +
-                  32.0 * output.d[3] + 40.0 * output.d[4] + output.d[6] +
-                  14.0 * output.d[7] + 16.0 * output.d[8]);
-  // if (flags.sw[0]) 
-  if (f_arena.SW[0])
-    output.d[5] /= 1e3;
-}
-
-void dso::air_density_models::nrlmsise00::gts7(const double *p, int doy, double fsec, double glat,
-              double glon, double lst, double alt, double f107, double f107A,
-              const double *sw, const double *swc, const double *magnetic_array,
-              double *apt, double &dfa, double &apdf, double *outd, double *outt) noexcept {
-  // Thermospheric portion of NRLMSISE-00
-  // See GTD7 for more extensive comments
-  // alt > 72.5 km!
-
-  double zn1[5] = {120.0, 110.0, 100.0, 90.0, 72.5};
-  const int mn1 = 5;
-  const double dgtr = 1.74533E-2;
-  const double dr = 1.72142E-2;
-  const double alpha[9] = {-0.38, 0.0, 0.0, 0.0, 0.17, 0.0, -0.38, 0.0, 0.0};
-  const double altl[8] = {200.0, 300.0, 160.0, 250.0,
-                          240.0, 450.0, 320.0, 450.0};
-  const double za = pdl[1][15];
-  zn1[0] = za;
-  for (int j = 0; j < 9; j++)
-    outd[j] = 0;
-  
-  dso::Mat2D<dso::MatrixStorageType::RowWise> plg(8,8);
-  trignums trigs;
-
-
-  // tinf variations not important below za or zn1(1)
-  double tinf;
-  if (alt > zn1[0])
-    tinf = ptm[0] * pt[0] * (1e0 + sw[16] * globe7(pt, doy, fsec, glat,
-              glon, lst, f107, f107A,
-              sw, swc, magnetic_array, apt, plg, trigs, dfa, apdf));
-  else
-    tinf = ptm[0] * pt[0];
-  outt[0] = tinf;
-
-  //  gradient variations not important below zn1(5)
-  double g0;
-  if (input.alt > zn1[4])
-    g0 = ptm[3] * ps[0] * (1.0 + sw[19] * globe7(ps, input, f_arena));
-  else
-    g0 = ptm[3] * ps[0];
-  double tlb =
-      ptm[1] * (1.0 + sw[17] * globe7(pd[3], input, f_arena)) * pd[3][0];
-  double s = g0 / (tinf - tlb);
-
-  // Lower thermosphere temp variations not significant for
-  //  density above 300 km
-  const double indoy = input.doy;
-  const double inlon = input.g_lon;
-  if (input.alt < 300.0) {
-    meso_tn1[1] = ptm[6] * ptl[0][0] /
-                  (1.0 - sw[18] * glob7s(ptl[0], indoy, inlon, f_arena));
-    meso_tn1[2] = ptm[2] * ptl[1][0] /
-                  (1.0 - sw[18] * glob7s(ptl[1], indoy, inlon, f_arena));
-    meso_tn1[3] = ptm[7] * ptl[2][0] /
-                  (1.0 - sw[18] * glob7s(ptl[2], indoy, inlon, f_arena));
-    meso_tn1[4] =
-        ptm[4] * ptl[3][0] /
-        (1.0 - sw[18] * sw[20] * glob7s(ptl[3], indoy, inlon, f_arena));
-    meso_tgn1[1] =
-        ptm[8] * pma[8][0] *
-        (1.0 + sw[18] * sw[20] * glob7s(pma[8], indoy, inlon, f_arena)) *
-        meso_tn1[4] * meso_tn1[4] / (std::pow((ptm[4] * ptl[3][0]), 2.0));
-  } else {
-    meso_tn1[1] = ptm[6] * ptl[0][0];
-    meso_tn1[2] = ptm[2] * ptl[1][0];
-    meso_tn1[3] = ptm[7] * ptl[2][0];
-    meso_tn1[4] = ptm[4] * ptl[3][0];
-    meso_tgn1[1] = ptm[8] * pma[8][0] * meso_tn1[4] * meso_tn1[4] /
-                   (std::pow((ptm[4] * ptl[3][0]), 2.0));
-  }
-
-  // N2 variation factor at Zlb
-  double g28 = sw[21] * globe7(pd[2], input, f_arena);
-
-  // variation of turbopause height
-  double zhf = pdl[1][24] *
-               (1.0 + sw[5] * pdl[0][24] * std::sin(dgtr * input.g_lat) *
-                          std::cos(dr * (input.doy - pt[13])));
-  output.t[0] = tinf;
-  double xmm = pdm[2][4];
-  double z = input.alt;
-
-  // N2 density
-
-  // Diffusive density at Zlb
-  double db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
-  // Diffusive density at Alt
-  output.d[2] = densu(z, db28, tinf, tlb, 28.0, alpha[2], output.t[1], ptm[5],
-                      s, mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[2];
-  // Turbopause
-  double zh28 = pdm[2][2] * zhf;
-  double zhm28 = pdm[2][3] * pdl[1][5];
-  double xmd = 28.0 - xmm;
-  // Mixed density at Zlb
-  double tz;
-  double b28 = densu(zh28, db28, tinf, tlb, xmd, (alpha[2] - 1.0), tz, ptm[5],
-                     s, mn1, zn1, meso_tn1, meso_tgn1);
-  if ((sw[15]) && (z <= altl[2])) {
-    //  Mixed density at Alt
-    dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    //  Net density at Alt
-    output.d[2] = dnet(output.d[2], dm28, zhm28, xmm, 28.0);
-  }
-
-  // HE density
-
-  // Density variation factor at Zlb
-  double g4 = sw[21] * globe7(pd[0], input, f_arena);
-  //  Diffusive density at Zlb
-  double db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
-  //  Diffusive density at Alt
-  output.d[0] = densu(z, db04, tinf, tlb, 4., alpha[0], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[0];
-  if ((sw[15]) && (z < altl[0])) {
-    //  Turbopause
-    double zh04 = pdm[0][2];
-    //  Mixed density at Zlb
-    double b04 = densu(zh04, db04, tinf, tlb, 4. - xmm, alpha[0] - 1.,
-                       output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    dm04 = densu(z, b04, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    double zhm04 = zhm28;
-    //  Net density at Alt
-    output.d[0] = dnet(output.d[0], dm04, zhm04, xmm, 4.);
-    //  Correction to specified mixing ratio at ground
-    double rl = std::log(b28 * pdm[0][1] / b04);
-    double zc04 = pdm[0][4] * pdl[1][0];
-    double hc04 = pdm[0][5] * pdl[1][1];
-    //  Net density corrected at Alt
-    output.d[0] = output.d[0] * ccor(z, rl, hc04, zc04);
-  }
-
-  // O density
-
-  //  Density variation factor at Zlb
-  double g16 = sw[21] * globe7(pd[1], input, f_arena);
-  //  Diffusive density at Zlb
-  double db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
-  //   Diffusive density at Alt
-  output.d[1] = densu(z, db16, tinf, tlb, 16., alpha[1], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[1];
-  if ((sw[15]) && (z <= altl[1])) {
-    //   Turbopause
-    double zh16 = pdm[1][2];
-    //  Mixed density at Zlb
-    double b16 = densu(zh16, db16, tinf, tlb, 16.0 - xmm, (alpha[1] - 1.0),
-                       output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    dm16 = densu(z, b16, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    double zhm16 = zhm28;
-    //  Net density at Alt
-    output.d[1] = dnet(output.d[1], dm16, zhm16, xmm, 16.);
-    double rl = pdm[1][1] * pdl[1][16] *
-                (1.0 + sw[1] * pdl[0][23] * (input.f107A - 150.0));
-    double hc16 = pdm[1][5] * pdl[1][3];
-    double zc16 = pdm[1][4] * pdl[1][2];
-    double hc216 = pdm[1][5] * pdl[1][4];
-    output.d[1] = output.d[1] * ccor2(z, rl, hc16, zc16, hc216);
-    //   Chemistry correction
-    double hcc16 = pdm[1][7] * pdl[1][13];
-    double zcc16 = pdm[1][6] * pdl[1][12];
-    double rc16 = pdm[1][3] * pdl[1][14];
-    //  Net density corrected at Alt
-    output.d[1] = output.d[1] * ccor(z, rc16, hcc16, zcc16);
-  }
-
-  // O2 density
-
-  //   Density variation factor at Zlb
-  double g32 = sw[21] * globe7(pd[4], input, f_arena);
-  //  Diffusive density at Zlb
-  double db32 = pdm[3][0] * std::exp(g32) * pd[4][0];
-  //   Diffusive density at Alt
-  output.d[3] = densu(z, db32, tinf, tlb, 32., alpha[3], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[3];
-  if (sw[15]) {
-    if (z <= altl[3]) {
-      //   Turbopause
-      double zh32 = pdm[3][2];
-      //  Mixed density at Zlb
-      double b32 = densu(zh32, db32, tinf, tlb, 32. - xmm, alpha[3] - 1.,
-                         output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-      //  Mixed density at Alt
-      dm32 = densu(z, b32, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                   meso_tn1, meso_tgn1);
-      double zhm32 = zhm28;
-      //  Net density at Alt
-      output.d[3] = dnet(output.d[3], dm32, zhm32, xmm, 32.);
-      //   Correction to specified mixing ratio at ground
-      double rl = log(b28 * pdm[3][1] / b32);
-      double hc32 = pdm[3][5] * pdl[1][7];
-      double zc32 = pdm[3][4] * pdl[1][6];
-      output.d[3] = output.d[3] * ccor(z, rl, hc32, zc32);
-    }
-    //  Correction for general departure from diffusive equilibrium above Zlb
-    double hcc32 = pdm[3][7] * pdl[1][22];
-    double hcc232 = pdm[3][7] * pdl[0][22];
-    double zcc32 = pdm[3][6] * pdl[1][21];
-    double rc32 = pdm[3][3] * pdl[1][23] *
-                  (1. + sw[1] * pdl[0][23] * (input.f107A - 150.));
-    //  Net density corrected at Alt
-    output.d[3] = output.d[3] * ccor2(z, rc32, hcc32, zcc32, hcc232);
-  }
-
-  // AR density
-
-  //   Density variation factor at Zlb
-  double g40 = sw[21] * globe7(pd[5], input, f_arena);
-  //  Diffusive density at Zlb
-  double db40 = pdm[4][0] * std::exp(g40) * pd[5][0];
-  //   Diffusive density at Alt
-  output.d[4] = densu(z, db40, tinf, tlb, 40., alpha[4], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[4];
-  if ((sw[15]) && (z <= altl[4])) {
-    //   Turbopause
-    double zh40 = pdm[4][2];
-    //  Mixed density at Zlb
-    double b40 = densu(zh40, db40, tinf, tlb, 40. - xmm, alpha[4] - 1.,
-                       output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    dm40 = densu(z, b40, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    double zhm40 = zhm28;
-    //  Net density at Alt
-    output.d[4] = dnet(output.d[4], dm40, zhm40, xmm, 40.);
-    //   Correction to specified mixing ratio at ground
-    double rl = log(b28 * pdm[4][1] / b40);
-    double hc40 = pdm[4][5] * pdl[1][9];
-    double zc40 = pdm[4][4] * pdl[1][8];
-    //  Net density corrected at Alt
-    output.d[4] = output.d[4] * ccor(z, rl, hc40, zc40);
-  }
-
-  // hydrogen density
-
-  //   Density variation factor at Zlb
-  double g1 = sw[21] * globe7(pd[6], input, f_arena);
-  //  Diffusive density at Zlb
-  double db01 = pdm[5][0] * std::exp(g1) * pd[6][0];
-  //   Diffusive density at Alt
-  output.d[6] = densu(z, db01, tinf, tlb, 1., alpha[6], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[6];
-  if ((sw[15]) && (z <= altl[6])) {
-    //   Turbopause
-    double zh01 = pdm[5][2];
-    //  Mixed density at Zlb
-    double b01 = densu(zh01, db01, tinf, tlb, 1. - xmm, alpha[6] - 1.,
-                       output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    dm01 = densu(z, b01, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    double zhm01 = zhm28;
-    //  Net density at Alt
-    output.d[6] = dnet(output.d[6], dm01, zhm01, xmm, 1.);
-    //   Correction to specified mixing ratio at ground
-    double rl =
-        std::log(b28 * pdm[5][1] * std::sqrt(pdl[1][17] * pdl[1][17]) / b01);
-    double hc01 = pdm[5][5] * pdl[1][11];
-    double zc01 = pdm[5][4] * pdl[1][10];
-    output.d[6] = output.d[6] * ccor(z, rl, hc01, zc01);
-    //   Chemistry correction
-    double hcc01 = pdm[5][7] * pdl[1][19];
-    double zcc01 = pdm[5][6] * pdl[1][18];
-    double rc01 = pdm[5][3] * pdl[1][20];
-    //  Net density corrected at Alt
-    output.d[6] = output.d[6] * ccor(z, rc01, hcc01, zcc01);
-  }
-
-  // atomic nitrogen density
-
-  //   Density variation factor at Zlb
-  double g14 = sw[21] * globe7(pd[7], input, f_arena);
-  //  Diffusive density at Zlb
-  double db14 = pdm[6][0] * exp(g14) * pd[7][0];
-  //   Diffusive density at Alt
-  output.d[7] = densu(z, db14, tinf, tlb, 14., alpha[7], output.t[1], ptm[5], s,
-                      mn1, zn1, meso_tn1, meso_tgn1);
-  dd = output.d[7];
-  if ((sw[15]) && (z <= altl[7])) {
-    //   Turbopause
-    double zh14 = pdm[6][2];
-    //  Mixed density at Zlb
-    double b14 = densu(zh14, db14, tinf, tlb, 14. - xmm, alpha[7] - 1.,
-                       output.t[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    dm14 = densu(z, b14, tinf, tlb, xmm, 0., output.t[1], ptm[5], s, mn1, zn1,
-                 meso_tn1, meso_tgn1);
-    double zhm14 = zhm28;
-    //  Net density at Alt
-    output.d[7] = dnet(output.d[7], dm14, zhm14, xmm, 14.);
-    //   Correction to specified mixing ratio at ground
-    double rl = log(b28 * pdm[6][1] * std::sqrt(pdl[0][2] * pdl[0][2]) / b14);
-    double hc14 = pdm[6][5] * pdl[0][1];
-    double zc14 = pdm[6][4] * pdl[0][0];
-    output.d[7] = output.d[7] * ccor(z, rl, hc14, zc14);
-    //   Chemistry correction
-    double hcc14 = pdm[6][7] * pdl[0][4];
-    double zcc14 = pdm[6][6] * pdl[0][3];
-    double rc14 = pdm[6][3] * pdl[0][5];
-    //  Net density corrected at Alt
-    output.d[7] = output.d[7] * ccor(z, rc14, hcc14, zcc14);
-  }
-
-  // Anomalous oxygen density
-
-  double g16h = sw[21] * globe7(pd[8], input, f_arena);
-  double db16h = pdm[7][0] * std::exp(g16h) * pd[8][0];
-  double tho = pdm[7][9] * pdl[0][6];
-  dd = densu(z, db16h, tho, tho, 16., alpha[8], output.t[1], ptm[5], s, mn1,
-             zn1, meso_tn1, meso_tgn1);
-  double zsht = pdm[7][5];
-  double zmho = pdm[7][4];
-  double zsho = scalh(zmho, 16.0, tho);
-  output.d[8] =
-      dd * std::exp(-zsht / zsho * (std::exp(-(z - zmho) / zsht) - 1.));
-
-  // total mass density
-  output.d[5] =
-      1.66e-24 * (4.0 * output.d[0] + 16.0 * output.d[1] + 28.0 * output.d[2] +
-                  32.0 * output.d[3] + 40.0 * output.d[4] + output.d[6] +
-                  14.0 * output.d[7]);
-
-  // temperature
-  z = std::sqrt(input.alt * input.alt);
-  /*double ddum = */ densu(z, 1.0, tinf, tlb, 0.0, 0.0, output.t[1], ptm[5], s,
-                           mn1, zn1, meso_tn1, meso_tgn1);
-  // (void) ddum; // silence gcc
-  if (sw[0]) {
-    for (int i = 0; i < 9; i++)
-      output.d[i] *= 1e6;
-    output.d[5] = output.d[5] / 1000;
-  }
+  /*dd = */densm(alt, 1.0, 0, tz, mn3, zn3, meso_tn3, meso_tgn3, mn2, zn2,
+             meso_tn2, meso_tgn2, gsurf, re);
+  outt[1] = tz;
 }
