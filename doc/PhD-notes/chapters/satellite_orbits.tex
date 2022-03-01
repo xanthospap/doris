@@ -46,7 +46,7 @@ coefficients.
 \end{minipage}}
 
 \subsection{Gravity Models}
-The \href{International Centre for Global Earth Models (ICGEM)}{http://icgem.gfz-potsdam.de/home} 
+The \href{http://icgem.gfz-potsdam.de/home}{International Centre for Global Earth Models (ICGEM)}  
 (\cite{icgempub}) web service hosts a large number of gravity field models, 
 published in what is called the \emph{The ICGEM-format}(\cite{ICGEMFormat}). 
 
@@ -86,11 +86,62 @@ use JPL Ephemerides. Both options are available.
 \subsubsection{JPL Ephemerides}
 Jet Propulsion Laboratory Development Ephemeris (abbreved JPL DE(number), or 
 simply DE(number)) designates one of a series of mathematical models of the 
-Solar System produced at the Jet Propulsion Laboratory for use in spacecraft 
-navigation and astronomy. The models consist of numeric representations of 
-positions, velocities and accelerations of major Solar System bodies, tabulated 
-at equally spaced intervals of time, covering a specified span of years.
+Solar System produced at the \href{https://www.jpl.nasa.gov/}{Jet Propulsion Laboratory} 
+for use in spacecraft navigation and astronomy. The models consist of numeric 
+representations of positions, velocities and accelerations of major Solar System 
+bodies, tabulated at equally spaced intervals of time, covering a specified 
+span of years (\cite{wiki-jplde}). Further information and a description of 
+vailable ephemerides, can be found at the 
+\href{https://ssd.jpl.nasa.gov/planets/eph_export.html}{JPL Planetary and Lunar Ephemerides} website.
 
 We use an interface to the JPL-provided Observation Geometry System
-for Space Science Missions (\href{SPICE}{https://naif.jpl.nasa.gov/naif/}) 
-software library to extract planet coordinates.
+for Space Science Missions (\href{https://naif.jpl.nasa.gov/naif/}{SPICE}) 
+software library \footnote{based on the C version of the the 
+\href{https://naif.jpl.nasa.gov/naif/toolkit_C.html}{Navigation and Ancillary Information facilty}} 
+to extract planet coordinates. 
+
+\section{Atmospheric Drag}
+Next to the oblateness of the Earth, atmospheric drag most strongly influences the
+motion of a satellite near Earth; in fact, during the last few revolutions of the satellite's
+life, drag effects can be more dominant than those from the Earth's oblateness. For more
+distant satellites, third-body effects and solar-radiation pressure dominate more than
+oblateness and drag (\cite{Vallado}).
+
+The cause of drag is the atmospheric particles, which retard the satellite's motion.
+Calculating density is extremely complex for real-world problems.
+
+\subsection{Acceleration Due to Drag}
+The basic equation for aerodynamic drag combines several factors; I'm showing it here
+as a specific force or acceleration (\cite{Vallado}):
+\begin{equation}
+    \label{eq:val828}
+    \ddot{\vec{r}} = -\frac{1}{2} \frac{c_D A}{m} \rho 
+    \dot{\vec{r_{rel}}^2} 
+    \frac{\vec{r_{rel}}}{\lvert \vec{r_{rel}} \rvert}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item \(c_D\) is the coefficient of drag; a dimensionless quantity which reflects 
+    the satellite's susceptibility to drag forces. 
+    \item \(\rho\) is the atmospheric density which indicates how dense the atmosphere 
+    is at the satellite altitude and is perhaps the most difficult parameter to determine.
+    \item \(A\) is the cross-sectional area, defined to be the area which is normal 
+    to the satellite's velocity vector.
+    \item \(m/(c_D A)\) is called the ballistic coefficient.
+\end{itemize}
+
+Note that in \ref{eq:val828}, \(\vec{r_{rel}}\) is not the velocity vector 
+typically found in the state vector. This velocity vector is relative to the 
+atmosphere. The velocity vector relative to the rotating atmosphere is:
+\begin{equation}
+    %\begin{align}
+    \dot{\vec{r}} = \frac{d\vec{r}}{dt} - \vec{\omega}_{\Earth} \times \vec{r} = 
+        \begin{bmatrix}
+        \frac{dx}{dt}+{\omega}_{\Earth}y \\
+        \frac{dy}{dt}-{\omega}_{\Earth}x \\
+        \frac{dz}{dt}
+        \end{bmatrix}
+    %\end{align} 
+\end{equation}
+%[\frac{dx}{dt}+{\omega}_{\Earth}y \frac{dy}{dt}-{\omega}_{\Earth}x \frac{dz}{dt}]^T

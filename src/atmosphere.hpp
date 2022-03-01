@@ -6,6 +6,11 @@
 namespace dso {
 
 namespace air_density_models {
+
+namespace exponential {
+
+}// namespace exponential
+
 namespace nrlmsise00 {
 /// @brief NRLMSISE-00 Model, 2001
 /// @see https://ccmc.gsfc.nasa.gov/modelweb/atmos/nrlmsise00.html
