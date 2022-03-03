@@ -155,3 +155,27 @@ with the inertial satellite velocity vector \(d\vec{r}/{dt}\), the position vect
 As the drag force depends on the atmospheric density \(\rho\) at the satellite 
 location, the modeling of the complex properties and dynamics of the Earth's 
 atmosphere is a challenging task of modern precision orbit determination.
+
+\subsection{Magnetic Field Models}
+The effect of the magnetic variations of the Earth and Sun is useful with calculations of
+atmospheric density because it's believed that magnetic variations are related to fluctua-
+tions in atmospheric density. The charged particles from any magnetic disturbances cause ionization in the upper atmosphere,
+thereby affecting the density and, subsequently, the drag. \ul{The effects of
+drag resulting from magnetic disturbances are noticeable for satellites at altitudes
+between 300 km and 1000 km} (\cite{Vallado}).
+
+\subsection{Solar Flux}
+The contribution of solar flux to atmospheric density is mainly from incoming solar
+radiation. Solar flux (or Extreme Ultra-Violet, EUV, radiation that heats the upper
+atmosphere, \(F_{EUV}\). Solar flux receives a lot of attention because it is an important parameter in determining
+atmospheric density. The primary quantity, \(F_{10.7}\), has been used as a proxy for the EUV
+radiation for many years.
+
+\subsection{Model Atmospheres}
+Numerous density models have been developed over the past few decades to find density, 
+both static and time-varying, to satisfy differing accuracy models.
+\begin{itemize}
+    \item \emph{Exponential Model (0-1000 km)}, simple, static model assumes the density of the atmosphere decays exponentially
+    with increasing altitude.
+    \item \emph{NRLMSIS-00 (0-2000 km)}\cite{nrlmsise00}, quite accurate and has been successfully applied to many stressing problems.
+\end{itemize}
