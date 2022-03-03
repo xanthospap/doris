@@ -72,15 +72,8 @@ TEST_CASE("MSIS00 Comparisson of results based on C implementation.\nSee https:/
   // input[15].ap_a = &aph;
   // input[16].ap_a = &aph;
 
-  //int k=10;
-  //gtd7(switches, input[k].doy, input[k].sec,
-  //       input[k].lat, input[k].lon, input[k].lst, input[k].f107, input[k].f107A,
-  //       input[k].alt, input[k].ap, apha, out[k].d, out[k].t);
-  //assert(k==11);
-
   // evaluate 0 to 14
   for (int i = 0; i < 15; i++) {
-    printf("->example %d\n------------------------------------------\n",i);
     gtd7(switches, input[i].doy, input[i].sec,
          input[i].lat, input[i].lon, input[i].lst, input[i].f107, input[i].f107A,
          input[i].alt, input[i].ap, apha, out[i].d, out[i].t);
@@ -89,7 +82,6 @@ TEST_CASE("MSIS00 Comparisson of results based on C implementation.\nSee https:/
   // evaluate 15 and 16
   switches[9] = -1;
   for (int i = 15; i < 17; i++) {
-    printf("->example %d\n------------------------------------------\n",i);
     gtd7(switches, input[i].doy, input[i].sec,
          input[i].lat, input[i].lon, input[i].lst, input[i].f107, input[i].f107A,
          input[i].alt, input[i].ap, apha, out[i].d, out[i].t);

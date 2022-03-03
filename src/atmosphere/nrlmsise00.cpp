@@ -1,12 +1,18 @@
 #include "atmosphere.hpp"
 #include "compact2dmat.hpp"
 #include <cmath>
+#ifdef DEBUG
+#include <cassert>
+#endif
 #include <cstdio>
 #include <cstring>
 
+/// Functions implementing the MSISE-00 models.
+/// See https://ccmc.gsfc.nasa.gov/pub/modelweb/atmospheric/msis/nrlmsise00
+
 struct trignums {
   double trigs[6];
-  
+
   void compute(double hr, double tloc) noexcept {
     trigs[0] = std::sin(hr * tloc);
     trigs[1] = std::cos(hr * tloc);
@@ -22,7 +28,7 @@ struct trignums {
   double &c2tloc() noexcept { return trigs[3]; }
   double &s3tloc() noexcept { return trigs[4]; }
   double &c3tloc() noexcept { return trigs[5]; }
-  
+
   const double &stloc() const noexcept { return trigs[0]; }
   const double &ctloc() const noexcept { return trigs[1]; }
   const double &s2tloc() const noexcept { return trigs[2]; }
@@ -392,9 +398,9 @@ const double pdl[2][25] = {
      1.72783e+02, 1.15020e+00,  3.44689e+00, -7.46230e-01, 9.49154e-01}};
 
 // lower boundary
-const double ptm[50] = {
-    1.04130e+03, 3.86000e+02, 1.95000e+02, 1.66728e+01,  2.13000e+02,
-    1.20000e+02, 2.40000e+02, 1.87000e+02, -2.00000e+00, 0.00000e+00};
+const double ptm[50] = {1.04130e+03,  3.86000e+02, 1.95000e+02, 1.66728e+01,
+                        2.13000e+02,  1.20000e+02, 2.40000e+02, 1.87000e+02,
+                        -2.00000e+00, 0.00000e+00};
 
 const double pdm[8][10] = {
     {2.45600e+07, 6.71072e-06, 1.00000e+02, 0.00000e+00, 1.10000e+02,
@@ -736,28 +742,24 @@ const double sam[100] = {
     0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00};
 
 // middle atmosphere averages
-const double pavgm[10] = {
-    2.61000e+02, 2.64000e+02, 2.29000e+02,  2.17000e+02, 2.17000e+02,
-    2.23000e+02, 2.86760e+02, -2.93940e+00, 2.50000e+00, 0.00000e+00};
+const double pavgm[10] = {2.61000e+02, 2.64000e+02, 2.29000e+02, 2.17000e+02,
+                          2.17000e+02, 2.23000e+02, 2.86760e+02, -2.93940e+00,
+                          2.50000e+00, 0.00000e+00};
 
 // parmb
 static double gsurf;
 static double re;
-//
+
 //// gts3c
 static double dd;
-//
+
 //// dmix
 static double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
-//
+
 //// lpoly
 static double dfa;
-//static double plg[4][9];
-//static double ctloc, stloc;
-//static double c2tloc, s2tloc;
-//static double s3tloc, c3tloc;
 static double apdf, apt[4];
-//
+
 //// meso7
 static double meso_tn1[5];
 static double meso_tn2[4];
@@ -765,8 +767,6 @@ static double meso_tn3[5];
 static double meso_tgn1[2];
 static double meso_tgn2[2];
 static double meso_tgn3[2];
-
-//static int globe7_calls = 0;
 
 /// @param[out] sw  An array of 24 doubles
 /// @param[out] swc An array of 24 doubles
@@ -833,11 +833,10 @@ double dnet(double dd2, double dm, double zhm, double xmm, double xm) noexcept {
   //   XMM - full mixed molecular weight
   //   XM  - species molecular weight
   //   DNET - combined density
-  printf("calling dnet with dd=%.15f, dm=%.15f, zhm=%.15f, xmm=%.15f, xm=%.15f\n", dd2, dm, zhm, xmm, xm);
   const double a = zhm / (xmm - xm);
   if (!((dm > 0) && (dd2 > 0))) {
-    fprintf(stderr, "[ERROR] dnet log error %e %e %e (traceback: %s)\n", dm, dd2,
-            xm, __func__);
+    fprintf(stderr, "[ERROR] dnet log error %e %e %e (traceback: %s)\n", dm,
+            dd2, xm, __func__);
     if ((dd2 == 0) && (dm == 0))
       dd2 = 1;
     if (dm == 0)
@@ -847,16 +846,13 @@ double dnet(double dd2, double dm, double zhm, double xmm, double xm) noexcept {
   }
 
   const double ylog = a * std::log(dm / dd2);
-  if (ylog < -10e0){
-    printf("\tdnet:: ylog < -10 !\n");
+  if (ylog < -10e0) {
     return dd2;
   }
   if (ylog > 10e0) {
-    printf("\tdnet:: ylog > 10 !\n");
     return dm;
   }
 
-  printf("\tdnet::a=%.15f*pow(%.15f, %.15f)\n", dd2, 1e0 + std::exp(ylog), 1e0 / a);
   return dd2 * std::pow(1e0 + std::exp(ylog), 1e0 / a);
 }
 
@@ -885,13 +881,11 @@ void splini(const double *xa, const double *ya, const double *y2a, int n,
     b = (xx - xa[klo]) / h;
     a2 = a * a;
     b2 = b * b;
-    // printf("\tsplini -> h%.15f, a=%.15f, b=%.15f ya[klo]=%.15f, ya[khi]=%.15f, y2a[klo]=%.15f, y2a[khi]=%.15f\n", h, a, b, ya[klo], ya[khi], y2a[klo], y2a[khi]);
     yi += ((1e0 - a2) * ya[klo] / 2e0 + b2 * ya[khi] / 2e0 +
            ((-(1e0 + a2 * a2) / 4e0 + a2 / 2e0) * y2a[klo] +
             (b2 * b2 / 4e0 - b2 / 2e0) * y2a[khi]) *
                h * h / 6e0) *
           h;
-    // printf("\tsplini -> %.10f\n", yi);
     klo++;
     khi++;
   }
@@ -929,7 +923,6 @@ void splint(const double *xa, const double *ya, const double *y2a, int n,
   y = yi;
 }
 
-// @todo: avoid allocation here; pass in the workspace
 void spline(const double *x, const double *y, int n, double yp1, double ypn,
             double *y2) noexcept {
   // CALCULATE 2ND DERIVATIVES OF CUBIC SPLINE INTERP FUNCTION
@@ -939,10 +932,14 @@ void spline(const double *x, const double *y, int n, double yp1, double ypn,
   // YP1,YPN: SPECIFIED DERIVATIVES AT X[0] AND X[N-1]; VALUES
   //          >= 1E30 SIGNAL SIGNAL SECOND DERIVATIVE ZERO
   // Y2: OUTPUT ARRAY OF SECOND DERIVATIVES
-  double *u = new double[n];
+  #ifdef DEBUG
+  assert(n < 6);
+  #endif
+  // double *u = new double[n];
+  // u = malloc(sizeof(double) * (unsigned int)n);
+  double u[6];
   double sig, p, qn, un;
   int i, k;
-  // u = malloc(sizeof(double) * (unsigned int)n);
   if (yp1 > 0.99e30) {
     y2[0] = 0e0;
     u[0] = 0e0;
@@ -973,25 +970,20 @@ void spline(const double *x, const double *y, int n, double yp1, double ypn,
   }
 
   y2[n - 1] = (un - qn * u[n - 2]) / (qn * y2[n - 2] + 1e0);
-  // printf("un=%.10f, qn=%.10f, u[n-2]=%.10f, y2[n-2]=%.10f ... y2[n-1]=%.10f\n", un, qn, u[n-2], y2[n-2],y2[n-1]);
-  //for (int m=0; m<n; m++) printf("spline::y2[%d] -> %.15f\n", m, y2[m]);
   for (k = n - 2; k >= 0; k--) {
-    // printf("spline -> %.15f * %.15f + %.15f\n", y2[k], y2[k + 1], u[k]);
     y2[k] = y2[k] * y2[k + 1] + u[k];
   }
 
-  delete[] u;
+  //delete[] u;
 }
 
 inline double zeta(double zz, double zl) noexcept {
   return ((zz - zl) * (re + zl) / (re + zz));
 }
 
-/// @param[in] zn2 Array
 double densm(double alt, double d0, double xm, double &tz, int mn3,
              const double *zn3, const double *tn3, const double *tgn3, int mn2,
-             const double *zn2, const double *tn2, const double *tgn2
-             ) {
+             const double *zn2, const double *tn2, const double *tgn2) {
   // Calculate Temperature and Density Profiles for lower atmos.
   double xs[10], ys[10], y2out[10];
   constexpr double rgas = 831.4e0;
@@ -1099,9 +1091,7 @@ double densm(double alt, double d0, double xm, double &tz, int mn3,
 
 double densu(double alt, double dlb, double tinf, double tlb, double xm,
              double alpha, double &tz, double zlb, double s2, int mn1,
-             const double *zn1, double *tn1, double *tgn1
-             ) noexcept {
-  printf("call to densu\n");
+             const double *zn1, double *tn1, double *tgn1) noexcept {
   // Calculate Temperature and Density Profiles for MSIS models
   // New lower thermo polynomial
   constexpr const double rgas = 831.4e0;
@@ -1120,7 +1110,6 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   // double ta = tt;
   tz = tt;
   double densu_temp = tz;
-  printf("\tdensu_temp=%.15f (#0)\n", densu_temp);
 
   double x = 0;
   double t1 = 0e0, t2, z1 = 0e0, z2, zgdif = 0e0;
@@ -1156,12 +1145,8 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
     // temperature at altitude
     tz = 1e0 / y;
     densu_temp = tz;
-    printf("\tdensu_temp=%.15f (#1)\n", densu_temp);
   }
   if (xm == 0) {
-    printf("\txm==0\n");
-    printf("\treturning %.7f\n", densu_temp);
-    printf("end densu\n");
     return densu_temp;
   }
 
@@ -1177,11 +1162,7 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   // density at altitude
   double densa = dlb * std::pow((tlb / tt), ((1e0 + alpha + gamma))) * expl;
   densu_temp = densa;
-  printf("\tdensu_temp=%.15f (#2)\n", densu_temp);
   if (alt >= za) {
-    printf("\talt>==za\n");
-    printf("\treturning %.7f\n", densu_temp);
-    printf("end densu\n");
     return densu_temp;
   }
 
@@ -1193,18 +1174,14 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   double yi;
   splini(xs, ys, y2out, mn, x, yi);
   expl = gamm * yi;
-  printf("\texpl=%.10f * %.10f\n", gamm, yi);
   if (expl > 50e0)
     expl = 50e0;
   if (tz <= 0)
     expl = 50e0;
 
   // density at altitude
-    printf("\td=%.15f*pow(%.15f,%.15f) * exp(%.15f)\n",densu_temp, t1/tz, 1e0 + alpha, -expl);
-  densu_temp = densu_temp * 
-      std::pow((t1 / tz), (1e0 + alpha)) * std::exp(-expl);
-    printf("\treturning %.7f\n", densu_temp);
-    printf("end densu\n");
+  densu_temp =
+      densu_temp * std::pow((t1 / tz), (1e0 + alpha)) * std::exp(-expl);
   return densu_temp;
 }
 
@@ -1234,12 +1211,11 @@ inline double sg0(double ex, const double *p, const double *ap) {
 
 double globe7(const double *p, int doy, double fsec, double glat, double glon,
               double lst, double f107, double f107A, const double *sw,
-              const double *swc, double magnetic_index, const double *magnetic_array,
-              dso::Mat2D<dso::MatrixStorageType::RowWise> &plg, trignums &trigs
-              ) noexcept {
-  // ++globe7_calls;
-  // printf("call to globe7() ... ");
-  // CALCULATE G(L) FUNCTION
+              const double *swc, double magnetic_index,
+              const double *magnetic_array,
+              dso::Mat2D<dso::MatrixStorageType::RowWise> &plg,
+              trignums &trigs) noexcept {
+  // calculate g(l) function
   // Upper Thermosphere Parameters
   double t[15] = {0};
   constexpr double sr = 7.2722e-5;
@@ -1359,7 +1335,6 @@ double globe7(const double *p, int doy, double fsec, double glat, double glon,
       // apt[2]=sg0(exp2,p,ap->a);
       // apt[3]=sg2(exp2,p,ap->a);
       if (sw[9]) {
-        // printf("\n\t .. note: computing t[8] from if ... ");
         t[8] = apt[0] *
                (p[50] + p[96] * plg(0, 2) + p[54] * plg(0, 4) +
                 (p[125] * plg(0, 1) + p[126] * plg(0, 3) + p[127] * plg(0, 5)) *
@@ -1370,15 +1345,12 @@ double globe7(const double *p, int doy, double fsec, double glat, double glon,
     }
   } else {
     double apd = magnetic_index - 4e0;
-    // printf("\n\tapd = %10.7f - 4", apd);
     double p44 = p[43];
     double p45 = p[44];
     if (p44 < 0)
       p44 = 1.0e-5;
     apdf = apd + (p45 - 1.0) * (apd + (std::exp(-p44 * apd) - 1.0) / p44);
-    // printf("\n\tapdf=%10.7f +(%10.7f-1e0)*(%10.7f + exp(-%10.7f*%10.7f)-1)/%10.7f", apd, p45, apd, p44, apd, p44);
     if (sw[9]) {
-      // printf("\n\t .. note: computing t[8] from else ... (apdf=%20.15f)", apdf);
       t[8] = apdf *
              (p[32] + p[45] * plg(0, 2) + p[34] * plg(0, 4) +
               (p[100] * plg(0, 1) + p[101] * plg(0, 3) + p[102] * plg(0, 5)) *
@@ -1454,18 +1426,15 @@ double globe7(const double *p, int doy, double fsec, double glat, double glon,
   // parms not used: 82, 89, 99, 139-149
   double tinf = p[30];
   for (int i = 0; i < 14; i++) {
-    // printf("\nt[%d] = %20.15f", i, t[i]);
     tinf += std::abs(sw[i + 1]) * t[i];
   }
-  // printf("\nreturn %20.15f (call nr %d)\n", tinf, globe7_calls);
   return tinf;
 }
 
 double glob7s(const double *p, int doy, double glon, const double *sw,
-              const double *swc, 
+              const double *swc,
               const dso::Mat2D<dso::MatrixStorageType::RowWise> &plg,
               const trignums &trigs) noexcept {
-  // printf("call to glob7s() ... ");
   // version of globe for lower atmosphere 10/26/99
   double t[14] = {0};
   const double dr = 1.72142e-2;
@@ -1550,35 +1519,18 @@ double glob7s(const double *p, int doy, double glon, const double *sw,
   double tt = 0e0;
   for (int i = 0; i < 14; i++)
     tt += abs(sw[i + 1]) * t[i];
-  // printf("return %20.15f\n", tt);
   return tt;
 }
 
-/*
-void dso::air_density_models::nrlmsise00::gtd7d(
-    const nrlmsise_input &input, const nrlmsise_flags &flags,
-    flag_arena &f_arena, nrlmsise_output &output) noexcept {
-  gtd7(input, flags, output);
-  output.d[5] =
-      1.66e-24 * (4.0 * output.d[0] + 16.0 * output.d[1] + 28.0 * output.d[2] +
-                  32.0 * output.d[3] + 40.0 * output.d[4] + output.d[6] +
-                  14.0 * output.d[7] + 16.0 * output.d[8]);
-  // if (flags.sw[0])
-  if (f_arena.SW[0])
-    output.d[5] /= 1e3;
-}
-*/
-
-void /*dso::air_density_models::nrlmsise00::*/gts7(
-    /*const double *p,*/ int doy, double fsec, double glat, double glon, double lst,
-    double alt, double f107, double f107A, const double *sw, const double *swc,
-    double magnetic_index, const double *magnetic_array, 
-    dso::Mat2D<dso::MatrixStorageType::RowWise> &plg, trignums &trigs, 
-    double *outd, double *outt) noexcept {
+void gts7(int doy, double fsec, double glat, double glon, double lst,
+          double alt, double f107, double f107A, const double *sw,
+          const double *swc, double magnetic_index,
+          const double *magnetic_array,
+          dso::Mat2D<dso::MatrixStorageType::RowWise> &plg, trignums &trigs,
+          double *outd, double *outt) noexcept {
   // Thermospheric portion of NRLMSISE-00
   // See GTD7 for more extensive comments
   // alt > 72.5 km!
-
   double zn1[5] = {120.0, 110.0, 100.0, 90.0, 72.5};
   const int mn1 = 5;
   const double dgtr = 1.74533E-2;
@@ -1591,15 +1543,13 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   for (int j = 0; j < 9; j++)
     outd[j] = 0;
 
-  // dso::Mat2D<dso::MatrixStorageType::RowWise> plg(8, 8);
-  // trignums trigs;
-
   // tinf variations not important below za or zn1(1)
   double tinf;
   if (alt > zn1[0])
     tinf = ptm[0] * pt[0] *
            (1e0 + sw[16] * globe7(pt, doy, fsec, glat, glon, lst, f107, f107A,
-                                  sw, swc, magnetic_index, magnetic_array, plg, trigs));
+                                  sw, swc, magnetic_index, magnetic_array, plg,
+                                  trigs));
   else
     tinf = ptm[0] * pt[0];
   outt[0] = tinf;
@@ -1609,7 +1559,8 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   if (alt > zn1[4])
     g0 = ptm[3] * ps[0] *
          (1e0 + sw[19] * globe7(ps, doy, fsec, glat, glon, lst, f107, f107A, sw,
-                                swc, magnetic_index, magnetic_array, plg, trigs));
+                                swc, magnetic_index, magnetic_array, plg,
+                                trigs));
   else
     g0 = ptm[3] * ps[0];
   double tlb =
@@ -1624,25 +1575,23 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   const double indoy = doy;
   const double inlon = glon;
   if (alt < 300e0) {
-    meso_tn1[1] = ptm[6] * ptl[0][0] /
-                  (1e0 - sw[18] * glob7s(ptl[0], indoy, inlon, sw, swc,
-                                         plg, trigs));
-    meso_tn1[2] = ptm[2] * ptl[1][0] /
-                  (1e0 - sw[18] * glob7s(ptl[1], indoy, inlon, sw, swc,
-                                         plg, trigs));
-    meso_tn1[3] = ptm[7] * ptl[2][0] /
-                  (1e0 - sw[18] * glob7s(ptl[2], indoy, inlon, sw, swc,
-                                         plg, trigs));
+    meso_tn1[1] =
+        ptm[6] * ptl[0][0] /
+        (1e0 - sw[18] * glob7s(ptl[0], indoy, inlon, sw, swc, plg, trigs));
+    meso_tn1[2] =
+        ptm[2] * ptl[1][0] /
+        (1e0 - sw[18] * glob7s(ptl[1], indoy, inlon, sw, swc, plg, trigs));
+    meso_tn1[3] =
+        ptm[7] * ptl[2][0] /
+        (1e0 - sw[18] * glob7s(ptl[2], indoy, inlon, sw, swc, plg, trigs));
     meso_tn1[4] = ptm[4] * ptl[3][0] /
                   (1e0 - sw[18] * sw[20] *
-                             glob7s(ptl[3], indoy, inlon, sw, swc, plg,
-                                    trigs));
-    meso_tgn1[1] = ptm[8] * pma[8][0] *
-                   (1e0 + sw[18] * sw[20] *
-                              glob7s(pma[8], indoy, inlon, sw, swc, plg,
-                                     trigs)) *
-                   meso_tn1[4] * meso_tn1[4] /
-                   (std::pow((ptm[4] * ptl[3][0]), 2e0));
+                             glob7s(ptl[3], indoy, inlon, sw, swc, plg, trigs));
+    meso_tgn1[1] =
+        ptm[8] * pma[8][0] *
+        (1e0 +
+         sw[18] * sw[20] * glob7s(pma[8], indoy, inlon, sw, swc, plg, trigs)) *
+        meso_tn1[4] * meso_tn1[4] / (std::pow((ptm[4] * ptl[3][0]), 2e0));
   } else {
     meso_tn1[1] = ptm[6] * ptl[0][0];
     meso_tn1[2] = ptm[2] * ptl[1][0];
@@ -1671,7 +1620,6 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   // Diffusive density at Alt
   outd[2] = densu(z, db28, tinf, tlb, 28e0, alpha[2], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  // dd = outd[2];
   // Turbopause
   double zh28 = pdm[2][2] * zhf;
   double zhm28 = pdm[2][3] * pdl[1][5];
@@ -1680,18 +1628,15 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   double tz;
   const double b28 = densu(zh28, db28, tinf, tlb, xmd, (alpha[2] - 1e0), tz,
                            ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-  printf("\tb28=densu(%.7f,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f,%.7f)=%.7f\n", zh28, db28,  
-     tinf, tlb, xmd, alpha[2]-1e0, tz, ptm[5], s, b28);
   if ((sw[15]) && (z <= altl[2])) {
     //  Mixed density at Alt
-    dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s, mn1, zn1,
+                 meso_tn1, meso_tgn1);
     //  Net density at Alt
     outd[2] = dnet(outd[2], dm28, zhm28, xmm, 28e0);
   }
 
   // HE density
-  printf("Computing d0\n");
   // --------------------------------------------------------------------------
   // Density variation factor at Zlb
   double g4 =
@@ -1702,56 +1647,51 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //  Diffusive density at Alt
   outd[0] = densu(z, db04, tinf, tlb, 4e0, alpha[0], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  printf("\td[0]=%.15f\n", outd[0]);
   // dd = outd[0];
   if ((sw[15]) && (z < altl[0])) {
     //  Turbopause
     const double zh04 = pdm[0][2];
     //  Mixed density at Zlb
-    const double b04 =
-        densu(zh04, db04, tinf, tlb, 4e0 - xmm, alpha[0] - 1e0, outt[1], ptm[5],
-              s, mn1, zn1, meso_tn1, meso_tgn1);
+    const double b04 = densu(zh04, db04, tinf, tlb, 4e0 - xmm, alpha[0] - 1e0,
+                             outt[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     //  Mixed density at Alt
-   /*static*/dm04 = densu(z, b04, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    /*static*/ dm04 = densu(z, b04, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                            mn1, zn1, meso_tn1, meso_tgn1);
     const double zhm04 = zhm28;
     //  Net density at Alt
     outd[0] = dnet(outd[0], dm04, zhm04, xmm, 4e0);
-  printf("\td[0]=%.15f\n", outd[0]);
     //  Correction to specified mixing ratio at ground
     const double rl = std::log(b28 * pdm[0][1] / b04);
     const double zc04 = pdm[0][4] * pdl[1][0];
     const double hc04 = pdm[0][5] * pdl[1][1];
     //  Net density corrected at Alt
-    printf("\tccor(z=%.15f, rl=%.15f, hc04=%.15f, zc04=%.15f)=%.15f\n",z, rl, hc04, zc04,ccor(z, rl, hc04, zc04));
     outd[0] *= ccor(z, rl, hc04, zc04);
-  printf("\td[0]=%.15f\n", outd[0]);
   }
 
   // O density
   // --------------------------------------------------------------------------
-  //  Density variation factor at Zlb
+  // Density variation factor at Zlb
   const double g16 =
       sw[21] * globe7(pd[1], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
                       magnetic_index, magnetic_array, plg, trigs);
-  //  Diffusive density at Zlb
+  // Diffusive density at Zlb
   const double db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
-  //   Diffusive density at Alt
+  // Diffusive density at Alt
   outd[1] = densu(z, db16, tinf, tlb, 16e0, alpha[1], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
   // dd = outd[1];
   if ((sw[15]) && (z <= altl[1])) {
-    //   Turbopause
+    // Turbopause
     const double zh16 = pdm[1][2];
-    //  Mixed density at Zlb
+    // Mixed density at Zlb
     const double b16 =
         densu(zh16, db16, tinf, tlb, 16e0 - xmm, (alpha[1] - 1e0), outt[1],
               ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
-    //  Mixed density at Alt
-    /*static*/dm16 = densu(z, b16, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    // Mixed density at Alt
+    /*static*/ dm16 = densu(z, b16, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                            mn1, zn1, meso_tn1, meso_tgn1);
     double zhm16 = zhm28;
-    //  Net density at Alt
+    // Net density at Alt
     outd[1] = dnet(outd[1], dm16, zhm16, xmm, 16e0);
     const double rl =
         pdm[1][1] * pdl[1][16] * (1e0 + sw[1] * pdl[0][23] * (f107A - 150e0));
@@ -1759,16 +1699,15 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
     const double zc16 = pdm[1][4] * pdl[1][2];
     const double hc216 = pdm[1][5] * pdl[1][4];
     outd[1] = outd[1] * ccor2(z, rl, hc16, zc16, hc216);
-    //   Chemistry correction
+    // Chemistry correction
     const double hcc16 = pdm[1][7] * pdl[1][13];
     const double zcc16 = pdm[1][6] * pdl[1][12];
     const double rc16 = pdm[1][3] * pdl[1][14];
-    //  Net density corrected at Alt
+    // Net density corrected at Alt
     outd[1] *= ccor(z, rc16, hcc16, zcc16);
   }
 
   // O2 density
-  printf("Computing d3\n");
   // --------------------------------------------------------------------------
   // Density variation factor at Zlb
   const double g32 =
@@ -1779,8 +1718,6 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //   Diffusive density at Alt
   outd[3] = densu(z, db32, tinf, tlb, 32e0, alpha[3], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  printf("\td[3]=%.15f\n", outd[3]);
-  // dd = outd[3];
   if (sw[15]) {
     if (z <= altl[3]) {
       //   Turbopause
@@ -1790,28 +1727,25 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
           densu(zh32, db32, tinf, tlb, 32e0 - xmm, alpha[3] - 1e0, outt[1],
                 ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
       //  Mixed density at Alt
-      /*static*/dm32 = densu(z, b32, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                                mn1, zn1, meso_tn1, meso_tgn1);
+      /*static*/ dm32 = densu(z, b32, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                              mn1, zn1, meso_tn1, meso_tgn1);
       const double zhm32 = zhm28;
       //  Net density at Alt
       outd[3] = dnet(outd[3], dm32, zhm32, xmm, 32e0);
-      printf("\td[3]=%.15f\n", outd[3]);
       //   Correction to specified mixing ratio at ground
       const double rl = std::log(b28 * pdm[3][1] / b32);
       const double hc32 = pdm[3][5] * pdl[1][7];
       const double zc32 = pdm[3][4] * pdl[1][6];
       outd[3] *= ccor(z, rl, hc32, zc32);
-      printf("\td[3]=%.15f\n", outd[3]);
     }
-    //  Correction for general departure from diffusive equilibrium above Zlb
+    // Correction for general departure from diffusive equilibrium above Zlb
     const double hcc32 = pdm[3][7] * pdl[1][22];
     const double hcc232 = pdm[3][7] * pdl[0][22];
     const double zcc32 = pdm[3][6] * pdl[1][21];
     const double rc32 =
         pdm[3][3] * pdl[1][23] * (1e0 + sw[1] * pdl[0][23] * (f107A - 150e0));
-    //  Net density corrected at Alt
+    // Net density corrected at Alt
     outd[3] *= ccor2(z, rc32, hcc32, zcc32, hcc232);
-    printf("\td[3]=%.15f\n", outd[3]);
   }
 
   // AR density
@@ -1825,17 +1759,15 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //   Diffusive density at Alt
   outd[4] = densu(z, db40, tinf, tlb, 40e0, alpha[4], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  // dd = outd[4];
   if ((sw[15]) && (z <= altl[4])) {
     //   Turbopause
     const double zh40 = pdm[4][2];
     //  Mixed density at Zlb
-    const double b40 =
-        densu(zh40, db40, tinf, tlb, 40e0 - xmm, alpha[4] - 1e0, outt[1],
-              ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
+    const double b40 = densu(zh40, db40, tinf, tlb, 40e0 - xmm, alpha[4] - 1e0,
+                             outt[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     //  Mixed density at Alt
-    /*static*/dm40 = densu(z, b40, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    /*static*/ dm40 = densu(z, b40, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                            mn1, zn1, meso_tn1, meso_tgn1);
     const double zhm40 = zhm28;
     //  Net density at Alt
     outd[4] = dnet(outd[4], dm40, zhm40, xmm, 40.);
@@ -1863,12 +1795,11 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
     //   Turbopause
     const double zh01 = pdm[5][2];
     //  Mixed density at Zlb
-    const double b01 =
-        densu(zh01, db01, tinf, tlb, 1e0 - xmm, alpha[6] - 1e0, outt[1], ptm[5],
-              s, mn1, zn1, meso_tn1, meso_tgn1);
+    const double b01 = densu(zh01, db01, tinf, tlb, 1e0 - xmm, alpha[6] - 1e0,
+                             outt[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     //  Mixed density at Alt
-    /*static*/dm01 = densu(z, b01, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    /*static*/ dm01 = densu(z, b01, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                            mn1, zn1, meso_tn1, meso_tgn1);
     const double zhm01 = zhm28;
     //  Net density at Alt
     outd[6] = dnet(outd[6], dm01, zhm01, xmm, 1e0);
@@ -1897,40 +1828,30 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //   Diffusive density at Alt
   outd[7] = densu(z, db14, tinf, tlb, 14e0, alpha[7], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  //printf("----------------------------------------------------\n");
-  //printf("\td7=%20.15f\n", outd[7]);
-  // dd = outd[7];
   if ((sw[15]) && (z <= altl[7])) {
     //   Turbopause
     const double zh14 = pdm[6][2];
     //  Mixed density at Zlb
-    const double b14 =
-        densu(zh14, db14, tinf, tlb, 14e0 - xmm, alpha[7] - 1e0, outt[1],
-              ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
+    const double b14 = densu(zh14, db14, tinf, tlb, 14e0 - xmm, alpha[7] - 1e0,
+                             outt[1], ptm[5], s, mn1, zn1, meso_tn1, meso_tgn1);
     //  Mixed density at Alt
-    /*static*/dm14 = densu(z, b14, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
-                              mn1, zn1, meso_tn1, meso_tgn1);
+    /*static*/ dm14 = densu(z, b14, tinf, tlb, xmm, 0e0, outt[1], ptm[5], s,
+                            mn1, zn1, meso_tn1, meso_tgn1);
     const double zhm14 = zhm28;
     //  Net density at Alt
-   //printf("\tcall to dnet(d7=%.15f, dm14=%.5f, zhm14=%.5f, xmm=%.5f, 14)\n",outd[7], dm14, zhm14, xmm);
     outd[7] = dnet(outd[7], dm14, zhm14, xmm, 14e0);
-  //printf("\td7=%20.15f\n", outd[7]);
     //   Correction to specified mixing ratio at ground
     const double rl =
         std::log(b28 * pdm[6][1] * std::sqrt(pdl[0][2] * pdl[0][2]) / b14);
-    //printf("\tlog(b28=%.7f, pdm[6][1]=%.7f, pdl[0][2]=%.7f, b14=%.7f\n", b28, pdm[6][1], pdl[0][2], b14);
     const double hc14 = pdm[6][5] * pdl[0][1];
     const double zc14 = pdm[6][4] * pdl[0][0];
     outd[7] *= ccor(z, rl, hc14, zc14);
-  //printf("\tcall to ccor(z=%.5f, rl=%.5f, hc14=%.5f, zc14=%.5f)=%.10f\n",z,rl,hc14,zc14,ccor(z,rl,hc14,zc14));
-  //printf("\td7=%20.15f\n", outd[7]);
     //   Chemistry correction
     const double hcc14 = pdm[6][7] * pdl[0][4];
     const double zcc14 = pdm[6][6] * pdl[0][3];
     const double rc14 = pdm[6][3] * pdl[0][5];
     //  Net density corrected at Alt
     outd[7] *= ccor(z, rc14, hcc14, zcc14);
-  //printf("\td7=%20.15f\n", outd[7]);
   }
 
   // Anomalous oxygen density
@@ -1940,8 +1861,8 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
                       magnetic_index, magnetic_array, plg, trigs);
   const double db16h = pdm[7][0] * std::exp(g16h) * pd[8][0];
   const double tho = pdm[7][9] * pdl[0][6];
-  dd = densu(z, db16h, tho, tho, 16e0, alpha[8], outt[1], ptm[5],
-                          s, mn1, zn1, meso_tn1, meso_tgn1);
+  dd = densu(z, db16h, tho, tho, 16e0, alpha[8], outt[1], ptm[5], s, mn1, zn1,
+             meso_tn1, meso_tgn1);
   const double zsht = pdm[7][5];
   const double zmho = pdm[7][4];
   const double zsho = scalh(zmho, 16e0, tho);
@@ -1956,7 +1877,6 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   z = std::sqrt(alt * alt);
   /*double ddum = */ densu(z, 1e0, tinf, tlb, 0e0, 0e0, outt[1], ptm[5], s, mn1,
                            zn1, meso_tn1, meso_tgn1);
-  // (void) ddum; // silence gcc
   if (sw[0]) {
     for (int i = 0; i < 9; i++)
       outd[i] *= 1e6;
@@ -1965,14 +1885,13 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
 }
 
 void dso::air_density_models::nrlmsise00::gtd7(
-    const int *switches, int doy, double fsec, double glat,
-    double glon, double lst, double f107, double f107A, double alt,
-    double magnetic_index, const double *magnetic_array,
-    double *outd, double *outt) noexcept {
-  int mn3 = 5;
-  double zn3[5] = {32.5, 20.0, 15.0, 10.0, 0.0};
-  int mn2 = 4;
-  double zn2[4] = {72.5, 55.0, 45.0, 32.5};
+    const int *switches, int doy, double fsec, double glat, double glon,
+    double lst, double f107, double f107A, double alt, double magnetic_index,
+    const double *magnetic_array, double *outd, double *outt) noexcept {
+  const int mn3 = 5;
+  const double zn3[5] = {32.5, 20.0, 15.0, 10.0, 0.0};
+  const int mn2 = 4;
+  const double zn2[4] = {72.5, 55.0, 45.0, 32.5};
   const double zmix = 62.5;
 
   double sw[24];
@@ -1982,6 +1901,7 @@ void dso::air_density_models::nrlmsise00::gtd7(
   // Latitude variation of gravity (none for sw[2]=0)
   double xlat = glat * (sw[2] != 0e0) + 45e0 * (sw[2] == 0);
 
+  // assigns gsur and re
   glatf(xlat, gsurf, re);
 
   const double xmm = pdm[2][4];
@@ -1991,9 +1911,8 @@ void dso::air_density_models::nrlmsise00::gtd7(
 
   dso::Mat2D<dso::MatrixStorageType::RowWise> plg(8, 8);
   trignums trigs;
-  gts7(doy, fsec, glat, glon, lst, altt, f107,
-                                 f107A, sw, swc, magnetic_index, magnetic_array, plg,
-                                 trigs, outd, outt);
+  gts7(doy, fsec, glat, glon, lst, altt, f107, f107A, sw, swc, magnetic_index,
+       magnetic_array, plg, trigs, outd, outt);
 
   double dm28m = dm28;
   if (sw[0]) // metric adjustment
@@ -2007,20 +1926,17 @@ void dso::air_density_models::nrlmsise00::gtd7(
   // Inverse temperature a linear function of spherical harmonics
   meso_tgn2[0] = meso_tgn1[1];
   meso_tn2[0] = meso_tn1[4];
-  meso_tn2[1] =
-      pma[0][0] * pavgm[0] /
-      (1.0 - sw[20] * glob7s(pma[0], doy, glon, sw, swc, plg, trigs));
-  meso_tn2[2] =
-      pma[1][0] * pavgm[1] /
-      (1.0 - sw[20] * glob7s(pma[1], doy, glon, sw, swc, plg, trigs));
+  meso_tn2[1] = pma[0][0] * pavgm[0] /
+                (1.0 - sw[20] * glob7s(pma[0], doy, glon, sw, swc, plg, trigs));
+  meso_tn2[2] = pma[1][0] * pavgm[1] /
+                (1.0 - sw[20] * glob7s(pma[1], doy, glon, sw, swc, plg, trigs));
   meso_tn2[3] =
       pma[2][0] * pavgm[2] /
       (1.0 - sw[20] * sw[22] * glob7s(pma[2], doy, glon, sw, swc, plg, trigs));
-  meso_tgn2[1] = pavgm[8] * pma[9][0] *
-                 (1.0 + sw[20] * sw[22] *
-                            glob7s(pma[9], doy, glon, sw, swc, plg, trigs)) *
-                 meso_tn2[3] * meso_tn2[3] /
-                 (std::pow((pma[2][0] * pavgm[2]), 2.0));
+  meso_tgn2[1] =
+      pavgm[8] * pma[9][0] *
+      (1.0 + sw[20] * sw[22] * glob7s(pma[9], doy, glon, sw, swc, plg, trigs)) *
+      meso_tn2[3] * meso_tn2[3] / (std::pow((pma[2][0] * pavgm[2]), 2.0));
   meso_tn3[0] = meso_tn2[3];
 
   if (alt <= zn3[0]) {
@@ -2055,8 +1971,8 @@ void dso::air_density_models::nrlmsise00::gtd7(
   // N2 density
   double dmr = outd[2] / dm28m - 1e0;
   double tz;
-  outd[2] = densm(alt, dm28m, xmm, tz, mn3, zn3, meso_tn3, meso_tgn3,
-                      mn2, zn2, meso_tn2, meso_tgn2);
+  outd[2] = densm(alt, dm28m, xmm, tz, mn3, zn3, meso_tn3, meso_tgn3, mn2, zn2,
+                  meso_tn2, meso_tgn2);
   outd[2] *= (1e0 + dmr * dmc);
 
   // HE density
@@ -2084,8 +2000,7 @@ void dso::air_density_models::nrlmsise00::gtd7(
   // Total mass density
   outd[5] =
       1.66e-24 * (4e0 * outd[0] + 16e0 * outd[1] + 28e0 * outd[2] +
-                  32e0 * outd[3] + 40e0 * outd[4] + outd[6] +
-                  14e0 * outd[7]);
+                  32e0 * outd[3] + 40e0 * outd[4] + outd[6] + 14e0 * outd[7]);
 
   if (sw[0])
     outd[5] *= 1e-3;

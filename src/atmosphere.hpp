@@ -25,7 +25,133 @@ namespace exponential {
 
 namespace nrlmsise00 {
 /// @brief NRLMSISE-00 Model, 2001
+/// The NRLMSIS-00 empirical atmosphere model was developed by Mike
+/// Picone, Alan Hedin, and Doug Drob based on the MSISE90 model.
+/// The MSISE90 model describes the neutral temperature and densities in
+/// Earth's atmosphere from ground to thermospheric heights. Below 72.5 km
+/// the model is primarily based on the MAP Handbook (Labitzke et al.,
+/// 1985) tabulation of zonal average temperature and pressure by Barnett
+/// and Corney, which was also used for the CIRA-86. Below 20 km these
+/// data were supplemented with averages from the National Meteorological
+/// Center (NMC). In addition, pitot tube, falling sphere, and grenade
+/// sounder rocket measurements from 1947 to 1972 were taken into
+/// consideration. Above 72.5 km MSISE-90 is essentially a revised MSIS-86
+/// model taking into account data derived from space shuttle flights and
+/// newer incoherent scatter results. For someone interested only in the
+/// thermosphere (above 120 km), the author recommends the MSIS-86
+/// model. MSISE is also not the model of preference for specialized
+/// tropospheric work. It is rather for studies that reach across several
+/// atmospheric boundaries.
+/// (quoted from http://nssdc.gsfc.nasa.gov/space/model/atmos/nrlmsise00.html)
 /// @see https://ccmc.gsfc.nasa.gov/modelweb/atmos/nrlmsise00.html
+/// @param[in]  switches See note below (array of index 24)
+/// @param[in]	doy    day of year 
+/// @param[in]	sec    fseconds in day (UT) 
+/// @param[in]	alt    altitude in kilometers 
+/// @param[in]	glat   geodetic latitude 
+/// @param[in]	glong  geodetic longitude 
+/// @param[in]	lst    local apparent solar time (hours), see note below 
+/// @param[in]	f107A  81 day average of F10.7 flux (centered on doy) 
+/// @param[in]	f107   daily F10.7 flux for previous day 
+/// @param[in]	magnetic_index magnetic index(daily)
+/// @param[in]  magnetic_array Array containing the following magnetic values
+///             as described below (see also the note on switches; if 
+///             switches[9]!=-1, this could be a null pointer)
+/// @param[out] outd containing the following values:
+///            d[0] - He number density(cm-3)
+///            d[1] - O number density(cm-3)
+///            d[2] - N2 number density(cm-3)
+///            d[3] - O2 number density(cm-3)
+///            d[4] - AR number density(cm-3)                       
+///            d[5] - total mass density(gm/cm3) [includes d[8] in td7d]
+///            d[6] - H number density(cm-3)
+///            d[7] - N number density(cm-3)
+///            d[8] - Anomalous oxygen number density(cm-3)
+/// @param[out] outt containing the following values:
+///            t[0] - exospheric temperature
+///            t[1] - temperature at alt
+/// @note The magnetic_array is an array of size 7, containing the following
+///       values:
+///  0 : daily AP
+///  1 : 3 hr AP index for current time
+///  2 : 3 hr AP index for 3 hrs before current time
+///  3 : 3 hr AP index for 6 hrs before current time
+///  4 : 3 hr AP index for 9 hrs before current time
+///  5 : Average of eight 3 hr AP indicies from 12 to 33 hrs 
+///          prior to current time
+///  6 : Average of eight 3 hr AP indicies from 36 to 57 hrs 
+///          prior to current time
+/// 
+/// @note O, H, and N are set to zero below 72.5 km
+/// t[0], Exospheric temperature, is set to global average for
+/// altitudes below 120 km. The 120 km gradient is left at global
+/// average value for altitudes below 72 km.
+/// 
+/// d[5], TOTAL MASS DENSITY, is NOT the same for subroutines GTD7 
+/// and GTD7D
+/// 
+/// SUBROUTINE GTD7 -- d[5] is the sum of the mass densities of the
+/// species labeled by indices 0-4 and 6-7 in output variable d.
+/// This includes He, O, N2, O2, Ar, H, and N but does NOT include
+/// anomalous oxygen (species index 8).
+/// 
+/// SUBROUTINE GTD7D -- d[5] is the "effective total mass density
+/// for drag" and is the sum of the mass densities of all species
+/// in this model, INCLUDING anomalous oxygen.
+///
+/// @note UT, Local Time, and Longitude are used independently in the
+/// model and are not of equal importance for every situation.  
+/// For the most physically realistic calculation these three
+/// variables should be consistent (lst=sec/3600 + g_long/15).
+/// The Equation of Time departures from the above formula
+/// for apparent local time can be included if available but
+/// are of minor importance.
+/// 
+/// f107 and f107A values used to generate the model correspond
+/// to the 10.7 cm radio flux at the actual distance of the Earth
+/// from the Sun rather than the radio flux at 1 AU. The following
+/// site provides both classes of values:
+/// ftp://ftp.ngdc.noaa.gov/STP/SOLAR_DATA/SOLAR_RADIO/FLUX/
+/// 
+/// f107, f107A, and ap effects are neither large nor well
+/// established below 80 km and these parameters should be set to
+/// 150., 150., and 4. respectively.
+///
+/// @note Switches: to turn on and off particular variations use these switches.
+/// 0 is off, 1 is on, and 2 is main effects off but cross terms on.
+/// 
+/// Standard values are 0 for switch 0 and 1 for switches 1 to 23. The 
+/// array "switches" needs to be set accordingly by the calling program. 
+/// The arrays sw and swc are set internally.
+/// 
+/// switches[i]:
+///  i - explanation
+/// -----------------
+///  0 - output in meters and kilograms instead of centimeters and grams
+///  1 - F10.7 effect on mean
+///  2 - time independent
+///  3 - symmetrical annual
+///  4 - symmetrical semiannual
+///  5 - asymmetrical annual
+///  6 - asymmetrical semiannual
+///  7 - diurnal
+///  8 - semidiurnal
+///  9 - daily ap [when this is set to -1 (!) the pointer amgnetic_array must
+///      hold the respective values; else it is not used
+/// 10 - all UT/long effects
+/// 11 - longitudinal
+/// 12 - UT and mixed UT/long
+/// 13 - mixed AP/UT/LONG
+/// 14 - terdiurnal
+/// 15 - departures from diffusive equilibrium
+/// 16 - all TINF var
+/// 17 - all TLB var
+/// 18 - all TN1 var
+/// 19 - all S var
+/// 20 - all TN2 var
+/// 21 - all NLB var
+/// 22 - all TN3 var
+/// 23 - turbo scale height var
 void gtd7(
     const int *switches, int doy, double fsec, double glat,
     double glon, double lst, double f107, double f107A, double alt,
