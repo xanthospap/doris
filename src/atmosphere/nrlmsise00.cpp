@@ -833,7 +833,8 @@ double dnet(double dd2, double dm, double zhm, double xmm, double xm) noexcept {
   //   XMM - full mixed molecular weight
   //   XM  - species molecular weight
   //   DNET - combined density
-  double a = zhm / (xmm - xm);
+  printf("calling dnet with dd=%.15f, dm=%.15f, zhm=%.15f, xmm=%.15f, xm=%.15f\n", dd2, dm, zhm, xmm, xm);
+  const double a = zhm / (xmm - xm);
   if (!((dm > 0) && (dd2 > 0))) {
     fprintf(stderr, "[ERROR] dnet log error %e %e %e (traceback: %s)\n", dm, dd2,
             xm, __func__);
@@ -845,13 +846,18 @@ double dnet(double dd2, double dm, double zhm, double xmm, double xm) noexcept {
       return dm;
   }
 
-  double ylog = a * std::log(dm / dd2);
-  if (ylog < -10)
+  const double ylog = a * std::log(dm / dd2);
+  if (ylog < -10e0){
+    printf("\tdnet:: ylog < -10 !\n");
     return dd2;
-  if (ylog > 10)
+  }
+  if (ylog > 10e0) {
+    printf("\tdnet:: ylog > 10 !\n");
     return dm;
+  }
 
-  return dd2 * std::pow((1e0 + std::exp(ylog)), (1e0 / a));
+  printf("\tdnet::a=%.15f*pow(%.15f, %.15f)\n", dd2, 1e0 + std::exp(ylog), 1e0 / a);
+  return dd2 * std::pow(1e0 + std::exp(ylog), 1e0 / a);
 }
 
 void splini(const double *xa, const double *ya, const double *y2a, int n,
@@ -879,13 +885,13 @@ void splini(const double *xa, const double *ya, const double *y2a, int n,
     b = (xx - xa[klo]) / h;
     a2 = a * a;
     b2 = b * b;
-    printf("\tsplini -> h%.15f, a=%.15f, b=%.15f ya[klo]=%.15f, ya[khi]=%.15f, y2a[klo]=%.15f, y2a[khi]=%.15f\n", h, a, b, ya[klo], ya[khi], y2a[klo], y2a[khi]);
+    // printf("\tsplini -> h%.15f, a=%.15f, b=%.15f ya[klo]=%.15f, ya[khi]=%.15f, y2a[klo]=%.15f, y2a[khi]=%.15f\n", h, a, b, ya[klo], ya[khi], y2a[klo], y2a[khi]);
     yi += ((1e0 - a2) * ya[klo] / 2e0 + b2 * ya[khi] / 2e0 +
            ((-(1e0 + a2 * a2) / 4e0 + a2 / 2e0) * y2a[klo] +
             (b2 * b2 / 4e0 - b2 / 2e0) * y2a[khi]) *
                h * h / 6e0) *
           h;
-    printf("\tsplini -> %.10f\n", yi);
+    // printf("\tsplini -> %.10f\n", yi);
     klo++;
     khi++;
   }
@@ -967,8 +973,8 @@ void spline(const double *x, const double *y, int n, double yp1, double ypn,
   }
 
   y2[n - 1] = (un - qn * u[n - 2]) / (qn * y2[n - 2] + 1e0);
-  printf("un=%.10f, qn=%.10f, u[n-2]=%.10f, y2[n-2]=%.10f ... y2[n-1]=%.10f\n", un, qn, u[n-2], y2[n-2],y2[n-1]);
-  for (int m=0; m<n; m++) printf("spline::y2[%d] -> %.15f\n", m, y2[m]);
+  // printf("un=%.10f, qn=%.10f, u[n-2]=%.10f, y2[n-2]=%.10f ... y2[n-1]=%.10f\n", un, qn, u[n-2], y2[n-2],y2[n-1]);
+  //for (int m=0; m<n; m++) printf("spline::y2[%d] -> %.15f\n", m, y2[m]);
   for (k = n - 2; k >= 0; k--) {
     // printf("spline -> %.15f * %.15f + %.15f\n", y2[k], y2[k + 1], u[k]);
     y2[k] = y2[k] * y2[k + 1] + u[k];
@@ -1095,7 +1101,7 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
              double alpha, double &tz, double zlb, double s2, int mn1,
              const double *zn1, double *tn1, double *tgn1
              ) noexcept {
-  printf("call to dnesu --------------------- \n");
+  printf("call to densu\n");
   // Calculate Temperature and Density Profiles for MSIS models
   // New lower thermo polynomial
   constexpr const double rgas = 831.4e0;
@@ -1114,6 +1120,7 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   // double ta = tt;
   tz = tt;
   double densu_temp = tz;
+  printf("\tdensu_temp=%.15f (#0)\n", densu_temp);
 
   double x = 0;
   double t1 = 0e0, t2, z1 = 0e0, z2, zgdif = 0e0;
@@ -1149,11 +1156,12 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
     // temperature at altitude
     tz = 1e0 / y;
     densu_temp = tz;
+    printf("\tdensu_temp=%.15f (#1)\n", densu_temp);
   }
   if (xm == 0) {
-    printf("xm==0\n");
-    printf("returning %.7f\n", densu_temp);
-    printf("---------------------\n");
+    printf("\txm==0\n");
+    printf("\treturning %.7f\n", densu_temp);
+    printf("end densu\n");
     return densu_temp;
   }
 
@@ -1169,10 +1177,11 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   // density at altitude
   double densa = dlb * std::pow((tlb / tt), ((1e0 + alpha + gamma))) * expl;
   densu_temp = densa;
+  printf("\tdensu_temp=%.15f (#2)\n", densu_temp);
   if (alt >= za) {
-    printf("alt>==za\n");
-    printf("returning %.7f\n", densu_temp);
-    printf("---------------------\n");
+    printf("\talt>==za\n");
+    printf("\treturning %.7f\n", densu_temp);
+    printf("end densu\n");
     return densu_temp;
   }
 
@@ -1184,18 +1193,18 @@ double densu(double alt, double dlb, double tinf, double tlb, double xm,
   double yi;
   splini(xs, ys, y2out, mn, x, yi);
   expl = gamm * yi;
-  printf("expl=%.10f * %.10f\n", gamm, yi);
+  printf("\texpl=%.10f * %.10f\n", gamm, yi);
   if (expl > 50e0)
     expl = 50e0;
   if (tz <= 0)
     expl = 50e0;
 
   // density at altitude
-  densu_temp *=
+    printf("\td=%.15f*pow(%.15f,%.15f) * exp(%.15f)\n",densu_temp, t1/tz, 1e0 + alpha, -expl);
+  densu_temp = densu_temp * 
       std::pow((t1 / tz), (1e0 + alpha)) * std::exp(-expl);
-      printf("*=pow(%.10f,%.5f) * exp(%.10f)\n", t1/tz, 1e0 + alpha, -expl);
-    printf("returning %.7f\n", densu_temp);
-    printf("---------------------\n");
+    printf("\treturning %.7f\n", densu_temp);
+    printf("end densu\n");
   return densu_temp;
 }
 
@@ -1682,6 +1691,7 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   }
 
   // HE density
+  printf("Computing d0\n");
   // --------------------------------------------------------------------------
   // Density variation factor at Zlb
   double g4 =
@@ -1692,6 +1702,7 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //  Diffusive density at Alt
   outd[0] = densu(z, db04, tinf, tlb, 4e0, alpha[0], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
+  printf("\td[0]=%.15f\n", outd[0]);
   // dd = outd[0];
   if ((sw[15]) && (z < altl[0])) {
     //  Turbopause
@@ -1706,12 +1717,15 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
     const double zhm04 = zhm28;
     //  Net density at Alt
     outd[0] = dnet(outd[0], dm04, zhm04, xmm, 4e0);
+  printf("\td[0]=%.15f\n", outd[0]);
     //  Correction to specified mixing ratio at ground
     const double rl = std::log(b28 * pdm[0][1] / b04);
     const double zc04 = pdm[0][4] * pdl[1][0];
     const double hc04 = pdm[0][5] * pdl[1][1];
     //  Net density corrected at Alt
+    printf("\tccor(z=%.15f, rl=%.15f, hc04=%.15f, zc04=%.15f)=%.15f\n",z, rl, hc04, zc04,ccor(z, rl, hc04, zc04));
     outd[0] *= ccor(z, rl, hc04, zc04);
+  printf("\td[0]=%.15f\n", outd[0]);
   }
 
   // O density
@@ -1754,8 +1768,9 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   }
 
   // O2 density
+  printf("Computing d3\n");
   // --------------------------------------------------------------------------
-  //   Density variation factor at Zlb
+  // Density variation factor at Zlb
   const double g32 =
       sw[21] * globe7(pd[4], doy, fsec, glat, glon, lst, f107, f107A, sw, swc,
                       magnetic_index, magnetic_array, plg, trigs);
@@ -1764,6 +1779,7 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //   Diffusive density at Alt
   outd[3] = densu(z, db32, tinf, tlb, 32e0, alpha[3], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
+  printf("\td[3]=%.15f\n", outd[3]);
   // dd = outd[3];
   if (sw[15]) {
     if (z <= altl[3]) {
@@ -1779,11 +1795,13 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
       const double zhm32 = zhm28;
       //  Net density at Alt
       outd[3] = dnet(outd[3], dm32, zhm32, xmm, 32e0);
+      printf("\td[3]=%.15f\n", outd[3]);
       //   Correction to specified mixing ratio at ground
       const double rl = std::log(b28 * pdm[3][1] / b32);
       const double hc32 = pdm[3][5] * pdl[1][7];
       const double zc32 = pdm[3][4] * pdl[1][6];
       outd[3] *= ccor(z, rl, hc32, zc32);
+      printf("\td[3]=%.15f\n", outd[3]);
     }
     //  Correction for general departure from diffusive equilibrium above Zlb
     const double hcc32 = pdm[3][7] * pdl[1][22];
@@ -1793,6 +1811,7 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
         pdm[3][3] * pdl[1][23] * (1e0 + sw[1] * pdl[0][23] * (f107A - 150e0));
     //  Net density corrected at Alt
     outd[3] *= ccor2(z, rc32, hcc32, zcc32, hcc232);
+    printf("\td[3]=%.15f\n", outd[3]);
   }
 
   // AR density
@@ -1878,8 +1897,8 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
   //   Diffusive density at Alt
   outd[7] = densu(z, db14, tinf, tlb, 14e0, alpha[7], outt[1], ptm[5], s, mn1,
                   zn1, meso_tn1, meso_tgn1);
-  printf("----------------------------------------------------\n");
-  printf("\td7=%20.15f\n", outd[7]);
+  //printf("----------------------------------------------------\n");
+  //printf("\td7=%20.15f\n", outd[7]);
   // dd = outd[7];
   if ((sw[15]) && (z <= altl[7])) {
     //   Turbopause
@@ -1893,25 +1912,25 @@ void /*dso::air_density_models::nrlmsise00::*/gts7(
                               mn1, zn1, meso_tn1, meso_tgn1);
     const double zhm14 = zhm28;
     //  Net density at Alt
+   //printf("\tcall to dnet(d7=%.15f, dm14=%.5f, zhm14=%.5f, xmm=%.5f, 14)\n",outd[7], dm14, zhm14, xmm);
     outd[7] = dnet(outd[7], dm14, zhm14, xmm, 14e0);
-   printf("\tcall to dnet(dm14=%.5f, zhm14=%.5f, xmm=%.5f, 14)\n", dm14, zhm14, xmm);
-  printf("\td7=%20.15f\n", outd[7]);
+  //printf("\td7=%20.15f\n", outd[7]);
     //   Correction to specified mixing ratio at ground
     const double rl =
         std::log(b28 * pdm[6][1] * std::sqrt(pdl[0][2] * pdl[0][2]) / b14);
-    printf("\tlog(b28=%.7f, pdm[6][1]=%.7f, pdl[0][2]=%.7f, b14=%.7f\n", b28, pdm[6][1], pdl[0][2], b14);
+    //printf("\tlog(b28=%.7f, pdm[6][1]=%.7f, pdl[0][2]=%.7f, b14=%.7f\n", b28, pdm[6][1], pdl[0][2], b14);
     const double hc14 = pdm[6][5] * pdl[0][1];
     const double zc14 = pdm[6][4] * pdl[0][0];
     outd[7] *= ccor(z, rl, hc14, zc14);
-  printf("\tcall to ccor(z=%.5f, rl=%.5f, hc14=%.5f, zc14=%.5f)=%.10f\n",z,rl,hc14,zc14,ccor(z,rl,hc14,zc14));
-  printf("\td7=%20.15f\n", outd[7]);
+  //printf("\tcall to ccor(z=%.5f, rl=%.5f, hc14=%.5f, zc14=%.5f)=%.10f\n",z,rl,hc14,zc14,ccor(z,rl,hc14,zc14));
+  //printf("\td7=%20.15f\n", outd[7]);
     //   Chemistry correction
     const double hcc14 = pdm[6][7] * pdl[0][4];
     const double zcc14 = pdm[6][6] * pdl[0][3];
     const double rc14 = pdm[6][3] * pdl[0][5];
     //  Net density corrected at Alt
     outd[7] *= ccor(z, rc14, hcc14, zcc14);
-  printf("\td7=%20.15f\n", outd[7]);
+  //printf("\td7=%20.15f\n", outd[7]);
   }
 
   // Anomalous oxygen density
@@ -2042,7 +2061,7 @@ void dso::air_density_models::nrlmsise00::gtd7(
 
   // HE density
   dmr = outd[0] / (dz28 * pdm[0][1]) - 1e0;
-  outd[0] *= (pdm[0][1] * (1e0 + dmr * dmc));
+  outd[0] = outd[2] * (pdm[0][1] * (1e0 + dmr * dmc));
 
   // O density
   outd[1] = 0e0;
