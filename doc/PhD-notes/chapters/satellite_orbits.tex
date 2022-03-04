@@ -112,8 +112,41 @@ The cause of drag is the atmospheric particles, which retard the satellite's mot
 Calculating density is extremely complex for real-world problems.
 
 \subsection{Acceleration Due to Drag}
-The basic equation for aerodynamic drag combines several factors; I'm showing it here
-as a specific force or acceleration (\cite{Vallado}):
+\label{ssec:acceleration-due-to-drag}
+Assuming furthermore that the
+atmosphere is co-rotating with the Earth (an assumption in essence ignoring
+winds) and neglecting the thermal motion of the molecules, it is relatively
+easy to calculate the transfer of linear momentum from the atmosphere to the
+satellite: During a short time interval \(\Delta t\) the velocity \(\dot{\vec{r_{rel}}}\) 
+of the satellite relative to the particles may be assumed constant. Assuming furthermore that
+all molecules and atoms encountered by the satellite's cross section normal 
+to \(\dot{\vec{r_{rel}}}\) are absorbed by the satellite, the linear momentum lost by the satel-
+lite equals the product of the volume \(A \Delta t \lvert \dot{\vec{r_{rel}}} \rvert \) 
+of the cylinder with height \(\Delta t \dot{\vec{r_{rel}}} \)  and ground surface \(A\) 
+with the density \(\rho(\vec{r})\) and the velocity \(- \dot{\vec{r_{rel}}} \) of the
+molecules relative to the satellite at the current position of the satellite. The
+loss of linear momentum by the satellite may thus be computed as \cite{BeutlerVII}:
+\begin{equation}
+    \Delta \rho = - \rho(\vec{r}) A {\dot{\vec{r_{rel}}}}^2 \Delta t 
+    \frac{\dot{\vec{r_{rel}}}}{\lvert \dot{\vec{r_{rel}}} \rvert}
+\end{equation}
+
+The velocity change experienced during the time interval \(\Delta t\) is obtained by
+dividing this expression through the time interval \(\Delta t\) and the mass of the
+satellite \(m\). The acceleration of the satellite due to drag is obtained by
+the limit-process \(\Delta t \to 0\) and reads as \cite{BeutlerVII}:
+\begin{equation}
+    \alpha_{d} = - \rho(\vec{r}) \frac{A}{m} {\dot{\vec{r_{rel}}}}^2 
+    \frac{\dot{\vec{r_{rel}}}}{\lvert \dot{\vec{r_{rel}}} \rvert}
+\end{equation}
+
+The assumptions made so far, are not fully met in reality: Only a
+fraction of the particles is actually absorbed by the satellite, the rest is re-
+ﬂected by the satellite's surface. In order to take such eﬀects into account we
+have to know the shape and the attitude of the satellite, except for satellites
+with rotational symmetry w.r.t. the velocity vector in the Earth-ﬁxed system.
+
+The basic equation for aerodynamic drag can thus be more generaly formulated as (\cite{Vallado}):
 \begin{equation}
     \label{eq:val828}
     \ddot{\vec{r}} = -\frac{1}{2} \frac{c_D A}{m} \rho 
@@ -124,12 +157,18 @@ as a specific force or acceleration (\cite{Vallado}):
 where:
 \begin{itemize}
     \item \(c_D\) is the coefficient of drag; a dimensionless quantity which reflects 
-    the satellite's susceptibility to drag forces. 
+    the satellite's susceptibility to drag forces. For spherical satellites (independent of the
+fraction of absorbed and reﬂected particles) and for satellites absorbing all
+molecules hitting the satellite, the coefficient is \(c_D = 2\). In general one may assume 
+that \cite{BeutlerVII}
+\begin{equation}
+    2 \leq c_D \leq 2.5
+\end{equation}
     \item \(\rho\) is the atmospheric density which indicates how dense the atmosphere 
     is at the satellite altitude and is perhaps the most difficult parameter to determine.
     \item \(A\) is the cross-sectional area, defined to be the area which is normal 
     to the satellite's velocity vector.
-    \item \(m/(c_D A)\) is called the ballistic coefficient.
+    \item \(m/(c_D A)\) is called the \emph{ballistic coefficient}.
 \end{itemize}
 The direction of the drag acceleration is always (anti-)parallel to the relative 
 velocity vector, indicated by the unit vector 
@@ -176,6 +215,114 @@ Numerous density models have been developed over the past few decades to find de
 both static and time-varying, to satisfy differing accuracy models.
 \begin{itemize}
     \item \emph{Exponential Model (0-1000 km)}, simple, static model assumes the density of the atmosphere decays exponentially
-    with increasing altitude.
-    \item \emph{NRLMSIS-00 (0-2000 km)}\cite{nrlmsise00}, quite accurate and has been successfully applied to many stressing problems.
+    with increasing altitude. Locally, density variation may be accounted for by the barometric formula
+    \begin{equation}
+        \rho (h) = {\rho}_0  e^{-\frac{h-h_0}{H_0}}
+    \end{equation}
+    where \({\rho}_0\) is the density at the reference height \(h_0\) and \(H_0\) 
+    is the scaling height at \(h_0\) (see \cite{Vallado} for values of the coefficients).
+    \item \emph{NRLMSIS-00 (0-2000 km)}\cite{nrlmsise00}, quite accurate and has 
+    been successfully applied to many stressing problems.
 \end{itemize}
+
+\section{Radiation Pressure}
+\subsection{Solar Radiation and Radiation Pressure}
+Quantum mechanics says that each photon of frequency \(\nu\) and wavelength
+\(\lambda = c / \nu\) (where \(c\) is the speed of light in vacuum) carries the energy
+\begin{equation}
+    E = h \nu
+\end{equation}
+and the linear momentum
+\begin{equation}
+    \vec{p} = \frac{h \nu}{c} \vec{e}
+\end{equation}
+where \(h=6.62\cdot10^{-34}\) Js is Planck's constant and \(\vec{e}\) is the unit 
+vector of the propagation of the photon.
+
+The momentum transferred per time unit onto a unit surface in a radiation
+ﬁeld is called radiation pressure (hence a vectorial quantity).
+
+In a general radiation ﬁeld it may be quite an elaborate task to calculate
+the radiation pressure acting on a surface element. The underlying principle
+is simple, however (the subsequent elaboration follows \cite{BeutlerVII}): 
+We have to calculate the change \(\Delta \vec{p} = \vec{p}_a -\vec{p}_b\) of 
+linear momentum \(\vec{p}\) for each of the photons hitting the surface element 
+\(S\) (the index \(b\) characterizes the momentum before, \(a\) that after hitting the surface).
+The momentum transferred to the surface element must be 
+\(\vec{p_s} \equiv - \Delta \vec{p} = \vec{p}_b -\vec{p}_a \).
+After having computed the momentum transferred by each of the photons
+we simply have to compute the vectorial sum of the momenta \(\vec{p_s}\).
+
+According to the law of conservation of linear momentum \(-\Delta \vec{p}\) is 
+the momentum gained by the surface element. If the photon is absorbed by the surface, 
+\(\vec{p}_a = 0\) and the surface gains the momentum \({\vec{p}}_{abs} = \vec{p}_b\).
+If the photon is reﬂected by the surface, the photon is reﬂected according to Snellius' law
+of reﬂection. The surface gains linear momentum normal to its surface with
+absolute value \(2 \lvert \vec{p}_b \rvert cos\alpha = \lvert {\vec{p}}_{ref} \rvert\).
+
+The primary radiation source to be considered in satellite geodesy is the
+Sun. The radiation pressure due to the direct solar radiation is also referred
+to as \emph{direct radiation pressure}. Other sources of radiation are the Earth, which
+reﬂects and/or re-emits the radiation received by the Sun, or to a much lesser
+extent, the Moon, reﬂecting the solar radiation.
+
+The radiation ﬁeld due to the direct solar radiation may be considered as
+parallel to the direction \(Sun \to Satellite\). Consequently, the momentum trans-
+ferred per second to a unit surface normal to this direction may be expressed
+by the solar constant \(S = \SI{1368}{\watt\per\square\m}\), giving the energy ﬂowing through this surface per
+time unit at the distance of \SI{1}{\astronomicalunit}.
+
+If 100\% of the radiation is absorbed,  the linear momentum
+\begin{equation}
+    \vec{p} = \frac{S}{c} \vec{e}
+\end{equation}
+is gained in one second by a surface element of \SI{1}{\square\metre} normal to 
+the direction \(Sun \to Satellite\) element at \SI{1}{\astronomicalunit}. The 
+absolute value of the vector is
+\begin{equation}
+    \lvert \vec{p} \rvert = \frac{S}{c} = \SI{4.56316e-6}{\N\per\square\m}
+\end{equation}
+Obviously, the surface of the cross section of the satellite normal to the 
+direction \(Sun \to Satellite\) and the mass \(m\) of the satellite play the same roles as 
+the corresponding quantities when dealing with drag (\ref{ssec:acceleration-due-to-drag}).
+
+Assuming rotational symmetry of the satellite w.r.t. the axis \(Sun \to Satellite\), 
+the acceleration due to the direct solar radiation may be written as (\cite{BeutlerVII})
+\footnote{Note that \cite{Vallado} uses an alternate formulation for \ref{eq:beutler3142}, 
+namely: \( \vec{\alpha}_{srp} =  - \frac{p_{srp} C_R A_{\Sun}}{m} \frac{{\vec{r}}_{sat\Sun}}{\lvert {\vec{r}}_{sat\Sun} \rvert} \), 
+where \(p_{srp} \approx \SI{4.57e-6}{\N\per\square\m}\) is the solar pressure force 
+per unit area, or the change in momentum, \(C_R\) is the \emph{reflectivity} and 
+\(A_{\Sun}\) the exposed area to the Sun. Determining \(C_R\) is extremely
+difficult. It changes over time and is virtually impossible to predict. This is especially
+true for complex satellites made of various materials, that enter and exit eclipse regions,
+and have a constantly changing orientation. For this reason, it's almost always a solution
+parameter, determined in differential correction (just like the drag coefficient).}:
+\begin{equation}
+    \label{eq:beutler3142}
+    {\vec{\alpha}}_{rad} = \frac{\tilde{C}}{2} 
+    \frac{{AU}^2}{{\lvert \vec{r} - \vec{r_{\Sun}} \rvert}^2}
+    \frac{S}{c} \frac{A}{m}
+    \frac{\vec{r} - \vec{r_{\Sun}}}{\lvert \vec{r} - \vec{r_{\Sun}} \rvert}
+\end{equation}
+where:
+\begin{itemize}
+\item[\(\tilde{C}\)] depends on the reﬂective properties of the satellite surface,
+\item[\(\vec{r}\)] is the geocentric position vector of the satellite,
+\item[\(\vec{r_{\Sun}}\)] is the geocentric position vector of the Sun,
+\item[\(AU\)] is the Astronomical Unit,
+\item[\(m\)] is the mass of the satellite, and
+\item[\(A\)] is the cross section of the satellite normal to the direction \(Sun \to Satellite\)
+\end{itemize}
+
+Rotational symmetry w.r.t. the axis \(Sun \to Satellite\) may not always
+be assumed. Nevertheless, formula \ref{eq:beutler3142} is in practice an excellent ﬁrst-
+order approximation to take radiation pressure into account. If the radiation
+is mainly absorbed (as it should be the case, e.g., for solar panels), formula 
+\ref{eq:beutler3142} is correct for satellites of arbitrary shape (\cite{BeutlerVII}).
+Note that in contrast to atmospheric drag, direct radiation pressure practically does 
+not depend on the height of the satellite above the Earth's surface. This is one of 
+the reasons why radiation pressure is the dominating non-gravitational perturbation 
+above heights of about \SI{600}{\km} (\cite{BeutlerVII}).
+
+Radiation pressure obviously is ``turned oﬀ'' if the radiation is blocked by an 
+``obstacle'', i.e the Moon or Earth, between the Sun and the satellite. 
