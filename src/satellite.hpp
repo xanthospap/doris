@@ -4,6 +4,33 @@
 #include "iers2010/matvec.hpp"
 #include "iers2010/iersc.hpp"
 
+namespace utest{
+
+/// @brief Computes the fractional illumination of a spacecraft in the vicinity 
+///        of the Earth assuming a cylindrical shadow model
+/// @param[in] r_sat Spacecraft position vector [m]
+/// @param[in] r_sun Sun position vector [m]
+/// @return 0: Spacecraft in Earth shadow; anything other than 0, means that
+///            Spacecraft is illuminated by the Sun
+/// @ref "Study of satellite shadow function model considering the overlapping 
+/// parts of Earth shadow and Moon shadow and its application to GPS satellite 
+/// orbit determination", Zhang et al, 2018
+double conical_shadow(const dso::Vector3 &r_sat,
+                                const dso::Vector3 &r_sun) noexcept;
+
+/// @brief Computes the fractional illumination of a spacecraft in the vicinity 
+///        of the Earth assuming a cylindrical shadow model
+/// @param[in] r_sat Spacecraft position vector [m]
+/// @param[in] r_sun Sun position vector [m]
+/// @return 0: Spacecraft in Earth shadow; anything other than 0, means that
+///            Spacecraft is illuminated by the Sun
+/// @note Only has two states, 1 or 0
+/// @ref Satellite
+double montebruck_shadow(const dso::Vector3 &r_sat,
+                                const dso::Vector3 &r_sun) noexcept;
+
+}//utest
+
 namespace dso {
   /// @brief Calculate the right ascension α and declination δ from position
   ///        vector.
