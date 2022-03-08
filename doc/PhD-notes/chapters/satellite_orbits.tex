@@ -326,3 +326,59 @@ above heights of about \SI{600}{\km} (\cite{BeutlerVII}).
 
 Radiation pressure obviously is ``turned oﬀ'' if the radiation is blocked by an 
 ``obstacle'', i.e the Moon or Earth, between the Sun and the satellite. 
+
+\section{Satellite Eclispes and Earth Shadow}
+\begin{figure}
+\centering
+\begin{tikzpicture}
+    \coordinate (Sun) at (-1,0);
+    \coordinate (Earth) at (6,0);
+    \coordinate (SunTop) at (-1,2);
+    \coordinate (SunBottom) at (-1,-2);
+    \coordinate (EarthTop) at (6,0.7);
+    \coordinate (EarthBottom) at (6,-0.7);
+    \coordinate (Vertex) at (9.769, 0.000);
+    \coordinate (PenUmbraTop) at (9.769, 2.154);
+    \coordinate (PenUmbraBottom) at (9.769, -2.154);
+
+    % First fill regions cause we we will be willing to overide ...
+    % Penumbra Region ...
+    \draw[fill=black!5] (EarthTop) -- (PenUmbraTop) -- (PenUmbraBottom) -- (EarthBottom);
+    % Umbra Region ...
+    \draw[fill=black!20] (EarthTop) -- (Vertex) -- (EarthBottom);
+
+    % Sun
+    \filldraw[color=yellow!60, fill=yellow!4, thick] (Sun) circle (2.0);
+    \filldraw [gray] (Sun) circle (1pt);
+    \node[] at ($(Sun)-(0,0.2)$) {Sun};
+    % Earth
+    \filldraw[color=red!60, fill=red!5, very thick] (Earth) circle (0.7);
+    \filldraw[gray] (Earth) circle (1pt);
+    \node[] at ($(Earth)-(0,0.2)$) {Earth};
+    % Orbit
+    \draw (Earth) ellipse (1.5 and 1.6);
+    % Vertex
+    \draw[thick] ($(Sun)-(2,0)$) -- (Vertex);
+    \filldraw [gray] (Vertex) circle (2pt);
+    \node[] at ($(Vertex)-(0.1,0.3)$) {Vertex};
+    % Vertical End
+    \draw[thick] (PenUmbraBottom) -- (PenUmbraTop);
+    % Umbra Lines
+    \draw[color=violet,thin] ($(Sun)-(0,2)$) -- (Vertex);
+    \draw[color=violet,thin] ($(Sun)+(0,2)$) -- (Vertex);
+    \node[] at ($(Earth)+(1.35,0.2)$) {Umbra};
+    % PenUmbra Lines
+    \draw[color=violet,thin] ($(Sun)-(0,2)$) -- (PenUmbraTop);
+    \draw [color=violet,thin] ($(Sun)+(0,2)$) -- (PenUmbraBottom);
+    \node[] at ($(PenUmbraTop)-(0.9,1.0)$) {Penumbra};
+
+    % Outer tangent, Sun
+    \draw[fill=gray] (-0.9469, -1.9993) circle (2pt);
+    \draw[fill=gray] (-1.0531, 1.9993) circle (2pt);
+    % Ouer tangent, Earth
+    \draw[fill=gray] (6.0186, -0.6998) circle (2pt);
+    \draw[fill=gray] (5.9814, 0.6998) circle (2pt);
+\end{tikzpicture}
+\caption{Eclipse Geometry; scales are greatly exaggerated}
+\label{fig:eclipse-geometry}
+\end{figure}
