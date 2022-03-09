@@ -336,12 +336,48 @@ Examining \ref{fig:eclipse-geometry}, we are interested in two main regions: the
 \emph{umbra} is totally eclipsed by the primary body (Earth); the \emph{penumbra} 
 is only partially obscured by the primary.
 \begin{equation}
-    \sin({\alpha}_{umb}) = \frac{r_S - r_E}{R}
+    \sin({\alpha}_{umb}) = \frac{r_S - r_E}{R} \text{ and }
+    \sin({\alpha}_{pen}) = \frac{r_S + r_E}{R}
+\end{equation}
+
+If we consider the the primary (or occulting) body to be the Earth and the 
+secondary body to be the Sun, then:
+\begin{equation}
+    \sin({\alpha}_{umb}) = \frac{r_{\Sun} - r_{\Earth}}{R_{\Earth\Sun}} 
+    \Rightarrow {\alpha}_{umb} \approx \SI{0.264}{\degree}
+    \text{ and }
+    \sin({\alpha}_{pen}) = \frac{r_{\Sun} + r_{\Earth}}{R_{\Earth\Sun}}
+    \Rightarrow {\alpha}_{pen} \approx \SI{0.269}{\degree}
 \end{equation}
 
 \begin{figure}
 \centering
 \input{tikz/eclipse-geometry.tikz}
-\caption{Eclipse Geometry; scales are greatly exaggerated}
+\caption{Eclipse Geometry; \emph{scales are greatly exaggerated}}
 \label{fig:eclipse-geometry}
 \end{figure}
+
+The distance from the occulting planet to the vertex (\(V\)) can be found via 
+using the similar triangles (see \ref{fig:eclipse-geometry}):
+\begin{equation}
+    \label{eq:val501}
+    \frac{\overline{EV}}{r_{E}} = \frac{\overline{SV}}{r_S} \Rightarrow \overline{EV} = \overline{SV} \frac{r_E}{r_S}
+\end{equation}
+We know the (ralative) position of the two (primary and secondary) planets, hence:
+\(\overline{SV} = R + \overline{EV}\); substituting into \ref{eq:val501} yields:
+\begin{align*}
+    \label{eq:val51}
+    \overline{EV} &= R \frac{r_E}{r_S} + \overline{EV} \frac{r_E}{r_S} \\
+    \overline{EV} (1-\frac{r_E}{r_S}) &= R \frac{r_E}{r_S} \\
+    \overline{EV} &= R \frac{r_E}{r_S - r_E}
+\end{align*}
+
+Using values for the Earth and the Sun, we find \(\overline{PV}\) to 
+be \SI{1.384e6}{\km}. This is almost four times the distance from the 
+Earth to the Moon (\SI{3.8268e5}{\km}) (\cite{Vallado}). Hence, it comes as little surprise 
+that the Earth's shadow sometimes completely obscures the Moon, causing a 
+lunar eclipse. Using values for the Moon and the Sun, 
+\ref{eq:val51} yields a value of about \SI{3.735e5}{\km} (\cite{Vallado}) 
+which is not too far from the Earth-Moon distance (approximately 
+\SI{3.844e5}{\km}). When the Moon obscures part of the Earth's surface with its 
+shadow, it causes a \emph{solar eclipse}.

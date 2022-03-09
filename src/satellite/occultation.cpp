@@ -4,6 +4,35 @@
 #include <cstdio>
 #endif
 
+double utest::vallado_shadow(const dso::Vector3 &r_sat,
+                                const dso::Vector3 &r_sun) noexcept {
+  const double product = r_sat.dot_product(r_sun);
+  if (product>=0) return 1e0;
+
+  const double r = r_sat.norm();
+  const double s = r_sun.norm();
+  const double cosz = product / (r * s);
+  const double zeta = std::acos(cosz);
+  const double sinz = std::sin(zeta);
+  const double sath = r * cosz;
+  const double satv = r * sinz;
+  constexpr const double sinApen = (iers2010::Rs + iers2010::Re) / iers2010::AU;
+  constexpr const double Apen = std::asin(sinApen);
+  constexpr const double tanApen = std::tan(Apen);
+  constexpr const double x = iers2010::Re / sinApen;
+  const double penv = tanApen * (x+sath);
+  if (satv<=penv) {
+    // penumbra ...
+    constexpr const double sinAumb = (iers2010::Rs - iers2010::Re) / iers2010::AU;
+    constexpr const double y = iers2010::Re / sinAumb;
+    constexpr const double Aumb = std::asin(sinAumb);
+    constexpr const double tanAumb = std::tan(Aumb);
+    const double umbv = tanAumb * (y-sath);
+    return (satv<=umbv) ? 0 : 0.5e0;
+  }
+  return 1;
+}
+
 double utest::montebruck_shadow(const dso::Vector3 &r_sat,
                                 const dso::Vector3 &r_sun) noexcept {
   auto unitvec_sun = r_sun / r_sun.norm();
