@@ -88,24 +88,24 @@ Main source code for the above is developed within the
 \end{itemize}
 repositories.
 
-The main function that does the work, is:
-\begin{lstlisting}
-#if __cplusplus >= 202002L
-template <typename T>
-    requires(T::is_of_sec_type && !std::is_same_v<T, dso::microseconds>)
-#else
-template <class T,
-          typename = std::enable_if_t<(T::is_of_sec_type) &&
-                                      (!std::is_same_v<T, dso::microseconds>)>>
-#endif
-int extrapolate_sinex_coordinates(
-            const char *snx_fn, char **site_ids, int num_sites,
-            const dso::datetime<T> &t) noexcept {
-    dso::datetime<dso::microseconds> t_micro =
-    t.template cast_to<dso::microseconds>();
-return extrapolate_sinex_coordinates(snx_fn, site_ids, num_sites, t_micro);
-}
-\end{lstlisting}
+%The main function that does the work, is:
+%\begin{lstlisting}
+%#if __cplusplus >= 202002L
+%template <typename T>
+%    requires(T::is_of_sec_type && !std::is_same_v<T, dso::microseconds>)
+%#else
+%template <class T,
+%          typename = std::enable_if_t<(T::is_of_sec_type) &&
+%                                      (!std::is_same_v<T, dso::microseconds>)>>
+%#endif
+%int extrapolate_sinex_coordinates(
+%            const char *snx_fn, char **site_ids, int num_sites,
+%            const dso::datetime<T> &t) noexcept {
+%    dso::datetime<dso::microseconds> t_micro =
+%    t.template cast_to<dso::microseconds>();
+%return extrapolate_sinex_coordinates(snx_fn, site_ids, num_sites, t_micro);
+%}
+%\end{lstlisting}
 
 The following example (\href{https://github.com/xanthospap/doris/blob/main/test/test\_pdop\_crd.cc}{test\_pdop\_crd.cc}) 
 extrapolates the coordinates of all the sites recorded in a DORIS RINEX file using a DPOD 
@@ -114,4 +114,4 @@ SINEX file. It is tested with the following SINEX files:
     \item dpod2014\_053.snx
 \end{itemize}
 
-\codelst{source/test_pdop_crd.cc}
+%\codelst{source/test_pdop_crd.cc}

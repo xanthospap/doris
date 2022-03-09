@@ -1,5 +1,13 @@
 #! /usr/bin/python
 
+##
+## script to create the Eclipse Geometry figure, contained in the manuscript
+## the figure will be contained within a '\begin{}..\end{tikzpicture}' block
+## Variables to set are (defined at line ~90):
+## S = TzPoint(-1e0, 0e0); rs = 2.5e0; -->  Main body/planet
+## E = TzPoint(8e0, 0e0); re = 0.9e0   --> OCculting body/planet
+##                                                                       xanthos
+
 import math
 
 class TzPoint:
@@ -11,7 +19,7 @@ class TzPoint:
   def __sub__(self, other):
     return TzPoint(self.x-other.x, self.y-other.y)
   def __str__(self):
-    return "({:.4f}, {:.4f})".format(self.x, self.y)
+    return "({:.6f}, {:.6f})".format(self.x, self.y)
   def distance(self, other):
     return math.sqrt((self.x-other.x)*(self.x-other.x) + (self.y-other.y)*(self.y-other.y))
 
@@ -78,8 +86,11 @@ def lineIntersectCircle(A1,B1,C,r):
   sol2 = TzPoint(x,y)
   return sol1, sol2
 
-S = TzPoint(-1e0, 0e0); rs = 2e0
-E = TzPoint(6e0, 0e0); re = 0.7e0;
+tof = 0.2
+S = TzPoint(-1e0, 0e0); rs = 2.5e0;
+E = TzPoint(8e0, 0e0); re = 0.9e0;
+
+print("\\begin{tikzpicture}")
 OTS1, OTE1 = outer_tangents(S,rs,E,re)
 OTS2, OTE2 = outer_tangents(S,rs,E,re,'d')
 V = vertex(OTS1, OTE1, OTS2, OTE2)
@@ -107,12 +118,14 @@ print("\\coordinate (K) at {:};".format(K))
 print("\\draw[fill=black!5] (ITE1) -- (V1) -- (V2) -- (ITE2);")
 print("\\draw[fill=black!20] (OTE1) -- (V) -- (OTE2);")
 
-print("\\node[] at (Sun) {Sun};")
-print("\\filldraw[color=yellow!60, fill=yellow!4, thick] (Sun) circle (2.0);")
+print("\\filldraw[color=yellow!60, fill=yellow!4, thick] (Sun) circle ({:.5f});".format(rs))
 print("\\filldraw[gray] (Sun) circle (1pt);")
-print("\\node[] at (Earth) {Earth};")
-print("\\filldraw[color=red!60, fill=red!5, very thick] (Earth) circle (0.7);")
+print("\\node[] at {:} {{S}};".format(S+TzPoint(-tof,-tof)))
+
+print("\\filldraw[color=red!60, fill=red!5, very thick] (Earth) circle ({:.5f});".format(re))
 print("\\filldraw[gray] (Earth) circle (1pt);")
+print("\\node[] at {:} {{E}};".format(E+TzPoint(-tof/2e0,-tof)))
+
 print("%\\node[] at (OTS1) {OTS1};")
 print("%\\filldraw[gray] (OTS1) circle (1pt);")
 print("%\\node[] at (OTE1) {OTE1};")
@@ -121,8 +134,10 @@ print("%\\node[] at (OTS2) {OTS2};")
 print("%\\filldraw[gray] (OTS2) circle (1pt);")
 print("%\\node[] at (OTE2) {OTE2};")
 print("%\\filldraw[gray] (OTE2) circle (1pt);")
-print("\\node[] at (V) {V};")
+
 print("\\filldraw[gray] (V) circle (1pt);")
+print("\\node[] at {:} {{V}};".format(V+TzPoint(tof,-tof)))
+
 print("%\\node[] at (ITS1) {ITS1};")
 print("%\\filldraw[gray] (ITS1) circle (1pt);")
 print("%\\node[] at (ITE1) {ITE1};")
@@ -141,19 +156,23 @@ print("%\\filldraw[gray] (V2) circle (1pt);")
 print("\\draw[] (ITS2) -- (ITE2) -- (V2);")
 print("\\draw[] {:} -- (V);".format(SL))
 print("\\draw[] (V1) -- (V2);")
-print("\\node[] at (K) {K};")
+
 print("\\filldraw[gray] (K) circle (1pt);")
+print("\\node[] at {:} {{K}};".format(K+TzPoint(-tof/3e0,-tof)))
+
 yputitle = (V1.y - V.y)*(2e0/3e0) + V.y
 xputitle = V.x - (V.x - E.x)*(1e0/3e0)
 Penumbra_tilte = TzPoint(xputitle, yputitle)
 print("\\node[] at {:} {{PenUmbra}};".format(Penumbra_tilte))
 
-print("\\pic[orange, \"${\\alpha}_{umb}$\", draw=orange, <->, angle eccentricity=1.2, angle radius=1cm]{angle = OTE1--V--Earth};")
+print("\\pic[orange, \"${\\alpha}_{umb}$\", draw=orange, angle eccentricity=1.5, angle radius=1.2cm]{angle = OTE1--V--Earth};")
+print("\\tkzFillAngle[size=1, fill=orange](OTE1,V,Earth)")
 print("\\pic[orange, \"${\\alpha}_{pen}$\", draw=orange, <->, angle eccentricity=1.2, angle radius=1cm]{angle = Earth--K--ITE1};")
 Kproj1 = TzPoint(K.x, OTS2.y)
 print("\\coordinate (KAumb) at {:};".format(Kproj1))
 print("\\draw[thin,gray,dashed] (OTS2) -- (KAumb);")
-print("\\pic[orange, \"${\\alpha}_{umb}$\", draw=orange, <->, angle eccentricity=1.2, angle radius=1cm]{angle = KAumb--OTS2--OTE2};")
+print("\\pic[orange, \"${\\alpha}_{umb}$\", draw=orange, -, angle eccentricity=1.5, angle radius=1.2cm]{angle = KAumb--OTS2--OTE2};")
+
 Kproj2 = TzPoint(K.x, ITS1.y)
 print("\\coordinate (KApen) at {:};".format(Kproj2))
 print("\\draw[thin,gray,dashed] (ITS1) -- (KApen);")
@@ -165,14 +184,19 @@ print("\\tkzMarkRightAngle[draw=gray,size=.2](K,ITS1,Sun);")
 print("\\draw[thin,gray,dashed] (Earth) -- (OTE1);")
 print("\\tkzMarkRightAngle[draw=gray,size=.1](V,OTE1,Earth);")
 
-RsRe1,RsRe2 = lineIntersectCircle(S,OTS1,OTS1,re)
-#slope_, coef = points2line(OTS1,OTE1)
-## must pass through Earth ...
-#b_ = E.y - slope_*E.x
-#slope, coef = points2line(S,OTS1)
-#x_ = (coef - b_) / (slope_-slope)
-#y_ = slope_ * x_ + b_
-#RsRe1 = TzPoint(x_,y_)
-print("\\draw[thin,gray,dashed] (Earth) -- {:};".format(RsRe1))
-print("\\draw[thin,gray,dashed] (Earth) -- {:};".format(RsRe2))
-print("\\filldraw[color=gray] {:} circle ({:});".format(S,re))
+# RsRe1,RsRe2 = lineIntersectCircle(S,OTS1,OTS1,re)
+slope_, coef = points2line(OTS1,OTE1)
+# must pass through Earth ...
+b_ = E.y - slope_*E.x
+slope, coef = points2line(S,OTS1)
+x_ = (coef - b_) / (slope_-slope)
+y_ = slope_ * x_ + b_
+RsRe1 = TzPoint(x_,y_)
+print("\\coordinate (RsRe1) at {:};".format(RsRe1))
+print("\\draw[thin,gray,dashed] (Earth) -- (RsRe1);")
+print("\\tkzFillAngle[size=1, fill=orange](RsRe1,Earth,K)")
+print("\\tkzDrawSegment[style=black, dashed, dim={$r_S$,15pt,midway,rotate=-90}](Sun,OTS1)")
+print("\\tkzDrawSegment[style = black, dashed, dim = {$r_E$, 10pt, midway, rotate = -90}](RsRe1, OTS1)")
+print("\\tkzDrawSegment[style = black, dashed, dim = {{$R$, -{:}pt, midway, rotate = 0}}](Sun,Earth)".format(5*rs))
+
+print("\\end{tikzpicture}")

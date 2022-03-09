@@ -336,84 +336,12 @@ Examining \ref{fig:eclipse-geometry}, we are interested in two main regions: the
 \emph{umbra} is totally eclipsed by the primary body (Earth); the \emph{penumbra} 
 is only partially obscured by the primary.
 \begin{equation}
-    \sin({\alpha}_{umb}) = 
+    \sin({\alpha}_{umb}) = \frac{r_S - r_E}{R}
 \end{equation}
 
 \begin{figure}
 \centering
-\begin{tikzpicture}
-    \coordinate (Sun) at (-1.0000, 0.0000);
-\coordinate (Earth) at (6.0000, 0.0000);
-\coordinate (OTS1) at (-0.6286, 1.9652);
-\coordinate (OTE1) at (6.1300, 0.6878);
-\coordinate (OTS2) at (-0.6286, -1.9652);
-\coordinate (OTE2) at (6.1300, -0.6878);
-\coordinate (V) at (9.7692, 0.0000);
-\coordinate (ITS1) at (-0.2286, -1.8452);
-\coordinate (ITE1) at (5.7300, 0.6458);
-\coordinate (ITS2) at (-0.2286, 1.8452);
-\coordinate (ITE2) at (5.7300, -0.6458);
-\coordinate (V1) at (9.7692, 2.3345);
-\coordinate (V2) at (9.7692, -2.3345);
-\coordinate (K) at (4.1852, 0.0000);
-\draw[fill=black!5] (ITE1) -- (V1) -- (V2) -- (ITE2);
-\draw[fill=black!20] (OTE1) -- (V) -- (OTE2);
-\node[] at (Sun) {Sun};
-\filldraw[color=yellow, fill=yellow!4, thick] (Sun) circle (2.0);
-\filldraw[gray] (Sun) circle (1pt);
-\node[] at (Earth) {Earth};
-\filldraw[color=red!60, fill=red!5, very thick] (Earth) circle (0.7);
-\filldraw[gray] (Earth) circle (1pt);
-%\node[] at (OTS1) {OTS1};
-%\filldraw[gray] (OTS1) circle (1pt);
-%\node[] at (OTE1) {OTE1};
-%\filldraw[gray] (OTE1) circle (1pt);
-%\node[] at (OTS2) {OTS2};
-%\filldraw[gray] (OTS2) circle (1pt);
-%\node[] at (OTE2) {OTE2};
-%\filldraw[gray] (OTE2) circle (1pt);
-\node[] at (V) {V};
-\filldraw[gray] (V) circle (1pt);
-%\node[] at (ITS1) {ITS1};
-%\filldraw[gray] (ITS1) circle (1pt);
-%\node[] at (ITE1) {ITE1};
-%\filldraw[gray] (ITE1) circle (1pt);
-%\node[] at (ITS2) {ITS2};
-%\filldraw[gray] (ITS2) circle (1pt);
-%\node[] at (ITE2) {ITE2};
-%\filldraw[gray] (ITE2) circle (1pt);
-\draw[] (OTS1) -- (OTE1) -- (V);
-\draw[] (OTS2) -- (OTE2) -- (V);
-\node[] at (V1) {V1};
-\filldraw[gray] (V1) circle (1pt);
-\draw[] (ITS1) -- (ITE1) -- (V1);
-\node[] at (V2) {V2};
-\filldraw[gray] (V2) circle (1pt);
-\draw[] (ITS2) -- (ITE2) -- (V2);
-\draw[] (-3.0000, 0.0000) -- (V);
-\draw[] (V1) -- (V2);
-\node[] at (K) {K};
-\filldraw[gray] (K) circle (1pt);
-\node[] at (8.5128, 1.5563) {PenUmbra};
-\pic[orange, "${\alpha}_{umb}$", draw=orange, <->, angle eccentricity=1.8, angle radius=1cm]{angle = OTE1--V--Earth};
-\pic[orange, "${\alpha}_{pen}$", draw=orange, <->, angle eccentricity=1.6, angle radius=1cm]{angle = Earth--K--ITE1};
-\coordinate (KAumb) at (4.1852, -1.9652);
-\draw[thin,gray,dashed] (OTS2) -- (KAumb);
-\pic[orange, "${\alpha}_{umb}$", draw=orange, <->, angle eccentricity=1.6, angle radius=1cm]{angle = KAumb--OTS2--OTE2};
-\coordinate (KApen) at (4.1852, -1.8452);
-\draw[thin,gray,dashed] (ITS1) -- (KApen);
-\pic[orange, "${\alpha}_{pen}$", draw=orange, <->, angle eccentricity=1.6, angle radius=1cm]{angle = KApen--ITS1--ITE1};
-\draw[thin,gray,dashed] (Sun) -- (OTS1);
-%\pic[draw,blue,thick,angle radius=0.5cm]{squared angle = OTE1--OTS1--Sun};
-\tkzMarkRightAngle[draw=gray,size=.3](OTE1,OTS1,Sun);
-\draw[thin,gray,dashed] (Sun) -- (ITS1);
-\tkzMarkRightAngle[draw=gray,size=.3](K,ITS1,Sun);
-\draw[thin,gray,dashed] (Earth) -- (OTE1);
-\tkzMarkRightAngle[draw=gray,size=.1](V,OTE1,Earth);
-\draw[thin,gray,dashed] (Earth) -- (-0.7586, 1.2774);
-\draw[thin,gray,dashed] (Earth) -- (-0.6857, 1.6631);
-%\tkzLabelAngle[dist=.5](K,ITS1,Sun){somename ...};
-\end{tikzpicture}
+\input{tikz/eclipse-geometry.tikz}
 \caption{Eclipse Geometry; scales are greatly exaggerated}
 \label{fig:eclipse-geometry}
 \end{figure}
