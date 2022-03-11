@@ -1,0 +1,28 @@
+\chapter{Technicalities}
+\label{ch:technicalities}
+
+\section{Constexpr Math}
+Currently (\today), the standard C++ library \texttt{math.h} does not offer trigonometric mathematical 
+functions qualified as \texttt{constexpr} (see \href{https://en.cppreference.com/w/cpp/header/cmath}{Standard library header \texttt{<cmath>}}).
+\texttt{constexpr} functions can spped-up computations by performing them at compile-time 
+(see \href{https://en.cppreference.com/w/cpp/language/constexpr}{\texttt{constexpr} keyword}). 
+The \href{https://gcc.gnu.org/onlinedocs/libstdc++/}{GNU C++ Library} implementation \texttt{libstdc++} 
+does offer such functions as an extension. It was however decided to not use these 
+extensions, because:
+\begin{itemize}
+    \item they do not conform to the standard,
+    \item we want to be able to build with any compiler and standard library implementation
+\end{itemize}
+
+Hence, we are using the \href{https://www.kthohr.com/gcem.html}{Generalized Constant Expression Math} 
+(\texttt{gsem}) library, when such functionality is needed.
+
+It is expected that in the near future, most of the standard mathematical functions 
+will be marked/implemented as \texttt{constexpr} (\cite{rostencpp}). When such functionality is 
+offered, the dependency on \texttt{gcem} should be dropped in favor of using the standard 
+functions.
+
+Source files affected:
+\begin{itemize}
+    \item \path{occultation.cpp}
+\end{itemize}
