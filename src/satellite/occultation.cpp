@@ -1,8 +1,14 @@
 #include "satellite.hpp"
 #include <cmath>
+#include "gcem.hpp" // for constexpr math (trigonometric funcs)
 #ifdef DEBUG
 #include <cstdio>
 #endif
+
+/// @file occultation.cpp
+/// @brief Satellite eclipse, shadow and occultation models
+/// @todo At the moment of writing, trigonometric std functions are not
+///       constexpr. When they are, drop dependendy of gcem
 
 double utest::vallado_shadow(const dso::Vector3 &r_sat,
                                 const dso::Vector3 &r_sun) noexcept {
@@ -17,16 +23,16 @@ double utest::vallado_shadow(const dso::Vector3 &r_sat,
   const double sath = r * cosz;
   const double satv = r * sinz;
   constexpr const double sinApen = (iers2010::Rs + iers2010::Re) / iers2010::AU;
-  constexpr const double Apen = std::asin(sinApen);
-  constexpr const double tanApen = std::tan(Apen);
+  constexpr const double Apen = /*std::asin(sinApen);*/ gcem::asin(sinApen);
+  constexpr const double tanApen = /*std::tan(Apen);*/ gcem::tan(Apen);
   constexpr const double x = iers2010::Re / sinApen;
   const double penv = tanApen * (x+sath);
   if (satv<=penv) {
     // penumbra ...
     constexpr const double sinAumb = (iers2010::Rs - iers2010::Re) / iers2010::AU;
     constexpr const double y = iers2010::Re / sinAumb;
-    constexpr const double Aumb = std::asin(sinAumb);
-    constexpr const double tanAumb = std::tan(Aumb);
+    constexpr const double Aumb = /*std::asin(sinAumb);*/ gcem::asin(sinAumb);
+    constexpr const double tanAumb = /*std::tan(Aumb);*/ gcem::tan(Aumb);
     const double umbv = tanAumb * (y-sath);
     return (satv<=umbv) ? 0 : 0.5e0;
   }
