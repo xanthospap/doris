@@ -26,3 +26,72 @@ Source files affected:
 \begin{itemize}
     \item \path{occultation.cpp}
 \end{itemize}
+
+The most common time scales used in astronomical computations, are:
+\begin{table}
+  \centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X c}
+  %\hline
+    \bf{Time-Scale} & \bf{Description} & \bf{Type} \\
+  \hline
+  \textbf{TAI}\\ \scriptsize{(International Atomic Time)} & The official timekeeping standard & Atomic \\
+  \textbf{UTC}\\ \scriptsize{(Coordinated Universal Time)} & The basis of civil time & Atomic/Solar hybrid \\
+  \textbf{UT1}\\ \scriptsize{(Universal Time)} & Based on Earth rotation & Solar \\
+  \textbf{TT}\\ \scriptsize{(Terrestrial Time)} & Used for solar system ephemeris look-up &  Dynamic \\
+  \textbf{TCG}\\ \scriptsize{(Geocentric Coordinate Time)} & Used for calculations centered on the Earth in space & Dynamic \\
+  \textbf{TCB}\\ \scriptsize{(Barycentric Coordinate Time)} & Used for calculations beyond Earth orbit; for most common cases, may be approximated by \textbf{TT} & Dynamic \\
+  \textbf{TDB}\\ \scriptsize{(Barycentric Dynamical Time)} & A scaled form of TCB that keeps in step with TT
+on the average & Dynamic \\
+  %\hline
+\end{tabularx}
+\caption{Common Time Scales used in Astronomical and Celestial Computations.}
+\end{table}
+
+Time scales that are obsolete, according to \cite{SOFA}, are:
+\begin{description}
+  \item[UT0, UT2]: specialist forms of universal time that take into account polar motion and
+known seasonal effects; no longer used.
+  \item[GMT] (Greenwich mean time): an obsolete time scale that can be taken to mean either
+UTC or UT1.
+  \item[ET] (ephemeris time): superseded by TT and TDB.
+  \item[TDT] (terrestrial dynamical time): the former name of TT.
+\end{description}
+
+Note that \emph{Sidereal time} ins not really a time scale but rather an angle. 
+The same can be said of UT1; however, the interrelation between UTC and UT1 makes 
+it clearer and more convenient to treat the latter as a time scale.
+
+Each of the time scales Each has a distinct role, and there are offsets of tens 
+of seconds between some of them. The transformation from one time scale to the next can take a number of forms. In some cases,
+for example TAI to TT, it is simply a fixed offset. In others, for example TAI to UT1, it is
+an offset that depends on observations and cannot be predicted in advance (or only partially).
+Some time scales, for example TT and TCG, are linearly related, with a rate change as well as an
+offset. Others, for example TCG and TCB, require a 4-dimensional spacetime transformation (\cite{SOFA}).
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\coordinate (UT1) at (-2,0);
+%\coordinate (DUT1) at (-2,1);
+\coordinate (UTC) at (-2,2);
+%\coordinate (DAT) at (-2,3);
+\coordinate (TAI) at (-2,4);
+\coordinate (TT) at (0,0);
+\coordinate (TCG) at (2,-2);
+\coordinate (TCB) at (2,-4);
+\coordinate (TDB) at (2,-6);
+
+\draw[black,thick] (UT1) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{UT1}};
+\draw[black,thick] (UTC) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{UTC}};
+\draw[black,thick] (TAI) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{TAI}};
+\draw[black,thick] (TT)  rectangle ++(1.0,0.5) node[pos=.5] {\textbf{TT}};
+\draw[black,thick] (TCG) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{TCG}};
+\draw[black,thick] (TCB) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{TCB}};
+\draw[black,thick] (TDB) rectangle ++(1.0,0.5) node[pos=.5] {\textbf{TDB}};
+
+\draw[blue,->] (TAI.south) -- (UTC.north);
+
+\end{tikzpicture}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
