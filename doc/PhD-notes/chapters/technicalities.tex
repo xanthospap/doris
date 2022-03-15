@@ -1,6 +1,16 @@
 \chapter{Technicalities}
 \label{ch:technicalities}
 
+\section{Dependencies}
+\begin{description}
+    \item [libcurl] a free, and open-source multiprotocol file transfer library.
+    \href{https://curl.se/libcurl/}{libcurl} is highly portable, it builds and works 
+    identically on numerous platforms and provides a \href{https://curl.se/libcurl/c/}{C API}, 
+    accessing remote files via the C/C++ programming languages. Installation is 
+    trivial in most operating systems\footnote{E.g. for Fedora LInux: \lstinline[language=bash]|$ dnf install libcurl libcurl-devel|}.
+
+\end{description}
+
 \section{Constexpr Math}
 Currently (\today), the standard C++ library \texttt{math.h} does not offer trigonometric mathematical 
 functions qualified as \texttt{constexpr} (see \href{https://en.cppreference.com/w/cpp/header/cmath}{Standard library header \texttt{<cmath>}}).
