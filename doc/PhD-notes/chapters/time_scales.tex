@@ -1,0 +1,150 @@
+\chapter{Time, Time Scales and Calendars}
+\label{ch:time-scales}
+
+\section{Julian Date and Modified Julian Date}
+\label{sec:julian-date}
+Calendar dates are usually quaite cumbersome and inefficient to use when 
+performing date computations; instead, a continuous count of days is prefered. 
+To this end, the \emph{Julian day number} was introduced with JD zero located 
+about 7000 years ago (for example Julian day number 2449444 began at noon on 
+1994 April 1). Note that JD (and MJD) can be used in conjunction to most 
+time scales used in astronomy, such as TAI, TT and TDB.
+
+\emph{Julian Date} (JD) is the same system but with a fractional part appended; JD 2449443.5 was the
+midnight on which 1994 April 1 commenced (\cite{SOFA20210125}). Removing the leading 
+`24' and dropping the fractional `.5' part, yileds the so called \emph{Modified Julian Date}, 
+aka:
+\begin{equation}
+    MJD = JD - 2400000.5
+\end{equation}
+Thus 1994 April 1 commenced at MJD 49443.0. Within \ref{ssec:dso-datetime}, dates are 
+internally stored as MJD (integers).
+
+\subsection{Julian Epoch}
+It is often convinient to work with fractional years; in the past, this was done 
+using a system called \emph{Besselian epoch} (\cite{SOFA20210125}) but since the 
+mid-80's, the \emph{Julian epoch} took over. It uses the Julian year of exactly 365.25 days,
+and the TT time scale. Julian epoch 2000.0 is defined to be 2000 January 1.5, which
+is JD 2451545.0 or MJD 51544.5 (\cite{SOFA20210125}). Julian epochs are denoted with 
+a `J' prefix, hence e.g. `J2000.0' is Julian epoch 2000.0.
+
+\section{Time Scales}
+The most common time scales used in astronomical computations, are:
+\begin{table}
+  \centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X c}
+  %\hline
+    \bf{Time-Scale} & \bf{Description} & \bf{Type} \\
+  \hline
+  \textbf{TAI}\\ \scriptsize{(International Atomic Time)} & The official timekeeping standard & Atomic \\
+  \textbf{UTC}\\ \scriptsize{(Coordinated Universal Time)} & The basis of civil time & Atomic/Solar hybrid \\
+  \textbf{UT1}\\ \scriptsize{(Universal Time)} & Based on Earth rotation & Solar \\
+  \textbf{TT}\\ \scriptsize{(Terrestrial Time)} & Used for solar system ephemeris look-up &  Dynamic \\
+  \textbf{TCG}\\ \scriptsize{(Geocentric Coordinate Time)} & Used for calculations centered on the Earth in space & Dynamic \\
+  \textbf{TCB}\\ \scriptsize{(Barycentric Coordinate Time)} & Used for calculations beyond Earth orbit; for most common cases, may be approximated by \textbf{TT} & Dynamic \\
+  \textbf{TDB}\\ \scriptsize{(Barycentric Dynamical Time)} & A scaled form of TCB that keeps in step with TT
+on the average & Dynamic \\
+  %\hline
+\end{tabularx}
+\caption{Common Time Scales used in Astronomical and Celestial Computations.}
+\end{table}
+
+Time scales that are obsolete, according to \cite{SOFA20210125}, are:
+\begin{description}
+  \item[UT0, UT2]: specialist forms of universal time that take into account polar motion and
+known seasonal effects; no longer used.
+  \item[GMT] (Greenwich mean time): an obsolete time scale that can be taken to mean either
+UTC or UT1.
+  \item[ET] (ephemeris time): superseded by TT and TDB.
+  \item[TDT] (terrestrial dynamical time): the former name of TT.
+\end{description}
+
+Note that \emph{Sidereal time} ins not really a time scale but rather an angle. 
+The same can be said of UT1; however, the interrelation between UTC and UT1 makes 
+it clearer and more convenient to treat the latter as a time scale.
+
+Each of the time scales Each has a distinct role, and there are offsets of tens 
+of seconds between some of them. The transformation from one time scale to the next can take a number of forms. In some cases,
+for example TAI to TT, it is simply a fixed offset. In others, for example TAI to UT1, it is
+an offset that depends on observations and cannot be predicted in advance (or only partially).
+Some time scales, for example TT and TCG, are linearly related, with a rate change as well as an
+offset. Others, for example TCG and TCB, require a 4-dimensional spacetime transformation (\cite{SOFA20210125}).
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\coordinate (TAI) at (-4,5.0);
+\coordinate (UTC) at (-4,2.5);
+\coordinate (UT1) at (-4,0);
+\coordinate (TT) at (0,0);
+\coordinate (TCG) at (2,-2.5);
+\coordinate (TCB) at (2,-5.0);
+\coordinate (TDB) at (2,-7.5);
+
+\draw [thick] (UT1) rectangle node{\textbf{UT1}}  ($(UT1)+(1.4,0.8)$);
+\draw [thick] (UTC) rectangle node{\textbf{UTC}}  ($(UTC)+(1.4,0.8)$);
+\draw [thick] (TAI) rectangle node{\textbf{TAI}}  ($(TAI)+(1.4,0.8)$);
+\draw [thick] (TT)  rectangle node{\textbf{TT}}   ($(TT)+(1.4,0.8)$);
+\draw [thick] (TCG) rectangle node{\textbf{TCG}}  ($(TCG)+(1.4,0.8)$);
+\draw [thick] (TCB) rectangle node{\textbf{TCB}}  ($(TCB)+(1.4,0.8)$);
+\draw [thick] (TDB) rectangle node{\textbf{TDB}}  ($(TDB)+(1.4,0.8)$);
+
+\draw [blue,thick,->] ($(TAI) + (0.7,0.0)$) -- node[anchor=west]{\(-\Delta AT\) (leap seconds)} ($(UTC) + (0.7,+0.8)$);
+\draw [red,thick,->] ($(UTC) + (0.7,0.0)$) -- node[anchor=west]{\(+\Delta UT1\) } ($(UT1) + (0.7,+0.8)$);
+
+\end{tikzpicture}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
+
+\subsection{Leap Seconds and $\Delta$AT}
+\label{ssec:leap-seconds-dat}
+Leap seconds are introduced when necessary to keep the time difference UT1-UTC 
+to within \(\SI{\pm 0.9}{\second}\). They are injected at the end of December or 
+June. Each time a leap second is introduced, the offset \(\Delta AT = TAI - UTC\) 
+changes by exactly \SI{1}{\second} (leap seconds are in practice always positive, hence 
+the offset is augmented, but provision for negative seconds exists if needed). In 
+practice, are indicators of the accumulated difference between atomic time and time 
+measured by Earth rotation. At the time of writing, the average solar day 
+is now \SIrange{1}{2}{\milli\second} longer than the nominal \SI{86400}{\second}, accumulating 
+to \SI{1}{\second} over a period of 18 months to a few years. As the Earth rotation 
+slows, leap seconds will become ever more frequent.
+
+The procedure of leap second injection, can be thought of as stopping the UTC clock 
+for a second to let the Earth catch up.
+
+\subsubsection{Leap Seconds Implications}
+If a UTC date is not expressed using the hours, minutes, seconds format, but instead 
+is expressed as a Julian Date (or MJD), an ambiguity will 
+arise at the time of leap second injection. E.g., \cite{SOFA20210125}, the dates 
+June 30 1994, 235960.0 and July 1 1994, 000000.0 would both result to the same 
+MJD, namely 49534.000; obviously, subtracting the two, identical JDs, would not 
+yield the correct interval.
+
+\subsection{Solar Time: UT1, UTC and $\Delta UT1$}
+UT1 is the modern equivalent to \emph{mean solar time} and is really an angle rather 
+than time (\cite{SOFA20210125}). Historicaly its definition has involved the 
+`ficticious mean Sun' and sidereal time, but now is defined through its relationship 
+with Earth rotation angle. Because the Earth’s rotation rate is slightly irregular
+and is gradually decreasing, the UT1 second is not precisely matched to the SI second.
+This makes UT1 itself unsuitable for use as a time scale in physics applications.
+Nevertheless, it is still in use in a wide variety of applications.
+
+UTC is a compromise between the demands of precise timekeeping and the desire to 
+maintain the current relationship between civil time and daylight (\cite{SOFA20210125}).
+
+To obtain UT1 starting from UTC, it is necessary to look up the value of 
+\( \Delta UT1 = UT1 - UTC \) for the date concerned in tables published by the 
+\gls{iers}; this is then 
+added to the UTC. The quantity \(\Delta UT1\), which typically changes by \SIrange{1}{2}{\milli\second} 
+per day, can be obtained only by observation, principally Very Long Baseline
+Interferometry (VLBI) using extragalactic radio sources, though seasonal effects 
+are present and the \gls{iers} listings are able to predict some way into the future 
+with adequate accuracy for most applications.
+
+Values for \( \Delta UT1 \) are published by the \gls{iers} within the regularly disseminated 
+\href{https://www.iers.org/IERS/EN/Publications/Bulletins/bulletins.html}{Bulletins}; 
+\href{https://datacenter.iers.org/productMetadata.php?id=6}{Bulletin A} contains 
+rapid determinations for earth orientation parameters, \href{https://datacenter.iers.org/productMetadata.php?id=207}{Bulletin B} contains monthly earth orientation parameters and 
+\href{https://datacenter.iers.org/productMetadata.php?id=17}{Bulletin D} contains 
+announcements of the value of \( \Delta UT1 \).

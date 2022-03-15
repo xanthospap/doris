@@ -51,6 +51,13 @@ AddOption('--branchless',
           action='store_true',
           help='Trigger built with BRANCHLESS defined',
           default=False)
+AddOption('--ignore-tests',
+          nargs=1,
+          type='string',
+          action='store',
+          metavar='IGNORE_TEST_FILES',
+          dest='ignore_tests',
+          help='Comma-seperated list of test source files to ignore when building')
 
 ## Source files (for lib)
 lib_src_files = glob.glob(r"src/*.cpp")
@@ -60,6 +67,7 @@ lib_src_files += glob.glob(r"src/planets/*.cpp")
 lib_src_files += glob.glob(r"src/gravity/*.cpp")
 lib_src_files += glob.glob(r"src/satellite/*.cpp")
 lib_src_files += glob.glob(r"src/atmosphere/*.cpp")
+lib_src_files += glob.glob(r"src/web/*.cpp")
 
 ## Headers (for lib)
 hdr_src_files = glob.glob(r"src/*.hpp")
@@ -92,8 +100,11 @@ env.Alias(target='install', source=env.Install(dir=os.path.join(prefix, 'include
 env.Alias(target='install', source=env.InstallVersionedLib(dir=os.path.join(prefix, 'lib'), source=vlib))
 
 ## Tests ...
+ignore_test_list = [] if GetOption('ignore_tests') is None else GetOption('ignore_tests').split(',')
+print('Note: Ignore Test list: {:}'.format(ignore_test_list))
 tests_sources = glob.glob(r"test/*.cpp")
 env.Append(RPATH=root_dir)
 for tsource in tests_sources:
-  ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
-  env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'cspice.a', 'csupport'], LIBPATH='.')
+  if tsource not in ignore_test_list:
+    ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
+    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
