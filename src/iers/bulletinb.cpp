@@ -1,4 +1,5 @@
 #include "iers_bulletin.hpp"
+#include "cweb.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -44,7 +45,7 @@ dso::IersBulletinB::~IersBulletinB() noexcept {
     stream.close();
 }
 
-int reach_section1(std::ifstream &fin) noexcept {
+int reach_section1(std::ifstream &fin, bool &has_dUt1UtcR) noexcept {
   char line[MAX_LINE_CHARS], *c, *end;
   fin.seekg(0);
 
@@ -96,32 +97,34 @@ if (std::strncmp(c,
 // well, actually this is non-standard, could be  e.g.
 // 'The reference systems are described in the 2006 IERS Annual Report.'
 fin.getline(line, MAX_LINE_CHARS);
-//c = nws(line);
-//if (std::strncmp(
-//        c, "Upgraded solution from March 1 2017 - consistent with ITRF 2014.",
-//        65))
-//  return 8;
-
 // an empty line follows; ignore
 fin.getline(line, MAX_LINE_CHARS);
 
-// next two lines describe records; they are standard
+// next two lines describe records
 fin.getline(line, MAX_LINE_CHARS);
 c = nws(line);
-if (std::strncmp(c,
+if (!std::strncmp(c,
                  "DATE     MJD       x       y      UT1-UTC      dX     dY   "
                  "  x err    y err   UT1 err  dX err  dY err",
                  102)){
-printf("Expected [%s]\n", "DATE     MJD       x       y      UT1-UTC      dX     dY     x err    y err   UT1 err  dX err  dY err");
-printf("Found    [%s]\n", c);
-  return 10;
+  has_dUt1UtcR = false;
                  }
+else if (!std::strncmp(c,"DATE     MJD       x       y      UT1-UTC  UT1R-UTC    dX     dY     x err    y err   UT1 err  X err  Y err", 108)) {
+  has_dUt1UtcR = true;
+} else {
+  return 10;
+}
+
 fin.getline(line, MAX_LINE_CHARS);
 c = nws(line);
-if (std::strncmp(c,
+if ((!has_dUt1UtcR) && std::strncmp(c,
                  "(0 h UTC)            mas     mas       ms         mas    "
                  "mas     mas      mas      ms     mas     mas",
                  102))
+  return 11;
+if (has_dUt1UtcR && std::strncmp(c,
+    "(0 h UTC)            mas     mas       ms        ms       mas    mas     mas      mas      ms     mas     mas",
+                 110))
   return 11;
 
 // an empty line follows; ignore
@@ -136,19 +139,27 @@ if (std::strncmp(c, "Final values", 12))
 // skip next three lines ...
 for (int i = 0; i < 3; i++)
   fin.getline(line, MAX_LINE_CHARS);
-return fin.good();
+return !fin.good();
+}
+
+int parse_section1_line_mjd(const char *line, long &mjd) noexcept {
+  char *end;
+  const char *c = line + 15;
+  mjd = std::strtol(c, &end, 10);
+  return !(!mjd || c==end);
 }
 
 int parse_section1_line(const char *line,
-                        dso::IersBulletinB_Section1Block &block) noexcept {
+                        bool has_dUt1UtcR,
+                            dso::IersBulletinB_Section1Block &block) noexcept {
   char *end;
   const char *c = line + 15;
   block.mjd = std::strtol(c, &end, 10);
   if (!block.mjd || c == end)
     return 1;
 
-  double tmp[10];
-  for (int i = 0; i < 10; i++) {
+  double tmp[11];
+  for (int i = 0; i < 10 + has_dUt1UtcR; i++) {
     c = end + 1;
     tmp[i] = std::strtod(c, &end);
     if (c == end)
@@ -158,20 +169,23 @@ int parse_section1_line(const char *line,
   block.x = tmp[0];
   block.y = tmp[1];
   block.dut1 = tmp[2];
-  block.dX = tmp[3];
-  block.dY = tmp[4];
-  block.xerr = tmp[5];
-  block.yerr = tmp[6];
-  block.dut1err = tmp[7];
-  block.dXerr = tmp[8];
-  block.dYerr = tmp[9];
+  block.dUt1rUt = (has_dUt1UtcR) ? tmp[3] : dso::bulletin_details::BULLETIN_MISSING_VALUE;
+  // here be dUt1Utc_R
+  int idx = 3 + has_dUt1UtcR;
+  block.dX = tmp[idx++];
+  block.dY = tmp[idx++];
+  block.xerr = tmp[idx++];
+  block.yerr = tmp[idx++];
+  block.dut1err = tmp[idx++];
+  block.dXerr = tmp[idx++];
+  block.dYerr = tmp[idx++];
 
   return 0;
 }
 
 int dso::IersBulletinB::parse_section1(dso::IersBulletinB_Section1Block *block,
                                        bool include_preliminary) noexcept {
-  if (int err_line = reach_section1(stream)) {
+  if (int err_line = reach_section1(stream, this->has_dUt1UtcR)) {
     fprintf(stderr,
             "[ERROR] Failed parsing Bulletin B file %s; line nr %d (traceback: "
             "%s)\n",
@@ -184,7 +198,7 @@ int dso::IersBulletinB::parse_section1(dso::IersBulletinB_Section1Block *block,
   // next line to read from stream is a Section1 line (final)
   stream.getline(line, MAX_LINE_CHARS);
   while (*line && line[0] != ' ') {
-    if (parse_section1_line(line, block[block_nr])) {
+    if (parse_section1_line(line, this->has_dUt1UtcR, block[block_nr])) {
       fprintf(stderr,
               "[ERROR] Failed parsing Bulletin B file %s at Section 1 "
               "(traceback: %s)\n",
@@ -212,7 +226,7 @@ int dso::IersBulletinB::parse_section1(dso::IersBulletinB_Section1Block *block,
   // next line to read from stream is a Section1 line (preliminery)
   stream.getline(line, MAX_LINE_CHARS);
   while (*line && line[0] != ' ') {
-    if (parse_section1_line(line, block[block_nr])) {
+    if (parse_section1_line(line, this->has_dUt1UtcR, block[block_nr])) {
       fprintf(stderr,
               "[ERROR] Failed parsing Bulletin B file %s at Section 1 "
               "(traceback: %s)\n",
@@ -229,7 +243,7 @@ int dso::IersBulletinB::parse_section1(dso::IersBulletinB_Section1Block *block,
 int dso::IersBulletinB::get_section1_at(int imjd,
                                         dso::IersBulletinB_Section1Block &block,
                                         bool include_preliminary) noexcept {
-  if (int err_line = reach_section1(stream)) {
+  if (int err_line = reach_section1(stream, this->has_dUt1UtcR)) {
     fprintf(stderr,
             "[ERROR] Failed parsing Bulletin B file %s; line nr %d (traceback: "
             "%s)\n",
@@ -241,8 +255,21 @@ int dso::IersBulletinB::get_section1_at(int imjd,
   char line[MAX_LINE_CHARS];
   // next line to read from stream is a Section1 line (final)
   stream.getline(line, MAX_LINE_CHARS);
+  // quick check to inspect the file's time interval ...
+  long first_mjd;
+  if (parse_section1_line_mjd(line, first_mjd)) {
+    fprintf(stderr,
+            "[ERROR] Failed parsing Bulletin B file %s at Section 1 "
+            "(traceback: %s)\n",
+            filename, __func__);
+    return 2;
+  } else if (first_mjd > imjd) {
+    return dso::bulletin_details::FILE_IS_AHEAD;
+  } else if (imjd > first_mjd + 80) {
+    return dso::bulletin_details::FILE_IS_PRIOR;
+  }
   while (*line && line[0] != ' ') {
-    if (parse_section1_line(line, block)) {
+    if (parse_section1_line(line, this->has_dUt1UtcR, block)) {
       fprintf(stderr,
               "[ERROR] Failed parsing Bulletin B file %s at Section 1 "
               "(traceback: %s)\n",
@@ -272,7 +299,7 @@ int dso::IersBulletinB::get_section1_at(int imjd,
   // next line to read from stream is a Section1 line (preliminery)
   stream.getline(line, MAX_LINE_CHARS);
   while (*line && line[0] != ' ') {
-    if (parse_section1_line(line, block)) {
+    if (parse_section1_line(line, this->has_dUt1UtcR, block)) {
       fprintf(stderr,
               "[ERROR] Failed parsing Bulletin B file %s at Section 1 "
               "(traceback: %s)\n",
@@ -286,4 +313,90 @@ int dso::IersBulletinB::get_section1_at(int imjd,
   }
 
   return -1;
+}
+
+int bulletinb_download_and_check(long mjd, const char *remote, const char *local) noexcept {
+  if (dso::http_get(remote, local)) {
+    fprintf(stderr, "ERROR. Failed to download IERS Bulletin B file %s (traceback: %s)\n", remote, __func__);
+    return 2;
+  }
+  
+  // let's see if we guessed right and the date is within the file downloaded
+  // initialize a Bulletin B instance
+  dso::IersBulletinB bb(local);
+  
+  // section 1 block, to hold file records
+  dso::IersBulletinB_Section1Block block;
+  
+  return bb.get_section1_at(mjd, block);
+}
+
+int dso::download_iers_bulletinb_for(long mjd) noexcept {
+  char remote[64], local[64];
+  int bnumber = 253;
+  long bmjd = 54831;
+  if (mjd < bmjd) {
+    fprintf(
+        stderr,
+        "ERROR. Failed to download IERS Bulletin B file for MJD %ld; given "
+        "date is prior to first Bulletin file for MJD %ld (traceback: %s)\n",
+        mjd, bmjd, __func__);
+    return 1;
+  }
+
+  // let's make a wild guess ... each bulletin B has values for 30 days;
+  int guess = (mjd - bmjd) / 30 + bnumber;
+  int initial_guess = guess;
+
+  // make the filename download and check the file
+  std::sprintf(remote, "https://hpiers.obspm.fr/iers/bul/bulb_new/bulletinb.%d",
+               guess);
+  std::sprintf(local, "bulletinb.%d", guess);
+  int status = bulletinb_download_and_check(mjd, remote, local);
+
+  // error parsing file
+  if (status > 0) {
+    fprintf(stderr,
+            "ERROR. Failed to parse IERS Bulletin B file %s (traceback: %s)\n",
+            local, __func__);
+    return status;
+  }
+
+  // do we have the correct file ?
+  if (!status)
+    return 0;
+
+  int max_tries = 3;
+
+  // if the file is ahead of the given date ...
+  if (status == dso::bulletin_details::FILE_IS_AHEAD) {
+    while ((status == dso::bulletin_details::FILE_IS_AHEAD) && (initial_guess-guess<max_tries)) {
+      --guess;
+      std::sprintf(remote,
+                   "https://hpiers.obspm.fr/iers/bul/bulb_new/bulletinb.%d",
+                   guess);
+      std::sprintf(local, "bulletinb.%d", guess);
+      status = bulletinb_download_and_check(mjd, remote, local);
+    }
+    // if it is prior ...
+  } else if (status == dso::bulletin_details::FILE_IS_PRIOR) {
+    while ((status == dso::bulletin_details::FILE_IS_PRIOR) && (guess-initial_guess<max_tries)) {
+      ++guess;
+      std::sprintf(remote,
+                   "https://hpiers.obspm.fr/iers/bul/bulb_new/bulletinb.%d",
+                   guess);
+      std::sprintf(local, "bulletinb.%d", guess);
+      status = bulletinb_download_and_check(mjd, remote, local);
+    }
+  }
+
+  // ... so, de we have the right file?
+  if (!status)
+    return status;
+
+  fprintf(stderr,
+          "ERROR. Failed to download any matching IERS Bulletin B file for MJD "
+          "%ld (traceback: %s)\n",
+          mjd, __func__);
+  return status;
 }

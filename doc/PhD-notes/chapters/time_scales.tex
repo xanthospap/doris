@@ -11,7 +11,7 @@ about 7000 years ago (for example Julian day number 2449444 began at noon on
 time scales used in astronomy, such as TAI, TT and TDB.
 
 \emph{Julian Date} (JD) is the same system but with a fractional part appended; JD 2449443.5 was the
-midnight on which 1994 April 1 commenced (\cite{SOFA20210125}). Removing the leading 
+midnight on which 1994 April 1 commenced (\cite{sofa_18161_tscb}). Removing the leading 
 `24' and dropping the fractional `.5' part, yileds the so called \emph{Modified Julian Date}, 
 aka:
 \begin{equation}
@@ -22,10 +22,10 @@ internally stored as MJD (integers).
 
 \subsection{Julian Epoch}
 It is often convinient to work with fractional years; in the past, this was done 
-using a system called \emph{Besselian epoch} (\cite{SOFA20210125}) but since the 
+using a system called \emph{Besselian epoch} (\cite{sofa_18161_tscb}) but since the 
 mid-80's, the \emph{Julian epoch} took over. It uses the Julian year of exactly 365.25 days,
 and the TT time scale. Julian epoch 2000.0 is defined to be 2000 January 1.5, which
-is JD 2451545.0 or MJD 51544.5 (\cite{SOFA20210125}). Julian epochs are denoted with 
+is JD 2451545.0 or MJD 51544.5 (\cite{sofa_18161_tscb}). Julian epochs are denoted with 
 a `J' prefix, hence e.g. `J2000.0' is Julian epoch 2000.0.
 
 \section{Time Scales}
@@ -49,7 +49,7 @@ on the average & Dynamic \\
 \caption{Common Time Scales used in Astronomical and Celestial Computations.}
 \end{table}
 
-Time scales that are obsolete, according to \cite{SOFA20210125}, are:
+Time scales that are obsolete, according to \cite{sofa_18161_tscb}, are:
 \begin{description}
   \item[UT0, UT2]: specialist forms of universal time that take into account polar motion and
 known seasonal effects; no longer used.
@@ -68,7 +68,7 @@ of seconds between some of them. The transformation from one time scale to the n
 for example TAI to TT, it is simply a fixed offset. In others, for example TAI to UT1, it is
 an offset that depends on observations and cannot be predicted in advance (or only partially).
 Some time scales, for example TT and TCG, are linearly related, with a rate change as well as an
-offset. Others, for example TCG and TCB, require a 4-dimensional spacetime transformation (\cite{SOFA20210125}).
+offset. Others, for example TCG and TCB, require a 4-dimensional spacetime transformation (\cite{sofa_18161_tscb}).
 
 \begin{figure}
 \centering
@@ -116,22 +116,22 @@ for a second to let the Earth catch up.
 \subsubsection{Leap Seconds Implications}
 If a UTC date is not expressed using the hours, minutes, seconds format, but instead 
 is expressed as a Julian Date (or MJD), an ambiguity will 
-arise at the time of leap second injection. E.g., \cite{SOFA20210125}, the dates 
+arise at the time of leap second injection. E.g., \cite{sofa_18161_tscb}, the dates 
 June 30 1994, 235960.0 and July 1 1994, 000000.0 would both result to the same 
 MJD, namely 49534.000; obviously, subtracting the two, identical JDs, would not 
 yield the correct interval.
 
-\subsection{Solar Time: UT1, UTC and $\Delta UT1$}
+\subsection{Solar Time: UT1, UTC and $\Delta$UT1}
 UT1 is the modern equivalent to \emph{mean solar time} and is really an angle rather 
-than time (\cite{SOFA20210125}). Historicaly its definition has involved the 
+than time (\cite{sofa_18161_tscb}). Historicaly its definition has involved the 
 `ficticious mean Sun' and sidereal time, but now is defined through its relationship 
-with Earth rotation angle. Because the Earth’s rotation rate is slightly irregular
+with Earth rotation angle. Because the Earth's rotation rate is slightly irregular
 and is gradually decreasing, the UT1 second is not precisely matched to the SI second.
 This makes UT1 itself unsuitable for use as a time scale in physics applications.
 Nevertheless, it is still in use in a wide variety of applications.
 
 UTC is a compromise between the demands of precise timekeeping and the desire to 
-maintain the current relationship between civil time and daylight (\cite{SOFA20210125}).
+maintain the current relationship between civil time and daylight (\cite{sofa_18161_tscb}).
 
 To obtain UT1 starting from UTC, it is necessary to look up the value of 
 \( \Delta UT1 = UT1 - UTC \) for the date concerned in tables published by the 
@@ -145,6 +145,8 @@ with adequate accuracy for most applications.
 Values for \( \Delta UT1 \) are published by the \gls{iers} within the regularly disseminated 
 \href{https://www.iers.org/IERS/EN/Publications/Bulletins/bulletins.html}{Bulletins}; 
 \href{https://datacenter.iers.org/productMetadata.php?id=6}{Bulletin A} contains 
-rapid determinations for earth orientation parameters, \href{https://datacenter.iers.org/productMetadata.php?id=207}{Bulletin B} contains monthly earth orientation parameters and 
+rapid determinations for earth orientation parameters, 
+\href{https://datacenter.iers.org/productMetadata.php?id=207}{Bulletin B} 
+contains monthly earth orientation parameters and 
 \href{https://datacenter.iers.org/productMetadata.php?id=17}{Bulletin D} contains 
 announcements of the value of \( \Delta UT1 \).

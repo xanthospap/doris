@@ -41,5 +41,20 @@ int main(int argc, char *argv[]) {
   assert(blocks[index].dXerr == blocks[max_block_size - 1].dXerr);
   assert(blocks[index].dYerr == blocks[max_block_size - 1].dYerr);
 
+  dso::IersBulletinB_Section1Block *bptr = blocks + (max_block_size - 1);
+  printf("I have already checked, but here are the results:\n");
+  printf("Preliminary/Final %c\n", bptr->type);
+  printf("%7s %10s %10s %10s %10s %10s %10s\n", "Mjd", "x", "y", "Dut1", "dX", "dY", "Dut1R");
+  printf("%7ld %10.4f %10.4f %10.4f %10.4f %10.4f", bptr->mjd, bptr->x,
+         bptr->y, bptr->dut1, bptr->dX, bptr->dY);
+  if (bb.has_dUt1UtcR_info())
+    printf(" %.4f\n", bptr->dUt1rUt);
+  else
+    printf("\n");
+  printf("%10.4f %10.4f %10.4f %10.4f %10.4f\n", bptr->xerr, bptr->yerr,
+         bptr->dut1err, bptr->dXerr, bptr->dYerr);
+
+
+  dso::download_iers_bulletinb_for(blocks[index].mjd+370);
   return 0;
 }
