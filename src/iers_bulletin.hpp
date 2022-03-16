@@ -84,7 +84,7 @@ public:
 
 }; // IersBulletinB
 
-int download_iers_bulletinb_for(long mjd) noexcept;
+int download_iers_bulletinb_for(long mjd, const char *dir=nullptr) noexcept;
 
 } // namespace dso
 

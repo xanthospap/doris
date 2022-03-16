@@ -130,17 +130,23 @@ and is gradually decreasing, the UT1 second is not precisely matched to the SI s
 This makes UT1 itself unsuitable for use as a time scale in physics applications.
 Nevertheless, it is still in use in a wide variety of applications.
 
-UTC is a compromise between the demands of precise timekeeping and the desire to 
-maintain the current relationship between civil time and daylight (\cite{sofa_18161_tscb}).
+Coordinated Universal Time (UTC) is the standard atomic based time scale in normal 
+everyday use throughout the world. UTC is a compromise between the demands of 
+precise timekeeping and the desire to maintain the current relationship between 
+civil time and daylight (\cite{sofa_18161_tscb}).
 
 To obtain UT1 starting from UTC, it is necessary to look up the value of 
 \( \Delta UT1 = UT1 - UTC \) for the date concerned in tables published by the 
-\gls{iers}; this is then 
-added to the UTC. The quantity \(\Delta UT1\), which typically changes by \SIrange{1}{2}{\milli\second} 
-per day, can be obtained only by observation, principally Very Long Baseline
-Interferometry (VLBI) using extragalactic radio sources, though seasonal effects 
+\gls{iers}; this is then added to the UTC. The quantity \(\Delta UT1\), which 
+typically changes by \SIrange{1}{2}{\milli\second} per day, can be obtained only 
+by observation, principally \gls{vlbi} using extragalactic radio sources, though seasonal effects 
 are present and the \gls{iers} listings are able to predict some way into the future 
 with adequate accuracy for most applications.
+
+\( \Delta UT1 = UT1 - UTC \) is used to determine the \gls{era}, which is the 
+angle measured along the intermediate equator of the \gls{cip} between the \gls{tio} and the 
+\gls{cio} positively in the retrograde direction (\cite{IersBulABC04}; for details on 
+\gls{era} computation, see \cite{iers2010}).
 
 Values for \( \Delta UT1 \) are published by the \gls{iers} within the regularly disseminated 
 \href{https://www.iers.org/IERS/EN/Publications/Bulletins/bulletins.html}{Bulletins}; 

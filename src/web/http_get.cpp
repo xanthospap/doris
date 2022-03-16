@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <filesystem>
+#include <system_error>
+
+namespace fs = std::filesystem;
 
 /// see https://curl.se/libcurl/c/url2file.html
 
@@ -11,7 +15,17 @@ static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
   return written;
 }
 
-int dso::http_get(const char *url, const char *local) noexcept {
+bool file_exists(const char *local) noexcept {
+  std::error_code ec;
+  fs::path pth(local);
+  return fs::is_regular_file(pth, ec);
+}
+
+int dso::http_get(const char *url, const char *local, bool force) noexcept {
+  
+  // if we are not overwritting and file exists, ... the end!
+  if (!force && file_exists(local)) return -1;
+
   CURL *curl_handle;
   FILE *pagefile;
   int status = 1;
@@ -50,10 +64,14 @@ int dso::http_get(const char *url, const char *local) noexcept {
     fclose(pagefile);
   }
 
+  // remove the opened but empty file in case of error
+  if (status != CURLE_OK) remove(local);
+
   //  cleanup curl stuff
   curl_easy_cleanup(curl_handle);
 
   curl_global_cleanup();
 
-  return status;
+  // always return positive value or error
+  return (status<0)? (status*(-1)) : status;
 }
