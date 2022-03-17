@@ -89,14 +89,16 @@ offset. Others, for example TCG and TCB, require a 4-dimensional spacetime trans
 \draw [thick] (TCB) rectangle node{\textbf{TCB}}  ($(TCB)+(1.4,0.8)$);
 \draw [thick] (TDB) rectangle node{\textbf{TDB}}  ($(TDB)+(1.4,0.8)$);
 
-\draw [blue,thick,->] ($(TAI) + (0.7,0.0)$) -- node[anchor=west]{\(-\Delta AT\) (leap seconds)} ($(UTC) + (0.7,+0.8)$);
-\draw [red,thick,->] ($(UTC) + (0.7,0.0)$) -- node[anchor=west]{\(+\Delta UT1\)} ($(UT1) + (0.7,+0.8)$);
+\draw [>=latex,blue,thick,->] ($(TAI) + (0.7,0.0)$) -- node[anchor=west]{\(-\Delta AT\) (leap seconds)} ($(UTC) + (0.7,+0.8)$);
+\draw [>=latex,red,thick,->] ($(UTC) + (0.7,0.0)$) -- node[anchor=west]{\(+\Delta UT1\)} ($(UT1) + (0.7,+0.8)$);
 \path [>=latex,->,draw,red,thick] ($(TAI) + (0.0,+0.3)$) -| ++(-1,-2.5) node[rotate=90,above]{\(+\textcolor{red}{\Delta UT1} - \textcolor{blue}{\Delta AT} \)} |- ($(UT1)+(0.0,+0.3)$);
-\path [>=latex,->,draw,blue,thick] ($(TAI) + (1.4,+0.3)$) -| ++(3.8,-2.3) node[rotate=90,below]{\( \SI{32.184}{\second} \)} |- ($(TT)+(1.25,+0.8)$);
+\path [>=latex,->,draw,blue,thick] ($(TAI) + (1.4,+0.3)$) -| ++(4.0-1.4+1.1,-2.5) node[rotate=90,below]{\( \SI{32.184}{\second} \)} |- ($(TT)+(1.1,+1.0)$);
+\path [>=latex,->,draw,blue,thick] ($(UTC) + (1.4,+0.3)$) -| ++(3.0-1.4+0.4,0.0) node[rotate=00,above]{\( + \Delta TT \)} -| ++(1.0,0.0)node[]{} |- ($(TT)+(0.4,+1.0)$);
+\draw [>=latex,red,thick,->] ($(UT1) + (1.4,0.3)$) -- node[above]{\(+\Delta T\)} ($(TT) + (0.0,+0.3)$);
 
 \end{tikzpicture}
-\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
-\label{fig:alcatel-antenna}
+\caption{Timescale transformations, \cite{SOFA_18161_tscb}}
+\label{fig:time-scale-transformations}
 \end{figure}
 
 \subsection{Leap Seconds and $\Delta$AT}
@@ -158,3 +160,10 @@ rapid determinations for earth orientation parameters,
 contains monthly earth orientation parameters and 
 \href{https://datacenter.iers.org/productMetadata.php?id=17}{Bulletin D} contains 
 announcements of the value of \( \Delta UT1 \).
+
+\subsection{$\Delta$T}
+The difference between UT1 and TT (formerly ET) is called $\Delta$T, and in the 
+present era can be written out as (\cite{SOFA_18161_tscb}):
+\begin{equation}
+  \Delta T = TT - UT1 = \SI{32.184}{\second} + \Delta AT - \Delta UT1
+\end{equation}

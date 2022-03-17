@@ -38,6 +38,10 @@ double vallado_shadow(const dso::Vector3 &r_sat,
 double montebruck_shadow(const dso::Vector3 &r_sat,
                                 const dso::Vector3 &r_sun) noexcept;
 
+double bernese_shadow(const dso::Vector3 &r_sat,
+                                const dso::Vector3 &r_sun) noexcept;
+double bernese_shadow1(const dso::Vector3 &r_sat,
+                                const dso::Vector3 &r_sun) noexcept;
 }//utest
 
 namespace dso {

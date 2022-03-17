@@ -1,9 +1,12 @@
 #include "satellite.hpp"
 #include <cmath>
 #include "gcem.hpp" // for constexpr math (trigonometric funcs)
+#include "geodesy/ellipsoid.hpp"
 #ifdef DEBUG
 #include <cstdio>
 #endif
+
+constexpr const double MeanRe =  dso::mean_earth_radius<dso::ellipsoid::grs80>();
 
 /// @file occultation.cpp
 /// @brief Satellite eclipse, shadow and occultation models
@@ -45,6 +48,19 @@ double utest::montebruck_shadow(const dso::Vector3 &r_sat,
   double s = r_sat.dot_product(unitvec_sun);
   return ((s > 0e0 || (r_sat - s * unitvec_sun).norm() > iers2010::Re) ? 1e0
                                                                        : 0e0);
+}
+
+double utest::bernese_shadow1(const dso::Vector3 &r_sat,
+                             const dso::Vector3 &r_sun) noexcept {
+    constexpr const double fac = 1e0 + dso::ellipsoid_traits<dso::ellipsoid::grs80>::f;
+    const dso::Vector3 zsat{{r_sat.x(), r_sat.y(), r_sat.z()*fac}};
+    const dso::Vector3 zsun{{r_sun.x(), r_sun.y(), r_sun.z()*fac}};
+    const double rsun = zsun.norm();
+    const double rsat2 = zsat.norm_squared();
+    const double rcos = zsat.dot_product(zsun) / rsun;
+    const double rsin = std::sqrt(rsat2-rcos*rcos);
+    if (rcos<0e0 && (rsin-iers2010::Re<0e0)) return 0e0;
+    return 1;
 }
 
 double utest::conical_shadow(const dso::Vector3 &r_sat,
