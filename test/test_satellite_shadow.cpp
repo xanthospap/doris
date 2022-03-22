@@ -210,12 +210,19 @@ int main(int argc, char *argv[]) {
   // dso::Sp3DataBlock block;
 
   // setup the interpolation
-  dso::SvInterpolator sv_intrp(sv, sp3);
+  dso::SvInterpolator sv_intrp(sv, sp3, /*for gnss sp3*/dso::milliseconds{(31*60)*dso::milliseconds::sec_factor<long>()});
   auto start_t = sp3.start_epoch();
   auto every_t = dso::datetime_interval<dso::nanoseconds>(
       dso::modified_julian_day(0),
       dso::nanoseconds(10 * dso::nanoseconds::sec_factor<long>()));
   const dso::datetime<dso::nanoseconds> *stop_t = sv_intrp.last_block_date();
+
+  dso::ymd_date ymd = start_t.as_ymd();
+  printf("Interpolating SV positions from %d-%02d-%02d to ", ymd.__year.as_underlying_type(), ymd.__month.as_underlying_type(), ymd.__dom.as_underlying_type());
+  ymd = stop_t->as_ymd();
+  printf(" %d-%02d-%02d\n", ymd.__year.as_underlying_type(), ymd.__month.as_underlying_type(), ymd.__dom.as_underlying_type());
+  printf("Number of data points in interpolator: %d\n", sv_intrp.num_data_points());
+
 
   // to compute the planet's position via cspice, we need to load:
   // 1. the planetary ephemeris (SPK) kernel
