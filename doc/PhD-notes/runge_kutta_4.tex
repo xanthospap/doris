@@ -1,0 +1,237 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\graphicspath{ {./../figures/} }
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{fancyvrb} % Verbatim and coloring therein
+\usepackage{hyperref}
+\usepackage{imakeidx} % for index
+\makeindex[columns=3, title=Alphabetical Index]
+\usepackage{soul} % allow wrapping of underlined text, via \ul{...}
+\usepackage{natbib} % for bibliography
+\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
+\usepackage{siunitx} %% SI Units
+\usepackage{amsmath} %% for math ...
+\usepackage{amssymb} %% greek and various toher characters and symbols ...
+\usepackage{mathabx}
+\usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
+\usepackage{tabularx}
+\usepackage{multirow} %% for tabular
+
+%% TikZ stuff %%
+\usepackage{tikz} % add a few drawings ...
+\usepackage{tkz-euclide}
+\usetikzlibrary{shapes.geometric, arrows} % for creating tikz flowcharts 
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{calc}
+\usetikzlibrary{quotes,angles}
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\usepackage{listings} % include source code files
+% Solarized colour scheme for listings
+\definecolor{solarized@base03}{HTML}{002B36}
+\definecolor{solarized@base02}{HTML}{073642}
+\definecolor{solarized@base01}{HTML}{586e75}
+\definecolor{solarized@base00}{HTML}{657b83}
+\definecolor{solarized@base0}{HTML}{839496}
+\definecolor{solarized@base1}{HTML}{93a1a1}
+\definecolor{solarized@base2}{HTML}{EEE8D5}
+\definecolor{solarized@base3}{HTML}{FDF6E3}
+\definecolor{solarized@yellow}{HTML}{B58900}
+\definecolor{solarized@orange}{HTML}{CB4B16}
+\definecolor{solarized@red}{HTML}{DC322F}
+\definecolor{solarized@magenta}{HTML}{D33682}
+\definecolor{solarized@violet}{HTML}{6C71C4}
+\definecolor{solarized@blue}{HTML}{268BD2}
+\definecolor{solarized@cyan}{HTML}{2AA198}
+\definecolor{solarized@green}{HTML}{859900}
+
+% Define C++ syntax highlighting colour scheme
+\lstset{language=C++,
+        basicstyle=\footnotesize\ttfamily,
+        numbers=left,
+        numberstyle=\tiny,
+        tabsize=2,
+        breaklines=true,
+        escapeinside={@}{@},
+        numberstyle=\tiny\color{solarized@base01},
+        keywordstyle=\color{solarized@green},
+        stringstyle=\color{solarized@cyan}\ttfamily,
+        identifierstyle=\color{solarized@blue},
+        commentstyle=\color{solarized@base01},
+        emphstyle=\color{solarized@red},
+        frame=single,
+        rulecolor=\color{solarized@base2},
+        rulesepcolor=\color{solarized@base2},
+        showstringspaces=false
+}
+
+% include the external source file, instead of pasting its contents directly 
+% into the LaTeX documen
+\newcommand{\codelst}[1]{\lstinputlisting[caption=\texttt{\protect\detokenize{#1}}]{#1}\newpage}
+
+% augment the paragraph skip ... a bit more clear text
+\setlength{\parskip}{1em}
+
+\bibliographystyle{plainnat}
+
+\title{Runge-Kutta 4\textsuperscript{th}}
+\author{Xanthos}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\end{titlepage}
+
+%\frontmatter
+%\tableofcontents
+%\listoffigures
+%\listoftables
+
+\section{Solving ODE Systems with Runge-Kutta}
+A simple two-dimensional example of a 2\textsuperscript{nd} degree ODE.
+Starting with:
+\begin{equation}
+  \label{eq:orgode}
+  \ddot{\vec{r}}(t) = - \vec{r}(t) / {r(t)}^3
+\end{equation}
+with
+\begin{equation}
+  \vec{r} = 
+  \begin{bmatrix}
+  x_{1}(t) \\
+  x_{2}(t) \\
+  \end{bmatrix}
+\end{equation}
+
+Transform to a system of 1\textsuperscript{st} degree ODEs via (and dropping the 
+explicit dependency on \(t\) which is implied):
+\begin{equation}
+  \vec{q} = 
+  \begin{bmatrix}
+    \vec{r} \\
+    \dot{\vec{r}} \\
+  \end{bmatrix}
+\Rightarrow
+  \dot{\vec{q}} = 
+  \begin{bmatrix}
+    \dot{\vec{r}} \\
+    \ddot{\vec{r}} \\
+  \end{bmatrix}
+\end{equation}
+
+Note that \( \vec{q} \) is actually the \textbf{state vector}.
+
+Expanding components, the above means:
+\begin{equation}
+  \vec{q} = 
+  \begin{bmatrix}
+    x_1 \\
+    x_2 \\
+    \dot{x}_1 \\
+    \dot{x}_2 \\
+  \end{bmatrix}
+\Rightarrow
+  \dot{\vec{q}} = 
+  \begin{bmatrix}
+    \dot{x}_1 \\
+    \dot{x}_2 \\
+    \ddot{x}_1 \\
+    \ddot{x}_2 \\
+  \end{bmatrix}
+\end{equation}
+
+Hence the ODE systems becomes:
+\begin{equation}
+  \dot{\vec{q}} = f( t, \vec{q} )
+\end{equation}
+
+or, taking into account the original ODE \ref{eq:orgode}:
+
+\begin{equation}
+  \begin{bmatrix}
+    \dot{x}_1 \\
+    \dot{x}_2 \\
+    \ddot{x}_1 \\
+    \ddot{x}_2 \\
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \dot{x_1} \\
+    \dot{x_2} \\
+    - x_1 / {({x_1}^2 + {x_2}^2)}^3 \\
+    - x_2 / {({x_1}^2 + {x_2}^2)}^3 \\
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    q(3) \\
+    q(4) \\
+    -q(1) / {(q(1)^2 +q(2)^2)}^3 \\
+    -q(2) / {(q(1)^2 +q(2)^2)}^3 \\
+  \end{bmatrix}
+\end{equation}
+
+In general, if we have an initial value problem:
+\begin{equation}
+  \frac{dy}{dt} = f(t,y) \text{ with } y(t_0) = y_0
+\end{equation}
+
+where \( y \) is an unknown function (scalar or vector) of time \( t \), which we 
+would like to approximate, we procced as follows:\\
+Pick a step size \( h > 0 \) and define:
+\begin{equation}
+  y_{n+1} = y_n + \frac{1}{6} h (k_1 + 2 k_2 + 2 k_3 + k_4)
+\end{equation}
+and
+\begin{equation}
+  t_{n+1} = t_n + h
+\end{equation}
+
+where
+
+\begin{equation}
+  \begin{array}{lcl}
+  k_1 & = & f(t_n, y_n) \\
+  k_2 & = & f(t_n + \frac{h}{2}, y_n + h\frac{k_1}{2}) \\
+  k_3 & = & f(t_n + \frac{h}{2}, y_n + h\frac{k_2}{2}) \\
+  k_4 & = & f(t_n + h, y_n + h k_3) \\
+  \end{array}
+\end{equation}
+
+Here \( y_{n+1} \) is the RK4 approximation of \( y( t_{n+1} ) \) and the next value 
+\( y_{n+1} \) is determined by the present value \( y_n \) plus the weighted average 
+of four increments, where each increment is the product of the size of the interval 
+\(h\) and an estimated slope specified by function \(f\) on the right-hand side 
+of the differential equation.
+
+Going back to our example, \( y \) is the state vector and the differential equation 
+\( f \) is a vector function. Here is how we would go about implementing a 
+Runge-Kutta 4 solution, to time \( t \) (\textit{note that in this contrived example, 
+the independant \( t \) variable is not used in the computations; the state vector 
+is not dependent on \(t\)}).
+\begin{enumerate}
+  \item First off, from the initial conditions we should have the value of the state vecotr \( \vec{q} \) for \( t = t_0 \)
+  \item Compute the derivative of the state vector, when \( \vec{q} = \vec{q}(t_0) \); 
+  store the result in an array (\( k_1 \)).
+  \item Compute the derivative of the state vector, when \( \vec{q} = \vec{q}(t_0)+\vec{k_1} \frac{h}{2} \); store the result in an array (\( k_2 \)).
+  \item Compute the derivative of the state vector, when \( \vec{q} = \vec{q}(t_0)+\vec{k_2} \frac{h}{2} \); store the result in an array (\( k_3 \)).
+  \item Compute the derivative of the state vector, when \( \vec{q} = \vec{q}(t_0)+\vec{k_3} h \); store the result in an array (\( k_4 \)).
+  \item Compute the qiantity \( \frac{1}{6} h (k_1 + 2 k_2 + 2 k_3 + k_4) \)
+  \item Add it to the last value of the state vector \( q \)
+  \item Update \( t \), \( t = t + h \)
+  \item Repeat  ....
+\end{enumerate}
+
+\lstinputlisting{source/rk4.cpp}
+
+\bibliography{doris}
+
+\end{document}
