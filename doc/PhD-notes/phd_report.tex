@@ -14,7 +14,7 @@
 \usepackage{natbib} % for bibliography
 \usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
 \usepackage{siunitx} %% SI Units
-\usepackage{amsmath} %% for math ...
+\usepackage{amsmath,bm} %% for math ...
 \usepackage{amssymb} %% greek and various toher characters and symbols ...
 \usepackage{mathabx}
 \usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
@@ -24,6 +24,7 @@
 %% TikZ stuff %%
 \usepackage{tikz} % add a few drawings ...
 \usepackage{tkz-euclide}
+\usetikzlibrary{matrix}
 \usetikzlibrary{shapes.geometric, arrows} % for creating tikz flowcharts 
 \usetikzlibrary{shapes.misc}
 \usetikzlibrary{calc}
@@ -91,7 +92,8 @@
 \newacronym{tio}{TIO}{Terrestrial Intermediate Origin}
 \newacronym{cio}{CIO}{Celestial Intermediate Origin}
 \newacronym{cip}{CIP}{Celestial Intermediate Pole}
-\newacronym{vlbi}{VLBI}{ Very Long Baseline Interferometry}
+\newacronym{vlbi}{VLBI}{Very Long Baseline Interferometry}
+\newacronym{ode}{ODE}{Ordinary Differential Equation}
 %\newacronym{}{}{}
 %\newacronym{}{}{}
 
@@ -115,6 +117,7 @@
 \include{chapters/station_coordinates}
 \include{chapters/ground_segment}
 \include{chapters/satellite_orbits}
+\include{chapters/orbit_intergators}
 \include{chapters/time_scales}
 \include{chapters/technicalities}
 

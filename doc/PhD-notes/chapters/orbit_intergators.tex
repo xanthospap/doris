@@ -1,0 +1,180 @@
+\chapter{Orbit Integrators}
+\label{ch:orbit-integrators}
+
+\section{Introduction}
+Determination and prediction of orbits requires an orbit propagator that finds the
+phase space state of a satellite at one time based on its state at another time.
+An \gls{ode} of order \( n \) is an equation of the form:
+\begin{equation}
+	\frac{d^n y}{dt^n} = f(t,y,y',y'',\ldots,y^{n-1})
+\end{equation}
+Initial value problems involving higher-order \glspl{ode} require initial conditions 
+for each derivative through \( y^{n-1} \). 
+The solution to an initial value problem, \( y(t) \) most often must be found numerically;
+algorithms that numerically solve initial value problems are known as \emph{numerical integrators}.
+
+Higher-order \glspl{ode} may be transformed to an equivelent set of 1\textsuperscript{st} 
+order equations and be solved with a standard numerical integrator; however, some 
+numerical integrators are designed to directly solve higher-order \glspl{ode}.
+
+\emph{Multi-step integrators} (also called \emph{predictor-corrector} methods) 
+integrate forward from a particular time to the next mesh
+point using function values at the current point as well as several previous mesh
+points. The set of the previous points used as well as the current point is called the
+set of \emph{backpoints} (\cite{berry2004}). The methods develop a Taylor series 
+in the time separation between mesh points, and this series must be truncated after 
+some number of terms, which thereby gives the \emph{order} of the method. The order is one 
+less than the number of backpoints, and is not related to the order of the differential equation.
+There a re various multi-step integrators, depending on the implementation.
+
+The function \( f(t,y) \) must be continuous and smooth through the set of 
+backpoints. If there are any discontinuities in \( f \), for example going through eclipse when 
+solar radiation pressure is considered, the integration must either be restarted, or 
+modified to handle the discontinuity (\cite{berry2004}).
+
+\section{Difference Tables}
+Predictor-corrector integrators can be defined in terms of difference tables. 
+For a fixed-step method, assume that solution values \( y_n \) are known on a 
+discrete set of equally-spaced mesh points 
+\( \ldots, t_0 - 2h , t_0 - h , t_0 , t_0 + h , t_0 + 2h , \ldots \)
+where \( h \) is the \emph{step}. If we define \(  t_n \equiv t_0 + n h \), then the 
+set of points is \( t_{-2}, t_{-1}, t_0 , t_{1}, t_{2} \) with the corrsponding 
+function values \( f_n = f(t_n , y_n ) \), where \( y_n \) is the numerical solution 
+at the mesh point \( t_n \).
+
+There are three kinds of differences \footnote{Note that a more general backward difference formula, 
+reads:
+\begin{equation}
+  \begin{aligned}
+    & \text{\textbf{forward differene} } {\Delta}_h [f](x) = f(x+h) - f(x)\\  
+    & \text{\textbf{backward difference} } {\nabla}_h [f](x) = f(x) - f(x-h) = {\Delta}_h [f](x-h)\\
+    & \text{\textbf{central difference} } {\delta}_h [f](x) = f(x+\frac{h}{2}) - f(x-\frac{h}{2}) = {\Delta}_{h/2} [f](x) + {\nabla}_{h/2} [f](x)\\
+  \end{aligned}
+\end{equation}
+When the step size \( h \) is ommited, it is taken to be \(1\). }, 
+represented by different operators (following \cite{berry2004}):
+\begin{equation}
+  \begin{aligned}
+    \text{forward differene     } &   \Delta f_i    = & f_{i+1} - f_i \\
+    \text{backward difference    } & \nabla f_i  = & f_i - f_{i-1} \\
+    \text{central difference    } &   \delta f_i   = & f_{i+1/2} - f_{i-1/2} \\
+  \end{aligned}
+\end{equation}
+
+The differences of the
+differences, or \emph{second differences}, can also be computed. For instance,
+the square of the backward difference operator is the operator applied to the first
+difference \footnote{
+  On a more genral manner, the n\textsuperscript{th} order forward, backward and central differences read :
+\begin{equation}
+  \begin{aligned}
+  & {\Delta}^n_h [f](x) = \sum_{k=0}^n \binom{n}{k} (-1)^{n-k} f(x+k)\\
+  & {\nabla}^n_h [f](x) = \sum_{i=0}^n (-1)^i \binom{n}{i} f(x-ih)\\
+  & {\delta}^n_h [f](x) = \sum_{i=0}^n (-1)^i \binom{n}{i} f(x + (\frac{n}{2} -i)h)\\
+  \end{aligned}
+\end{equation}
+respectively.}
+\begin{equation}
+  {\nabla}^2 f_i = \nabla \nabla f_i = \nabla (f_i - f_{i-1}) = 
+  (f_i - f_{i-1}) - (f_{i-1} - f_{i-2}) = f_i - 2 f_{i-1} + f_{i-2}
+\end{equation}
+
+In addition to the three difference operators, there is also a 
+\emph{displacement operator} \(E\). The displacement operator is defined as:
+\begin{equation}
+  E f_i = f_{i+1} \text{ and } E^n f_i = f_{i+n}
+\end{equation}
+
+The difference and displacement operators  can be written in terms of each other:
+\begin{equation}
+  \nabla = 1 - E^{-1} \text{ and } E = \frac{1}{1 - \nabla}
+\end{equation}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+\matrix[
+  matrix of math nodes,
+  inner sep=3pt,
+  row sep=2em,
+  column sep=2em
+] (M)
+{
+    \bm{i} & \bm{{\nabla}^{-2} f_i} & \bm{{\nabla}^{-1} f_i} & \bm{f_i} & \bm{\nabla f_i} & \bm{{\nabla}^2 f_i} & \bm{{\nabla}^3 f_i} \\
+    \cdots \\
+    -3 & {\nabla}^{-2} f_{-3} & {\nabla}^{-1} f_{-3} & f_{-3} &  \nabla f_{-3}  &  {\nabla}^2 f_{-3}  & {\nabla}^3 f_{-3} \\
+    -2 & {\nabla}^{-2} f_{-2} & {\nabla}^{-1} f_{-2} & f_{-2} &  \nabla f_{-2}  &  {\nabla}^2 f_{-2}  & {\nabla}^3 f_{-2} \\
+    -1 & {\nabla}^{-2} f_{-1} & {\nabla}^{-1} f_{-1} & f_{-1} &  \nabla f_{-1}  &  {\nabla}^2 f_{-1}  & {\nabla}^3 f_{-1} \\
+     0 & {\nabla}^{-2} f_{0}  & {\nabla}^{-1} f_{0}  & f_{0}  &  \nabla f_{0}   &  {\nabla}^2 f_{0}   & {\nabla}^3 f_{0}  \\
+     1 & {\nabla}^{-2} f_{1}  & {\nabla}^{-1} f_{1}  & f_{1}  &  \nabla f_{1}   &  {\nabla}^2 f_{1}   & {\nabla}^3 f_{1}  \\
+     2 & {\nabla}^{-2} f_{2}  & {\nabla}^{-1} f_{2}  & f_{2}  &  \nabla f_{2}   &  {\nabla}^2 f_{2}   & {\nabla}^3 f_{2}  \\
+     3 & {\nabla}^{-2} f_{3}  & {\nabla}^{-1} f_{3}  & f_{3}  &  \nabla f_{3}   &  {\nabla}^2 f_{3}   & {\nabla}^3 f_{3}  \\
+    \cdots \\
+}
+;
+\draw[->] (M-3-4.south east) -- (M-4-5.north west);
+\draw[->] (M-4-4.south east) -- (M-5-5.north west);
+\draw[->] (M-5-4.south east) -- (M-6-5.north west);
+\draw[->] (M-6-4.south east) -- (M-7-5.north west);
+\draw[->] (M-7-4.south east) -- (M-8-5.north west);
+\draw[->] (M-8-4.south east) -- (M-9-5.north west);
+\draw[->] (M-4-4.east) -- (M-4-5.west);
+\draw[->] (M-5-4.east) -- (M-5-5.west);
+\draw[->] (M-6-4.east) -- (M-6-5.west);
+\draw[->] (M-7-4.east) -- (M-7-5.west);
+\draw[->] (M-8-4.east) -- (M-8-5.west);
+\draw[->] (M-9-4.east) -- (M-9-5.west);
+\draw[->] (M-3-5.south east) -- (M-4-6.north west);
+\draw[->] (M-4-5.south east) -- (M-5-6.north west);
+\draw[->] (M-5-5.south east) -- (M-6-6.north west);
+\draw[->] (M-6-5.south east) -- (M-7-6.north west);
+\draw[->] (M-7-5.south east) -- (M-8-6.north west);
+\draw[->] (M-8-5.south east) -- (M-9-6.north west);
+\draw[->] (M-4-5.east) -- (M-4-6.west);
+\draw[->] (M-5-5.east) -- (M-5-6.west);
+\draw[->] (M-6-5.east) -- (M-6-6.west);
+\draw[->] (M-7-5.east) -- (M-7-6.west);
+\draw[->] (M-8-5.east) -- (M-8-6.west);
+\draw[->] (M-9-5.east) -- (M-9-6.west);
+\draw[->] (M-3-6.south east) -- (M-4-7.north west);
+\draw[->] (M-4-6.south east) -- (M-5-7.north west);
+\draw[->] (M-5-6.south east) -- (M-6-7.north west);
+\draw[->] (M-6-6.south east) -- (M-7-7.north west);
+\draw[->] (M-7-6.south east) -- (M-8-7.north west);
+\draw[->] (M-8-6.south east) -- (M-9-7.north west);
+\draw[->] (M-4-6.east) -- (M-4-7.west);
+\draw[->] (M-5-6.east) -- (M-5-7.west);
+\draw[->] (M-6-6.east) -- (M-6-7.west);
+\draw[->] (M-7-6.east) -- (M-7-7.west);
+\draw[->] (M-8-6.east) -- (M-8-7.west);
+\draw[->] (M-9-6.east) -- (M-9-7.west);
+\draw[gray,->] (M-3-3.south east) -- (M-4-4.north west);
+\draw[gray,->] (M-4-3.south east) -- (M-5-4.north west);
+\draw[gray,->] (M-5-3.south east) -- (M-6-4.north west);
+\draw[gray,->] (M-6-3.south east) -- (M-7-4.north west);
+\draw[gray,->] (M-7-3.south east) -- (M-8-4.north west);
+\draw[gray,->] (M-8-3.south east) -- (M-9-4.north west);
+\draw[gray,->] (M-4-3.east) -- (M-4-4.west);
+\draw[gray,->] (M-5-3.east) -- (M-5-4.west);
+\draw[gray,->] (M-6-3.east) -- (M-6-4.west);
+\draw[gray,->] (M-7-3.east) -- (M-7-4.west);
+\draw[gray,->] (M-8-3.east) -- (M-8-4.west);
+\draw[gray,->] (M-9-3.east) -- (M-9-4.west);
+\draw[gray,->] (M-3-2.south east) -- (M-4-3.north west);
+\draw[gray,->] (M-4-2.south east) -- (M-5-3.north west);
+\draw[gray,->] (M-5-2.south east) -- (M-6-3.north west);
+\draw[gray,->] (M-6-2.south east) -- (M-7-3.north west);
+\draw[gray,->] (M-7-2.south east) -- (M-8-3.north west);
+\draw[gray,->] (M-8-2.south east) -- (M-9-3.north west);
+\draw[gray,->] (M-4-2.east) -- (M-4-3.west);
+\draw[gray,->] (M-5-2.east) -- (M-5-3.west);
+\draw[gray,->] (M-6-2.east) -- (M-6-3.west);
+\draw[gray,->] (M-7-2.east) -- (M-7-3.west);
+\draw[gray,->] (M-8-2.east) -- (M-8-3.west);
+\draw[gray,->] (M-9-2.east) -- (M-9-3.west);
+\end{tikzpicture}
+\caption{Backward Difference Table. The arrows in the table point towards the difference; 
+the upper component is always subtracted from the lower, e.g. \( {\nabla}^2 f_3 = \nabla f_3 - \nabla f_2\)
+\cite{berry2004}.}
+\label{fig:differences-table-integrator}
+\end{figure}
