@@ -97,7 +97,6 @@
 %\listoftables
 
 \section{Solving ODE Systems with Runge-Kutta}
-
 \subsection{Problem Description}
 \label{ssec:problem-description}
 Start with a simple two-dimensional example of a 2\textsuperscript{nd} degree ODE.
@@ -240,6 +239,16 @@ is not dependent on \(t\)}).
 Here is a dead simple c++ source code to implement the Runge-Kutta solution for the 
 problem described in \ref{ssec:problem-description}.
 \lstinputlisting{source/rk4.cpp}
+
+\section{Solving ODE Systems with Gauss-Jackson}
+\subsection{Problem Description}
+The initial value problem is again \ref{ssec:problem-description}.
+
+\subsection{4\textsuperscript{th} Order Gauss-Jackson Method}
+First, we need to calculate the state vector \( \vec{q} \) at the mesh points. 
+That is, we need position and velocity values at the times: 
+\( t_0 -3h, t_0 - 2h, t_0 - h, t_0, t_0 + h, t_0 + 2h, t_0 + 3h
+
 
 \bibliography{doris}
 
