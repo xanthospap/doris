@@ -26,6 +26,9 @@ int count_length_reverse(const char *str, int from) noexcept {
 /// at the top of the file, it will be rewinded to the top.
 ///
 int ids::DorisObsRinex::read_header() noexcept {
+#ifdef DEBUG
+  if (errno) fprintf(stderr, "[WRNNG] Going into function %s witth an errno = %d !\n", __func__, errno);
+#endif
   if (!m_stream.is_open() || !m_stream.good())
     return -1;
   if (m_stream.tellg())
@@ -115,6 +118,7 @@ int ids::DorisObsRinex::read_header() noexcept {
         return 84;
     
     } else if (!std::strncmp(line + 60, "APPROX POSITION XYZ", 19)) {
+      errno = 0;
       // APPROX POSITION XYZ; get m_approx_position (err. code 90)
       char *start = line;
       for (int i = 0; i < 3; i++) {
@@ -127,6 +131,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       }
     
     } else if (!std::strncmp(line + 60, "CENTER OF MASS: XYZ", 19)) {
+      errno = 0;
       // CENTER OF MASS: XYZ; get m_center_mass (err. code 100)
       char *start = line;
       for (int i = 0; i < 3; i++) {
@@ -139,6 +144,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       }
     
     } else if (!std::strncmp(line + 60, "SYS / # / OBS TYPES", 19)) {
+      errno = 0;
       // SYS / # / OBS TYPES; get/fill m_obs_codes (err. code 110)
       if (*line != 'D')
         return 111;
@@ -186,6 +192,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       return 130;
    
     } else if (!std::strncmp(line + 60, "SYS / SCALE FACTOR", 18)) {
+      errno = 0;
       // SYS / SCALE FACTOR; get/fill m_obs_scale_factors
       if (*line != 'D')
         return 141;
@@ -239,6 +246,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       }
     
     } else if (!std::strncmp(line + 60, "L2 / L1 DATE OFFSET", 19)) {
+      errno = 0;
       // L2 / L1 DATE OFFSET; get m_l12_date_offset (err. code 150)
       if (*line != 'D')
         return 151;
@@ -249,6 +257,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       }
     
     } else if (!std::strncmp(line + 60, "# OF STATIONS", 13)) {
+      errno = 0;
       // # OF STATIONS; reserve size for m_stations (err. code 160)
       num_stations = std::strtol(line, &end, 10);
       if (!num_stations || (errno || end == line))
@@ -265,6 +274,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       }
     
     } else if (!std::strncmp(line + 60, "# TIME REF STATIONS", 19)) {
+      errno = 0;
       // # TIME REF STATIONS; reserve size for m_ref_stations (err. code 180)
       num_ref_stations = std::strtol(line, &end, 10);
       if (!num_ref_stations || (errno || end == line)) {
@@ -274,6 +284,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       if ((int)m_ref_stations.capacity()<num_ref_stations) m_ref_stations.reserve(num_ref_stations);
     
     } else if (!std::strncmp(line + 60, "TIME REF STATION", 16)) {
+      errno = 0;
       // TIME REF STATION; collect time reference station. make sure reference
       // station is already in the m_stations vector (err. code 190)
       TimeReferenceStation refsta;
