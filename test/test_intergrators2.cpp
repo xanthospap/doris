@@ -45,13 +45,35 @@ int main() {
     Vector3 r, v;
 
     dso::GaussJacksonIntegrator<4> gj4(tend / steps[i], ode21);
-    gj4.initialize(t0, r, v);
+    gj4.initialize(t0, r0, v0);
     double t = t0;
     for (int k = 1; k < steps[i] + 1; k++)
       t = gj4.step(t, r, v);
 
     double anls = analytical(t, r0.x(), v0.x());
     printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ4 %10.5f "
+           "Diff: %.5e\n",
+           steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
+    
+    dso::GaussJacksonIntegrator<6> gj6(tend / steps[i], ode21);
+    t = t0;
+    gj6.initialize(t0, r0, v0);
+    for (int k = 1; k < steps[i] + 1; k++)
+      t = gj6.step(t, r, v);
+
+    anls = analytical(t, r0.x(), v0.x());
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ6 %10.5f "
+           "Diff: %.5e\n",
+           steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
+    
+    dso::GaussJacksonIntegrator<8> gj8(tend / steps[i], ode21);
+    t = t0;
+    gj8.initialize(t0, r0, v0);
+    for (int k = 1; k < steps[i] + 1; k++)
+      t = gj8.step(t, r, v);
+
+    anls = analytical(t, r0.x(), v0.x());
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ8 %10.5f "
            "Diff: %.5e\n",
            steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
 

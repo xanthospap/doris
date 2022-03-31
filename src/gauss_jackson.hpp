@@ -1,7 +1,8 @@
 #ifndef __GAUSS_JACKSON_ORBIT_ITERGRATOR_HPP__
 #define __GAUSS_JACKSON_ORBIT_ITERGRATOR_HPP__
 
-#include "iers2010/matvec.hpp"
+#include "orbit_integrators.hpp"
+#include "orbit_integrators_coefficients.hpp"
 #include <type_traits>
 #include <cstdio>
 #ifdef DEBUG
@@ -9,26 +10,6 @@
 #endif
 
 namespace dso {
-
-namespace orbit_integrators {
-/// @brief Alias for a 2nd order ODE, where the position and velocity vectors
-///        are input individually (not as a single state vector). Hence the
-///        signature reads:
-///        some_function(t, position vec, velocity vec, acceleration vec)
-///        and the ODE is used to compute the acceleration given the position 
-///        and velocity vectors.
-using ode2_pv = void(double, const Vector3 &, const Vector3 &,
-                     Vector3 &) noexcept;
-
-/// @brief Valid order for integrators; check at compile-time
-#if __cplusplus >= 202002L
-    template<int N> concept ValidOrbitIntegratorOrder = N > 1 && N < 9;
-#else
-    template<int N> struct ValidOrbitIntegratorOrder {
-        static bool const value = N > 1 && N < 9;
-    };
-#endif
-} // namespace orbit_integrators
 
 /// @brief Integrate a 2nd order ODE via Runge-Kutta 4
 /// Compute the solution of a 2nd order ODE using the Runge-Kutta 4 method. The 
@@ -76,11 +57,11 @@ double rk4_integrate(double t, double h, Vector3 &r, Vector3 &v,
 #if __cplusplus >= 202002L
 template <int Order>
 class GaussJacksonIntegrator requires orbit_integrators::
-    ValidOrbitIntegratorOrder {
+    ValidGaussJacksonOrder {
 #else
 template <int Order,
           typename = std::enable_if_t<
-              orbit_integrators::ValidOrbitIntegratorOrder<Order>::value>>
+              orbit_integrators::ValidGaussJacksonOrder<Order>::value>>
 class GaussJacksonIntegrator {
 #endif
 private:
@@ -109,33 +90,38 @@ public:
   /// @param[in] r Solution of velocity vector at t+h 
   /// @return t+h
   double step(double t, Vector3 &r, Vector3 &v) noexcept {
-    constexpr const double gp[] = {1e0,
-                                   0.5e0,
-                                   5e0 / 12e0,
-                                   3e0 / 8e0,
-                                   251e0 / 720e0,
-                                   95e0 / 288e0,
-                                   19087e0 / 60480e0,
-                                   5257e0 / 17280e0,
-                                   1070017e0 / 3628800e0};
-    constexpr const double dp[] = {1e0,
-                                   0e0,
-                                   1e0 / 12e0,
-                                   1e0 / 12e0,
-                                   19e0 / 240e0,
-                                   3e0 / 40e0,
-                                   863e0 / 12096e0,
-                                   275e0 / 4032e0,
-                                   33953e0 / 518400e0};
+    constexpr const StoermerCowellCoefficients_Delta<Order> dp;
+    constexpr const  AdamsBashforthCoefficients<Order> gp;
+
+#ifdef DEBUG
+  constexpr int gpsize = gp.num_coeffs();
+  constexpr int dpsize = dp.num_coeffs();
+#endif
 
     // predictor
-    Vector3 rp = dp[0] * S2;
+    Vector3 rp = dp.coeffs[0] * S2;
     for (int i = 2; i < Order + 2; i++)
-      rp += dp[i] * D[i - 2];
+#ifdef DEBUG
+    {
+      assert(i<dpsize);
+      assert(i-2<Order);
+      rp += dp.coeffs[i] * D[i - 2];
+    }
+#else
+    rp += dp.coeffs[i] * D[i - 2];
+#endif
     rp *= (h * h);
-    Vector3 vp = gp[0] * S1;
+    Vector3 vp = gp.coeffs[0] * S1;
     for (int i = 1; i < Order + 1; i++)
-      vp += gp[i] * D[i - 1];
+#ifdef DEBUG
+      {
+        assert(i<gpsize);
+        assert(i-1<Order);
+      vp += gp.coeffs[i] * D[i - 1];
+      }
+#else
+      vp += gp.coeffs[i] * D[i - 1];
+#endif
     vp *= h;
 
     // Update backwards difference table
@@ -188,39 +174,40 @@ public:
       for (int j = Order - 1; j >= order; j--)
         D[j] = D[j - 1] - D[j];
 
-    constexpr const double SCdeltaCoeffs[] = {1e0,
-                                              -1e0,
-                                              1e0 / 12e0,
-                                              0e0,
-                                              -1e0 / 240e0,
-                                              -1e0 / 240e0,
-                                              -221e0 / 60480e0,
-                                              -19e0 / 60480e0,
-                                              -9829e0 / 3628800e0};
-
-    constexpr const double AMgammaCoeffs[] = {1e0,
-                                              -0.5e0,
-                                              -1e0 / 12e0,
-                                              -1e0 / 24e0,
-                                              -19e0 / 720e0,
-                                              -3e0 / 160e0,
-                                              -863e0 / 60480e0,
-                                              -275e0 / 24192e0,
-                                              -33953e0 / 3628800e0};
+    constexpr const StoermerCowellCoefficients<Order> sc;
+    constexpr const AdamsMoultonCoefficients<Order> am;
+#ifdef DEBUG
+    constexpr int SCsize = sc.num_coeffs();
+    constexpr int AMsize = am.num_coeffs();
+#endif
 
     // Initialize backwards sums using GJ corrector via Adams—Moulton and 
     // Cowell formulas (see Monentbruck, Eq. 4.99)
     S1 = v0 / h;
     for (int i = 1; i <= Order; i++)
-      S1 -= AMgammaCoeffs[i] * D[i - 1];
-    S2 = r0 / (h * h) - SCdeltaCoeffs[1] * S1;
+#ifdef DEBUG
+    {
+      assert(i<AMsize);
+      assert(i-1<Order);
+      S1 -= /*AMgammaCoeffs*/am.coeffs[i] * D[i - 1];
+    }
+#else
+      S1 -= /*AMgammaCoeffs*/am.coeffs[i] * D[i - 1];
+#endif
+    S2 = r0 / (h * h) - /*SCdeltaCoeffs*/sc.coeffs[1] * S1;
     for (int i = 2; i <= Order + 1; i++)
-      S2 -= SCdeltaCoeffs[i] * D[i - 2];
+#ifdef DEBUG
+    {
+      assert(i<SCsize);
+      assert(i-2<Order);
+     S2 -= /*SCdeltaCoeffs*/sc.coeffs[i] * D[i - 2];
+    }
+#else     
+     S2 -= /*SCdeltaCoeffs*/sc.coeffs[i] * D[i - 2];
+#endif
 
     // note S1 = D^(-1) a_t0
     //      S2 = D^(-2) a_t0
-    /*printf("\tS1=[%.5f, %.5f, %.5f]\n", S1.data[0], S1.data[1], S1.data[2]);
-    printf("\tS2=[%.5f, %.5f, %.5f]\n", S2.data[0], S2.data[1], S2.data[2]); */
 #ifdef DEBUG
     Vector3 nullvec{{0e0,0e0,0e0}};
     for (int i=0; i<Order+1; i++) assert(d[i] == nullvec);
