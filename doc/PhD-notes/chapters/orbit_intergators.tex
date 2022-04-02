@@ -1,6 +1,85 @@
 \chapter{Orbit Integrators}
 \label{ch:orbit-integrators}
 
+\section{Runge Kutta Nystr{\"o}m Methods}
+Families of \gls{rkn} formulae are used when the problem at hand involves 
+a 2\textsuperscript{nd} order \gls{ode}, where :
+\begin{equation}
+  \label{eq:dorm1}
+  y''(t) = f(t, y(t)) \text{ with } y(t_0) = y_0 \text{ , } y'(t_0) = y'_0
+\end{equation}
+that is \( f \) is independent of \( y'(t) \). While it is possible to reduce 
+\ref{eq:dorm1} to a system of first order \glspl{ode} and apply e.g. a Runge-Kutta 
+method, we can exploit its special structure directly applying \gls{rkn} technique,
+which consists of formulae of orders \(q\) and \(p\) (with \(q>p\)) of the form 
+(\cite{dormand87}):
+\begin{equation}
+  \begin{aligned}
+    \hat{y}_{n+1}  & = \hat{y}_n + h_n \hat{\phi}(x_n , \hat{y}_n , \hat{y'}_n , h_n) & 
+    \hat{y'}_{n+1} & = \hat{y'}_n + h_n \hat{\phi}' (x_n , \hat{y}_n , \hat{y'}_n , h_n) \\
+    y_{n+1}        & = \hat{y}_n + h_n \phi (x_n , \hat{y}_n , \hat{y'}_n , h_n) & 
+    y'_{n+1}       & = \hat{y'}_n + h_n {\phi}' (x_n , \hat{y}_n , \hat{y'}_n , h_n) \\
+  \end{aligned}
+\end{equation}
+
+where
+\begin{equation}
+  \begin{aligned}
+    \begin{aligned}
+    \hat{\phi}(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=1}^{s} \hat{b}_i g_i & 
+    \hat{\phi}'(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=1}^{s} \hat{b}'_i g_i \\
+         \phi (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=1}^{s} b_i g_i & 
+         {\phi}' (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=1}^{s} b'_i g_i \\
+    \end{aligned}
+    \\
+    g_i = f(x_n + c_i h_n , \hat{y}_n +c_i h_n \hat{y}'_n + h^2 \sum_{j=1}^{i-1} {\alpha}_{ij}g_j) \text{ ,  } i=1,2,\cdots ,s\\
+  \end{aligned}
+\end{equation}
+
+In the above, \( x_{n+1} = x_n + h_n\) where \( h_n = \theta (x_n) h\) with 
+\( 0< \theta \leq 1 \), \( \hat{y}_0 = y(x_0) \) and \( \hat{y'}_0 = y'(x_0)\) 
+and \( \hat{y}_n \), \(\hat{y'}_n\), \(y_n\) and \(y'_n\) denote approximations to the 
+`true' solution \(y(x_n)\) and \(y'(x_n)\). The q\textsuperscript{th} order approximations 
+\( \hat{y}_n \) and \( \hat{y'}_n\) are used as initial values for the \( (n+1)^{th} \) 
+step.
+
+Estimates \({\delta}_{n+1} = y_{n+1} - \hat{y}_{n+1}\) and \({\delta '}_{n+1} = y'_{n+1} - \hat{y'}_{n+1}\) 
+of the local truncation errors, \(t_{n+1}\) and \(t'_{n+1}\) can be computed and used 
+to control the step size \(h_n\), via \cite{dormand87}:
+\begin{equation}
+  h_{n+1} = 0.9 h_n (T/E)^{\frac{1}{p+1}} \text{ where } 
+  E = max\{\lVert {\delta}_{n+1} \rVert_{\infty} , \lVert {\delta '}_{n+1} \rVert_{\infty} \}
+\end{equation}
+\(T\) is the maximum allowable local error.
+
+\subsection{RKN4(3) Family}
+For a process with \(q=4\) and \(p=3\), \cite{dormand87} provides coefficients for \(c_i\), \({\alpha}_{ij}\), 
+\(\hat{b}_i\), \(\hat{b'}_i\), \(b_i\) and \(b'_i\) which are listed in \ref{table:dormand87-rkn434fm} 
+(for a detailed description of their derivation see therin); nomenclature follows the 
+original work of \cite{dormand86}, in which the second \(4\) indicates the number of function 
+evaluations, the \textbf{F} indicates that \emph{FSAL}\footnote{FSAL refers to the idea that 
+the last evaluation at any step is the same as the first of the next evaluation, used when 
+deriving the RKN coefficients; see e.g. \cite{dormand78}.} and the \textbf{M} indicates that the fourth-order truncation-error terms have
+been reduced.
+
+\renewcommand{\arraystretch}{2}
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{cccccccc}
+        \hline
+        \(c_i\) & \multicolumn{3}{c}{\({\alpha}_{ij}\)} &  \(\hat{b}_i\) & \(\hat{b'}_i\) & \(b_i\) & \(b'_i\) \\
+        \hline
+        \(0\) & & & & \(\frac{1}{14}\) & \(\frac{1}{14}\) & \(-\frac{7}{150}\) & \(\frac{13}{21}\) \\
+        \(\frac{1}{4}\) & \(\frac{1}{32}\) & & & \(\frac{8}{27}\) & \(\frac{32}{81}\) & \(\frac{67}{150}\) & \(-\frac{20}{27}\) \\
+        \(\frac{7}{10}\) & \(\frac{7}{1000}\) & \(\frac{119}{500}\) & & \(\frac{25}{189}\) & \(\frac{250}{567}\) & \(\frac{3}{20}\) & \(\frac{275}{189}\) \\
+        \(1\) & \(\frac{1}{14}\) & \(\frac{8}{27}\) & \(\frac{25}{189}\) & \(0\) & \(\frac{25}{189}\) & \(-\frac{1}{20}\) & \(-\frac{1}{3}\) \\
+        \hline
+    \end{tabular}
+    \caption{The RKN4(3)4FM, \cite{dormand87}.}
+    \label{table:dormand87-rkn434fm}
+\end{table}
+\renewcommand{\arraystretch}{1}
+
 \section{Introduction}
 Determination and prediction of orbits requires an orbit propagator that finds the
 phase space state of a satellite at one time based on its state at another time.
@@ -87,6 +166,7 @@ In addition to the three difference operators, there is also a
 
 The difference and displacement operators  can be written in terms of each other:
 \begin{equation}
+\label{eq:berry6}
   \nabla = 1 - E^{-1} \text{ and } E = \frac{1}{1 - \nabla}
 \end{equation}
 
@@ -178,3 +258,58 @@ the upper component is always subtracted from the lower, e.g. \( {\nabla}^2 f_3 
 \cite{berry2004}.}
 \label{fig:differences-table-integrator}
 \end{figure}
+
+Differentiation (aka the operator \( D = d / dt \)) can be represented approximately 
+in terms of  the \( E \) operator, noting that (\cite{berry2004}):
+\begin{equation}
+  \begin{aligned}
+  E^p f(t_0 ) & = f(t_0 + p h) \\
+              & = f(t_0) + p h D f(t_0) + \frac{(ph)^2}{2!}D^2f(t_0) + 
+      \frac{(ph)^3}{3!}D^3f(t_0) + \ldots \\
+              & = e^{phD}f(t_0)\\
+  \end{aligned}
+\end{equation}
+
+We identify two operators:
+\begin{equation}
+  E^p = e^{phD}
+\end{equation}
+or taking the logarithm:
+\begin{equation}
+  p h D = p \log E
+\end{equation}
+which gives (using \ref{eq:berry6}):
+\begin{equation}
+  \label{eq:berry13}
+  h D = \log E = - \log(1-\nabla)
+\end{equation}
+
+\section{Adams Method}
+The integration operator \( D^{-1} \) can be computed as the inverse of the 
+differentiation operator; using \ref{eq:berry13}:
+\begin{equation}
+  D^{-1} = - \frac{h}{\log(1-\nabla)}
+\end{equation}
+
+In the following, focus is placed in satellite orbits, hence the general function 
+\( f \) will be replaced with \( \ddot{\vec{r}} \).
+
+The definite integral is computed by using the diplacement operator on the indefinite 
+integral (\cite{berry2004}):
+\begin{equation}
+  (E^p -1) D^{-1} \ddot{\vec{r}}_n = (E^p -1) \dot{\vec{r}}_n 
+  = \int_{t_n}^{t_n +ph} \ddot{\vec{r}} \,dt
+\end{equation}
+
+This integration corresponds to a \emph{predictor} in a multi-step numerical 
+integration, because the equation finds a value \( \dot{\vec{r}} \) at a future 
+time. If \( p = 1 \), the predictor operator \( J \) can be written in terms of 
+the backward difference operator as (\cite{berry2004}):
+\begin{equation}
+  \begin{aligned}
+  J & = \frac{1}{h} (E-1) D^{-1} \\
+    & = \frac{1}{h} [ {(1-\nabla)}^{-1} - 1 ] D^{-1} \\
+    & = \frac{1}{h} \frac{\nabla}{1-\nabla}D^{-1} \\
+    & = - \frac{\nabla}{(1-\nabla) \log(1-\nabla)}
+  \end{aligned}
+\end{equation}

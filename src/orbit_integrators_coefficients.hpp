@@ -3,6 +3,18 @@
 
 namespace dso {
 
+template<int N, int M>
+struct RungeKuttaNystromCoefficients {};
+template<>
+struct RungeKuttaNystromCoefficients<4,3> {
+  static constexpr const double c[] = {0e0, 1e0/4e0, 7e0/10e0, 1e0};
+  static constexpr const double bhat[] = {1e0/14e0, 8e0/27e0, 25e0/189e0, 0e0};
+  static constexpr const double bdothat[] = {1e0/14e0, 32e0/81e0, 250e0/567e0, 5e0/54e0};
+  static constexpr const double b[] = {-7e0/150e0, 67e0/150e0, 3e0/20e0, -1e0/20e0};
+  static constexpr const double bdot[] = {13e0/21e0, -20e0/27e0, 275e0/189e0, -1e0/3e0};
+  // static constexpr const double a[][4];
+};
+
 /// @struct AdamsBashforthCoefficients
 /// @brief Holds Adams-Bashforth Coefficients in the range [0, N+2]
 /// Reference: Satellite Orbits: Models, Methods and Applications, Montenbruck

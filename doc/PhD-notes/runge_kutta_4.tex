@@ -240,14 +240,224 @@ Here is a dead simple c++ source code to implement the Runge-Kutta solution for 
 problem described in \ref{ssec:problem-description}.
 \lstinputlisting{source/rk4.cpp}
 
+\subsection{Yet Another Example for Runge-Kutta 4}
+\emph{The following example was released in the public domain by Gilberto E. Urroz 
+and can be found \href{https://smath.com/wiki/GetFile.aspx?File=Examples/RK4-2ndOrderODE.pdf}{here}; 
+last accessed 24 March, 2022)}
+
+Consider the 2\textsuperscript{nd} order ODE:
+\begin{equation}
+  \label{eq:ex2ode}
+  y'' + y \cdot y' + 3 \cdot y = \sin x
+\end{equation}
+subject to the initial conditions:
+\begin{equation}
+  y(0) = -1 \text{  and  } y'(0) = 1
+\end{equation}
+
+Let's transform this to a system of first order ODEs:
+\begin{equation}
+  \begin{aligned}
+    u_1 & \equiv y   \\
+    u_2 & \equiv y'  \\
+    %u_3 & \equiv y'' \\
+  \end{aligned}
+\end{equation}
+
+Hence, \ref{eq:ex2ode} can be written as:
+\begin{equation}
+  \begin{aligned}
+    u'_1 & = u_2 \\
+    u'_2 & = - u_1 \cdot u_2 - 3 \cdot u_1 + \sin x \\
+  \end{aligned}
+\end{equation}
+
+or in vector for:
+\begin{equation}
+  \frac{d}{dx} \vec{u} = 
+  \vec{f} ( x, \vec{u} ) , 
+  \text{ where } 
+  \vec{u} = \begin{bmatrix} 
+    u_1 \\
+    u_2 \\
+  \end{bmatrix}
+\end{equation}
+
+with the corresponding initial conditions:
+\begin{equation}
+  \begin{aligned}
+    u_1 (0) & = -1 \\
+    u_2 (0) & = 1 \\
+  \end{aligned}
+\end{equation}
+
+\subsection{No Explicit Transformation to 1\textsuperscript{st} Order ODE}
+It may happend that we do not want or cannot transform the second order ODE function 
+to a system of 1\textsuperscript{st} order ODEs (\textit{for example when this step 
+is only a intialization for a multi-step method}).
+
+In this case, we will not treat the state vector \( \vec{q} \) explicitely, but use three vectors 
+for the position \( \vec{r} \) the velocity \( \vec{v} \equiv \dot{\vec{r}} \) and 
+the acceleration \( \vec{a} \equiv \dot{\vec{v}} \).
+
+Note that when computing the RK4 factor (aka the weighted sum of \( k_i \text{ for } i=1,\cdots ,4 \))
+we needed to compute a new state vector as input for every \( k_i \); 
+for example, \( \vec{q} + \frac{h}{2} k_1 \) for the 
+\( k_2 \) coefficients. Note also that \( k_{i-1} \) is the 
+derivative of the state vector computed in the previous step; hence, for \( k_2 \), 
+the computation \( \vec{q} + \frac{h}{2} k_1 \) reads:
+\begin{equation}
+  \vec{q}_{k_2} = 
+  \begin{bmatrix}
+    r_x \\
+    r_y \\
+    \dot{r}_x \\
+    \dot{r}_y \\
+  \end{bmatrix}_{t_0}
+  +
+  \frac{h}{2}
+  \begin{bmatrix}
+    \dot{r}_x \\
+    \dot{r}_y \\
+    \ddot{r}_x \\
+    \ddot{r}_y \\
+  \end{bmatrix}_{k_1}
+  =
+  \begin{bmatrix}
+    \vec{r}_{t_0} \\
+    \vec{v}_{t_0} \\
+  \end{bmatrix}
+  +
+  \frac{h}{2}
+  \begin{bmatrix}
+    \dot{\vec{r}}_{k_1} \\
+    \dot{\vec{v}}_{k_1} \\
+  \end{bmatrix}
+\end{equation}
+
+\begin{table}
+  \centering
+\begin{tabularx}{\textwidth}{c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\hline
+Step & \bf{Via State Vector} & \bf{Via Position and Velocity}\\
+Start &
+\( \vec{state}_{t_0} \equiv \begin{bmatrix} 
+  x  \\
+  y  \\
+  x' \\
+  y' \\
+  \end{bmatrix}_{t_0} \) &
+\( \vec{r}_{t_0} \equiv \begin{bmatrix} 
+  x \\
+  y \\
+  \end{bmatrix}_{t_0} \text{ and } 
+  \vec{v}_{t_0} \equiv \begin{bmatrix}
+  x' \\
+  y' \\
+  \end{bmatrix}_{t_0} \) \\
+\hline
+
+\( k_1 \) &
+input \(t, \vec{state}_{t_0} \) result: \( k_1 = \begin{bmatrix}
+  x'_{t_0} \\
+  y'_{t_0} \\
+  -x_{t_0} / r^3_{t_0} \\
+  -y_{t_0} / r^3_{t_0} \\
+  \end{bmatrix} \) &
+input \( t, \vec{r}_{t_0}, \vec{v}_{t_0} \) result: \( k_1 = \begin{bmatrix}
+  -x_{t_0} / r^3_{t_0} \\
+  -y_{t_0} / r^3_{t_0} \\
+  \end{bmatrix} \)
+and
+  \( m_1 = \begin{bmatrix}
+    x'_{t_0}\\
+    y'_{t_0}\\
+  \end{bmatrix} \) \\
+
+\( k_2 \) &
+input \(t+\frac{h}{2}, \vec{state}_{t_0}+\frac{h}{2} k_1 = \begin{bmatrix} 
+  x_{t_0} + \frac{h}{2}x'_{k_1} \equiv x_{k2in}\\ 
+  y_{t_0} + \frac{h}{2}y'_{k_1} \equiv y_{k2in}\\
+  x'_{t_0} + \frac{h}{2}x''_{k_1} \equiv x'_{k2in} \\ 
+  y'_{t_0} + \frac{h}{2}y''_{k_1} \equiv y'_{k2in} \\
+  \end{bmatrix} \) result: \( k_2 = \begin{bmatrix}
+  x'_{k2in} \\
+  y'_{k2in} \\
+  -x_{k2in} / r^3_{t_0} \\
+  -y_{k2in} / r^3_{t_0} \\
+  \end{bmatrix} \) &
+input \( t, \vec{r}_{t}, \vec{v}_{t_0} \) result: \( k_1 = \begin{bmatrix}
+  -x_{t_0} / r^3_{t_0} \\
+  -y_{t_0} / r^3_{t_0} \\
+  \end{bmatrix} \)
+and
+  \( m_1 = \begin{bmatrix}
+    x'_{t_0}\\
+    y'_{t_0}\\
+  \end{bmatrix} \) \\
+
+\end{tabularx}
+\caption{Common Time Scales used in Astronomical and Celestial Computations.}
+\end{table}
+
+  
+\subsection{2\textsuperscript{nd} Order ODE via Runge-Kutta 4: General Formula}
+\emph{Retrieved by the internet as `CE563 Computation Methods',
+\href{https://www.engr.colostate.edu/~thompson/hPage/CourseMat/Tutorials/CompMethods/Rungekutta.pdf}{here}}
+
+Given the second order ODE
+\begin{equation}
+  \frac{d^2 y}{dx^2} = f(x,y,\frac{dy}{dx})
+\end{equation}
+determine \( y(x) \) using the RK4 method:
+
+We begin by writing the equation as a set of two, first order ODEs as follows:
+\begin{equation}
+  \begin{aligned}
+  \frac{dy'}{dx} & = f(x,y,\frac{dy}{dx}) \\
+  \frac{dy}{dx} & = F(x,y,\frac{dy}{dx}) \equiv y' \\
+  \end{aligned}
+\end{equation}
+
+Next, we apply our Runge-Kutta formulas to each of the two equations as follows:
+\begin{table}[h!]
+\centering
+\begin{tabular}{ c | c }
+  \hline
+  \( \frac{dy'}{dx} = f (x,y,y') \) & \( \frac{dy}{dx} = y' \) \\
+  \hline
+  \({y'}_{i+1} = y_i + \frac{1}{6}(f_1 + 2f_2 + 2f_3 + f_4)h \) &
+  \(y_{i+1} = y_1 + \frac{1}{6}(F_1 + 2F_2 + 2F_3 + F_4)h \) \\
+
+  \( f_1 = f(x_i , y_i , y'_i ) \) & 
+  \( F_1 = y'_i \) \\
+
+  \( f_2 = f(x_i + \frac{1}{2}h, y_i + F_1 \frac{1}{2}h, y'_i + f_1 \frac{1}{2}h) \) & 
+  \( F_2 = y'_i + f_1 \frac{1}{2}h \) \\
+
+  \( f_3 = f(x_i + \frac{1}{2}h, y_i + F_2 \frac{1}{2}h, y'_i + f_2 \frac{1}{2}h) \) & 
+  \( F_3 = y'_i + f_2 \frac{1}{2}h \) \\
+
+  \( f_4 = f(x_i + h, y_i + F_3 h, y'_i + f_3 h) \) & 
+  \( F_4 = y'_i + f_3 h \) \\
+  
+  \hline
+  \( y'_{i+1} = y_i + \frac{1}{6}(f_1 + 2f_2 + 2f_3 + f_4)h \) &
+  \( y_{i+1} = y_i + y'_i h + \frac{1}{6}(f_1 + f_2 + f_3) h^2 \) \\
+  
+  \hline
+  \multicolumn{2}{c}{ \( f_1 = f(x_i , y_i , y'_i ) \)} \\
+  \multicolumn{2}{c}{ \( f_2 = f(x_i + \frac{1}{2}h, y_i + y'_i \frac{1}{2}h, y'_i + f_1 \frac{1}{2}h) \)} \\
+  \multicolumn{2}{c}{ \( f_3 = f(x_i + \frac{1}{2}h, y_i + y'_i \frac{1}{2}h + f_1 \frac{1}{4} h^2 , y'_i + f_2 \frac{1}{2}h) \)} \\
+  \multicolumn{2}{c}{ \( f_4 = f(x_i + h, y_i + y'_i h + f_2 \frac{1}{2} h , y'_i + f_3 h) \)} \\
+\end{tabular}
+\end{table}
+
 \section{Solving ODE Systems with Gauss-Jackson}
 \subsection{Problem Description}
 The initial value problem is again \ref{ssec:problem-description}.
 
 \subsection{4\textsuperscript{th} Order Gauss-Jackson Method}
-First, we need to calculate the state vector \( \vec{q} \) at the mesh points. 
-That is, we need position and velocity values at the times: 
-\( t_0 -3h, t_0 - 2h, t_0 - h, t_0, t_0 + h, t_0 + 2h, t_0 + 3h
 
 
 \bibliography{doris}
