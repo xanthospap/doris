@@ -14,6 +14,7 @@ template <int N, int M> class RungeKuttaNystromIntegratorCore {
 private:
   double h;                        ///< step size
   orbit_integrators::ode2_pv *ode; ///< 2nd degree diff. equation
+  Vector3 k0{{-999.99e0, -999.99e0, -999.99e0}};
 public:
   constexpr RungeKuttaNystromIntegratorCore(double step_size,
                               orbit_integrators::ode2_pv *function
@@ -31,28 +32,38 @@ public:
   /// @return t+h
   double step(double t, Vector3 &r, Vector3 &v) const noexcept {
     constexpr const RungeKuttaNystromCoefficients<N, M> cf;
-    Vector3 k[N], dummy;
-    ode(t + cf.c[0] * h, r + v * cf.c[0] * h, dummy, k[0]);
-    for (int i = 1; i < N; i++) {
+    Vector3 k[cf.S], dummy;
+    const double hp2 = h * h;
+    
+    // TODO it seems that actually calling the function is quicker than
+    // checking ...
+    if (k0.x()==-999.99e0 && k0.y()==-999.99e0 && k0.z()==-999.99e0)
+      ode(t + cf.c[0] * h, r + v * cf.c[0] * h, dummy, k[0]);
+    else
+      k[0] = k0;
+    // call differential function; result (aka acceleration) is stored in k[i]
+    // using Dormand 1987, these are gi, i=0,...,s-1
+    for (int i = 1; i < cf.S; i++) {
       Vector3 sum{{0e0, 0e0, 0e0}};
       for (int j = 0; j < i; j++)
         sum += cf.a[i][j] * k[j];
-      ode(t + cf.c[i] * h, r + v * cf.c[i] * h + h * h * sum, dummy, k[i]);
+      ode(t + cf.c[i] * h, r + v * cf.c[i] * h + hp2 * sum, dummy, k[i]);
     }
 
-    Vector3 sum{{0e0, 0e0, 0e0}};
+    Vector3 phi{{0e0, 0e0, 0e0}};
 
-    Vector3 rn = r + h * v;
-    sum.zero_out();
-    for (int i = 0; i < N; i++)
-      sum += cf.bhat[i] * k[i];
-    rn += (h * h) * sum;
+    // y(n+1) hat
+    phi.zero_out();
+    for (int i = 0; i < cf.S; i++)
+      phi += cf.bhat[i] * k[i];
+    phi = v + h * phi;
+    Vector3 rn = r + h * phi;
 
-    Vector3 vn = v;
-    sum.zero_out();
-    for (int i = 0; i < N; i++)
-      sum += cf.bdothat[i] * k[i];
-    vn += h * sum;
+    // y'(n+1) hat
+    phi.zero_out();
+    for (int i = 0; i < cf.S; i++)
+      phi += cf.bdothat[i] * k[i];
+    Vector3 vn = v + h * phi;
 
     r = rn;
     v = vn;
@@ -66,9 +77,9 @@ public:
   /// @return t+h
   double step_error(double t, Vector3 &r, Vector3 &v, Vector3 &dr) const noexcept {
     constexpr const RungeKuttaNystromCoefficients<N, M> cf;
-    Vector3 k[N], dummy;
+    Vector3 k[cf.S], dummy;
     ode(t + cf.c[0] * h, r + v * cf.c[0] * h, dummy, k[0]);
-    for (int i = 1; i < N; i++) {
+    for (int i = 1; i < cf.S; i++) {
       Vector3 sum{{0e0, 0e0, 0e0}};
       for (int j = 0; j < i; j++)
         sum += cf.a[i][j] * k[j];
@@ -77,18 +88,18 @@ public:
 
     Vector3 sum{{0e0, 0e0, 0e0}};
     Vector3 drn = r + h*v;
-    for (int i=0; i<N; i++) sum += cf.b[i] * k[i];
+    for (int i=0; i<cf.S; i++) sum += cf.b[i] * k[i];
     drn += h*h*sum;
 
     Vector3 rn = r + h * v;
     sum.zero_out();
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < cf.S; i++)
       sum += cf.bhat[i] * k[i];
     rn += h * h * sum;
 
     Vector3 vn = v;
     sum.zero_out();
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < cf.S; i++)
       sum += cf.bdothat[i] * k[i];
     vn += h * sum;
 

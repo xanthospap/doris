@@ -42,7 +42,7 @@ int main() {
 
   // num of steps for each test
   const int Steps[] = {10, 100, 500, 1000, 10000};
-
+  
   Vector3 r, v, rref, vref;
   printf("%8s %8s %8s %11s %11s %11s %11s %15s\n", "Method", "Time", "Steps",
          "DeltaRx", "DeltaRy", "DeltaVx", "DeltaVy", "MicroSec");
@@ -64,7 +64,7 @@ int main() {
            std::abs(r.x() - rref.x()), std::abs(r.y() - rref.y()),
            std::abs(v.x() - vref.x()), std::abs(v.y() - vref.y()),
            static_cast<long>(duration.count()));
-    
+
     start = high_resolution_clock::now();
     dso::GaussJacksonIntegrator<8> gj8(h, kepler_ode);
     gj8.initialize(t0, r0, v0);
@@ -101,6 +101,32 @@ int main() {
     duration = duration_cast<microseconds>(stop - start);
     reference_values(t, e, rref, vref);
     printf("%8s %8.5f %8d %.5e %.5e %.5e %.5e %15ld\n", "RKN64O", t, Steps[test],
+           std::abs(r.x() - rref.x()), std::abs(r.y() - rref.y()),
+           std::abs(v.x() - vref.x()), std::abs(v.y() - vref.y()),
+           static_cast<long>(duration.count()));
+    
+    start = high_resolution_clock::now();
+    dso::RungeKuttaNystromIntegrator<7,6,dso::orbit_integrators::StepSizeControl::Off> rkn76o(h, kepler_ode);
+    t = t0;
+    for (int k = 1; k < Steps[test] + 1; k++)
+      t = rkn76o.step(t, r, v);
+    stop = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(stop - start);
+    reference_values(t, e, rref, vref);
+    printf("%8s %8.5f %8d %.5e %.5e %.5e %.5e %15ld\n", "RKN76O", t, Steps[test],
+           std::abs(r.x() - rref.x()), std::abs(r.y() - rref.y()),
+           std::abs(v.x() - vref.x()), std::abs(v.y() - vref.y()),
+           static_cast<long>(duration.count()));
+    
+    start = high_resolution_clock::now();
+    dso::RungeKuttaNystromIntegrator<9,8,dso::orbit_integrators::StepSizeControl::Off> rkn98o(h, kepler_ode);
+    t = t0;
+    for (int k = 1; k < Steps[test] + 1; k++)
+      t = rkn98o.step(t, r, v);
+    stop = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(stop - start);
+    reference_values(t, e, rref, vref);
+    printf("%8s %8.5f %8d %.5e %.5e %.5e %.5e %15ld\n", "RKN98O", t, Steps[test],
            std::abs(r.x() - rref.x()), std::abs(r.y() - rref.y()),
            std::abs(v.x() - vref.x()), std::abs(v.y() - vref.y()),
            static_cast<long>(duration.count()));
