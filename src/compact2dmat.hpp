@@ -93,7 +93,7 @@ template <> struct StorageImplementation<MatrixStorageType::RowWise> {
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
   /// @brief Number of elements in matrix
-  std::size_t num_elements() const noexcept { return rows * cols; }
+  constexpr std::size_t num_elements() const noexcept { return rows * cols; }
 
   /// @brief Index of element (row, column) in the data array.
   /// E.g. data[element_offset(1,2)] will return the element in the second
@@ -134,7 +134,7 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
   /// @brief Number of elements in matrix
-  std::size_t num_elements() const noexcept { return rows * cols; }
+  constexpr std::size_t num_elements() const noexcept { return rows * cols; }
 
   /// @brief Index of element (row, column) in the data array.
   /// E.g. data[element_offset(1,2)] will return the element in the second
@@ -170,17 +170,16 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
 /// The main objective of this class is to store data (e.g. coefficients) and
 /// not perform arithmetic operations.
 template <MatrixStorageType S> class Mat2D {
-
 private:
   StorageImplementation<S> m_storage; ///< storage type; dictates indexing
   double *m_data{nullptr};            ///< the actual data
 
 public:
-  int rows() const noexcept { return m_storage.rows; }
+  constexpr int rows() const noexcept { return m_storage.rows; }
 
-  int cols() const noexcept { return m_storage.cols; }
+  constexpr int cols() const noexcept { return m_storage.cols; }
 
-  long num_elements() const noexcept { return m_storage.num_elements(); }
+  constexpr long num_elements() const noexcept { return m_storage.num_elements(); }
 
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   double &operator()(int i, int j) noexcept {

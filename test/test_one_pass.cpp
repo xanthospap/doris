@@ -101,10 +101,18 @@ int beacon_vector2str_array(const std::vector<ids::BeaconStation>& beacons,
   strarray = new char*[beacons.size()];
   for (int i = 0; i < (int)beacons.size(); i++) {
     strarray[i] = new char[4];
+#ifdef __GNUC__
+    #ifndef __clang__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
+#endif
     std::strncpy(strarray[i], beacons[i].m_station_id, 4);
+#ifdef __GNUC__
+    #ifndef __clang__
 #pragma GCC diagnostic pop
+#endif
+#endif
   }
   return 0;
 }

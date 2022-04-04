@@ -1,4 +1,5 @@
 #include "gauss_jackson.hpp"
+#include "runge_kutta_nystrom.hpp"
 #include "iers2010/matvec.hpp"
 #include <cmath>
 #include <cstdio>
@@ -51,7 +52,7 @@ int main() {
       t = gj4.step(t, r, v);
 
     double anls = analytical(t, r0.x(), v0.x());
-    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ4 %10.5f "
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ4   %10.5f "
            "Diff: %.5e\n",
            steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
     
@@ -62,7 +63,7 @@ int main() {
       t = gj6.step(t, r, v);
 
     anls = analytical(t, r0.x(), v0.x());
-    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ6 %10.5f "
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ6   %10.5f "
            "Diff: %.5e\n",
            steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
     
@@ -73,7 +74,25 @@ int main() {
       t = gj8.step(t, r, v);
 
     anls = analytical(t, r0.x(), v0.x());
-    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ8 %10.5f "
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f GJ8   %10.5f "
+           "Diff: %.5e\n",
+           steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
+
+    dso::RungeKuttaNystromIntegrator<4, 3, dso::orbit_integrators::StepSizeControl::Off> rkn43(tend / steps[i], ode21);
+    t = t0;
+    for (int k = 1; k < steps[i] + 1; k++)
+      t = rkn43.step(t,r,v);
+    anls = analytical(t, r0.x(), v0.x());
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f RKN43 %10.5f "
+           "Diff: %.5e\n",
+           steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
+    
+    dso::RungeKuttaNystromIntegrator<6, 4, dso::orbit_integrators::StepSizeControl::Off> rkn64(tend / steps[i], ode21);
+    t = t0;
+    for (int k = 1; k < steps[i] + 1; k++)
+      t = rkn64.step(t,r,v);
+    anls = analytical(t, r0.x(), v0.x());
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f RKN64 %10.5f "
            "Diff: %.5e\n",
            steps[i], t, tend / steps[i], anls, r.x(), std::abs(anls - r.x()));
 
@@ -84,7 +103,7 @@ int main() {
       state0 = state;
     }
     anls = analytical(t, r0.x(), v0.x());
-    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f RK4 %10.5f "
+    printf("Steps: %10d, time: %6.3f step: %6.3f Analytical: %10.5f RK4   %10.5f "
            "Diff: %.5e\n",
            steps[i], t, tend / steps[i], anls, state.x(),
            std::abs(anls - state.x()));

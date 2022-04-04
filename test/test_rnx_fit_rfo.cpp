@@ -1,6 +1,7 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
 #include <cmath>
+#include <cstring>
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {

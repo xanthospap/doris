@@ -1,6 +1,7 @@
 #include "iers2010/iau.hpp"
 #include "geodesy/units.hpp"
 #include "planetpos.hpp"
+#include "gcem.hpp" // for constexpr math (trigonometric funcs)
 #ifdef DEBUG
 #include <cstdio>
 #endif
@@ -33,8 +34,8 @@ int dso::sun_vector_montenbruck(double t, double *rsun) noexcept {
   const double y = (r * sin(L)) / 1e3;
 
   constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
-  constexpr double C = cos(-ecliptic_obliquity);
-  constexpr double S = sin(-ecliptic_obliquity);
+  constexpr double C = gcem::cos(-ecliptic_obliquity);
+  constexpr double S = gcem::sin(-ecliptic_obliquity);
 
   // X = R_x(-epsilon) * Vec
   rsun[0] = x;

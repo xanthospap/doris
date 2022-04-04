@@ -6,7 +6,8 @@
 #include <cstdio>
 #endif
 
-constexpr const double MeanRe =  dso::mean_earth_radius<dso::ellipsoid::grs80>();
+//[[maybe_unused]]
+//constexpr const double MeanRe =  dso::mean_earth_radius<dso::ellipsoid::grs80>();
 
 /// @file occultation.cpp
 /// @brief Satellite eclipse, shadow and occultation models

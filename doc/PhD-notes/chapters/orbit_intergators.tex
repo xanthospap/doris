@@ -26,13 +26,13 @@ where
 \begin{equation}
   \begin{aligned}
     \begin{aligned}
-    \hat{\phi}(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=1}^{s} \hat{b}_i g_i & 
-    \hat{\phi}'(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=1}^{s} \hat{b}'_i g_i \\
-         \phi (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=1}^{s} b_i g_i & 
-         {\phi}' (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=1}^{s} b'_i g_i \\
+    \hat{\phi}(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=0}^{s-1} \hat{b}_i g_i & 
+    \hat{\phi}'(x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=0}^{s-1} \hat{b}'_i g_i \\
+         \phi (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \hat{y}'_n + h_n \sum_{i=0}^{s-1} b_i g_i & 
+         {\phi}' (x_n , \hat{y}_n , \hat{y'}_n , h_n) & = \sum_{i=0}^{s-1} b'_i g_i \\
     \end{aligned}
     \\
-    g_i = f(x_n + c_i h_n , \hat{y}_n +c_i h_n \hat{y}'_n + h^2 \sum_{j=1}^{i-1} {\alpha}_{ij}g_j) \text{ ,  } i=1,2,\cdots ,s\\
+    g_i = f(x_n + c_i h_n , \hat{y}_n +c_i h_n \hat{y}'_n + h^2 \sum_{j=0}^{i-1} {\alpha}_{ij}g_j) \text{ ,  } i=0,2,\cdots ,s-1\\
   \end{aligned}
 \end{equation}
 

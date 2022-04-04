@@ -1,4 +1,4 @@
-#ifndef __GENERAL_ORBITIT_ITERGRATOR_HPP__
+#ifndef __GENERAL_ORBIT_ITERGRATOR_HPP__
 #define __GENERAL_ORBIT_ITERGRATOR_HPP__
 
 #include "iers2010/matvec.hpp"
@@ -15,6 +15,8 @@ namespace orbit_integrators {
 ///        and velocity vectors.
 using ode2_pv = void(double, const Vector3 &, const Vector3 &,
                      Vector3 &) noexcept;
+
+enum class StepSizeControl : char {Off=0, Auto=1};
 
 /// @brief Valid order for Gauss-Jackson integrators; check at compile-time
 #if __cplusplus >= 202002L

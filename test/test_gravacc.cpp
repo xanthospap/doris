@@ -6,7 +6,7 @@
 using namespace dso;
 
 int main(int argc, char *argv[]) {
-  if (argc < 2 && argc > 4) {
+  if (argc < 2 || argc > 4) {
     fprintf(stderr,
             "Usage: %s <GRAVITY MODEL FILE> [DEGREE - optional] [ORDER - "
             "optional]\n",
