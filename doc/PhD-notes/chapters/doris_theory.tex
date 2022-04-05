@@ -1,6 +1,51 @@
 \chapter{DORIS System Theoretical Implications}
 \label{ch:doris-theory}
 
+\section{Introduction}
+\label{sec:doris-introduction}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+    \coordinate (lend) at (-5, 0);
+    \coordinate (rend) at (5, 0);
+    \draw (lend) to (rend);
+    \draw (lend) to[out=45,in=-230] (rend);
+
+    \coordinate (blb) at (-3.5, 0.5);
+    \coordinate (brb) at (-3, 0.5);
+    \draw (blb) to[out=-35,in=205] (brb);
+
+    \coordinate (mlb) at (-3.5, 1.3);
+    \coordinate (mrb) at (-3, 1.3);
+    \draw (mlb) to[out=-30,in=205] (mrb);
+    %\draw (mlb) to[out=35,in=-205] (mrb);
+    \draw (blb) to (mlb);
+    \draw (brb) to (mrb);
+    
+    \coordinate (tlb) at (-3.35, 1.8);
+    \coordinate (trb) at (-3.15, 1.8);
+    \draw (tlb) to[out=-35,in=215] (trb);
+    \draw (tlb) to (-3.35, 1.28);
+    \draw (trb) to (-3.15, 1.28);
+
+    \coordinate (ulb) at (-3.26, 2.3);
+    \coordinate (urb) at (-3.24, 2.3);
+    \draw (ulb) to (-3.26, 1.8);
+    \draw (urb) to (-3.24, 1.8);
+
+    \coordinate (satant) at (3,-5);
+    \coordinate (bcnant) at (-3.25,1.8);
+
+    \draw[rotate around={-40:(3.5,4.5)}] (3.5,4.5) ellipse (.2 and .1);
+    \draw[rotate around={40:(3.9,4.7)}] (3.5,4.5) rectangle (4.3,4.9);
+    \draw[rotate around={40:(3.85,4.8)}] (3.5,4.5) rectangle (4.3,4.9);
+
+\end{tikzpicture}
+\caption{DORIS System Description}
+\label{fig:doris-system-description}
+\end{figure}
+
 \section{Theoretical Model of Doppler Observations}
 According to \cite{lemoine-2016}, we define four basic events:
 \begin{enumerate}

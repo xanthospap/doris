@@ -189,21 +189,21 @@ public:
     {
       assert(i<AMsize);
       assert(i-1<Order);
-      S1 -= /*AMgammaCoeffs*/am.coeffs[i] * D[i - 1];
+      S1 -= am.coeffs[i] * D[i - 1];
     }
 #else
-      S1 -= /*AMgammaCoeffs*/am.coeffs[i] * D[i - 1];
+      S1 -= am.coeffs[i] * D[i - 1];
 #endif
-    S2 = r0 / (h * h) - /*SCdeltaCoeffs*/sc.coeffs[1] * S1;
+    S2 = r0 / (h * h) - sc.coeffs[1] * S1;
     for (int i = 2; i <= Order + 1; i++)
 #ifdef DEBUG
     {
       assert(i<SCsize);
       assert(i-2<Order);
-     S2 -= /*SCdeltaCoeffs*/sc.coeffs[i] * D[i - 2];
+     S2 -= sc.coeffs[i] * D[i - 2];
     }
 #else     
-     S2 -= /*SCdeltaCoeffs*/sc.coeffs[i] * D[i - 2];
+     S2 -= sc.coeffs[i] * D[i - 2];
 #endif
 
     // note S1 = D^(-1) a_t0
