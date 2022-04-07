@@ -5,12 +5,93 @@
 In the general orbit determination problem, both the dynamics and the measurements 
 involve significant nonlinear relationships. For the general case, the governing 
 relations involve the nonlinear expression:
-\begin{align*}
-  \dot{\vec{x}} = F( \vec{x}, t )                 & \vec{x}(t_k ) \equiv \vec{x}_k \\
-  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i & i=1,2,\cdot ,l
-\end{align*}
+%\begin{equation}
+\begin{align}
+  \label{eq:tapley421}
+  \dot{\vec{x}} = F( \vec{x}, t )                 , & \quad \vec{x}(t_k ) \equiv \vec{x}_k \\
+  \label{eq:tapley422}
+  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i , & \quad  i=1,2,\ldots ,l
+\end{align}
+%\end{equation}
 
 where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and 
-\(\vec{y}_i\) for \(i=1,2,\cdot ,l\) is a \(p\)-dimensional set of observations. The 
+\(\vec{y}_i\) for \(i=1,2,\ldots ,l\) is a \(p\)-dimensional set of observations. The 
 \emph{best estimate} of the state vector \(\vec{x}_k\) will be denoted as \(\hat{\vec{x}}_k\). 
-In general, 
+In general, \(p<n\) and \( m = p \cdot l \gg n \). The formulation described by the 
+system \ref{eq:tapley421} and \ref{eq:tapley422}, is characterized by: (\cite{tapley})
+\begin{enumerate}
+  \item the inability to observe the state (\(\vec{x}_k\)) directly,
+  \item nonlinear relations between the observations and the state, 
+  \item fewer observations at any time epoch \(i\) than there are state vector 
+  components (\(p<n\)), and 
+  \item errors in the observations represented by \({\epsilon}_i\)
+\end{enumerate}
+
+If a reasonable reference trajectory \(\vec{x}*\) is available and if 
+\(\vec{x}\), the true trajectory, and the reference trajectory remain sufficiently 
+close throughout the time interval of interest, then the trajectory for the actual 
+motion can be expanded in a Taylor’s series about the reference trajectory at 
+each point in time. Eliminating higher order terms, the deviation in the state
+from the reference trajectory can be described by a set of linear differential 
+equations. Corresponding linear relations can be derived between the observation 
+and the state deviations, thus transforming the nonlinear orbit determination problem 
+to a linear one.
+
+If \(\vec{\delta x}\) is the \( n \times 1 \) state deviation vector and 
+\(\vec{\delta y}\) is the \(p \times 1\) observation deviation:
+\begin{equation}
+  \begin{aligned}
+    \vec{\delta x} (t) &= \vec{x}(t) - \vec{x}^* (t) \\
+    \vec{\delta y} (t) &= \vec{y}(t) - \vec{y}^*(t)
+  \end{aligned}
+\end{equation}
+
+hence
+
+\begin{equation}
+  \dot{\vec{\delta x}} (t) = \dot{\vec{x}} (t) - \dot{\vec{x}}^* (t)
+\end{equation}
+
+Expanding \ref{eq:tapley421} and \ref{eq:tapley422} in a Taylor series about the 
+reference trajectory, leads to:
+\begin{equation}
+\label{eq:tapley425}
+\begin{aligned}
+  \dot{\vec{x}} (t) &= F (\vec{x}, t) \\
+   & \approx F (\vec{x}^* , t) 
+    + \left.\frac{\partial F(t)}{\partial \vec{x}(t)}\right|_{\vec{x}^*} \left( \vec{x}(t) - \vec{x}^* (t) \right)
+    + O_F \left( \vec{x}(t) - \vec{x}^* (t) \right) \\
+    \vec{y}_i &= G( \vec{x}_i , t_i ) + {\epsilon}_i = \\ & \approx G( \vec{x}^*_i , t_i )
+    + \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i} \left.\left( \vec{x}(t_i) - \vec{x}^* (t_i) \right)\right|_{i} 
+    + O_G \left( \vec{x}(t_i) - \vec{x}^* (t_i) \right) + {\epsilon}_i \\
+\end{aligned}
+\end{equation}
+
+where \(\left.\frac{\partial}{\partial \vec{x}}\right|_{\vec{x}^*}\) indicates that 
+the partial derivative matrix is evaluated on the reference solution \(\vec{x}^* (t)\) 
+which is obtained by integrating \ref{eq:tapley421} with the initial conditions 
+\(\vec{x}^* (t_0)\). \(O_F\) and \(O_G\) indicate terms higher than the 1\textsuperscript{st} 
+order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and 
+\(\vec{y}^*_i = G(\vec{x}^*_i , t_i )\), and letting
+\begin{equation}
+\begin{aligned}
+\delta \vec{x}(t) & = \vec{x}(t) - \vec{x}^*(t)\\
+\delta \vec{x}_i  & = \vec{x}(t_i) - \vec{x}^*(t_i)\\
+\delta \vec{y}_i  & = \vec{y}_i - G(\vec{x}^*_i , t_i )
+\end{aligned}
+\end{equation}
+
+\ref{eq:tapley421} can be written as:
+\begin{equation}
+\begin{aligned}
+  \dot{\delta \vec{x}}(t) &= A(t) \delta \vec{x}(t) \\
+  \delta \vec{y}_i &= \tilde{H}_i \delta \vec{x}_i + {\epsilon}_i \quad (i=1,\ldots,l)
+\end{aligned}
+\end{equation}
+
+where
+\begin{equation}
+A(t) = \left.\frac{\partial F(t)}{\partial \vec{x} (t)}\right|_{\vec{x}^*} 
+\quad
+\tilde{H}_i = \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i}
+\end{equation}
