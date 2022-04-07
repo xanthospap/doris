@@ -1,0 +1,16 @@
+\chapter{Satellite Orbit modeling}
+\label{ch:satellite-orbit-modeling}
+
+\section{Linearization of the Orbit Determination Process}
+In the general orbit determination problem, both the dynamics and the measurements 
+involve significant nonlinear relationships. For the general case, the governing 
+relations involve the nonlinear expression:
+\begin{align*}
+  \dot{\vec{x}} = F( \vec{x}, t )                 & \vec{x}(t_k ) \equiv \vec{x}_k \\
+  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i & i=1,2,\cdot ,l
+\end{align*}
+
+where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and 
+\(\vec{y}_i\) for \(i=1,2,\cdot ,l\) is a \(p\)-dimensional set of observations. The 
+\emph{best estimate} of the state vector \(\vec{x}_k\) will be denoted as \(\hat{\vec{x}}_k\). 
+In general, 

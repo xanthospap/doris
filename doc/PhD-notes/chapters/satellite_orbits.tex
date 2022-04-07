@@ -381,3 +381,47 @@ lunar eclipse. Using values for the Moon and the Sun,
 which is not too far from the Earth-Moon distance (approximately 
 \SI{3.844e5}{\km}). When the Moon obscures part of the Earth's surface with its 
 shadow, it causes a \emph{solar eclipse}.
+
+\section{Third Body Perturbations}
+An artificial satellite of the Earth experiences the gravitational attraction of
+the Sun, the Moon, and to a lesser extent the planets and other bodies in the solar 
+system. This perturbation is often referred to as the \emph{third-body effect}.
+
+According to Newton's law of gravity, the acceleration of a satellite by a point 
+mass \(M\) is given by:
+\begin{equation}
+  \label{eq:mont335}
+  \ddot{\vec{r}} = G M \frac{\vec{s} - \vec{r}}{\lvert \vec{s} - \vec{r} {\rvert}^3}
+\end{equation}
+
+where \(\vec{r}\) and \(\vec{s}\) re the geocentric coordinates of the satellite 
+and of \(M\) respectively. Note that the value of \(\ddot{\vec{r}}\) in \ref{eq:mont335} 
+refers to an \emph{inertial} or Newtonian coordinate system in which the Earth is 
+not at rest, but is itself subject to an acceleration:
+\begin{equation}
+  \ddot{\vec{r}} = G M \frac{\vec{s}}{\lvert \vec{s} {\rvert}^3}
+\end{equation}
+
+due to \(M\). Thus, the second derivative of the satellite's Earth-centered position 
+vector is (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont337}
+  \ddot{\vec{r}} = G M \left( \frac{\vec{s} - \vec{r}}{\lvert \vec{s} - \vec{r} {\rvert}^3} 
+   - \frac{\vec{s}}{\lvert \vec{s} {\rvert}^3} \right)
+\end{equation}
+
+the first term in \ref{eq:mont337}, \(\frac{\vec{s} - \vec{r}}{\lvert \vec{s} - \vec{r} {\rvert}^3}\), 
+is known as the \emph{direct effect} and the second term, \(\frac{\vec{s}}{\lvert \vec{s} {\rvert}^3}\), 
+is the \emph{indirect effect}. The notation for the latter term arises from the observation that it
+is independent of the artificial satellite coordinates. Since \ref{eq:mon337} describes
+the satellite motion with respect to the Earth center of mass, which is a noninertial
+point, the indirect term accounts for the inertial acceleration of the geocenter 
+(\cite{tapley}). 
+
+The third-body terms in \ref{eq:mont337} are based on the assumption that the
+satellite, Earth, and perturbing body are point masses (or spheres of constant 
+density), an assumption which is acceptable for most applications.
+
+The nature of the third-body perturbation is similar to the Earth oblateness
+effect; namely, the Sun and Moon produce a secular variation in the satellite node,
+argument of perigee, and mean anomaly (\cite{tapley}).
