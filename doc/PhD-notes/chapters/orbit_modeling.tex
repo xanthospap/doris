@@ -17,7 +17,7 @@ relations involve the nonlinear expression:
 where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and 
 \(\vec{y}_i\) for \(i=1,2,\ldots ,l\) is a \(p\)-dimensional set of observations. The 
 \emph{best estimate} of the state vector \(\vec{x}_k\) will be denoted as \(\hat{\vec{x}}_k\). 
-In general, \(p<n\) and \( m = p \cdot l \gg n \). The formulation described by the 
+In general, \(p<n\) and \( m = p \times l \gg n \). The formulation described by the 
 system \ref{eq:tapley421} and \ref{eq:tapley422}, is characterized by: (\cite{tapley})
 \begin{enumerate}
   \item the inability to observe the state (\(\vec{x}_k\)) directly,
@@ -82,12 +82,12 @@ order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and
 \end{equation}
 
 \ref{eq:tapley421} can be written as:
-\begin{equation}
-\begin{aligned}
-  \dot{\delta \vec{x}}(t) &= A(t) \delta \vec{x}(t) \\
+\begin{align}
+  \label{eq:tapley426a}
+  \delta \dot{\vec{x}}(t) &= A(t) \delta \vec{x}(t) \\
+  \label{eq:tapley426b}
   \delta \vec{y}_i &= \tilde{H}_i \delta \vec{x}_i + {\epsilon}_i \quad (i=1,\ldots,l)
-\end{aligned}
-\end{equation}
+\end{align}
 
 where
 \begin{equation}
@@ -95,3 +95,129 @@ A(t) = \left.\frac{\partial F(t)}{\partial \vec{x} (t)}\right|_{\vec{x}^*}
 \quad
 \tilde{H}_i = \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i}
 \end{equation}
+
+\section{State Transition Matrix}
+\ref{eq:tapley426a} represents a system of linear differential equations with time-dependent 
+coefficients; the general solution to the system, can be expressed as:
+\begin{equation}
+\label{eq:tapley427}
+  \bm{x}(t) = \Phi (t, t_k) \cdot \bm{x}_k \quad \text{with } \bm{x}_k = \bm{x}(t_k)
+\end{equation}
+
+The matrix \(\Phi (t_i, t_k) \) is called the \emph{state transition matrix} and has the 
+following properties:
+\begin{itemize}
+  \item \(\Phi (t_k, t_k) = I \)
+  \item \(\Phi (t_i, t_k) = \Phi (t_i, t_j) \Phi (t_j, t_k) \)
+  \item \(\Phi (t_i, t_k) = {\Phi}^{-1} (t_j, t_k) \)
+\end{itemize}
+
+Noting that \(\bm{x}_k\) is constant,
+\begin{equation}
+  \label{eq:tapley429}
+  \bm{\dot{x}}(t) = \dot{\Phi} (t, t_k) \cdot \bm{x}_k
+\end{equation}
+
+Using \ref{eq:tapley426a} and \ref{eq:tapley427},
+\begin{equation}
+  \label{eq:tapley4210}
+  \begin{aligned}
+  \dot{\Phi} (t, t_k) \bm{x}_k & = A(t) \cdot \bm{x} (t) \\
+  & = A(t) \cdot \Phi (t, t_k) \bm{x}_k \\ 
+  \implies & \dot{\Phi} (t, t_k) = A(t) \Phi (t, t_k)
+  \end{aligned}
+\end{equation}
+
+\ref{eq:tapley4210} represents a linear differential equation. For any practical orbit 
+determination application, the solution for \(\Phi (t, t_0)\)  will be obtained
+via numerical integration, supplying a vector of derivative values for the differential 
+equation of the nominal state vector and computed values for \(\dot{\Phi} (t, t_0)\).
+
+\section{Observations}
+Combining \ref{eq:tapley427} and \ref{eq:tapley426b}, we get:
+\begin{equation}
+  \label{eq:tapley4237}
+  \begin{aligned}
+    \bm{y}_0 &= \tilde{H}_0 \Phi (t_0, t_k) \bm{x}_k + {\epsilon}_0 \\
+    \bm{y}_1 &= \tilde{H}_1 \Phi (t_1, t_k) \bm{x}_k + {\epsilon}_1 \\
+    & \vdotswithin{=} \\
+    \bm{y}_{l-1} &= \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \bm{x}_k + {\epsilon}_{l-1}
+  \end{aligned}
+\end{equation}
+
+where the system contains \(m=p\times l\) observations and \(n\) unknown components 
+in the state vector. For convinience, we define the following notation:
+\begin{equation}
+  \bm{y} \equiv \begin{bmatrix} y_0 \\ y_1 \\ \ldots \\ y_{l-1} \end{bmatrix},
+  \quad
+  H \equiv \begin{bmatrix} \tilde{H}_0 \Phi (t_0, t_k) \\ \tilde{H}_1 \Phi (t_1, t_k) \\ \ldots \\ \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \end{bmatrix},
+  \quad
+  \bm{\epsilon} \equiv \begin{bmatrix} {\epsilon}_0 \\ {\epsilon}_1 \\ \ldots \\ {\epsilon}_{l-1} \end{bmatrix}
+\end{equation}
+
+so that we can now write \ref{eq:tapley4237} as:
+\begin{equation}
+  \label{eq:tapley4239}
+  \bm{y} = H \bm{x} + \bm{\epsilon} 
+  \quad
+  \bm{y} \in \mathbb{R} ^{m \times 1},
+  \bm{x} \in \mathbb{R} ^{n \times 1},
+  H \in \mathbb{R}^{m \times n},
+\end{equation}
+
+where \( m = p \times l \) is the total number of observations.
+
+\section{Square Root Filtering}
+Sequential estimation algorithms are subject to the filter divergence phenomenon, during 
+which the estimate of the state can depart in an unbounded manner from the true value 
+of the state. There are two fundamental reasons for filter divergence (\cite{tapley}):
+\begin{itemize}
+  \item due to inaccuracies in the mathematical model used to describe the dynamic 
+  process or in the model used to relate the observations to the state, and
+  \item the state error covariance matrix during measurement update can become nonpositive 
+  definite (a situation that is a theoretical impossibility) due to floating point 
+  arithmetic when computing the update of the state error covariance matrix at the 
+  point where an observation is incorporated \footnote{When the eigenvalues have a wide spread, the error
+introduced in the computational process can destroy the symmetry and positive
+definite character of the covariance matrix and filte r divergence may occur, see \cite{tapley}.}.
+\end{itemize}
+
+The latter point is addressed in modifications of the computational algorithm called 
+\emph{square root covariance filters}, in which the state error covariance matrix is 
+replaced by its square root. The state error covariance matrix is obtained by
+multiplying the square root matrix by its transpose and will always be symmetric
+and positive semidefinite.
+
+If we define
+\begin{equation}
+\label{eq:tapley571}
+P = W W^T
+\end{equation}
+
+where \(W\) is the state error covariance matrix square root, and use \ref{eq:tapley571} to 
+compute the \(P\) matrix, this can never be nonpositive definite even in the presence 
+of round-off or truncation errors. Furthermore, since \(P\) is symmetric and positive 
+definite, there will exist an orthogonal matrix \(M\) such that:
+\begin{equation}
+\label{eq:tapley572}
+  P^* = M^T P M
+\end{equation}
+
+where \(P^*\) is a diagonal matrix whose elements are the eigenvalues of \(P\) and 
+\(M\) is the corresponding matrix of eigenvectors. Define \(W^*\) as the matrix 
+whose diagonal elements are equal to the square root of the diagonal elements of \(P^*\)
+\begin{equation}
+  W^*_{ii} = \sqrt P^*_{ii} \quad i=1,\ldots ,n
+\end{equation}
+where \(P^*_{ii} > 0\), then
+\begin{equation}
+ W^* W^{*T} = P^* = M^T P M = M^T W W^T M
+\end{equation}
+
+Thus, \(W^* = M^T W \) and since \(M\) is an orthogonal matrix, it follows that
+\begin{equation}
+  \label{eq:tapley574}
+  W = M W^*
+\end{equation}
+
+The numerical conditioning of \(W\) is generally much better than that of \(P\) (\cite{tapley}).
