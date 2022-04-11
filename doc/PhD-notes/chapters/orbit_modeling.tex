@@ -1,6 +1,22 @@
 \chapter{Satellite Orbit modeling}
 \label{ch:satellite-orbit-modeling}
 
+\section{Quick Note: The State-Space Notation}
+It is often helpfull to represent a linear differential equation in the the 
+\emph{state-space} form, that is a first-order matrix differential equation of 
+the form:
+\begin{equation}
+  \dot{\vec{x}} = \bm{F} \vec{x} + \bm{G} \vec{u} + \vec{w}
+\end{equation}
+
+where:
+\begin{itemize}
+  \item \(\vec{x}\) is the system \emph{state vector},
+  \item \(\bm{F}\) is system's \emph{dynamic matrix},
+  \item \(\vec{u}\) is a deterministic input, sometimes called a \emph{control vector}, and
+  \item \(\vec{w}\) is a random forcing function, which is also known as \emph{process noise}
+\end{itemize}
+
 \section{Linearization of the Orbit Determination Process}
 In the general orbit determination problem, both the dynamics and the measurements 
 involve significant nonlinear relationships. For the general case, the governing 
@@ -565,6 +581,75 @@ will be small and the observation will have little influence on the estimate of 
 state. Also, large values of the prediction residual relative to the prediction residual 
 standard deviation, may be an indication of bad tracking data and hence may be used to 
 edit data from the solution.
+
+\section{State Noise}
+In addition to the effects of the nonlinearities, the effects of errors in the dynamical 
+model can lead to divergence in the estimate. As pointed out previously, for a sufficiently large
+number of observations the elements of the covariance matrix \(P_k\) will asymptotically 
+approach zero and the estimation algorithm will be insensitive to any further
+observations. This condition can lead to filter divergence. One approach to preventing 
+this divergence is to recognize that the linearized equations for propagating the 
+estimate of the state are in error and to compensate for this by assuming
+that the error in the linearized dynamics can be approximated by process noise.
+
+The state dynamics of a linear system under the influence of process noise are
+described by:
+\begin{equation}
+  \label{eq:tapley491}
+  \dot{\bm{x}} (t) = A(t) \bm{x} (t) + \Beta (t) \bm{u} (t)
+\end{equation}
+
+Where the vector \(\bm{u}\), called the \emph{state} or \emph{process noise} is of 
+dimension \(m \times 1 \) and the matrix \(\Beta \) is \(n \times m \).
+The functional form of \(\bm{u}\) can include a number of processes, including constant, 
+piecewise constant, correlated, or white noise.
+
+If we assume a white process noise:
+\begin{equation}
+  \label{eq:tapley492}
+  \begin{aligned}
+    E \left[ \bm{u} (t) \right] &= 0 \\
+    E \left[ \bm{u} (t) \bm{u}^T (\tau) \right] &= Q(t) \delta (t-\tau)
+  \end{aligned}
+\end{equation}
+where \(\delta (t-\tau)\) is the \emph{Dirac Delta} and \(Q\) is called the 
+\emph{process noise covariance matrix}. The algorithm that results from the assumption 
+that \( \bm{u} (t) \) is white noise with known covariance is known as \gls{snc}. 
+The use of more sophisticated models such as the process to compensate for state 
+and/or measurement model errors generally is referred to as \gls{dmc}.
+
+The solution of \ref{eq:tapley491}, is given by (for a detailed description, see \cite{tapley})
+\begin{equation}
+  \label{eq:tapley4914}
+  \bm{x} (t) = \Phi(t, t_0) \bm{x}_0 + 
+    \int_{t_0}^{t} \Phi(t, \tau ) \Beta (\tau ) \bm{u} (\tau ) \, d\tau 
+\end{equation}
+which is the general solution for the inhomogeneous \ref{eq:tapley491} and
+indicates how the true state propagates under the influence of process noise.
+
+If the mean of the process noise is zero, that is \(E \left[ \bm{u} (t) \right] = 0 \), 
+then the equation for propagating the state estimate is the same as without process noise
+(\cite{tapley})
+\begin{equation}
+  \label{eq:tapley4919}
+  \bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1}
+\end{equation}
+
+One could derive a solution for the case where the mean is nonzero. In the case 
+where \(E \left[ \bm{u} (t) \right] = \bar{\bm{u}} \), 
+the solution would be obtained by applying the expectation operator to \ref{eq:tapley492} 
+to yield
+\begin{equation}
+  \label{eq:tapley4920}
+  \bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1} + \Gamma (t , t_{k-1} ) \bar{\bm{u}}
+\end{equation}
+where \(\Gamma (t , t_{k-1} )\) is given by \ref{eq:tapley4947}.
+
+\begin{equation}
+  \label{eq:tapley4944}
+  \bar{P}(t) = \Phi (t , t_{k-1} ) P_{k-1} \Phi ^T (t , t_{k-1} )
+    +  \int_{t_{k-1}}^{t} \Phi(t, \tau ) \Beta (\tau ) Q (\tau ) \Beta ^T (\tau ) \Phi ^T (t, \tau ) \, d\tau
+\end{equation}
 
 \section{Square Root Filtering}
 \label{sec:square-root-filtering}
