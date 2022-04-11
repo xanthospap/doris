@@ -5,14 +5,16 @@
 In the general orbit determination problem, both the dynamics and the measurements 
 involve significant nonlinear relationships. For the general case, the governing 
 relations involve the nonlinear expression:
-%\begin{equation}
+\begin{subequations}
 \begin{align}
-  \label{eq:tapley421}
-  \dot{\vec{x}} = F( \vec{x}, t )                 , & \quad \vec{x}(t_k ) \equiv \vec{x}_k \\
-  \label{eq:tapley422}
-  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i , & \quad  i=1,2,\ldots ,l
+  \dot{\vec{x}} = F( \vec{x}, t ), 
+    & \quad \vec{x}(t_k ) \equiv \vec{x}_k 
+    \label{eq:tapley421}\\
+  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i , 
+    & \quad  i=1,2,\ldots ,l
+    \label{eq:tapley422}
 \end{align}
-%\end{equation}
+\end{subequations}
 
 where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and 
 \(\vec{y}_i\) for \(i=1,2,\ldots ,l\) is a \(p\)-dimensional set of observations. The 
@@ -73,13 +75,13 @@ which is obtained by integrating \ref{eq:tapley421} with the initial conditions
 \(\vec{x}^* (t_0)\). \(O_F\) and \(O_G\) indicate terms higher than the 1\textsuperscript{st} 
 order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and 
 \(\vec{y}^*_i = G(\vec{x}^*_i , t_i )\), and letting
-\begin{equation}
-\begin{aligned}
-\delta \vec{x}(t) & = \vec{x}(t) - \vec{x}^*(t)\\
-\delta \vec{x}_i  & = \vec{x}(t_i) - \vec{x}^*(t_i)\\
-\delta \vec{y}_i  & = \vec{y}_i - G(\vec{x}^*_i , t_i )
-\end{aligned}
-\end{equation}
+\begin{subequations}
+\begin{align}
+\delta \vec{x}(t) & = \vec{x}(t) - \vec{x}^*(t) \label{eq:tapley426ua} \\
+\delta \vec{x}_i  & = \vec{x}(t_i) - \vec{x}^*(t_i)\label{eq:tapley426ub}\\
+\delta \vec{y}_i  & = \vec{y}_i - G(\vec{x}^*_i , t_i ) \label{eq:tapley426uc}
+\end{align}
+\end{subequations}
 
 \ref{eq:tapley421} can be written as:
 \begin{align}
@@ -91,6 +93,7 @@ order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and
 
 where
 \begin{equation}
+\label{eq:tapley426ah}
 A(t) = \left.\frac{\partial F(t)}{\partial \vec{x} (t)}\right|_{\vec{x}^*} 
 \quad
 \tilde{H}_i = \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i}
@@ -167,7 +170,404 @@ so that we can now write \ref{eq:tapley4237} as:
 
 where \( m = p \times l \) is the total number of observations.
 
+\section{Sequential Estimation Overview}
+In the sequential estimation algorithm, observations are processed as soon as they 
+are received (in contrast to batch estimation), thus offering the advantage of 
+inverting a matrix of the same dimension as the observation vector. Hence, if the 
+observations are processed individually, only scalar divisions will be required to 
+obtain the estimate of \(\vec{x}_k\). The sequential estimation algorithm discussed 
+here, is often reffered to as the \emph{Kalman filter}, named after Rudolf E. K\'alm\'an
+who was one of the primary developers of its theory. 
+
+An estimate \(\hat{\bm{x}}_j \) and a covariance matrix \(P_j\) can be 
+propagated forward to an epoch \(t_k\) by the relations (known as the 
+\emph{time update} equations)
+\begin{subequations}
+\label{eq:tapley471}
+\begin{align}
+  \bar{\bm{x}} _k & = \Phi (t_k, t_j) \hat{\bm{x}}_j 
+  \label{eq:tapley471a}\\
+  \bar{P}_k & = \Phi (t_k, t_j) P_j \Phi ^T (t_k, t_j)
+  \label{eq:tapley471b}
+\end{align}
+\end{subequations}
+
+
+Assume that we have a new, additional obervation at epoch \(t_k\),
+\begin{equation}
+  \bm{y}_k = \tilde{H}_k \bm{x}_k + \bm{\epsilon} _k ,
+  \quad E\left[\bm{\epsilon} _k \right] = 0,
+  \quad E\left[\bm{\epsilon} _k \bm{\epsilon} ^T_j \right] = R_k \delta _{kj}
+\end{equation}
+
+(where \(\delta _{kj}\) is the \emph{Kronicker delta}). We wish to process 
+\(\bm{y} _k\) in order to determine \(\hat{\bm{x}} _k\). The best estimate of 
+\(\bm{x} _k\) is
+
+\begin{equation}
+\label{eq:tapley473}
+\hat{\bm{x}} _k = \left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1} \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right)
+\end{equation}
+
+\ref{eq:tapley473} implies the inversion of the \(n \times n\) \emph{information matrix} \(\Lambda _k\), 
+\begin{equation}
+\label{eq:tapley474}
+\Lambda ^{-1}_k = P_k = 
+\left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1}
+\end{equation}
+
+From \ref{eq:tapley474}, it follows that:
+\begin{equation}
+  \label{eq:tapley475}
+  P^{-1}_k  
+    = \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k
+\end{equation}
+
+Premultiplying each side of \ref{eq:tapley475} by \(P_k\) and then postmultiplying 
+by \(\bar{P}_k\), leads to:
+\begin{subequations}
+\begin{align}
+  \bar{P}_k &= 
+    P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k + P_k 
+      \quad or \label{eq:tapley476} \\
+  P_k &= 
+    \bar{P}_k - P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k 
+      \label{eq:tapley477}
+  \end{align}
+\end{subequations}
+
+Postmultiplying \ref{eq:tapley476} by \(\tilde{H}^T_k R^{-1}_k\)
+\begin{equation}
+  \label{eq:tapley478}
+  \begin{aligned}
+  \bar{P}_k \tilde{H}^T_k R^{-1}_k &= 
+    P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k +
+    P_k \tilde{H}^T_k R^{-1}_k & \\
+  &= P_k \tilde{H}^T_k R^{-1}_k \left(
+    \tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k + I \right) & \\
+  &= P_k \tilde{H}^T_k R^{-1}_k \left(
+     \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) R^{-1}_k &
+  \end{aligned}
+\end{equation}
+
+We can postmultiply \ref{eq:tapley478} by \(R_k\) and then by 
+\(\left(\tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \) to solve for 
+the quantity \(P_k \tilde{H}^T_k R^{-1}_k\):
+\begin{equation}
+\label{eq:tapley479}
+P_k \tilde{H}^T_k R^{-1}_k = 
+\bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+\end{equation}
+
+which relates the \emph{a-priori} covariance matrix \(\bar{P}_k\) to the 
+\emph{a-posteriori} covariance matrix \(P_k\).
+
+Substituting \ref{eq:tapley479} into \ref{eq:tapley477}, yields:
+\begin{equation}
+\label{eq:tapley4710}
+  P_k = 
+    \bar{P}_k - \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \tilde{H}_k \bar{P}_k 
+\end{equation}
+
+\ref{eq:tapley4710} is an alternate way of computing the inverse in \ref{eq:tapley474}, 
+but here the matrix to be inverted is of dimension \(p \times p\), that is the 
+same dimensions as the observation error covariance matrix. If the observations are 
+processed as scalars (i.e. one at a time), only a scalar division is required.
+
+If we define the weighting matrix \(K_k\), usually called \emph{Kalman gain matrix}, 
+as
+%\begin{equation}
+\begin{tcolorbox}[ams equation]
+\label{eq:tapley4711}
+K_k = \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+\end{tcolorbox}
+%\end{equation}
+
+then \ref{eq:tapley4710} reads
+%\begin{equation}
+\begin{tcolorbox}[ams equation]
+\label{eq:tapley4712}
+P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+\end{tcolorbox}
+%\end{equation}
+
+Note also, that substituting \ref{eq:tapley479} into \ref{eq:tapley4711}, we get
+\begin{equation}
+\label{eq:tapley4714}
+K_k = P_k \tilde{H}^T_k R^{-1}_k
+\end{equation}
+
+Substituting \ref{eq:tapley474} into \ref{eq:tapley473}, we get:
+\begin{equation}
+  \begin{aligned}
+  \hat{\bm{x}}_k &= P_k 
+    \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right) \\
+  & = \underbrace{P_k \tilde{H}^T_k R^{-1}_k}_{K_k} \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k  \\
+  & = K_k \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k \\
+  & = K_k \bm{y}_k + \left( I - K_k \tilde{H}_k \right) \bar{P}_k \bar{P}^{-1}_k \bar{\bm{x}}_k
+  \end{aligned}
+\end{equation}
+
+and finaly
+%\begin{equation}
+\begin{tcolorbox}[ams equation]
+\label{eq:tapley4716}
+\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)
+\end{tcolorbox}
+%\end{equation}
+
+\ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716} along with \ref{eq:tapley471} can be used in a recursive fashion to compute the estimate \(\hat{\bm{x}}_k\) 
+incorporating the observation \(\bm{y}_k\).
+
+\subsection{Sequential Estimation Algorithm}
+\label{ssec:sequential-estimation-algorithm}
+Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\), 
+the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm 
+for computing the estimate sequentially is summarized as:
+\begin{enumerate}
+  \item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and 
+  state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley426ah} and \ref{eq:tapley4210})
+    \begin{subequations}
+    \begin{align}
+      \dot{X}^* &= F( X^* , t ) 
+        \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
+      A(t) &= 
+        \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*} \\
+      \dot{\Phi} (t, t_{k-1}) &= 
+        A(t) \Phi (t,t_{k-1}) 
+        \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
+    \end{align}
+    \end{subequations}
+    This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
+
+  \item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471}):
+    \begin{subequations}
+    \begin{align}
+      \bar{\bm{x}}_k &= \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1} \\
+      \bar{P}_k &= \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
+    \end{align}
+    \end{subequations}
+
+  \item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, \ref{eq:tapley426ah} and \ref{eq:tapley4711})
+    \begin{subequations}
+    \begin{align}
+      \bm{y}_k &= Y_k - G(X^*_k , t_k ) \\
+      \tilde{H}_k &= \left.\frac{\partial G(X , t_k )}{\partial X} \right|_{X=X^*} \\
+      K_k & = 
+        \bar{P}_k \tilde{H}^T_k 
+          \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+    \end{align}
+    \end{subequations}
+
+  \item Compute the \emph{measurement update} (see \ref{eq:tapley4712} and \ref{eq:tapley4716})
+    \begin{subequations}
+    \begin{align}
+\hat{\bm{x}}_k &= \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right) \\
+P_k &= \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+    \end{align}
+    \end{subequations}
+
+  \item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
+  Return to \ref{en:kalman-wf-item1}.
+
+\end{enumerate}
+
+The estimate of the state of the nonlinear system at \(t_k\) is given by 
+\(\hat{X}_k = X^*_k + \hat{\bm{x}}_k\)
+
+Note that if there is an observation at \(t_0\), a time update (\ref{en:kalman-wf-time-update}) is not performed but a measurement update is performed.
+
+Also, note that the differential equations for the state transition matrix
+are reinitialized at each observation epoch. Therefore, the state transition matrix
+is reinitialized at each observation epoch. If there is more than one observation
+at each epoch and we are processing them as scalars, we would set \(\Phi (t_i , t_i ) = I\)
+after processing the first observation at each epoch; \(P\) and \(\hat{\bm{x}}\) are not
+time updated until we move to the next observation epoch. 
+
+\subsection{Shortcomings and Considerations}
+One disadvantage of the sequential algorithm lies in the fact that if the true state 
+and the reference state are not close together then the linearization assumption 
+leading to \ref{eq:tapley426} may not be valid and the estimation process may diverge.
+This problem can be adressed via the \emph{extended sequential filter algorithm}, see 
+\cite{tapley}.
+
+A second unfavorable characteristic of the sequential estimation algorithm is
+that the state estimation error covariance matrix may approach zero as the number
+of observations becomes large. The trace of the state estimation error covariance 
+matrix grows between observations and is reduced by the amount \(trace(K\tilde{H}\bar{P})\) 
+after each observation. Hence, the magnitude of the covariance matrix elements 
+will decrease depending on the density, information content, and accuracy of the 
+observations.
+
+Examination of the estimation algorithm shows that as \(P_k \to 0\), the gain 
+approaches zero, and the estimation procedure will become insensitive to the 
+observations. Consequently, the estimate will diverge due to either errors introduced 
+in the linearization procedure, computational errors, or errors due to an incomplete 
+mathematical model. To overcome this problem, process noise often is added to 
+the state propagation equations.
+
+In addition to these two problems, the Kalman filter may diverge because of
+numerical difficulties associated with the covariance measurement update, given by 
+\ref{eq:tapley4712}. The covariance matrix may lose its properties of symmetry and 
+become nonpositive definite when the computations are carried out with the finite 
+digit arithmetic of the computer. In particular, this equation can fail to yield a 
+symmetric positive definite result when a large a priori covariance is reduced by 
+the incorporation of very accurate observation data (\cite{tapley}). The most common 
+solution to numerical problems with the covariance update is to use a square root 
+formulation to update the covariance matrix (\ref{sec:square-root-filtering}).
+
+\subsection{The Extended Sequential Estimation Algorithm}
+To minimize the effects of errors due to the neglect of higher order terms in the
+linearization procedure leading \ref{eq:tapley426}, the extended form of the sequential
+estimation algorithm is sometimes used. This algorithm is often referred to as the
+\emph{Extended Kalman Filter} (EKF). The primary difference between the sequential
+and the extended sequential algorithm is that the reference trajectory for the ex-
+tended sequential algorithm is updated after each observation to reflect the best
+estimate of the true trajectory. For example, after processing the \(k^{th}\) observation, 
+the best estimate of the state vector at \(t_k\) is used to provide new initial 
+conditions for the reference trajectory,
+\begin{equation}
+  X^*_{k,new} = \hat{X}_k = X^*_k + \hat{\bm{x}}_k
+\end{equation}
+
+The flowchart for the \emph{Extended Sequential Estimation Aalgorithm} is given below, 
+in contrast to the one presented in \ref{ssec:sequential-estimation-algorithm}.
+
+Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\), 
+the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm 
+for computing the estimate sequentially is summarized as:
+\begin{enumerate}
+  \item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and 
+  state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley4210})
+    \begin{subequations}
+    \begin{align}
+      \dot{X}^* &= F( X^* , t ) 
+        \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
+      A(t) &= 
+        \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*} \\
+      \dot{\Phi} (t, t_{k-1}) &= 
+        A(t) \Phi (t,t_{k-1}) 
+        \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
+    \end{align}
+    \end{subequations}
+    This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
+
+  \item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471b}); \textcolor{red}{in contrast to the sequential estimation filter, the extended version does not use \ref{eq:tapley471a} at this step}
+    \begin{subequations}
+    \begin{gather}
+      \hcancel[red]{\bar{\bm{x}}_k = \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1}} \\
+      \bar{P}_k = \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
+    \end{gather}
+    \end{subequations}
+
+  \item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, and \ref{eq:tapley426ah})
+    \begin{subequations}
+    \begin{align}
+      \bm{y}_k &= Y_k - G(X^*_k , t_k ) \\
+      \tilde{H}_k &= \frac{\partial G(X^*_k , t_k )}{\partial X} \\
+      K_k & = 
+        \bar{P}_k \tilde{H}^T_k 
+          \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+    \end{align}
+    \end{subequations}
+
+  \item Compute the measurement \textcolor{red}{and reference orbit} update (see \ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716})
+    \begin{subequations}
+    \begin{gather}
+      \hcancel{\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)} \\
+      \textcolor{red}{\hat{\bm{x}} = K_k \bm{y}_k} \\
+      \textcolor{red}{X^*_k = X^*_k + \hat{\bm{x}}} \\
+      P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+    \end{gather}
+    \end{subequations}
+
+  \item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
+  Return to \ref{en:kalman-wf-item1}.
+
+\end{enumerate}
+
+The estimate of the state of the nonlinear system at \(t_k\) is given by 
+\(\hat{X}_k = X^*_k + \hat{\bm{x}}_k\)
+
+\subsection{The Prediction Residual}
+It is of interest to examine the variance of the predicted residuals, which are
+sometimes referred to as the \emph{innovation}, or \emph{new information}, which 
+comes from each measurement. The predicted residual, or innovation, is the observation 
+residual based on the a-priori or predicted state, \(\bar{\bm{x}}\), at the observation 
+time, \(t_k\), and is defined as
+\begin{equation}
+  \label{eq:tapley4733}
+  \beta _k = \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k
+\end{equation}
+
+with
+\begin{equation}
+  \begin{aligned}
+    \bar{\bm{x}}_k &= \bm{x}_k + \eta _k \\
+    \bm{y}_k &= \tilde{H}_k \bm{x}_k + \epsilon _k
+  \end{aligned}
+\end{equation}
+
+where \(\bm{x}_k\) is the true value of the state deviation vector and \(\bm{\eta}_k\) 
+is the error in \(\bar{\bm{x}}\). Also
+\begin{equation}
+  E \left[ \bm{\eta}_k \right] = 0, \quad 
+  E \left[ \bm{\eta}_k , \bm{\eta}^T_k \right] = \bar{P}_k
+\end{equation}
+
+and
+\begin{equation}
+  \begin{aligned}
+  E \left[ \bm{\epsilon}_k \right] &= 0 \\
+  E \left[ \bm{\epsilon}_k , \bm{\epsilon}^T_k \right] &= R_k \\
+  E \left[ \bm{\epsilon}_k , \bm{\eta}^T_k \right] &= 0
+  \end{aligned}
+\end{equation}
+
+From these conditions it follows that \(\beta _k\) has mean
+\begin{equation}
+  \begin{aligned}
+    E \left[ \beta _k \right] \equiv \bar{\beta}_k &= E \left[
+      \tilde{H}_k \bm{x}_k + \epsilon _k - \tilde{H}_k \bar{\bm{x}}_k \right] \\
+    &= E \left[ \tilde{H}_k \left( \bm{x}_k - \bar{\bm{x}}_k \right) + \epsilon _k \right] \\
+    & = E \left[ \epsilon _k - \tilde{H}_k \bm{\eta}_k \right] \\
+    & = 0
+  \end{aligned}
+\end{equation}
+
+and variance-covariance
+\begin{equation}
+  \begin{aligned}
+    P_{\beta _k} &= 
+      E \left[ \left( \beta _k - \bar{\beta}_k \right) \left( \beta _k - \bar{\beta}_k \right)^T \right] \\
+    & = E \left[ \beta _k {\beta}^T_k \right] \\
+    & = E \left[ \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right) 
+      \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)^T \right] \\
+    & = E \left[ \left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)
+      \left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)^T \right] \\
+    & = R_k + \tilde{H}_k \bar{P}_k \tilde{H}^T_k
+  \end{aligned}
+\end{equation}
+
+Using formula \ref{eq:tapley:4711}, we can write the gain matrix \(K_k\) in terms 
+of the residual variance-covariance
+\begin{equation}
+  \begin{aligned}
+  K_k &= 
+    \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \\
+  &=
+    \bar{P}_k \tilde{H}^T_k P_{\beta _k}^{-1}
+  \end{aligned}
+\end{equation}
+
+Hence, for a large prediction residual variance-covariance, the Kalman gain matrix 
+will be small and the observation will have little influence on the estimate of the 
+state. Also, large values of the prediction residual relative to the prediction residual 
+standard deviation, may be an indication of bad tracking data and hence may be used to 
+edit data from the solution.
+
 \section{Square Root Filtering}
+\label{sec:square-root-filtering}
 Sequential estimation algorithms are subject to the filter divergence phenomenon, during 
 which the estimate of the state can depart in an unbounded manner from the true value 
 of the state. There are two fundamental reasons for filter divergence (\cite{tapley}):
@@ -220,4 +620,5 @@ Thus, \(W^* = M^T W \) and since \(M\) is an orthogonal matrix, it follows that
   W = M W^*
 \end{equation}
 
-The numerical conditioning of \(W\) is generally much better than that of \(P\) (\cite{tapley}).
+The numerical conditioning of \(W\) is generally much better than that of \(P\) (see 
+e.g. \cite{lawson1995}, \cite{tapley}).
