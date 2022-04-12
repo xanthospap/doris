@@ -2,393 +2,394 @@
 \label{ch:satellite-orbit-modeling}
 
 \section{Quick Note: The State-Space Notation}
-It is often helpfull to represent a linear differential equation in the the 
-\emph{state-space} form, that is a first-order matrix differential equation of 
+It is often helpfull to represent a linear differential equation in the the
+\emph{state-space} form, that is a first-order matrix differential equation of
 the form:
 \begin{equation}
-  \dot{\vec{x}} = \bm{F} \vec{x} + \bm{G} \vec{u} + \vec{w}
+	\dot{\vec{x}} = \bm{F} \vec{x} + \bm{G} \vec{u} + \vec{w}
 \end{equation}
 
 where:
 \begin{itemize}
-  \item \(\vec{x}\) is the system \emph{state vector},
-  \item \(\bm{F}\) is system's \emph{dynamic matrix},
-  \item \(\vec{u}\) is a deterministic input, sometimes called a \emph{control vector}, and
-  \item \(\vec{w}\) is a random forcing function, which is also known as \emph{process noise}
+	\item \(\vec{x}\) is the system \emph{state vector},
+	\item \(\bm{F}\) is system's \emph{dynamic matrix},
+	\item \(\vec{u}\) is a deterministic input, sometimes called a \emph{control vector}, and
+	\item \(\vec{w}\) is a random forcing function, which is also known as \emph{process noise}
 \end{itemize}
 
 \section{Linearization of the Orbit Determination Process}
-In the general orbit determination problem, both the dynamics and the measurements 
-involve significant nonlinear relationships. For the general case, the governing 
+In the general orbit determination problem, both the dynamics and the measurements
+involve significant nonlinear relationships. For the general case, the governing
 relations involve the nonlinear expression:
 \begin{subequations}
-\begin{align}
-  \dot{\vec{x}} = F( \vec{x}, t ), 
-    & \quad \vec{x}(t_k ) \equiv \vec{x}_k 
-    \label{eq:tapley421}\\
-  \vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i , 
-    & \quad  i=1,2,\ldots ,l
-    \label{eq:tapley422}
-\end{align}
+	\begin{align}
+		\dot{\vec{x}} = F( \vec{x}, t ),
+		 & \quad \vec{x}(t_k ) \equiv \vec{x}_k
+		\label{eq:tapley421} \\
+		\vec{y}_i = G( \vec{x}_i , t_i ) + {\epsilon}_i ,
+		 & \quad  i=1,2,\ldots ,l
+		\label{eq:tapley422}
+	\end{align}
 \end{subequations}
 
-where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and 
-\(\vec{y}_i\) for \(i=1,2,\ldots ,l\) is a \(p\)-dimensional set of observations. The 
-\emph{best estimate} of the state vector \(\vec{x}_k\) will be denoted as \(\hat{\vec{x}}_k\). 
-In general, \(p<n\) and \( m = p \times l \gg n \). The formulation described by the 
+where \(\vec{x}_k\) is the unknown \(n\)-dimensional state vector at time \(t_k\) and
+\(\vec{y}_i\) for \(i=1,2,\ldots ,l\) is a \(p\)-dimensional set of observations. The
+\emph{best estimate} of the state vector \(\vec{x}_k\) will be denoted as \(\hat{\vec{x}}_k\).
+In general, \(p<n\) and \( m = p \times l \gg n \). The formulation described by the
 system \ref{eq:tapley421} and \ref{eq:tapley422}, is characterized by: (\cite{tapley})
 \begin{enumerate}
-  \item the inability to observe the state (\(\vec{x}_k\)) directly,
-  \item nonlinear relations between the observations and the state, 
-  \item fewer observations at any time epoch \(i\) than there are state vector 
-  components (\(p<n\)), and 
-  \item errors in the observations represented by \({\epsilon}_i\)
+	\item the inability to observe the state (\(\vec{x}_k\)) directly,
+	\item nonlinear relations between the observations and the state,
+	\item fewer observations at any time epoch \(i\) than there are state vector
+	      components (\(p<n\)), and
+	\item errors in the observations represented by \({\epsilon}_i\)
 \end{enumerate}
 
-If a reasonable reference trajectory \(\vec{x}*\) is available and if 
-\(\vec{x}\), the true trajectory, and the reference trajectory remain sufficiently 
-close throughout the time interval of interest, then the trajectory for the actual 
-motion can be expanded in a Taylor’s series about the reference trajectory at 
+If a reasonable reference trajectory \(\vec{x}*\) is available and if
+\(\vec{x}\), the true trajectory, and the reference trajectory remain sufficiently
+close throughout the time interval of interest, then the trajectory for the actual
+motion can be expanded in a Taylor’s series about the reference trajectory at
 each point in time. Eliminating higher order terms, the deviation in the state
-from the reference trajectory can be described by a set of linear differential 
-equations. Corresponding linear relations can be derived between the observation 
-and the state deviations, thus transforming the nonlinear orbit determination problem 
+from the reference trajectory can be described by a set of linear differential
+equations. Corresponding linear relations can be derived between the observation
+and the state deviations, thus transforming the nonlinear orbit determination problem
 to a linear one.
 
-If \(\vec{\delta x}\) is the \( n \times 1 \) state deviation vector and 
+If \(\vec{\delta x}\) is the \( n \times 1 \) state deviation vector and
 \(\vec{\delta y}\) is the \(p \times 1\) observation deviation:
 \begin{equation}
-  \begin{aligned}
-    \vec{\delta x} (t) &= \vec{x}(t) - \vec{x}^* (t) \\
-    \vec{\delta y} (t) &= \vec{y}(t) - \vec{y}^*(t)
-  \end{aligned}
+	\begin{aligned}
+		\vec{\delta x} (t) & = \vec{x}(t) - \vec{x}^* (t) \\
+		\vec{\delta y} (t) & = \vec{y}(t) - \vec{y}^*(t)
+	\end{aligned}
 \end{equation}
 
 hence
 
 \begin{equation}
-  \dot{\vec{\delta x}} (t) = \dot{\vec{x}} (t) - \dot{\vec{x}}^* (t)
+	\dot{\vec{\delta x}} (t) = \dot{\vec{x}} (t) - \dot{\vec{x}}^* (t)
 \end{equation}
 
-Expanding \ref{eq:tapley421} and \ref{eq:tapley422} in a Taylor series about the 
+Expanding \ref{eq:tapley421} and \ref{eq:tapley422} in a Taylor series about the
 reference trajectory, leads to:
 \begin{equation}
-\label{eq:tapley425}
-\begin{aligned}
-  \dot{\vec{x}} (t) &= F (\vec{x}, t) \\
-   & \approx F (\vec{x}^* , t) 
-    + \left.\frac{\partial F(t)}{\partial \vec{x}(t)}\right|_{\vec{x}^*} \left( \vec{x}(t) - \vec{x}^* (t) \right)
-    + O_F \left( \vec{x}(t) - \vec{x}^* (t) \right) \\
-    \vec{y}_i &= G( \vec{x}_i , t_i ) + {\epsilon}_i = \\ & \approx G( \vec{x}^*_i , t_i )
-    + \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i} \left.\left( \vec{x}(t_i) - \vec{x}^* (t_i) \right)\right|_{i} 
-    + O_G \left( \vec{x}(t_i) - \vec{x}^* (t_i) \right) + {\epsilon}_i \\
-\end{aligned}
+	\label{eq:tapley425}
+	\begin{aligned}
+		\dot{\vec{x}} (t) & = F (\vec{x}, t) \\
+		                  & \approx F (\vec{x}^* , t)
+		+ \left.\frac{\partial F(t)}{\partial \vec{x}(t)}\right|_{\vec{x}^*} \left( \vec{x}(t) - \vec{x}^* (t) \right)
+		+ O_F \left( \vec{x}(t) - \vec{x}^* (t) \right) \\
+		\vec{y}_i         & = G( \vec{x}_i , t_i ) + {\epsilon}_i =        \\ & \approx G( \vec{x}^*_i , t_i )
+		+ \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i} \left.\left( \vec{x}(t_i) - \vec{x}^* (t_i) \right)\right|_{i}
+		+ O_G \left( \vec{x}(t_i) - \vec{x}^* (t_i) \right) + {\epsilon}_i \\
+	\end{aligned}
 \end{equation}
 
-where \(\left.\frac{\partial}{\partial \vec{x}}\right|_{\vec{x}^*}\) indicates that 
-the partial derivative matrix is evaluated on the reference solution \(\vec{x}^* (t)\) 
-which is obtained by integrating \ref{eq:tapley421} with the initial conditions 
-\(\vec{x}^* (t_0)\). \(O_F\) and \(O_G\) indicate terms higher than the 1\textsuperscript{st} 
-order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and 
+where \(\left.\frac{\partial}{\partial \vec{x}}\right|_{\vec{x}^*}\) indicates that
+the partial derivative matrix is evaluated on the reference solution \(\vec{x}^* (t)\)
+which is obtained by integrating \ref{eq:tapley421} with the initial conditions
+\(\vec{x}^* (t_0)\). \(O_F\) and \(O_G\) indicate terms higher than the 1\textsuperscript{st}
+order which are ignored. Noting that \(\dot{\vec{x}}^* = F(\vec{x}^* ,t)\) and
 \(\vec{y}^*_i = G(\vec{x}^*_i , t_i )\), and letting
 \begin{subequations}
-\begin{align}
-\delta \vec{x}(t) & = \vec{x}(t) - \vec{x}^*(t) \label{eq:tapley426ua} \\
-\delta \vec{x}_i  & = \vec{x}(t_i) - \vec{x}^*(t_i)\label{eq:tapley426ub}\\
-\delta \vec{y}_i  & = \vec{y}_i - G(\vec{x}^*_i , t_i ) \label{eq:tapley426uc}
-\end{align}
+	\begin{align}
+		\delta \vec{x}(t) & = \vec{x}(t) - \vec{x}^*(t) \label{eq:tapley426ua} \\
+		\delta \vec{x}_i  & = \vec{x}(t_i) - \vec{x}^*(t_i)\label{eq:tapley426ub} \\
+		\delta \vec{y}_i  & = \vec{y}_i - G(\vec{x}^*_i , t_i ) \label{eq:tapley426uc}
+	\end{align}
 \end{subequations}
 
 \ref{eq:tapley421} can be written as:
 \begin{align}
-  \label{eq:tapley426a}
-  \delta \dot{\vec{x}}(t) &= A(t) \delta \vec{x}(t) \\
-  \label{eq:tapley426b}
-  \delta \vec{y}_i &= \tilde{H}_i \delta \vec{x}_i + {\epsilon}_i \quad (i=1,\ldots,l)
+	\label{eq:tapley426a}
+	\delta \dot{\vec{x}}(t) & = A(t) \delta \vec{x}(t) \\
+	\label{eq:tapley426b}
+	\delta \vec{y}_i        & = \tilde{H}_i \delta \vec{x}_i + {\epsilon}_i \quad (i=1,\ldots,l)
 \end{align}
 
 where
 \begin{equation}
-\label{eq:tapley426ah}
-A(t) = \left.\frac{\partial F(t)}{\partial \vec{x} (t)}\right|_{\vec{x}^*} 
-\quad
-\tilde{H}_i = \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i}
+	\label{eq:tapley426ah}
+	A(t) = \left.\frac{\partial F(t)}{\partial \vec{x} (t)}\right|_{\vec{x}^*}
+	\quad
+	\tilde{H}_i = \left.\frac{\partial G}{\partial \vec{x}}\right|_{\vec{x}^* , i}
 \end{equation}
 
 \section{State Transition Matrix}
-\ref{eq:tapley426a} represents a system of linear differential equations with time-dependent 
+\ref{eq:tapley426a} represents a system of linear differential equations with time-dependent
 coefficients; the general solution to the system, can be expressed as:
 \begin{equation}
-\label{eq:tapley427}
-  \bm{x}(t) = \Phi (t, t_k) \cdot \bm{x}_k \quad \text{with } \bm{x}_k = \bm{x}(t_k)
+	\label{eq:tapley427}
+	\bm{x}(t) = \Phi (t, t_k) \cdot \bm{x}_k \quad \text{with } \bm{x}_k = \bm{x}(t_k)
 \end{equation}
 
-The matrix \(\Phi (t_i, t_k) \) is called the \emph{state transition matrix} and has the 
+The matrix \(\Phi (t_i, t_k) \) is called the \emph{state transition matrix} and has the
 following properties:
 \begin{itemize}
-  \item \(\Phi (t_k, t_k) = I \)
-  \item \(\Phi (t_i, t_k) = \Phi (t_i, t_j) \Phi (t_j, t_k) \)
-  \item \(\Phi (t_i, t_k) = {\Phi}^{-1} (t_j, t_k) \)
+	\item \(\Phi (t_k, t_k) = I \)
+	\item \(\Phi (t_i, t_k) = \Phi (t_i, t_j) \Phi (t_j, t_k) \)
+	\item \(\Phi (t_i, t_k) = {\Phi}^{-1} (t_j, t_k) \)
 \end{itemize}
 
 Noting that \(\bm{x}_k\) is constant,
 \begin{equation}
-  \label{eq:tapley429}
-  \bm{\dot{x}}(t) = \dot{\Phi} (t, t_k) \cdot \bm{x}_k
+	\label{eq:tapley429}
+	\bm{\dot{x}}(t) = \dot{\Phi} (t, t_k) \cdot \bm{x}_k
 \end{equation}
 
 Using \ref{eq:tapley426a} and \ref{eq:tapley427},
 \begin{equation}
-  \label{eq:tapley4210}
-  \begin{aligned}
-  \dot{\Phi} (t, t_k) \bm{x}_k & = A(t) \cdot \bm{x} (t) \\
-  & = A(t) \cdot \Phi (t, t_k) \bm{x}_k \\ 
-  \implies & \dot{\Phi} (t, t_k) = A(t) \Phi (t, t_k)
-  \end{aligned}
+	\label{eq:tapley4210}
+	\begin{aligned}
+		\dot{\Phi} (t, t_k) \bm{x}_k & = A(t) \cdot \bm{x} (t) \\
+		                             & = A(t) \cdot \Phi (t, t_k) \bm{x}_k \\
+		\implies                     & \dot{\Phi} (t, t_k) = A(t) \Phi (t, t_k)
+	\end{aligned}
 \end{equation}
 
-\ref{eq:tapley4210} represents a linear differential equation. For any practical orbit 
+\ref{eq:tapley4210} represents a linear differential equation. For any practical orbit
 determination application, the solution for \(\Phi (t, t_0)\)  will be obtained
-via numerical integration, supplying a vector of derivative values for the differential 
+via numerical integration, supplying a vector of derivative values for the differential
 equation of the nominal state vector and computed values for \(\dot{\Phi} (t, t_0)\).
 
 \section{Observations}
 Combining \ref{eq:tapley427} and \ref{eq:tapley426b}, we get:
 \begin{equation}
-  \label{eq:tapley4237}
-  \begin{aligned}
-    \bm{y}_0 &= \tilde{H}_0 \Phi (t_0, t_k) \bm{x}_k + {\epsilon}_0 \\
-    \bm{y}_1 &= \tilde{H}_1 \Phi (t_1, t_k) \bm{x}_k + {\epsilon}_1 \\
-    & \vdotswithin{=} \\
-    \bm{y}_{l-1} &= \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \bm{x}_k + {\epsilon}_{l-1}
-  \end{aligned}
+	\label{eq:tapley4237}
+	\begin{aligned}
+		\bm{y}_0     & = \tilde{H}_0 \Phi (t_0, t_k) \bm{x}_k + {\epsilon}_0 \\
+		\bm{y}_1     & = \tilde{H}_1 \Phi (t_1, t_k) \bm{x}_k + {\epsilon}_1  \\
+		             & \vdotswithin{=} \\
+		\bm{y}_{l-1} & = \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \bm{x}_k + {\epsilon}_{l-1}
+	\end{aligned}
 \end{equation}
 
-where the system contains \(m=p\times l\) observations and \(n\) unknown components 
+where the system contains \(m=p\times l\) observations and \(n\) unknown components
 in the state vector. For convinience, we define the following notation:
 \begin{equation}
-  \bm{y} \equiv \begin{bmatrix} y_0 \\ y_1 \\ \ldots \\ y_{l-1} \end{bmatrix},
-  \quad
-  H \equiv \begin{bmatrix} \tilde{H}_0 \Phi (t_0, t_k) \\ \tilde{H}_1 \Phi (t_1, t_k) \\ \ldots \\ \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \end{bmatrix},
-  \quad
-  \bm{\epsilon} \equiv \begin{bmatrix} {\epsilon}_0 \\ {\epsilon}_1 \\ \ldots \\ {\epsilon}_{l-1} \end{bmatrix}
+	\bm{y} \equiv \begin{bmatrix} y_0 \\ y_1 \\ \ldots \\ y_{l-1} \end{bmatrix},
+	\quad
+	H \equiv \begin{bmatrix} \tilde{H}_0 \Phi (t_0, t_k) \\ \tilde{H}_1 \Phi (t_1, t_k) \\ \ldots \\ \tilde{H}_{l-1} \Phi (t_{l-1}, t_k) \end{bmatrix},
+	\quad
+	\bm{\epsilon} \equiv \begin{bmatrix} {\epsilon}_0 \\ {\epsilon}_1 \\ \ldots \\ {\epsilon}_{l-1} \end{bmatrix}
 \end{equation}
 
 so that we can now write \ref{eq:tapley4237} as:
 \begin{equation}
-  \label{eq:tapley4239}
-  \bm{y} = H \bm{x} + \bm{\epsilon} 
-  \quad
-  \bm{y} \in \mathbb{R} ^{m \times 1},
-  \bm{x} \in \mathbb{R} ^{n \times 1},
-  H \in \mathbb{R}^{m \times n},
+	\label{eq:tapley4239}
+	\bm{y} = H \bm{x} + \bm{\epsilon}
+	\quad
+	\bm{y} \in \mathbb{R} ^{m \times 1},
+	\bm{x} \in \mathbb{R} ^{n \times 1},
+	H \in \mathbb{R}^{m \times n},
 \end{equation}
 
 where \( m = p \times l \) is the total number of observations.
 
 \section{Sequential Estimation Overview}
-In the sequential estimation algorithm, observations are processed as soon as they 
-are received (in contrast to batch estimation), thus offering the advantage of 
-inverting a matrix of the same dimension as the observation vector. Hence, if the 
-observations are processed individually, only scalar divisions will be required to 
-obtain the estimate of \(\vec{x}_k\). The sequential estimation algorithm discussed 
+In the sequential estimation algorithm, observations are processed as soon as they
+are received (in contrast to batch estimation), thus offering the advantage of
+inverting a matrix of the same dimension as the observation vector. Hence, if the
+observations are processed individually, only scalar divisions will be required to
+obtain the estimate of \(\vec{x}_k\). The sequential estimation algorithm discussed
 here, is often reffered to as the \emph{Kalman filter}, named after Rudolf E. K\'alm\'an
-who was one of the primary developers of its theory. 
+who was one of the primary developers of its theory.
 
-An estimate \(\hat{\bm{x}}_j \) and a covariance matrix \(P_j\) can be 
-propagated forward to an epoch \(t_k\) by the relations (known as the 
+An estimate \(\hat{\bm{x}}_j \) and a covariance matrix \(P_j\) can be
+propagated forward to an epoch \(t_k\) by the relations (known as the
 \emph{time update} equations)
 \begin{subequations}
-\label{eq:tapley471}
-\begin{align}
-  \bar{\bm{x}} _k & = \Phi (t_k, t_j) \hat{\bm{x}}_j 
-  \label{eq:tapley471a}\\
-  \bar{P}_k & = \Phi (t_k, t_j) P_j \Phi ^T (t_k, t_j)
-  \label{eq:tapley471b}
-\end{align}
+	\label{eq:tapley471}
+	\begin{align}
+		\bar{\bm{x}} _k & = \Phi (t_k, t_j) \hat{\bm{x}}_j
+		\label{eq:tapley471a} \\
+		\bar{P}_k       & = \Phi (t_k, t_j) P_j \Phi ^T (t_k, t_j)
+		\label{eq:tapley471b}
+	\end{align}
 \end{subequations}
 
 
 Assume that we have a new, additional obervation at epoch \(t_k\),
 \begin{equation}
-  \bm{y}_k = \tilde{H}_k \bm{x}_k + \bm{\epsilon} _k ,
-  \quad E\left[\bm{\epsilon} _k \right] = 0,
-  \quad E\left[\bm{\epsilon} _k \bm{\epsilon} ^T_j \right] = R_k \delta _{kj}
+	\bm{y}_k = \tilde{H}_k \bm{x}_k + \bm{\epsilon} _k ,
+	\quad E\left[\bm{\epsilon} _k \right] = 0,
+	\quad E\left[\bm{\epsilon} _k \bm{\epsilon} ^T_j \right] = R_k \delta _{kj}
 \end{equation}
 
-(where \(\delta _{kj}\) is the \emph{Kronicker delta}). We wish to process 
-\(\bm{y} _k\) in order to determine \(\hat{\bm{x}} _k\). The best estimate of 
+(where \(\delta _{kj}\) is the \emph{Kronicker delta}). We wish to process
+\(\bm{y} _k\) in order to determine \(\hat{\bm{x}} _k\). The best estimate of
 \(\bm{x} _k\) is
 
 \begin{equation}
-\label{eq:tapley473}
-\hat{\bm{x}} _k = \left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1} \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right)
+	\label{eq:tapley473}
+	\hat{\bm{x}} _k = \left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1} \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right)
 \end{equation}
 
-\ref{eq:tapley473} implies the inversion of the \(n \times n\) \emph{information matrix} \(\Lambda _k\), 
+\ref{eq:tapley473} implies the inversion of the \(n \times n\) \emph{information matrix} 
+(more on the information matrix at \ref{sec:information-matrix-and-information-filter}) \(\Lambda _k\),
 \begin{equation}
-\label{eq:tapley474}
-\Lambda ^{-1}_k = P_k = 
-\left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1}
+	\label{eq:tapley474}
+	\Lambda ^{-1}_k \equiv P_k =
+	\left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k \right)^{-1}
 \end{equation}
 
 From \ref{eq:tapley474}, it follows that:
 \begin{equation}
-  \label{eq:tapley475}
-  P^{-1}_k  
-    = \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k
+	\label{eq:tapley475}
+	P^{-1}_k
+	= \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{P}^{-1}_k
 \end{equation}
 
-Premultiplying each side of \ref{eq:tapley475} by \(P_k\) and then postmultiplying 
+Premultiplying each side of \ref{eq:tapley475} by \(P_k\) and then postmultiplying
 by \(\bar{P}_k\), leads to:
 \begin{subequations}
-\begin{align}
-  \bar{P}_k &= 
-    P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k + P_k 
-      \quad or \label{eq:tapley476} \\
-  P_k &= 
-    \bar{P}_k - P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k 
-      \label{eq:tapley477}
-  \end{align}
+	\begin{align}
+		\bar{P}_k & =
+		P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k + P_k
+		\quad or \label{eq:tapley476} \\
+		P_k       & =
+		\bar{P}_k - P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k
+		\label{eq:tapley477}
+	\end{align}
 \end{subequations}
 
 Postmultiplying \ref{eq:tapley476} by \(\tilde{H}^T_k R^{-1}_k\)
 \begin{equation}
-  \label{eq:tapley478}
-  \begin{aligned}
-  \bar{P}_k \tilde{H}^T_k R^{-1}_k &= 
-    P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k +
-    P_k \tilde{H}^T_k R^{-1}_k & \\
-  &= P_k \tilde{H}^T_k R^{-1}_k \left(
-    \tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k + I \right) & \\
-  &= P_k \tilde{H}^T_k R^{-1}_k \left(
-     \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) R^{-1}_k &
-  \end{aligned}
+	\label{eq:tapley478}
+	\begin{aligned}
+		\bar{P}_k \tilde{H}^T_k R^{-1}_k                           & =
+		P_k \tilde{H}^T_k R^{-1}_k \tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k +
+		P_k \tilde{H}^T_k R^{-1}_k                                 &                                     \\
+		                                                           & = P_k \tilde{H}^T_k R^{-1}_k \left(
+		\tilde{H}_k \bar{P}_k \tilde{H}^T_k R^{-1}_k + I \right)   &                                     \\
+		                                                           & = P_k \tilde{H}^T_k R^{-1}_k \left(
+		\tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) R^{-1}_k &
+	\end{aligned}
 \end{equation}
 
-We can postmultiply \ref{eq:tapley478} by \(R_k\) and then by 
-\(\left(\tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \) to solve for 
+We can postmultiply \ref{eq:tapley478} by \(R_k\) and then by
+\(\left(\tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \) to solve for
 the quantity \(P_k \tilde{H}^T_k R^{-1}_k\):
 \begin{equation}
-\label{eq:tapley479}
-P_k \tilde{H}^T_k R^{-1}_k = 
-\bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+	\label{eq:tapley479}
+	P_k \tilde{H}^T_k R^{-1}_k =
+	\bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
 \end{equation}
 
-which relates the \emph{a-priori} covariance matrix \(\bar{P}_k\) to the 
+which relates the \emph{a-priori} covariance matrix \(\bar{P}_k\) to the
 \emph{a-posteriori} covariance matrix \(P_k\).
 
 Substituting \ref{eq:tapley479} into \ref{eq:tapley477}, yields:
 \begin{equation}
-\label{eq:tapley4710}
-  P_k = 
-    \bar{P}_k - \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \tilde{H}_k \bar{P}_k 
+	\label{eq:tapley4710}
+	P_k =
+	\bar{P}_k - \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \tilde{H}_k \bar{P}_k
 \end{equation}
 
-\ref{eq:tapley4710} is an alternate way of computing the inverse in \ref{eq:tapley474}, 
-but here the matrix to be inverted is of dimension \(p \times p\), that is the 
-same dimensions as the observation error covariance matrix. If the observations are 
+\ref{eq:tapley4710} is an alternate way of computing the inverse in \ref{eq:tapley474},
+but here the matrix to be inverted is of dimension \(p \times p\), that is the
+same dimensions as the observation error covariance matrix. If the observations are
 processed as scalars (i.e. one at a time), only a scalar division is required.
 
-If we define the weighting matrix \(K_k\), usually called \emph{Kalman gain matrix}, 
+If we define the weighting matrix \(K_k\), usually called \emph{Kalman gain matrix},
 as
 %\begin{equation}
 \begin{tcolorbox}[ams equation]
-\label{eq:tapley4711}
-K_k = \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+	\label{eq:tapley4711}
+	K_k = \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
 \end{tcolorbox}
 %\end{equation}
 
 then \ref{eq:tapley4710} reads
 %\begin{equation}
 \begin{tcolorbox}[ams equation]
-\label{eq:tapley4712}
-P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+	\label{eq:tapley4712}
+	P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
 \end{tcolorbox}
 %\end{equation}
 
 Note also, that substituting \ref{eq:tapley479} into \ref{eq:tapley4711}, we get
 \begin{equation}
-\label{eq:tapley4714}
-K_k = P_k \tilde{H}^T_k R^{-1}_k
+	\label{eq:tapley4714}
+	K_k = P_k \tilde{H}^T_k R^{-1}_k
 \end{equation}
 
 Substituting \ref{eq:tapley474} into \ref{eq:tapley473}, we get:
 \begin{equation}
-  \begin{aligned}
-  \hat{\bm{x}}_k &= P_k 
-    \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right) \\
-  & = \underbrace{P_k \tilde{H}^T_k R^{-1}_k}_{K_k} \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k  \\
-  & = K_k \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k \\
-  & = K_k \bm{y}_k + \left( I - K_k \tilde{H}_k \right) \bar{P}_k \bar{P}^{-1}_k \bar{\bm{x}}_k
-  \end{aligned}
+	\begin{aligned}
+		\hat{\bm{x}}_k & = P_k
+		\left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{P}^{-1}_k \bar{\bm{x}}_k \right)                                \\
+		               & = \underbrace{P_k \tilde{H}^T_k R^{-1}_k}_{K_k} \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k \\
+		               & = K_k \bm{y}_k + P_k \bar{P}^{-1}_k \bar{\bm{x}}_k                                           \\
+		               & = K_k \bm{y}_k + \left( I - K_k \tilde{H}_k \right) \bar{P}_k \bar{P}^{-1}_k \bar{\bm{x}}_k
+	\end{aligned}
 \end{equation}
 
 and finaly
 %\begin{equation}
 \begin{tcolorbox}[ams equation]
-\label{eq:tapley4716}
-\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)
+	\label{eq:tapley4716}
+	\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)
 \end{tcolorbox}
 %\end{equation}
 
-\ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716} along with \ref{eq:tapley471} can be used in a recursive fashion to compute the estimate \(\hat{\bm{x}}_k\) 
+\ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716} along with \ref{eq:tapley471} can be used in a recursive fashion to compute the estimate \(\hat{\bm{x}}_k\)
 incorporating the observation \(\bm{y}_k\).
 
 \subsection{Sequential Estimation Algorithm}
 \label{ssec:sequential-estimation-algorithm}
-Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\), 
-the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm 
+Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\),
+the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm
 for computing the estimate sequentially is summarized as:
 \begin{enumerate}
-  \item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and 
-  state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley426ah} and \ref{eq:tapley4210})
-    \begin{subequations}
-    \begin{align}
-      \dot{X}^* &= F( X^* , t ) 
-        \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
-      A(t) &= 
-        \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*} \\
-      \dot{\Phi} (t, t_{k-1}) &= 
-        A(t) \Phi (t,t_{k-1}) 
-        \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
-    \end{align}
-    \end{subequations}
-    This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
+	\item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and
+	      state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley426ah} and \ref{eq:tapley4210})
+	      \begin{subequations}
+		      \begin{align}
+			      \dot{X}^*               & = F( X^* , t )
+			      \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
+			      A(t)                    & =
+			      \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*}                \\
+			      \dot{\Phi} (t, t_{k-1}) & =
+			      A(t) \Phi (t,t_{k-1})
+			      \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
+		      \end{align}
+	      \end{subequations}
+	      This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
 
-  \item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471}):
-    \begin{subequations}
-    \begin{align}
-      \bar{\bm{x}}_k &= \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1} \\
-      \bar{P}_k &= \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
-    \end{align}
-    \end{subequations}
+	\item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471}):
+	      \begin{subequations}
+		      \begin{align}
+			      \bar{\bm{x}}_k & = \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1}              \\
+			      \bar{P}_k      & = \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
+		      \end{align}
+	      \end{subequations}
 
-  \item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, \ref{eq:tapley426ah} and \ref{eq:tapley4711})
-    \begin{subequations}
-    \begin{align}
-      \bm{y}_k &= Y_k - G(X^*_k , t_k ) \\
-      \tilde{H}_k &= \left.\frac{\partial G(X , t_k )}{\partial X} \right|_{X=X^*} \\
-      K_k & = 
-        \bar{P}_k \tilde{H}^T_k 
-          \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
-    \end{align}
-    \end{subequations}
+	\item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, \ref{eq:tapley426ah} and \ref{eq:tapley4711})
+	      \begin{subequations}
+		      \begin{align}
+			      \bm{y}_k    & = Y_k - G(X^*_k , t_k )                                         \\
+			      \tilde{H}_k & = \left.\frac{\partial G(X , t_k )}{\partial X} \right|_{X=X^*} \\
+			      K_k         & =
+			      \bar{P}_k \tilde{H}^T_k
+			      \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+		      \end{align}
+	      \end{subequations}
 
-  \item Compute the \emph{measurement update} (see \ref{eq:tapley4712} and \ref{eq:tapley4716})
-    \begin{subequations}
-    \begin{align}
-\hat{\bm{x}}_k &= \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right) \\
-P_k &= \left( I - K_k \tilde{H}_k \right) \bar{P}_k
-    \end{align}
-    \end{subequations}
+	\item Compute the \emph{measurement update} (see \ref{eq:tapley4712} and \ref{eq:tapley4716})
+	      \begin{subequations}
+		      \begin{align}
+			      \hat{\bm{x}}_k & = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right) \\
+			      P_k            & = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+		      \end{align}
+	      \end{subequations}
 
-  \item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
-  Return to \ref{en:kalman-wf-item1}.
+	\item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
+	      Return to \ref{en:kalman-wf-item1}.
 
 \end{enumerate}
 
-The estimate of the state of the nonlinear system at \(t_k\) is given by 
+The estimate of the state of the nonlinear system at \(t_k\) is given by
 \(\hat{X}_k = X^*_k + \hat{\bm{x}}_k\)
 
 Note that if there is an observation at \(t_0\), a time update (\ref{en:kalman-wf-time-update}) is not performed but a measurement update is performed.
@@ -398,38 +399,38 @@ are reinitialized at each observation epoch. Therefore, the state transition mat
 is reinitialized at each observation epoch. If there is more than one observation
 at each epoch and we are processing them as scalars, we would set \(\Phi (t_i , t_i ) = I\)
 after processing the first observation at each epoch; \(P\) and \(\hat{\bm{x}}\) are not
-time updated until we move to the next observation epoch. 
+time updated until we move to the next observation epoch.
 
 \subsection{Shortcomings and Considerations}
-One disadvantage of the sequential algorithm lies in the fact that if the true state 
-and the reference state are not close together then the linearization assumption 
+One disadvantage of the sequential algorithm lies in the fact that if the true state
+and the reference state are not close together then the linearization assumption
 leading to \ref{eq:tapley426} may not be valid and the estimation process may diverge.
-This problem can be adressed via the \emph{extended sequential filter algorithm}, see 
+This problem can be adressed via the \emph{extended sequential filter algorithm}, see
 \cite{tapley}.
 
 A second unfavorable characteristic of the sequential estimation algorithm is
 that the state estimation error covariance matrix may approach zero as the number
-of observations becomes large. The trace of the state estimation error covariance 
-matrix grows between observations and is reduced by the amount \(trace(K\tilde{H}\bar{P})\) 
-after each observation. Hence, the magnitude of the covariance matrix elements 
-will decrease depending on the density, information content, and accuracy of the 
+of observations becomes large. The trace of the state estimation error covariance
+matrix grows between observations and is reduced by the amount \(trace(K\tilde{H}\bar{P})\)
+after each observation. Hence, the magnitude of the covariance matrix elements
+will decrease depending on the density, information content, and accuracy of the
 observations.
 
-Examination of the estimation algorithm shows that as \(P_k \to 0\), the gain 
-approaches zero, and the estimation procedure will become insensitive to the 
-observations. Consequently, the estimate will diverge due to either errors introduced 
-in the linearization procedure, computational errors, or errors due to an incomplete 
-mathematical model. To overcome this problem, process noise often is added to 
+Examination of the estimation algorithm shows that as \(P_k \to 0\), the gain
+approaches zero, and the estimation procedure will become insensitive to the
+observations. Consequently, the estimate will diverge due to either errors introduced
+in the linearization procedure, computational errors, or errors due to an incomplete
+mathematical model. To overcome this problem, process noise often is added to
 the state propagation equations.
 
 In addition to these two problems, the Kalman filter may diverge because of
-numerical difficulties associated with the covariance measurement update, given by 
-\ref{eq:tapley4712}. The covariance matrix may lose its properties of symmetry and 
-become nonpositive definite when the computations are carried out with the finite 
-digit arithmetic of the computer. In particular, this equation can fail to yield a 
-symmetric positive definite result when a large a priori covariance is reduced by 
-the incorporation of very accurate observation data (\cite{tapley}). The most common 
-solution to numerical problems with the covariance update is to use a square root 
+numerical difficulties associated with the covariance measurement update, given by
+\ref{eq:tapley4712}. The covariance matrix may lose its properties of symmetry and
+become nonpositive definite when the computations are carried out with the finite
+digit arithmetic of the computer. In particular, this equation can fail to yield a
+symmetric positive definite result when a large a priori covariance is reduced by
+the incorporation of very accurate observation data (\cite{tapley}). The most common
+solution to numerical problems with the covariance update is to use a square root
 formulation to update the covariance matrix (\ref{sec:square-root-filtering}).
 
 \subsection{The Extended Sequential Estimation Algorithm}
@@ -439,271 +440,450 @@ estimation algorithm is sometimes used. This algorithm is often referred to as t
 \emph{Extended Kalman Filter} (EKF). The primary difference between the sequential
 and the extended sequential algorithm is that the reference trajectory for the ex-
 tended sequential algorithm is updated after each observation to reflect the best
-estimate of the true trajectory. For example, after processing the \(k^{th}\) observation, 
-the best estimate of the state vector at \(t_k\) is used to provide new initial 
+estimate of the true trajectory. For example, after processing the \(k^{th}\) observation,
+the best estimate of the state vector at \(t_k\) is used to provide new initial
 conditions for the reference trajectory,
 \begin{equation}
-  X^*_{k,new} = \hat{X}_k = X^*_k + \hat{\bm{x}}_k
+	X^*_{k,new} = \hat{X}_k = X^*_k + \hat{\bm{x}}_k
 \end{equation}
 
-The flowchart for the \emph{Extended Sequential Estimation Aalgorithm} is given below, 
+The flowchart for the \emph{Extended Sequential Estimation Aalgorithm} is given below,
 in contrast to the one presented in \ref{ssec:sequential-estimation-algorithm}.
 
-Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\), 
-the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm 
+Given the initial conditions \(\vec{X}^*_{k-1}\), \(\hat{\bm{x}}_{k-1}\) and \(P_{k-1}\),
+the observation \(Y_k\) and the corresponding \(R_k\) at \(t=t_k\), the algorithm
 for computing the estimate sequentially is summarized as:
 \begin{enumerate}
-  \item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and 
-  state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley4210})
-    \begin{subequations}
-    \begin{align}
-      \dot{X}^* &= F( X^* , t ) 
-        \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
-      A(t) &= 
-        \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*} \\
-      \dot{\Phi} (t, t_{k-1}) &= 
-        A(t) \Phi (t,t_{k-1}) 
-        \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
-    \end{align}
-    \end{subequations}
-    This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
+	\item \label{en:kalman-wf-item1} Integrate reference trajectory (\(X^*\)) and
+	      state transition matrix, from \(t_{k-1}\) to \(t_k\) (see \ref{eq:tapley421}, \ref{eq:tapley4210})
+	      \begin{subequations}
+		      \begin{align}
+			      \dot{X}^*               & = F( X^* , t )
+			      \quad \text{with initial conditions } X^*_{k-1} \label{eq:tapley4717a} \\
+			      A(t)                    & =
+			      \left.\frac{\partial F(X,t)}{\partial X}\right|_{X=X^*}                \\
+			      \dot{\Phi} (t, t_{k-1}) & =
+			      A(t) \Phi (t,t_{k-1})
+			      \quad \text{with initial conditions } \Phi(t_{k-1}, t_{k-1}) = I\label{eq:tapley4717b}
+		      \end{align}
+	      \end{subequations}
+	      This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
 
-  \item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471b}); \textcolor{red}{in contrast to the sequential estimation filter, the extended version does not use \ref{eq:tapley471a} at this step}
-    \begin{subequations}
-    \begin{gather}
-      \hcancel[red]{\bar{\bm{x}}_k = \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1}} \\
-      \bar{P}_k = \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
-    \end{gather}
-    \end{subequations}
+	\item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471b}); \textcolor{red}{in contrast to the sequential estimation filter, the extended version does not use \ref{eq:tapley471a} at this step}
+	      \begin{subequations}
+		      \begin{gather}
+			      \hcancel[red]{\bar{\bm{x}}_k = \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1}} \\
+			      \bar{P}_k = \Phi (t_k , t_{k-1}) P_{k-1} \Phi ^T (t_k , t_{k-1})
+		      \end{gather}
+	      \end{subequations}
 
-  \item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, and \ref{eq:tapley426ah})
-    \begin{subequations}
-    \begin{align}
-      \bm{y}_k &= Y_k - G(X^*_k , t_k ) \\
-      \tilde{H}_k &= \frac{\partial G(X^*_k , t_k )}{\partial X} \\
-      K_k & = 
-        \bar{P}_k \tilde{H}^T_k 
-          \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
-    \end{align}
-    \end{subequations}
+	\item Compute observation deviation, observation state matrix and gain matrix (see \ref{eq:tapley426uc}, and \ref{eq:tapley426ah})
+	      \begin{subequations}
+		      \begin{align}
+			      \bm{y}_k    & = Y_k - G(X^*_k , t_k )                       \\
+			      \tilde{H}_k & = \frac{\partial G(X^*_k , t_k )}{\partial X} \\
+			      K_k         & =
+			      \bar{P}_k \tilde{H}^T_k
+			      \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1}
+		      \end{align}
+	      \end{subequations}
 
-  \item Compute the measurement \textcolor{red}{and reference orbit} update (see \ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716})
-    \begin{subequations}
-    \begin{gather}
-      \hcancel{\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)} \\
-      \textcolor{red}{\hat{\bm{x}} = K_k \bm{y}_k} \\
-      \textcolor{red}{X^*_k = X^*_k + \hat{\bm{x}}} \\
-      P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
-    \end{gather}
-    \end{subequations}
+	\item Compute the measurement \textcolor{red}{and reference orbit} update (see \ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716})
+	      \begin{subequations}
+		      \begin{gather}
+			      \hcancel{\hat{\bm{x}}_k = \bar{\bm{x}}_k + K_k \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)} \\
+			      \textcolor{red}{\hat{\bm{x}} = K_k \bm{y}_k} \\
+			      \textcolor{red}{X^*_k = X^*_k + \hat{\bm{x}}} \\
+			      P_k = \left( I - K_k \tilde{H}_k \right) \bar{P}_k
+		      \end{gather}
+	      \end{subequations}
 
-  \item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
-  Return to \ref{en:kalman-wf-item1}.
+	\item Replace \(k\) with \(k+1\); \(X^*(t_k)\) now becomes \(X^*(t_{k-1})\).
+	      Return to \ref{en:kalman-wf-item1}.
 
 \end{enumerate}
 
-The estimate of the state of the nonlinear system at \(t_k\) is given by 
+The estimate of the state of the nonlinear system at \(t_k\) is given by
 \(\hat{X}_k = X^*_k + \hat{\bm{x}}_k\)
 
 \subsection{The Prediction Residual}
 It is of interest to examine the variance of the predicted residuals, which are
-sometimes referred to as the \emph{innovation}, or \emph{new information}, which 
-comes from each measurement. The predicted residual, or innovation, is the observation 
-residual based on the a-priori or predicted state, \(\bar{\bm{x}}\), at the observation 
+sometimes referred to as the \emph{innovation}, or \emph{new information}, which
+comes from each measurement. The predicted residual, or innovation, is the observation
+residual based on the a-priori or predicted state, \(\bar{\bm{x}}\), at the observation
 time, \(t_k\), and is defined as
 \begin{equation}
-  \label{eq:tapley4733}
-  \beta _k = \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k
+	\label{eq:tapley4733}
+	\beta _k = \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k
 \end{equation}
 
 with
 \begin{equation}
-  \begin{aligned}
-    \bar{\bm{x}}_k &= \bm{x}_k + \eta _k \\
-    \bm{y}_k &= \tilde{H}_k \bm{x}_k + \epsilon _k
-  \end{aligned}
+	\begin{aligned}
+		\bar{\bm{x}}_k & = \bm{x}_k + \eta _k                 \\
+		\bm{y}_k       & = \tilde{H}_k \bm{x}_k + \epsilon _k
+	\end{aligned}
 \end{equation}
 
-where \(\bm{x}_k\) is the true value of the state deviation vector and \(\bm{\eta}_k\) 
+where \(\bm{x}_k\) is the true value of the state deviation vector and \(\bm{\eta}_k\)
 is the error in \(\bar{\bm{x}}\). Also
 \begin{equation}
-  E \left[ \bm{\eta}_k \right] = 0, \quad 
-  E \left[ \bm{\eta}_k , \bm{\eta}^T_k \right] = \bar{P}_k
+	E \left[ \bm{\eta}_k \right] = 0, \quad
+	E \left[ \bm{\eta}_k , \bm{\eta}^T_k \right] = \bar{P}_k
 \end{equation}
 
 and
 \begin{equation}
-  \begin{aligned}
-  E \left[ \bm{\epsilon}_k \right] &= 0 \\
-  E \left[ \bm{\epsilon}_k , \bm{\epsilon}^T_k \right] &= R_k \\
-  E \left[ \bm{\epsilon}_k , \bm{\eta}^T_k \right] &= 0
-  \end{aligned}
+	\begin{aligned}
+		E \left[ \bm{\epsilon}_k \right]                     & = 0   \\
+		E \left[ \bm{\epsilon}_k , \bm{\epsilon}^T_k \right] & = R_k \\
+		E \left[ \bm{\epsilon}_k , \bm{\eta}^T_k \right]     & = 0
+	\end{aligned}
 \end{equation}
 
 From these conditions it follows that \(\beta _k\) has mean
 \begin{equation}
-  \begin{aligned}
-    E \left[ \beta _k \right] \equiv \bar{\beta}_k &= E \left[
-      \tilde{H}_k \bm{x}_k + \epsilon _k - \tilde{H}_k \bar{\bm{x}}_k \right] \\
-    &= E \left[ \tilde{H}_k \left( \bm{x}_k - \bar{\bm{x}}_k \right) + \epsilon _k \right] \\
-    & = E \left[ \epsilon _k - \tilde{H}_k \bm{\eta}_k \right] \\
-    & = 0
-  \end{aligned}
+	\begin{aligned}
+		E \left[ \beta _k \right] \equiv \bar{\beta}_k & = E \left[
+		\tilde{H}_k \bm{x}_k + \epsilon _k - \tilde{H}_k \bar{\bm{x}}_k \right]                                                                \\
+		                                               & = E \left[ \tilde{H}_k \left( \bm{x}_k - \bar{\bm{x}}_k \right) + \epsilon _k \right] \\
+		                                               & = E \left[ \epsilon _k - \tilde{H}_k \bm{\eta}_k \right]                              \\
+		                                               & = 0
+	\end{aligned}
 \end{equation}
 
 and variance-covariance
 \begin{equation}
-  \begin{aligned}
-    P_{\beta _k} &= 
-      E \left[ \left( \beta _k - \bar{\beta}_k \right) \left( \beta _k - \bar{\beta}_k \right)^T \right] \\
-    & = E \left[ \beta _k {\beta}^T_k \right] \\
-    & = E \left[ \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right) 
-      \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)^T \right] \\
-    & = E \left[ \left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)
-      \left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)^T \right] \\
-    & = R_k + \tilde{H}_k \bar{P}_k \tilde{H}^T_k
-  \end{aligned}
+	\begin{aligned}
+		P_{\beta _k} & =
+		E \left[ \left( \beta _k - \bar{\beta}_k \right) \left( \beta _k - \bar{\beta}_k \right)^T \right] \\
+		             & = E \left[ \beta _k {\beta}^T_k \right]                                             \\
+		             & = E \left[ \left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)
+		\left( \bm{y}_k - \tilde{H}_k \bar{\bm{x}}_k \right)^T \right]                                     \\
+		             & = E \left[ \left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)
+		\left( \bm{\epsilon}_k - \tilde{H}_k \bm{\eta}_k \right)^T \right]                                 \\
+		             & = R_k + \tilde{H}_k \bar{P}_k \tilde{H}^T_k
+	\end{aligned}
 \end{equation}
 
-Using formula \ref{eq:tapley:4711}, we can write the gain matrix \(K_k\) in terms 
+Using formula \ref{eq:tapley:4711}, we can write the gain matrix \(K_k\) in terms
 of the residual variance-covariance
 \begin{equation}
-  \begin{aligned}
-  K_k &= 
-    \bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \\
-  &=
-    \bar{P}_k \tilde{H}^T_k P_{\beta _k}^{-1}
-  \end{aligned}
+	\begin{aligned}
+		K_k & =
+		\bar{P}_k \tilde{H}^T_k \left( \tilde{H}_k \bar{P}_k \tilde{H}^T_k + R_k \right) ^{-1} \\
+		    & =
+		\bar{P}_k \tilde{H}^T_k P_{\beta _k}^{-1}
+	\end{aligned}
 \end{equation}
 
-Hence, for a large prediction residual variance-covariance, the Kalman gain matrix 
-will be small and the observation will have little influence on the estimate of the 
-state. Also, large values of the prediction residual relative to the prediction residual 
-standard deviation, may be an indication of bad tracking data and hence may be used to 
+Hence, for a large prediction residual variance-covariance, the Kalman gain matrix
+will be small and the observation will have little influence on the estimate of the
+state. Also, large values of the prediction residual relative to the prediction residual
+standard deviation, may be an indication of bad tracking data and hence may be used to
 edit data from the solution.
 
 \section{State Noise}
-In addition to the effects of the nonlinearities, the effects of errors in the dynamical 
+In addition to the effects of the nonlinearities, the effects of errors in the dynamical
 model can lead to divergence in the estimate. As pointed out previously, for a sufficiently large
-number of observations the elements of the covariance matrix \(P_k\) will asymptotically 
+number of observations the elements of the covariance matrix \(P_k\) will asymptotically
 approach zero and the estimation algorithm will be insensitive to any further
-observations. This condition can lead to filter divergence. One approach to preventing 
-this divergence is to recognize that the linearized equations for propagating the 
+observations. This condition can lead to filter divergence. One approach to preventing
+this divergence is to recognize that the linearized equations for propagating the
 estimate of the state are in error and to compensate for this by assuming
 that the error in the linearized dynamics can be approximated by process noise.
 
 The state dynamics of a linear system under the influence of process noise are
 described by:
 \begin{equation}
-  \label{eq:tapley491}
-  \dot{\bm{x}} (t) = A(t) \bm{x} (t) + \Beta (t) \bm{u} (t)
+	\label{eq:tapley491}
+	\dot{\bm{x}} (t) = A(t) \bm{x} (t) + B (t) \bm{u} (t)
 \end{equation}
 
-Where the vector \(\bm{u}\), called the \emph{state} or \emph{process noise} is of 
-dimension \(m \times 1 \) and the matrix \(\Beta \) is \(n \times m \).
-The functional form of \(\bm{u}\) can include a number of processes, including constant, 
+Where the vector \(\bm{u}\), called the \emph{state} or \emph{process noise} is of
+dimension \(m \times 1 \) and the matrix \(B\) is \(n \times m \).
+The functional form of \(\bm{u}\) can include a number of processes, including constant,
 piecewise constant, correlated, or white noise.
 
 If we assume a white process noise:
 \begin{equation}
-  \label{eq:tapley492}
-  \begin{aligned}
-    E \left[ \bm{u} (t) \right] &= 0 \\
-    E \left[ \bm{u} (t) \bm{u}^T (\tau) \right] &= Q(t) \delta (t-\tau)
-  \end{aligned}
+	\label{eq:tapley492}
+	\begin{aligned}
+		E \left[ \bm{u} (t) \right]                 & = 0                    \\
+		E \left[ \bm{u} (t) \bm{u}^T (\tau) \right] & = Q(t) \delta (t-\tau)
+	\end{aligned}
 \end{equation}
-where \(\delta (t-\tau)\) is the \emph{Dirac Delta} and \(Q\) is called the 
-\emph{process noise covariance matrix}. The algorithm that results from the assumption 
-that \( \bm{u} (t) \) is white noise with known covariance is known as \gls{snc}. 
-The use of more sophisticated models such as the process to compensate for state 
+where \(\delta (t-\tau)\) is the \emph{Dirac Delta} and \(Q\) is called the
+\emph{process noise covariance matrix}. The algorithm that results from the assumption
+that \( \bm{u} (t) \) is white noise with known covariance is known as \gls{snc}.
+The use of more sophisticated models such as the process to compensate for state
 and/or measurement model errors generally is referred to as \gls{dmc}.
 
 The solution of \ref{eq:tapley491}, is given by (for a detailed description, see \cite{tapley})
 \begin{equation}
-  \label{eq:tapley4914}
-  \bm{x} (t) = \Phi(t, t_0) \bm{x}_0 + 
-    \int_{t_0}^{t} \Phi(t, \tau ) \Beta (\tau ) \bm{u} (\tau ) \, d\tau 
+	\label{eq:tapley4914}
+	\bm{x} (t) = \Phi(t, t_0) \bm{x}_0 +
+	\int_{t_0}^{t} \Phi(t, \tau ) B (\tau ) \bm{u} (\tau ) \, d\tau
 \end{equation}
 which is the general solution for the inhomogeneous \ref{eq:tapley491} and
 indicates how the true state propagates under the influence of process noise.
 
-If the mean of the process noise is zero, that is \(E \left[ \bm{u} (t) \right] = 0 \), 
+If the mean of the process noise is zero, that is \(E \left[ \bm{u} (t) \right] = 0 \),
 then the equation for propagating the state estimate is the same as without process noise
 (\cite{tapley})
 \begin{equation}
-  \label{eq:tapley4919}
-  \bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1}
+	\label{eq:tapley4919}
+	\bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1}
 \end{equation}
 
-One could derive a solution for the case where the mean is nonzero. In the case 
-where \(E \left[ \bm{u} (t) \right] = \bar{\bm{u}} \), 
-the solution would be obtained by applying the expectation operator to \ref{eq:tapley492} 
+One could derive a solution for the case where the mean is nonzero. In the case
+where \(E \left[ \bm{u} (t) \right] = \bar{\bm{u}} \),
+the solution would be obtained by applying the expectation operator to \ref{eq:tapley492}
 to yield
 \begin{equation}
-  \label{eq:tapley4920}
-  \bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1} + \Gamma (t , t_{k-1} ) \bar{\bm{u}}
+	\label{eq:tapley4920}
+	\bar{\bm{x}} (t) = \Phi (t , t_{k-1} ) \hat{\bm{x}}_{k-1} + \Gamma (t , t_{k-1} ) \bar{\bm{u}}
 \end{equation}
 where \(\Gamma (t , t_{k-1} )\) is given by \ref{eq:tapley4947}.
 
+For the propagation of the estimation error covariance matrix, \cite{tapley} derives the
+differential equation
 \begin{equation}
-  \label{eq:tapley4944}
-  \bar{P}(t) = \Phi (t , t_{k-1} ) P_{k-1} \Phi ^T (t , t_{k-1} )
-    +  \int_{t_{k-1}}^{t} \Phi(t, \tau ) \Beta (\tau ) Q (\tau ) \Beta ^T (\tau ) \Phi ^T (t, \tau ) \, d\tau
+	\label{eq:tapley4935}
+	\dot{\bar{P}} (t) = A(t) \bar{P}(t) + \bar{P}(t) A^T (t) + B(t) q9t) B^T(t)
 \end{equation}
+which is a \(n \times n \) matrix differential equation whose solution may be obtained
+by integrating with the initial conditions \(\bar{P} (t_k) = P_k\); that is, the
+measurement update of the estimation error covariance matrix at \(t_k\).
+
+\ref{eq:tapley4935} also can be expressed in integral form by using the method
+of variation of parameters. According to \cite{tapley},
+\begin{equation}
+	\label{eq:tapley4944}
+	\begin{split}
+		\bar{P}(t) & = \Phi (t , t_{k-1} ) P_{k-1} \Phi ^T (t , t_{k-1} ) \\
+		&+  \int_{t_{k-1}}^{t} \Phi(t, \tau ) B (\tau ) Q (\tau ) B ^T (\tau ) \Phi ^T (t, \tau ) \, d\tau
+	\end{split}
+\end{equation}
+
+\ref{eq:tapley4919} and \ref{eq:tapley4944} are the equations for propagating the estimate
+of the state and the covariance for a \emph{continuous system}. Since the orbit determination
+problem generally consists of a continuous system (the trajectory) subjected
+to discrete observations, it is convenient to use \ref{eq:tapley4919} to propagate the state
+estimate and to discretize \ref{eq:tapley4944}. This can be accomplished by replacing
+\(t\) with \(t_{k+1}\) and assuming that \(\bm{u}(\tau )\) is a \emph{white random sequence}
+rather than a process. Thus, \(\bm{u}(t)\) is considered to be a piecewise constant function
+with covariance
+\begin{equation}
+	\label{eq:tapley4945}
+	E \left[ \bm{u}(t_i) \bm{u}^T(t_j) \right] = Q_i \delta _{ij} ,
+	\quad \delta _{ij} = \begin{cases}
+		1 & \quad i = j    \\
+		0 & \quad i \neq j \\
+	\end{cases}
+\end{equation}
+
+where the Dirac delta function has been replaced by its analog for the discrete
+case, the Kroneker delta function. In the discrete case, \ref{eq:tapley4919} becomes
+\begin{equation}
+	\bm{x} (t_{k+1}) \equiv \bm{x}_{k+1} = \Phi (t_{k+1}, t_k ) \bm{x}_k + \Gamma (t_{k+1}, t_k ) \bm{u}_k
+\end{equation}
+
+where
+\begin{equation}
+	\label{eq:tapley4947}
+	\Gamma (t_{k+1}, t_k ) = \int_{t_k}^{t_{k+1}} \Phi (t_{k+1}, \tau ) B (\tau ) \, d\tau
+\end{equation}
+\(\Gamma (t_{k+1}, t_k )\) is referred to as the \emph{process noise transition matrix}
+and \ref{eq:tapley4974} is an \(n \times m\) quadrature since \(\Phi (t_{k+1}, \tau )\)
+and \(B (\tau )\) are known functions.
+
+\ref{eq:tapley4944} in the discrete case becomes (\cite{tapley})
+\begin{equation}
+	\label{eq:tapley4950}
+	\bar{P}(t) = \Phi (t_{k+1} , t_k ) P_k \Phi ^T (t_{k+1} , t_k )
+	+ \Gamma (t_{k+1}, t_k ) Q_k \Gamma ^T (t_{k+1}, t_k )
+\end{equation}
+
+Note that the estimation error covariance matrix \(\bar{P}_{k+1}\) can be obtained
+either by integrating the differential equation \ref{eq:tapley4935}, or by using the
+state and process noise transition matrices as indicated \ref{eq:tapley4950}. Comparing
+the two:
+\begin{itemize}
+	\item Since \(P(t)\) is symmetric, only \( n (n+1) / 2 \) of the \( n \times n\)
+	      system of equations represented in \ref{eq:tapley4935} must be integrated. However,
+	      the \( n (n+1) / 2 \) equations are coupled and must be integrated as a single,
+	      first order system of dimension \( n (n+1) / 2 \).
+	\item The \(n \times n\) system represented by \ref{eq:tapley4950} can be separated
+	      into an \( n \times n\) system of differential equations for \(Phi\) and an
+	      \( n \times m\) quadrature for \(\Gamma\). Furthermore, the \(n \times n\) system
+	      of equations represented by the solution for \(\Phi (t_{k+1} , t_k )\) can be integrated
+	      as a sequence of \(n \times 1\) column vectors.
+\end{itemize}
+
+The comparison between the two methods indicates that integration of fewer
+equations is required to obtain the solution for \(P(t)\) with \ref{eq:tapley4935}.
+However, the integration of these equations may be more difficult than the integration
+associated with the larger system represented by \ref{eq:tapley4950} since they are 
+coupled.
+
+The equations for determining \(\hat{\bm{x}}\) using the sequential processing algorithm are 
+unchanged whenever a zero-mean process noise is included. However, as has been 
+shown, the equations that propagate the estimation error covariance matrix do change; 
+that is \ref{eq:tapley471b} is replaced by \ref{eq:tapley4950}.
+
+The advantage of using the process noise compensated sequential estimation algorithm 
+lies in the fact that the asymptotic value of \(\bar{P}(t)\) will approach a nonzero 
+value determined by the magnitude of \(Q(t)\). That is, for certain values of \(Q(t)\), 
+the increase in the state error covariance matrix \(\bar{P}(t)\) during the interval between 
+observations will balance the decrease in the covariance matrix that occurs at the 
+observation point. In this situation, the estimation procedure will always be sensitive 
+to new observations.
+
+The question of how to choose the process noise covariance matrix, \(Q(t)\), is
+complex. In practice, it is often chosen as a simple diagonal matrix and its ele-
+ments are determined by trial and error. Also, The Gauss-Markov (see \ref{sec:gauss-markov})
+process is used as a 
+process noise model; it is computationally well suited for describing unmodeled forces
+since it obeys Gaussian probability laws and is exponentially correlated in time.
+
+\section{Information Matrix and Information Filter}
+\label{sec:information-matrix-and-information-filter}
+Up to now, in the sequential estimation algorithm, we have used to the covariance filter 
+\(P\). If we define the \emph{information matrix} as \(\Lambda \equiv P^{-1}\), we can 
+derive the \emph{information filter} which offers some numerical properties with better 
+characteristics than the covariance filter.
+
+Using the information matrix, we can rewrite \ref{eq:tapley473} as
+\begin{equation}
+  \label{eq:tapley4101}
+  \begin{aligned}
+    \hat{\bm{x}} _k &= \left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k 
+      + \bar{\Lambda}_k \right)^{-1} \left( \tilde{H}^T_k R^{-1}_k \bm{y}_k + 
+        \bar{\Lambda}_k \bar{\bm{x}}_k \right) \\
+    \left( \tilde{H}^T_k R^{-1}_k \tilde{H}_k + \bar{\Lambda}_k \right) \hat{\bm{x}} _k &= 
+      \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{\Lambda}_k \bar{\bm{x}}_k \\
+    \Lambda _k \hat{\bm{x}} _k &= 
+      \tilde{H}^T_k R^{-1}_k \bm{y}_k + \bar{\Lambda}_k \bar{\bm{x}}_k
+  \end{aligned}
+\end{equation}
+
+where we have made use of \ref{eq:tapley474}.
+
+According to \cite{tapley} we can derive the formula:
+\begin{equation}
+  \label{eq:tapley4104}
+  \begin{split}
+    \bar{\Lambda}_{k+1} = \bar{P}^{-1}_{k+1} &= 
+      M(t_{k+1}) - M(t_{k+1}) \Gamma (t_{k+1}, t_k ) \\
+    & \cdot \left( \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1}) \Gamma (t_{k+1}, t_k ) + Q^{-1}_k \right) ^{-1} \\
+    & \cdot \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1})
+  \end{split}
+\end{equation}
+
+where
+\begin{equation}
+  \label{eq:tapley4105}
+  M(t_{k+1}) = A^{-1} = \Phi ^T (t_k, t_{k+1} ) P^{-1}_k \Phi (t_k, t_{k+1} )
+\end{equation}
+
+In the case where we have no process noise, \ref{eq:tapley4104} reads
+\begin{equation}
+  \bar{\Lambda}_{k+1} = \bar{P}^{-1}_{k+1} = M(t_{k+1})
+\end{equation}
+
+Further defining
+\begin{equation}
+  \label{eq:tapley4106}
+  \begin{split}
+  L_{k+1} & \equiv M(t_{k+1}) \Gamma (t_{k+1}, t_k ) \\
+          & \cdot \left( \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1}) \Gamma (t_{k+1}, t_k ) + Q^{-1}_k \right) ^{-1}
+  \end{split}
+\end{equation}
+
+\ref{eq:tapley4104} becomes
+\begin{equation}
+  \label{eq:tapley4107}
+  \bar{\Lambda}_{k+1} =  M(t_{k+1}) - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1})
+\end{equation}
+
+\section{The Gauss-Markov Process}
+\label{sec:gauss-markov}
+A first order \emph{Gauss-Markov} process is often used for dynamic model compensation 
+in orbit determination problems to account for unmodeled or inaccurately
+modeled accelerations acting on a spacecraft. A Gauss-Markov process is one that
+obeys a Gaussian probability law and displays the Markov property. The Markov
+property means that the probability density function at \(t_n\) given its past history at
+\(t_{n-1} , t_{n-2} , \ldots \) is equal to its probability density function at 
+\(t_n\) given its value at \(t_{n-1}\).
+
+A Gauss-Markov process obeys a differential equation (often referred to as a 
+\emph{Langevin equation}) of the form
+\begin{equation}
+  \label{eq:tapley4951}
+  \dot{\eta} (t) = - \beta \eta (t) + u (t) 
+\end{equation}
+
+with \(\beta = \frac{1}{\tau}\), where \(u(t)\) is white Gaussian noise with
+\begin{equation}
+  \label{eq:tapley4952}
+    E \left[ u \right] = 0, \quad E \left[ u(t) u(\tau ) \right] = \sigma ^2 \delta (t - \tau )
+\end{equation}
+ where \(\tau\) is the time constant or correlation time. 
 
 \section{Square Root Filtering}
 \label{sec:square-root-filtering}
-Sequential estimation algorithms are subject to the filter divergence phenomenon, during 
-which the estimate of the state can depart in an unbounded manner from the true value 
+Sequential estimation algorithms are subject to the filter divergence phenomenon, during
+which the estimate of the state can depart in an unbounded manner from the true value
 of the state. There are two fundamental reasons for filter divergence (\cite{tapley}):
 \begin{itemize}
-  \item due to inaccuracies in the mathematical model used to describe the dynamic 
-  process or in the model used to relate the observations to the state, and
-  \item the state error covariance matrix during measurement update can become nonpositive 
-  definite (a situation that is a theoretical impossibility) due to floating point 
-  arithmetic when computing the update of the state error covariance matrix at the 
-  point where an observation is incorporated \footnote{When the eigenvalues have a wide spread, the error
-introduced in the computational process can destroy the symmetry and positive
-definite character of the covariance matrix and filte r divergence may occur, see \cite{tapley}.}.
+	\item due to inaccuracies in the mathematical model used to describe the dynamic
+	      process or in the model used to relate the observations to the state, and
+	\item the state error covariance matrix during measurement update can become nonpositive
+	      definite (a situation that is a theoretical impossibility) due to floating point
+	      arithmetic when computing the update of the state error covariance matrix at the
+	      point where an observation is incorporated \footnote{When the eigenvalues have a wide spread, the error
+		      introduced in the computational process can destroy the symmetry and positive
+		      definite character of the covariance matrix and filte r divergence may occur, see \cite{tapley}.}.
 \end{itemize}
 
-The latter point is addressed in modifications of the computational algorithm called 
-\emph{square root covariance filters}, in which the state error covariance matrix is 
+The latter point is addressed in modifications of the computational algorithm called
+\emph{square root covariance filters}, in which the state error covariance matrix is
 replaced by its square root. The state error covariance matrix is obtained by
 multiplying the square root matrix by its transpose and will always be symmetric
 and positive semidefinite.
 
 If we define
 \begin{equation}
-\label{eq:tapley571}
-P = W W^T
+	\label{eq:tapley571}
+	P = W W^T
 \end{equation}
 
-where \(W\) is the state error covariance matrix square root, and use \ref{eq:tapley571} to 
-compute the \(P\) matrix, this can never be nonpositive definite even in the presence 
-of round-off or truncation errors. Furthermore, since \(P\) is symmetric and positive 
+where \(W\) is the state error covariance matrix square root, and use \ref{eq:tapley571} to
+compute the \(P\) matrix, this can never be nonpositive definite even in the presence
+of round-off or truncation errors. Furthermore, since \(P\) is symmetric and positive
 definite, there will exist an orthogonal matrix \(M\) such that:
 \begin{equation}
-\label{eq:tapley572}
-  P^* = M^T P M
+	\label{eq:tapley572}
+	P^* = M^T P M
 \end{equation}
 
-where \(P^*\) is a diagonal matrix whose elements are the eigenvalues of \(P\) and 
-\(M\) is the corresponding matrix of eigenvectors. Define \(W^*\) as the matrix 
+where \(P^*\) is a diagonal matrix whose elements are the eigenvalues of \(P\) and
+\(M\) is the corresponding matrix of eigenvectors. Define \(W^*\) as the matrix
 whose diagonal elements are equal to the square root of the diagonal elements of \(P^*\)
 \begin{equation}
-  W^*_{ii} = \sqrt P^*_{ii} \quad i=1,\ldots ,n
+	W^*_{ii} = \sqrt P^*_{ii} \quad i=1,\ldots ,n
 \end{equation}
 where \(P^*_{ii} > 0\), then
 \begin{equation}
- W^* W^{*T} = P^* = M^T P M = M^T W W^T M
+	W^* W^{*T} = P^* = M^T P M = M^T W W^T M
 \end{equation}
 
 Thus, \(W^* = M^T W \) and since \(M\) is an orthogonal matrix, it follows that
 \begin{equation}
-  \label{eq:tapley574}
-  W = M W^*
+	\label{eq:tapley574}
+	W = M W^*
 \end{equation}
 
-The numerical conditioning of \(W\) is generally much better than that of \(P\) (see 
+The numerical conditioning of \(W\) is generally much better than that of \(P\) (see
 e.g. \cite{lawson1995}, \cite{tapley}).
