@@ -333,7 +333,8 @@ and finaly
 \end{tcolorbox}
 %\end{equation}
 
-\ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716} along with \ref{eq:tapley471} can be used in a recursive fashion to compute the estimate \(\hat{\bm{x}}_k\)
+\ref{eq:tapley4711}, \ref{eq:tapley4712}, \ref{eq:tapley4716} along with \ref{eq:tapley471} 
+can be used in a recursive fashion to compute the estimate \(\hat{\bm{x}}_k\)
 incorporating the observation \(\bm{y}_k\).
 
 \subsection{Sequential Estimation Algorithm}
@@ -469,7 +470,9 @@ for computing the estimate sequentially is summarized as:
 	      \end{subequations}
 	      This step results in computation of \(X^*_{t_k}\) and \(\Phi (t_k, t_{k-1})\)
 
-	\item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471b}); \textcolor{red}{in contrast to the sequential estimation filter, the extended version does not use \ref{eq:tapley471a} at this step}
+	\item \label{en:kalman-wf-time-update} Compute the time update (see \ref{eq:tapley471b}); 
+        \textcolor{red}{in contrast to the sequential estimation filter, the extended 
+        version does not use \ref{eq:tapley471a} at this step}
 	      \begin{subequations}
 		      \begin{gather}
 			      \hcancel[red]{\bar{\bm{x}}_k = \Phi (t_k , t_{k-1}) \hat{\bm{x}}_{k-1}} \\
@@ -743,9 +746,9 @@ to new observations.
 The question of how to choose the process noise covariance matrix, \(Q(t)\), is
 complex. In practice, it is often chosen as a simple diagonal matrix and its ele-
 ments are determined by trial and error. Also, The Gauss-Markov (see \ref{sec:gauss-markov})
-process is used as a 
-process noise model; it is computationally well suited for describing unmodeled forces
-since it obeys Gaussian probability laws and is exponentially correlated in time.
+process is used as a process noise model; it is computationally well suited for 
+describing unmodeled forces since it obeys Gaussian probability laws and is exponentially 
+correlated in time.
 
 \section{Information Matrix and Information Filter}
 \label{sec:information-matrix-and-information-filter}
@@ -806,6 +809,77 @@ Further defining
   \label{eq:tapley4107}
   \bar{\Lambda}_{k+1} =  M(t_{k+1}) - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1})
 \end{equation}
+
+The measurement update for \(\Lambda _{k+1}\) can be easily derived from the inverse 
+of \ref{eq:tapley474} and is computed by
+\begin{equation}
+  \label{eq:tapley4108}
+  \Lambda _{k+1} = \bar{\Lambda}_{k+1} + \tilde{H}^T_{k+1} R^{-1}_{k+1} \tilde{H}_{k+1}
+\end{equation}
+
+We can define a few more quantities, to simplify the recursive estimation algorithm; 
+this formulation, follows \cite{tapley}.
+\begin{subequations}
+  \begin{align}
+    \label{eq:tapley4109}
+    \bar{\bm{D}}_k \equiv \bar{\Lambda}_k \bar{\bm{x}}_k \\
+    \label{eq:tapley41010}
+    \hat{\bm{D}}_k \equiv \Lambda _k \hat{\bm{x}}_k
+  \end{align}
+\end{subequations}
+
+so that
+\begin{equation}
+  \label{eq:tapley41013}
+  \begin{aligned}
+    \bar{\bm{D}}_{k+1} &= \bar{\Lambda}_{k+1} \bar{\bm{x}}_{k+1} \\
+     & = \left[ M(t_{k+1}) - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) M(t_{k+1}) \right] \bar{\bm{x}}_{k+1} \\
+     & = \left[ I - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) \right] M(t_{k+1}) \bar{\bm{x}}_{k+1} \\ 
+     & = \left[ I - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) \right] \Phi ^T (t_k, t_{k+1} ) \overbrace{P^{-1}_k \underbrace{\Phi (t_k, t_{k+1} ) \bar{\bm{x}}_{k+1}}_{\hat{\bm{x}}_k}}^{\hat{\bm{D}}_k} \\
+     & = \left[ I - L_{k+1} \Gamma ^T (t_{k+1}, t_k ) \right] \Phi ^T (t_k, t_{k+1} ) \hat{\bm{D}}_k
+  \end{aligned}
+\end{equation}
+where we have used \ref{eq:tapley4105} and \ref{eq:tapley4107}. 
+
+Combining \ref{eq:tapley4109} and \ref{eq:tapley4101}, we get
+\begin{equation}
+  \label{eq:tapley41014}
+  \hat{\bm{D}}_{k+1} = \Lambda_{k+1} \hat{\bm{x}}_{k+1} = 
+    \bar{\bm{D}}_{k+1} + \tilde{H}^T_{k+1} R^{-1}_{k+1} \bm{y}_{k+1}
+\end{equation}
+
+The sequential algorithm, would begin with the a-priori values \(\bar{P}_0\) and 
+\(\bar{\bm{x}}_0\), so that we can compute
+\begin{subequations}
+  \label{eq:tapley41015}
+  \begin{align}
+    \label{eq:tapley41015a}
+    \bar{\Lambda}_0 &= \bar{P}^{-1}_0 , \quad and \\
+    \label{eq:tapley41015b}
+    \bar{\bm{D}}_0 & = \bar{\Lambda}_0 \bar{\bm{x}}_0
+  \end{align}
+\end{subequations}
+Next, we would procced as:
+\begin{enumerate}
+  \item compute \(M_1\) from \ref{eq:tapley4105},
+  \item compute \(L_1\) from \ref{eq:tapley4106},
+  \item compute \(\bar{\Lambda} _1\) from \ref{eq:tapley4107},
+  \item compute \(\bar{\bm{D}}_1\) from \ref{eq:tapley41013},
+  \item compute \(\hat{\bm{D}}_1\) from \ref{eq:tapley41014},
+  \item compute \(\Lambda _1\) from \ref{eq:tapley4108},
+\end{enumerate}
+Once \(\Lambda _k\) becomes nonsingular, its inverse can be computed to obtain 
+\(P_k\) and the optimal estimate of \(\bm{x}\) can be computed from 
+\ref{eq:tapley41010}. Time updates are given by \ref{eq:tapley4105},\ref{eq:tapley4106}, \ref{eq:tapley4107}, \ref{eq:tapley41013}, with initial conditions defined by 
+\ref{eq:tapley41015}. Measurement update is computed via \ref{eq:tapley4108}, 
+\ref{eq:tapley41014}.
+
+\begin{figure}
+\centering
+\input{tikz/sequential-filtering-flowchart.tikz}
+\caption{Eclipse Geometry; \emph{scales are greatly exaggerated}}
+\label{fig:eclipse-geometry}
+\end{figure}
 
 \section{The Gauss-Markov Process}
 \label{sec:gauss-markov}

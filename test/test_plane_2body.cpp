@@ -13,7 +13,8 @@ using dso::Vector3;
 // r(0) = (1-e, 0) and r'(0) = (0, [(1+e)*(1-e)]^(1/2))
 
 void reference_values(double t, double e, Vector3 &r, Vector3 &v) noexcept {
-  const double E = dso::kepler(e, t);
+  int ok;
+  const double E = dso::kepler(e, t, ok);
   const double sE = std::sin(E);
   const double cE = std::cos(E);
   r.x() = cE - e;
