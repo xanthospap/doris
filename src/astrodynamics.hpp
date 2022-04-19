@@ -4,13 +4,13 @@
 #include <limits>
 
 namespace dso {
-double EccAnom(double, double, int&);
-
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity
 /// @param[in] M mean anomaly [radians]
 /// @param[in] tolerance_rad End iterations when: f(E) < tolerance_rad
 ///            units in [radians] (Note that f(E) = E - esinE - M)
+/// @param[out] ok Anything other than 0, denotes a convergence error and
+///            the result should not be used.
 /// @return Eccentric Anomaly, E [radians]
 /// @note For small eccentricities, the starting value for the iteration is
 ///       E0 = M, since E only differs from M by a term of order e. For
@@ -28,11 +28,14 @@ kepler(double e, double M, int &ok,
 /// @param[in] tolerance_rad End iterations when:
 ///            |E_n+1 - E_n| < tolerance_rad
 ///            units in [radians
+/// @param[out] ok Anything other than 0, denotes a convergence error and
+///            the result should not be used.
 /// @return Eccentric Anomaly, E [radians]
-/// @note For small eccentricities, the starting value for the iteration is
-///       E0 = M, since E only differs from M by a term of order e. For
-///       highly eccentric orbits however (e.g. e > 0.8), the iteration
-///       should start with E0 = π to avoid convergence problems.
+/// @note Starting value is:
+///      -π < M < 0 or M > π => E = M - e
+///           else           => E = M + e
+/// @warning Only works for Elliptical orbits; do not use for Parabolic and
+///          Hyperbolic orbits.
 /// @see  Vallado, 2.2.5
 double kepler_vallado(
     double e, double M, int &ok,

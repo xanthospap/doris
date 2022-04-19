@@ -94,6 +94,11 @@ env.Append(CXXFLAGS=' --std=c++{}'.format(cxxstd))
 ## Get options from command line ...
 if GetOption('branchls'): env.Append(CXXFLAGS=' -DBRANCHLESS')
 
+## Various other compilation symobols, for debug builds ...
+for key, value in ARGLIST:
+    if key == 'count_kepler_iterations':
+        env.Append(CXXFLAGS=' -DCOUNT_KEPLER_ITERATIONS')
+
 ## (shared) library ...
 vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=['src/'], SHLIBVERSION=lib_version)
 

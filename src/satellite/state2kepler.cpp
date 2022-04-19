@@ -1,5 +1,7 @@
 #include "satellite.hpp"
+#include "iers2010/iersc.hpp"
 #include <cmath>
+#include <limits>
 #ifdef ASSERT_ERROR
 #include <cassert>
 #endif
@@ -8,6 +10,42 @@
 #endif
 
 using dso::Vector3;
+
+int state2kepler_vallado(const double *state, double *keplerian, double m) noexcept {
+  // split to position and velocity vectors
+  const Vector3 r(Vector3::to_vec3(state));
+  const Vector3 v(Vector3::to_vec3(state + 3));
+  const double rnorm = r.norm();
+
+  const Vector3 h = r.cross_product(v);
+  const double hnorm = h.norm();
+
+  const Vector3 n{{-h.y(), h.x(), 0e0}}; // N = k_unit x h
+  const double nnorm = n.norm();
+  
+  Vector3 e = r*(v.norm_squared() - m/rnorm) - v*(r.dot_product(v));
+  e /= m;
+  double enorm = e.norm(); // [return]
+  const double ksi = v.norm_squared()/2e0 - m / rnorm;
+#ifdef BRANCHLESS
+  alpha = -m / (1e0*ksi) + (enorm==1e0) * std::numeric_limits<double>::infinity(); // [return]
+  rho = (e!=1e0) * (alpha * (1e0 - enorm*enorm)) + (e==1e0)*(h.norm_squared()/m);
+#else
+  alpha = (e==1e0) ? std::numeric_limits<double>::infinity() : -m / (1e0*ksi);
+  rho = (e==1e0) ? (h.norm_squared()/m) : alpha * (1e0 - enorm*enorm);
+#endif
+
+  i = std::acos(h.z()/hnorm);
+  
+  Omega = std::acos(n.x() / nnorm);
+  if (n.y()<0e0) Omega = dso::D2PI - Omega;
+
+  omega = std::acos(n.dot_product(e)/(nnorm*enorm));
+  if (e.z()<0e0) omega = dso::D2PI - omega;
+
+  ni = std::acos(e.dot_product(r)/(enorm*rnorm));
+  if (r.dot_product(v)<0e0) ni = dso::D2PI - ni;
+}
 
 int dso::state2kepler(const double *state, double *keplerian,
                       double m) noexcept {
