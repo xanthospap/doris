@@ -1,0 +1,158 @@
+\chapter{Reference Systems and Frames}
+\label{ch:reference-systems-frames}
+
+\section{Basic Definitions}
+\label{sec:basic-definitions}
+
+\gls{icrf} is the realization of the \emph{barycentric}, fixed, stable, celestial 
+reference system based on observations of extragalactic radio sources. The \gls{bcrf} 
+is a result of a transformation of the \gls{bcrf} to the geocenter and thus, a 
+realization of the \gls{gcrs} (\cite{Gurfil18}); it is a \emph{geocentric} \gls{icrf}.
+
+The \gls{cip} is the geocentric equatorial pole, determined by the \gls{iau} 
+precession-nutation model for the transformation from the \gls{icrf} to the 
+\gls{gcrf}. It is is an intermediate pole separating, by convention, the motion 
+of the pole of the \gls{itrs} in the \gls{gcrs} into a celestial part and a 
+terrestrial part (\cite{iers2010}). To be consistent with \gls{iau} 2000 Resolution 
+B1.6 and 2006 Resolution B1, starting on 1 January 2009, the matrix \(Q(t)\) in 
+\label{eq:tn3651} should be based on the \gls{iau} 2006 precession and on the 
+nutation model \gls{iau} 2000A or \gls{iau} 2000B depending on the required 
+precision.
+
+The \gls{cio} is an 
+origin of right ascensions on the instantaneous celestial true equator of date 
+(\cite{Gurfil18}).
+
+The \gls{cirs} is a geocentric reference system, related to the \gls{gcrs} by a 
+time-dependent rotation, taking into account precession-nutation. 
+
+\section{Transformation between \gls{itrs} and \gls{gcrs}}
+\label{transformation-itrs-gcrs}
+The transformation to be used to relate a vector in the \gls{itrs} (\(\vec{r}_{ITRS}\)) 
+to the \gls{gcrs} (\(\vec{r}_{GCRS}\)), is:
+\begin{equation}
+  \label{eq:tn3651}
+  \vec{r}_{GCRS} = Q(t) R(t) W(t) \vec{r}_{ITRS}
+\end{equation}
+\ref{eq:tn3651} is valid for any choice of celestial pole and origin on the equator 
+of that pole (\cite{iers2010}).
+
+According to the \gls{iau} resolution (\cite{iers2010}), time coordinates for the 
+\gls{bcrs} should be expressed in \gls{tcb}, whereas for \gls{gcrs}, time coordinates 
+should be expressed in either \gls{tcg} or \gls{tt}. \gls{tcg} and \gls{tt} differ 
+by a constant rate. The parameter \(t\) to be used in \ref{eq:tn3651}, is defined by:
+\begin{equation}
+  \label{eq:tn3652}
+  t = (TT - \text{ 2000 January 1d 12h } TT) \text{ in days} / 36525.
+\end{equation}
+
+Two equivalent procedures can be followed to implement the relation \ref{eq:tn3651}, 
+consistent with the \gls{iau} 2000/2006 resolutions; they differ by the origin 
+that is adopted on the \gls{cip} equator (i.e. the equinox or the \gls{cio}) and 
+are conventionaly called ``equinox based'' and ``CIO based'' respectively. The matrix 
+\(W(t)\) is the same for both procedures, while \(Q(t)\) and \(R(t)\) depend on the 
+corresponding origin on the \gls{cip} equator. Of the two, only the `CIO based'
+procedure can be in agreement with \gls{iau} 2000 Resolution B1.8, which requires 
+the use of the ``nonrotating origin'' in both the \gls{gcrs} and the \gls{itrs} as 
+well as the position of the \gls{cip} in the \gls{gcrs} and in the \gls{itrs} 
+(\cite{iers2010}).
+
+When applying the transformation \(W(t)\) at date \(t\), the system is transformed 
+from \gls{itrs} to \gls{tirs}, which uses the \gls{cip} as its \(z\)-axis and 
+the \gls{tio} as its \(x\)-axis. The formula for the transformation is
+\begin{equation}
+  \label{eq:tn3653}
+  W(t) = R_3 (-s') R_2 (x_p ) R_1 (y_p )
+\end{equation}
+where \(x_p\) and \(y_p\) are the polar coordinates of the \gls{cip} in the \gls{itrs} 
+and \(s'\) is the ``TIO locator'' which provides the position of the \gls{tio} 
+on the equator of the \gls{cip} corresponding to the kinematical definition of 
+the ``non-rotating'' origin in the \gls{itrs} when the \gls{cip} is moving with 
+respect to the \gls{itrs} due to polar motion (\cite{iers2010}).
+
+The pole coordinate parameters \(x_p \) and \(y_p\) to be used in \ref{eq:tn3653} 
+(if not estimated) should be the ones published by the \gls{iers} with corrections 
+for the effect of ocean tides \((\Delta x , \Delta y )_{ocean tides} \) and for the 
+forced terms \((\Delta x , \Delta y )_{libration} \) with periods less than two 
+days in space:
+\begin{equation}
+  \label{eq:tn36511}
+  \begin{pmatrix}
+    x_p \\
+    y_p
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+    x \\
+    y
+  \end{pmatrix} _{IERS}
+  +
+  \begin{pmatrix}
+  \Delta x \\
+  \Delta y
+  \end{pmatrix} _{ocean tides}
+  +
+  \begin{pmatrix}
+  \Delta x \\
+  \Delta y
+  \end{pmatrix} _{libration}
+\end{equation}
+
+In the ``CIO based'' procedure, realizes an intermediate celestial reference system 
+at date \(t\) that uses the \gls{cip} as its \(z\)-axis and the \gls{cio} as its 
+\(x\)-axis, called the \gls{cirs}. The matrix \(R(t)\) uses the \gls{era}, that 
+is the angle between the \gls{cio} and the \gls{tio} at date \(t\) on the equator 
+of the \gls{cip} (aka, the sidereal rotation of the Earth) matrix \(R(t)\), relating 
+\gls{tirs} and \gls{cirs}, can be expressed as
+\begin{equation}
+  \label{eq:tn3655}
+  R(t) = R_3 (-ERA)
+\end{equation}
+\(Q(t)\) uses the two coordinates of the \gls{cip} in the \gls{gcrs}
+\begin{equation}
+  \label{eq:tn3656}
+  Q(t) = R_3 (-E) R_2 (-d) R_3 (E) R_3 (s)
+\end{equation}
+where
+\begin{equation}
+  \label{eq:tn3657}
+  X = \sin d \cos E , \quad
+  Y = \sin d \sin E , \quad
+  Z = \cos d
+\end{equation}
+\(\left[ X  Y  Z \right]\) are the coordinates of the 
+\gls{cip} in the \gls{gcrs}.
+\(s\) is the ``CIO locator'' which provides the position of the \gls{cio} 
+on the equator of the \gls{cip} corresponding to the kinematical definition of 
+the Non-Rotating-Origin in the \gls{gcrs} when the \gls{cip} is moving with 
+respect to the \gls{gcrs}, between the reference epoch and the date \(t\) due to
+precession and nutation (\cite{iers2010}). Alternatively, \(Q(t)\) can be written 
+as
+\begin{equation}
+  \label{eq:tn36510}
+  Q(t) = \begin{pmatrix}
+    1 - \alpha X^2 & -\alpha XY      & X \\
+    -\alpha XY     & 1 - \alpha Y^2  & Y \\
+    -X             &  -Y             & 1 - \alpha (X^2 + Y^2)\\
+  \end{pmatrix} R_3 (s)
+\end{equation}
+with \(\alpha = 1 / (1 + \cos d ) \).
+
+In contrast, the ``equinox based'' procedure uses an intermediate celestial reference 
+system that uses the \gls{cip} as its \(z\)-axis and the equinox as its \(x\)-axis, 
+called the ``true equinox and equator of date system''. The matrix \(R(t)\) uses 
+the \gls{gst} for Earth rotation, which transforms from the \gls{tirs} to the 
+true equinox and equator of date system; \gls{gst} is the angle between the equinox 
+and the \gls{tio}
+\begin{equation}
+  R(t) = R_3 (-GST)
+\end{equation}
+\(Q(t)\) uses the classical precession and nutation parameters; it can be formed 
+in two ways: 
+\begin{itemize}
+  \item using the classical nutation angles and precession matrix, including a 
+  separate rotation matrix for the frame biases, or
+  \item referred directly to the \gls{gcrs} pole and origin without requiring the 
+  frame bias to be applied separately, and no separate precession and nutation
+  steps.
+\end{itemize}

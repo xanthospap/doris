@@ -69,7 +69,6 @@ int dso::http_get(const char *url, const char *local, bool force) noexcept {
 
   //  cleanup curl stuff
   curl_easy_cleanup(curl_handle);
-
   curl_global_cleanup();
 
   // always return positive value or error
