@@ -1,6 +1,6 @@
 #include "datetime/datetime_write.hpp"
 #include "planetpos.hpp"
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 #include "sp3/sp3.hpp"
 #include "sp3/sv_interpolate.hpp"
 #include <cassert>

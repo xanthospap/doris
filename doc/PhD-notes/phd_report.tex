@@ -12,7 +12,8 @@
 \makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul} % allow wrapping of underlined text, via \ul{...}
 \usepackage{natbib} % for bibliography
-\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
+%\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
+\usepackage{geometry} % somewhat wider text to allow code
 \usepackage{siunitx} %% SI Units
 \usepackage{amsmath,bm} %% for math ...
 \usepackage{amssymb} %% greek and various toher characters and symbols ...
@@ -21,7 +22,9 @@
 \usepackage[most]{tcolorbox} % colorboxes for equations
 \usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
 \usepackage{tabularx}
-\usepackage{multirow} %% for tabular
+\usepackage{multirow}  %% for tabular
+\usepackage{todonotes} %% fance, right-margin notes
+\usepackage{csquotes} %% for quoting
 
 %% TikZ stuff %%
 \usepackage{tikz} % add a few drawings ...
@@ -112,6 +115,7 @@
 \newacronym{dmc}{DMC}{Dynamic Model Compensation}
 \newacronym{icrf}{ICRF}{International Celestial Reference Frame}
 \newacronym{icrs}{ICRS}{International Celestial Reference System}
+\newacronym{crs}{CRS}{Celestial Reference System}
 \newacronym{gcrf}{GCRF}{Geocentric Celestial Reference Frame}
 \newacronym{gcrs}{GCRS}{Geocentric Celestial Reference System}
 \newacronym{bcrf}{BCRF}{Barycentric Celestial Reference Frame}
@@ -123,9 +127,15 @@
 \newacronym{itrs}{ITRS}{International Terrestrial Reference System}
 \newacronym{tirs}{TIRS}{Terrestrial Intermediate Reference System}
 \newacronym{itrf}{ITRF}{International Terrestrial Reference Frame}
+\newacronym{irf}{IRF}{Inertial Reference Frame}
+\newacronym{trf}{TRF}{Terrestrial Reference Frame}
 \newacronym{tcb}{TCB}{Barycentric Coordinate Time}
 \newacronym{tcg}{TCG}{Geocentric Coordinate Time}
 \newacronym{tt}{TT}{Terestrial Time}
+\newacronym{eop}{EOP}{Earth Orientation Parameters}
+%\newacronym{}{}{}
+%\newacronym{}{}{}
+%\newacronym{}{}{}
 %\newacronym{}{}{}
 
 \title{PhD Memo and Notes}

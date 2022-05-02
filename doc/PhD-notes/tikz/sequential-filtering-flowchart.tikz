@@ -1,0 +1,103 @@
+\begin{tikzpicture}
+  
+  \node (start) [rectangle, 
+    text width=7cm, 
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30] 
+    at (0,0)
+    {
+      A-priori information: $\bar{P}$ and $\bar{\bm{x}}$
+    };
+
+  \node (init-var) [rectangle, 
+    text width=7cm, 
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30,
+    align=left]
+    at (-6, -4) 
+    {
+      $i = 1$, \\
+      $\hat{\bm{x}}_{i-1} = \bar{\bm{x}}$, and \\
+      $P_{i-1} = \bar{P}$
+    };
+  
+  \node (time-update-var) [rectangle, 
+    text width=7cm,
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30,
+    align=left]
+    at (-6, -8)
+    {
+      \begin{minipage}{\textwidth}
+        \begin{align*}
+          \bar{\bm{x}}_{k+1} &= \Phi (t_{k+1} , t_k ) \hat{x}_k \\
+          \bar{P}_{k+1} &= \Phi (t_{k+1} , t_k ) P_{k} \Phi ^T (t_{k+1} , t_k ) \\
+                        &+ \Gamma (t_{k+1} , t_k ) Q_k \Gamma ^T (t_{k+1} , t_k )
+        \end{align*}
+      \end{minipage}
+    };
+  
+  \node (measurement-update-var) [rectangle, 
+    text width=7cm,
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30,
+    align=left]
+    at (-6,-11)
+    {
+      \begin{minipage}{\textwidth}
+        \begin{align*}
+          K_{k+1} &= \bar{P}_{k+1} \tilde{H}^T_{k+1} \left( R_{k+1} + 
+            \tilde{H}_{k+1} \bar{P}_{k+1} \tilde{H}^T_{k+1} \right) ^{-1} \\
+          \hat{\bm{x}}_{k+1} &=  \bar{\bm{x}}_{k+1} + K_{k+1} \left( 
+            \bm{y}_{k+1} - \tilde{H}_{k+1} \bar{\bm{x}}_{k+1} \right) \\
+          P_{k+1} &= \left( I - K_{k+1} \tilde{H}_{k+1} \right) \bar{P}_{k+1}
+        \end{align*}
+      \end{minipage}
+    };
+  
+  \node (init-inf) [rectangle, 
+    text width=7cm, 
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30,
+    align=left]
+    at (4,-4)
+    {
+    %below right=of start] {
+      $i=1$, \\
+      $\bar{\Lambda} _0 = \bar{P}^{-1}$ and \\
+      $\bar{\bm{D}}_0 = \bar{\Lambda} _0 \bar{\bm{x}}$
+    };
+  
+  \node (time-update-inf) [rectangle, 
+    text width=7cm,
+    minimum height=1cm,
+    text centered, 
+    draw=black, 
+    fill=red!30,
+    align=left]
+    at (4,-8)
+    {
+    %below =of init-inf] {%
+      \begin{minipage}{\textwidth}
+        \begin{align*}
+          M (t_{k+1}) &= \Phi ^T (t_k, t_{k+1}) \Lambda _k \Phi (t_k, t_{k+1}) \\
+          L_{k+1} &= M(t_{k+1}) \Gamma (t_{k+1}, t_k) \\
+            & \left[ \Gamma ^T (t_{k+1}, t_k) M(t_{k+1}) \Gamma (t_{k+1}, t_k) + Q^{-1}_k \right] ^{-1} \\
+          \bar{\bm{D}}_{k+1} &= \left[ I - L_{k+1} \Gamma ^T (t_{k+1}, t_k) \right] \\
+            & \Phi ^T (t_{k}, t_{k+1}) \hat{\bm{D}}_k \\
+          \bar{\Lambda}_{k+1} &= \left[ I - L_{k+1} \Gamma ^T (t_{k+1}, t_k) \right] M(t_{k+1}
+        \end{align*}
+      \end{minipage}
+    };
+
+\end{tikzpicture}

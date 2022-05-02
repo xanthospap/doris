@@ -3,11 +3,22 @@
 
 \section{Basic Definitions}
 \label{sec:basic-definitions}
+In the last two decades, major changes and updates have been developed and adopted 
+regarding the theoretical background, modeling and implementation of the 
+complicated movements of the Earth and their formulation with respect to a 
+\gls{crs}. In this chapter, we are only going to briefly describe the basic 
+definitions and algorithms relevant to Satellite Geodesy, adhering to the 
+so-called \textbf{IAU 2000/2006 resolutions} that were made by the 2003-2006 
+IAU Working Group on \emph{Nomenclature for fundamental astronomy}, \cite{Capitaine2006}.
 
 \gls{icrf} is the realization of the \emph{barycentric}, fixed, stable, celestial 
-reference system based on observations of extragalactic radio sources. The \gls{bcrf} 
-is a result of a transformation of the \gls{bcrf} to the geocenter and thus, a 
-realization of the \gls{gcrs} (\cite{Gurfil18}); it is a \emph{geocentric} \gls{icrf}.
+reference system based on observations of extragalactic radio sources 
+(\cite{Gurfil18}). The \gls{gcrf} is a result of a relativistic, coordinate 
+transformation of the \gls{bcrf} to the geocenter and thus, a realization of the 
+\gls{gcrs}; it is a \emph{geocentric} \gls{icrf}. Accordint to \cite{esaa13}, in 
+general, the \gls{gcrs} should be used when the object of interest is within 
+several Earth diameters of the geocenter; beyond this distance, the \gls{bcrs} 
+should be used.
 
 The \gls{cip} is the geocentric equatorial pole, determined by the \gls{iau} 
 precession-nutation model for the transformation from the \gls{icrf} to the 
@@ -37,6 +48,13 @@ to the \gls{gcrs} (\(\vec{r}_{GCRS}\)), is:
 \ref{eq:tn3651} is valid for any choice of celestial pole and origin on the equator 
 of that pole (\cite{iers2010}).
 
+\begin{figure}
+\centering
+\input{tikz/bcrs-itrs.tikz}
+\caption{Transformation from \gls{gcrs} to \gls{itrs} using the so called ``CIO based'' procedure.}
+\label{fig:bcrs-to-itrs}
+\end{figure}
+
 According to the \gls{iau} resolution (\cite{iers2010}), time coordinates for the 
 \gls{bcrs} should be expressed in \gls{tcb}, whereas for \gls{gcrs}, time coordinates 
 should be expressed in either \gls{tcg} or \gls{tt}. \gls{tcg} and \gls{tt} differ 
@@ -45,6 +63,7 @@ by a constant rate. The parameter \(t\) to be used in \ref{eq:tn3651}, is define
   \label{eq:tn3652}
   t = (TT - \text{ 2000 January 1d 12h } TT) \text{ in days} / 36525.
 \end{equation}
+that is he elapsed time in Julian centuries since J2000 TT.
 
 Two equivalent procedures can be followed to implement the relation \ref{eq:tn3651}, 
 consistent with the \gls{iau} 2000/2006 resolutions; they differ by the origin 
@@ -57,6 +76,8 @@ the use of the ``nonrotating origin'' in both the \gls{gcrs} and the \gls{itrs} 
 well as the position of the \gls{cip} in the \gls{gcrs} and in the \gls{itrs} 
 (\cite{iers2010}).
 
+\subsection{\gls{tirs} to \gls{itrs} via \(W(t)\)}
+\label{ssec:tirs-to-itrs-via-w}
 When applying the transformation \(W(t)\) at date \(t\), the system is transformed 
 from \gls{itrs} to \gls{tirs}, which uses the \gls{cip} as its \(z\)-axis and 
 the \gls{tio} as its \(x\)-axis. The formula for the transformation is
@@ -64,11 +85,103 @@ the \gls{tio} as its \(x\)-axis. The formula for the transformation is
   \label{eq:tn3653}
   W(t) = R_3 (-s') R_2 (x_p ) R_1 (y_p )
 \end{equation}
-where \(x_p\) and \(y_p\) are the polar coordinates of the \gls{cip} in the \gls{itrs} 
-and \(s'\) is the ``TIO locator'' which provides the position of the \gls{tio} 
+where \(x_p\) and \(y_p\) are the polar coordinates of the \gls{cip} in the 
+\gls{itrs} (\ref{ssec:motion-of-the-cip-in-the-itrs}) and \(s'\) is the 
+``TIO locator'' (\ref{ssec:position-of-the-tio-in-the-itrs}) which provides 
+the position of the \gls{tio} on the equator of the \gls{cip} corresponding to 
+the kinematical definition of the ``non-rotating'' origin in the \gls{itrs} 
+when the \gls{cip} is moving with respect to the \gls{itrs} due to polar motion 
+(\cite{iers2010}).
+
+\subsection{\gls{cirs} to \gls{tirs} via \(R(t)\)}
+\label{ssec:cirs-to-tirs-via-r}
+Tthe ``CIO based'' procedure, realizes an intermediate celestial reference system 
+at date \(t\) that uses the \gls{cip} as its \(z\)-axis and the \gls{cio} as its 
+\(x\)-axis, called the \gls{cirs}. The matrix \(R(t)\) uses the \gls{era}, that 
+is the angle between the \gls{cio} and the \gls{tio} at date \(t\) on the equator 
+of the \gls{cip} (aka, the sidereal rotation of the Earth) matrix \(R(t)\), relating 
+\gls{tirs} and \gls{cirs}, can be expressed as
+\begin{equation}
+  \label{eq:tn3655}
+  R(t) = R_3 (-ERA)
+\end{equation}
+
+
+\subsection{\gls{gcrs} to \gls{cirs} via \(Q(t)\)}
+\label{ssec:gcrs-to-cirs-via-q}
+\(Q(t)\) is the matrix expressing the combined effect of nutation, precession and 
+frame bias, performing the \emph{intermediate-to-celestial} transformation.
+\(Q(t)\) uses the two coordinates of the \gls{cip} in the \gls{gcrs}
+\begin{equation}
+  \label{eq:tn3656}
+  Q(t) = R_3 (-E) R_2 (-d) R_3 (E) R_3 (s)
+\end{equation}
+where
+\begin{equation}
+  \label{eq:tn3657}
+  X = \sin d \cos E , \quad
+  Y = \sin d \sin E , \quad
+  Z = \cos d
+\end{equation}
+\(\left[ X  Y  Z \right]\) are the coordinates of the 
+\gls{cip} in the \gls{gcrs}.
+\(s\) is the ``CIO locator'' which provides the position of the \gls{cio} 
 on the equator of the \gls{cip} corresponding to the kinematical definition of 
-the ``non-rotating'' origin in the \gls{itrs} when the \gls{cip} is moving with 
-respect to the \gls{itrs} due to polar motion (\cite{iers2010}).
+the Non-Rotating-Origin in the \gls{gcrs} when the \gls{cip} is moving with 
+respect to the \gls{gcrs}, between the reference epoch and the date \(t\) due to
+precession and nutation (\cite{iers2010}). Alternatively, \(Q(t)\) can be written 
+as
+\begin{equation}
+  \label{eq:tn36510}
+  Q(t) = \begin{pmatrix}
+    1 - \alpha X^2 & -\alpha XY      & X \\
+    -\alpha XY     & 1 - \alpha Y^2  & Y \\
+    -X             &  -Y             & 1 - \alpha (X^2 + Y^2)\\
+  \end{pmatrix} R_3 (s)
+\end{equation}
+with \(\alpha = 1 / (1 + \cos d ) \) and \(X\) and \(Y\) being the coordinates of 
+the \gls{cip} in the \gls{gcrs} (\ref{ssec:coordinates-of-the-cip-in-the-gcrs}).
+
+In contrast, the ``equinox based'' procedure \todo{Probably skip the equinox based procedure 
+alltogether. Only describe the `new', CIO-based procedure} uses an intermediate celestial reference 
+system that uses the \gls{cip} as its \(z\)-axis and the equinox as its \(x\)-axis, 
+called the ``true equinox and equator of date system''. The matrix \(R(t)\) uses 
+the \gls{gst} for Earth rotation, which transforms from the \gls{tirs} to the 
+true equinox and equator of date system; \gls{gst} is the angle between the equinox 
+and the \gls{tio}
+\begin{equation}
+  R(t) = R_3 (-GST)
+\end{equation}
+\(Q(t)\) uses the classical precession and nutation parameters; it can be formed 
+in two ways: 
+\begin{itemize}
+  \item using the classical nutation angles and precession matrix, including a 
+  separate rotation matrix for the frame biases, or
+  \item referred directly to the \gls{gcrs} pole and origin without requiring the 
+  frame bias to be applied separately, and no separate precession and nutation
+  steps.
+\end{itemize}
+
+\subsection{Motion of the \gls{cip} in the \gls{itrs}}
+\label{ssec:motion-of-the-cip-in-the-itrs}
+The rotation of the Earth is represented by the diurnal rotation around a reference 
+axis, the \gls{cip}, whose motion with respect to the \gls{irf} is represented 
+by the theories of precession and nutation (\cite{esaa13}). The \gls{cip} moves 
+slowly, in a \gls{trf}, is a quasi-circular path around the axis of figure (maximum 
+proncipal moment of inertia). The motion of the of the \gls{trf} with respect to 
+the \gls{cip} is known as \emph{polar motion} (\cite{esaa13}).
+
+Polar motion consists of three major components: a free oscillation called 
+\emph{Chandler wobble} with a period of about 435 days, an annual oscillation 
+forced by the seasonal displacement of air and water masses, and an irregular 
+drift, partly due to motions in the Earth's core and mantle, and partly to the 
+redistribution of water mass (\cite{iersPolarmotionWs}). Unpredictable geophysical forces can 
+affect the exact period and amplitude of polar motion, thus its determination 
+can only be performed via observation.
+
+The \gls{iers} publishes values for coordinates of the \gls{cip}, \(x_p\), \(y_p\).
+When applied in \ref{eq:tn3653} though, additional corrections/components have 
+to be applied, to account for a number of effects.
 
 The pole coordinate parameters \(x_p \) and \(y_p\) to be used in \ref{eq:tn3653} 
 (if not estimated) should be the ones published by the \gls{iers} with corrections 
@@ -98,61 +211,119 @@ days in space:
   \end{pmatrix} _{libration}
 \end{equation}
 
-In the ``CIO based'' procedure, realizes an intermediate celestial reference system 
-at date \(t\) that uses the \gls{cip} as its \(z\)-axis and the \gls{cio} as its 
-\(x\)-axis, called the \gls{cirs}. The matrix \(R(t)\) uses the \gls{era}, that 
-is the angle between the \gls{cio} and the \gls{tio} at date \(t\) on the equator 
-of the \gls{cip} (aka, the sidereal rotation of the Earth) matrix \(R(t)\), relating 
-\gls{tirs} and \gls{cirs}, can be expressed as
-\begin{equation}
-  \label{eq:tn3655}
-  R(t) = R_3 (-ERA)
-\end{equation}
-\(Q(t)\) uses the two coordinates of the \gls{cip} in the \gls{gcrs}
-\begin{equation}
-  \label{eq:tn3656}
-  Q(t) = R_3 (-E) R_2 (-d) R_3 (E) R_3 (s)
-\end{equation}
-where
-\begin{equation}
-  \label{eq:tn3657}
-  X = \sin d \cos E , \quad
-  Y = \sin d \sin E , \quad
-  Z = \cos d
-\end{equation}
-\(\left[ X  Y  Z \right]\) are the coordinates of the 
-\gls{cip} in the \gls{gcrs}.
-\(s\) is the ``CIO locator'' which provides the position of the \gls{cio} 
-on the equator of the \gls{cip} corresponding to the kinematical definition of 
-the Non-Rotating-Origin in the \gls{gcrs} when the \gls{cip} is moving with 
-respect to the \gls{gcrs}, between the reference epoch and the date \(t\) due to
-precession and nutation (\cite{iers2010}). Alternatively, \(Q(t)\) can be written 
-as
-\begin{equation}
-  \label{eq:tn36510}
-  Q(t) = \begin{pmatrix}
-    1 - \alpha X^2 & -\alpha XY      & X \\
-    -\alpha XY     & 1 - \alpha Y^2  & Y \\
-    -X             &  -Y             & 1 - \alpha (X^2 + Y^2)\\
-  \end{pmatrix} R_3 (s)
-\end{equation}
-with \(\alpha = 1 / (1 + \cos d ) \).
+where \((x, y)_{IERS}\) are pole coordinates provided by the \gls{iers}, 
+\((\Delta x, \Delta y)_{ocean tides}\) are the diurnal and semi-diurnal variations 
+in pole coordinates caused by ocean tides, and \((\Delta x, \Delta y)_{libration}\) 
+are the variations in pole coordinates corresponding to motions with periods 
+less than two days in space that are not part of the IAU 2000 nutation model.
+A detailed discussion on the variations caused by ocean tides and so-called ``libration'', 
+can be found in \cite{iers2010}.
 
-In contrast, the ``equinox based'' procedure uses an intermediate celestial reference 
-system that uses the \gls{cip} as its \(z\)-axis and the equinox as its \(x\)-axis, 
-called the ``true equinox and equator of date system''. The matrix \(R(t)\) uses 
-the \gls{gst} for Earth rotation, which transforms from the \gls{tirs} to the 
-true equinox and equator of date system; \gls{gst} is the angle between the equinox 
-and the \gls{tio}
+To apply the corrections, we can use one of the following schemes (after retrieving 
+\gls{eop} information, e.g. from \gls{iers} Bulletin files):
+\todo[color=red!40]{Is this correct? See also \cite{iers2010}, section 5.5.1. It seems that 
+a call to \texttt{interp\_pole} is the same as a call to \texttt{ortho\_eop} followed 
+by a call to \texttt{pmsdnut2}. The latter may give a bit better precision, but 
+we first need an interpolation for the given MJD. \texttt{interp\_pole} e.g. uses 
+a Lagrange interpolation algorithm using 4 data points.}
+
+\begin{enumerate}
+  \item use the function \texttt{iers2010::interp\_pole}, or
+  \item use the functions \texttt{iers2010::ortho\_eop} followed by \texttt{iers2010::pmsdnut2}
+\end{enumerate}
+
+\subsection{Position of \gls{tio} in the \gls{itrs}, the ``\gls{tio} locator''}
+\label{ssec:position-of-the-tio-in-the-itrs}
+The \gls{tio} locator, provides the position of the \gls{tio} on the equator
+of the \gls{cip}, such that there is no component of polar motion about the pole 
+of rotation. This constitues a kinematical definition of the \emph{non-rotating origin} 
+in the \gls{itrs}, when the \gls{cip} is moving with respect to the \gls{itrs} 
+due to polar motion. The use of the \gls{tio} locator, 
+\begin{displayquote}
+which was neglected in the classical form prior to 1 January 2003, is
+necessary to provide an exact realization of the ``instantaneous prime meridian'' 
+(designated by ``TIO meridian'').
+\end{displayquote} (\cite{iers2010}).
+
+\ref{eq:tn3653} needs the \gls{tio}-locator \(s'\), which can be computed by:
 \begin{equation}
-  R(t) = R_3 (-GST)
+  \label{eq:tn3654}
+  s'(t) = \frac{1}{2} \int_{t_0}^{t} \left( 
+    x_p \dot{y}_p - \dot{x}_p y_p \right) \,dt
 \end{equation}
-\(Q(t)\) uses the classical precession and nutation parameters; it can be formed 
-in two ways: 
-\begin{itemize}
-  \item using the classical nutation angles and precession matrix, including a 
-  separate rotation matrix for the frame biases, or
-  \item referred directly to the \gls{gcrs} pole and origin without requiring the 
-  frame bias to be applied separately, and no separate precession and nutation
-  steps.
-\end{itemize}
+According to \cite{iers2010}, the value of \(s'\) will be less than 
+\SI{0.4}{\milli\arcsecond} after one century. Using the current mean amplitudes 
+for the Chandlerian and annual wobbles gives:
+\begin{equation}
+  \label{eq:tn36513}
+  s' = -47 \text{ } \mu as \text{ } t
+\end{equation}
+
+\subsection{\acrfull{era}}
+\label{ssec:earth-rotation-angle}
+For the computation of \ref{eq:tn3655}, we need the \gls{era}, which is given by 
+(\cite{iers2010}):
+\begin{equation}
+  \label{eq:tn36515}
+  \begin{aligned}
+  ERA(T_u ) &= 2 \pi ( UT1 \text{ Julian day fraction } \\
+            &+ 0.7790572732640 + 0.00273781191135448 T_u )
+  \end{aligned}
+\end{equation}
+
+where \(T_u = \text{ Julian UT1 date } - 2451545.0 \) and \( UT1 = UTC + \Delta UT1 \), 
+and \(\Delta UT1 \) is provided by the \gls{iers} (if not estimated). Similarly 
+to polar motion, additional components should be added to the values
+published by the \gls{iers} for UT1 and LOD to account for the effects of ocean 
+tides and libration.
+
+The function \texttt{iers2010::interp\_pole} can only interpolate and apply the 
+correction for the tidal terms \(\Delta UT1_{ocean\text{ }tides}\), or 
+\(\Delta LOD_{ocean\text{ }tides}\) but the \(\Delta UT1_{libration}\) and 
+\(\Delta LOD_{libration}\) are missing (and probably could be added, see \cite{iers2010}, 
+section 5.5.3.1).
+
+\texttt{iers2010::ortho\_eop} can be used to compute diurnal and
+semi-diurnal variations in UT1 or LOD caused by ocean tides, aka 
+\(\Delta UT1_{ocean\text{ }tides}\) and \(\Delta LOD_{ocean\text{ }tides}\).
+
+\texttt{iers2010::utlibr} can be used to compute \(\Delta UT1_{libration}\) and 
+\(\Delta LOD_{libration}\).
+
+\subsection{Coordinates of the \gls{cip} in the \gls{gcrs}}
+\label{ssec:coordinates-of-the-cip-in-the-gcrs}
+Following the IAU 2006 precession and IAU 2000A nutation models, the parameters 
+\(X\) and \(Y\) in \ref{eq:tn36510} can be computed in the microarcsecond level, 
+using the formulas (\cite{iers2010}):
+\begin{equation}
+  \label{eq:tn36516a}
+  \begin{aligned}
+  X &= \SI{-0.01661700}{\arcsecond} + \SI{2004.19189800}{\arcsecond} t - \SI{0.429782900}{\arcsecond} t^2 \\
+  &- \SI{0.1986183400}{\arcsecond}t^3 + \SI{0.00000757800}{\arcsecond} t^4 + \SI{0.000005928500}{\arcsecond} t^5 \\
+  &+ \sum_{i} \left[ (a_{s,0})_i \sin \theta + (a_{c,0})_i \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (a_{s,1})_i t \sin \theta + (a_{c,1})_i t \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (a_{s,2})_i t^2 \sin \theta + (a_{c,2})_i t^2 \cos \theta \right] \\ 
+  &+ \cdots \\
+  \end{aligned}
+\end{equation}
+and
+\begin{equation}
+  \label{eq:tn36516b}
+  \begin{aligned}
+  Y &= -\SI{0.00695100}{\arcsecond} - \SI{0.02589600}{\arcsecond} t - \SI{22.407274700}{\arcsecond} t^2 \\
+  &+ \SI{0.0019005900}{\arcsecond} t^3 + \SI{0.00111252600}{\arcsecond} t^4 + \SI{0.000000135800}{\arcsecond} t^5 \\
+  &+ \sum_{i} \left[ (b_{s,0})_i \sin \theta     + (b_{c,0})_i \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (b_{s,1})_i t \sin \theta   + (b_{c,1})_i t \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (b_{s,2})_i t^2 \sin \theta + (b_{c,2})_i t^2 \cos \theta \right] \\ 
+  &+ \cdots \\
+  \end{aligned}
+\end{equation}
+
+where \(t\) is expressed in Julian centuries TT (\ref{eq:tn3652}) and \(\theta\) 
+is a function of the fundamental lunisolar and planetary arguments. Complete 
+list of coefficients for \ref{eq:tn36516a} and \ref{eq:tn36516b} is provided 
+by \gls{iers}. 
+
+Details on the position of the \gls{cip} in the \gls{gcrs} and implementation 
+details, can be found in \cite{CapitaineAndWallace2006} and 
+\cite{Capitaineetal2003a}.

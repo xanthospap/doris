@@ -1,4 +1,4 @@
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 #include <cmath>
 #include "gcem.hpp" // for constexpr math (trigonometric funcs)
 #include "geodesy/ellipsoid.hpp"

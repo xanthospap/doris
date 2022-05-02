@@ -1,0 +1,49 @@
+\begin{tikzpicture}[
+  every node/.style = {
+    draw=black, 
+    rounded corners, 
+    fill=gray!30,
+    minimum width=2cm,
+    minimum height=0.5cm,
+    align=center},
+  every path/.style = {
+    draw,
+    -latex}
+  ]
+
+  \node (gcrs) {\acrfull{gcrs}};
+  
+  \node[fill=gray!5] (gcrs2cirs) [below =of gcrs] {
+    apply matrix \(Q(t)\), using \gls{cip} coordinates 
+    and the \gls{cio} locator:\\
+    \(Q(t) = R_3 (E) R_2 (d) R_3 (-E) R_3 (-s)\)\\
+    see \ref{ssec:gcrs-to-cirs-via-q}
+  };
+
+  \node (cirs) [below =of gcrs2cirs] {\acrfull{cirs}};
+
+  \node[fill=gray!5] (cirs2tirs) [below =of cirs] {
+    apply matrix \(R(t)\), using the \gls{era}:\\
+    \(R(t) = R_3 (ERA) \)\\
+    see \ref{ssec:cirs-to-tirs-via-r}
+  };
+  
+  \node (tirs) [below =of cirs2tirs] {\acrfull{tirs}};
+
+  \node[fill=gray!5] (tirs2itrs) [below =of tirs] {
+    apply matrix \(W(t)\), that is:\\
+    rotation to the \gls{itrs} origin: \(R_3 (s')\), and \\
+    rotation for polar motion: \(R_2(-x_p) R_1(-y_p)\) \\
+    see \ref{ssec:tirs-to-itrs-via-w}
+  };
+  
+  \node (itrs) [below =of tirs2itrs] {\acrfull{itrs}};
+
+  \draw (gcrs) -- (gcrs2cirs);
+  \draw (gcrs2cirs) -- (cirs);
+  \draw (cirs) -- (cirs2tirs);
+  \draw (cirs2tirs) -- (tirs);
+  \draw (tirs) -- (tirs2itrs);
+  \draw (tirs2itrs) -- (itrs);
+
+\end{tikzpicture}

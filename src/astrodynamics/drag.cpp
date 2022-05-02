@@ -1,4 +1,4 @@
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 
 using dso::Vector3;
 

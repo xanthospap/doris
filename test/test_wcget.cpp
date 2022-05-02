@@ -33,7 +33,7 @@ int main() {
     printf("------------------------------------------------------------------\n");
 
     int mjd = dstr(gen);
-    status = dso::download_iers_bulletinb_for(mjd, "data");
+    status = dso::download_iers_bulletinb_for(mjd, nullptr, "data");
 
     // transform MJD to year/month/day
     dso::modified_julian_day Mjd(mjd);

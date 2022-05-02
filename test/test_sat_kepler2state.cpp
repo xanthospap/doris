@@ -1,5 +1,5 @@
 #include "geodesy/units.hpp"
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 #include <cstdio>
 
 using dso::deg2rad;

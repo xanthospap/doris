@@ -1,4 +1,4 @@
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 #include "iers2010/iersc.hpp"
 #include <cmath>
 #include <limits>
@@ -11,7 +11,43 @@
 
 using dso::Vector3;
 
-int state2kepler_vallado(const double *state, double *keplerian, double m) noexcept {
+int dso::alternatives::state2kepler_montenbruck(const double *state,
+                                            double *keplerian,
+                                            double m) noexcept {
+  // split to position and velocity vectors
+  const Vector3 r(Vector3::to_vec3(state));
+  const Vector3 v(Vector3::to_vec3(state + 3));
+  const double rmag = r.norm();
+
+  const Vector3 h = r.cross_product(v);
+  const double hmag = h.norm();
+  keplerian[0] = hmag;
+  const Vector3 W{{h.x()/hmag, h.y()/hmag, h.z()/hmag}};
+
+  keplerian[1] = std::atan2(std::sqrt(W.x()*W.x()+W.y()*W.y()), W.z());
+  keplerian[2] = std::atan2(W.x(), -W.y());
+
+  const double p = h.norm_squared() / m;
+  const double a = 1e0 / ( (2e0/rmag) - (v.norm_squared() / m) );
+  const double n = std::sqrt(m / (a*a*a));
+  const double e = std::sqrt(1e0 - (p/a));
+  keplerian[3] = e;
+
+  const double E = atan2(r.dot_product(v)/a*a/n, 1e0-rmag/a);
+  const double sE = std::sin(E);
+  // const double M = E - e * sE;
+
+  const double u = std::atan2(r.z(), -r.x()*W.y() + r.y()*W.x());
+  const double t = std::atan2(std::sqrt(1e0-e*e) * sE, std::cos(E)-e);
+  keplerian[4] = u - t;
+  keplerian[5] = t;
+
+  return 0;
+}
+
+int dso::alternatives::state2kepler_vallado(const double *state,
+                                            double *keplerian,
+                                            double m) noexcept {
   // split to position and velocity vectors
   const Vector3 r(Vector3::to_vec3(state));
   const Vector3 v(Vector3::to_vec3(state + 3));
@@ -19,32 +55,46 @@ int state2kepler_vallado(const double *state, double *keplerian, double m) noexc
 
   const Vector3 h = r.cross_product(v);
   const double hnorm = h.norm();
+  keplerian[0] = hnorm;
 
   const Vector3 n{{-h.y(), h.x(), 0e0}}; // N = k_unit x h
   const double nnorm = n.norm();
-  
-  Vector3 e = r*(v.norm_squared() - m/rnorm) - v*(r.dot_product(v));
+
+  Vector3 e = r * (v.norm_squared() - m / rnorm) - v * (r.dot_product(v));
   e /= m;
-  double enorm = e.norm(); // [return]
-  const double ksi = v.norm_squared()/2e0 - m / rnorm;
-#ifdef BRANCHLESS
-  alpha = -m / (1e0*ksi) + (enorm==1e0) * std::numeric_limits<double>::infinity(); // [return]
-  rho = (e!=1e0) * (alpha * (1e0 - enorm*enorm)) + (e==1e0)*(h.norm_squared()/m);
-#else
-  alpha = (e==1e0) ? std::numeric_limits<double>::infinity() : -m / (1e0*ksi);
-  rho = (e==1e0) ? (h.norm_squared()/m) : alpha * (1e0 - enorm*enorm);
-#endif
+  double enorm = e.norm();
+  keplerian[3] = enorm;
 
-  i = std::acos(h.z()/hnorm);
-  
-  Omega = std::acos(n.x() / nnorm);
-  if (n.y()<0e0) Omega = dso::D2PI - Omega;
+//  const double ksi = v.norm_squared() / 2e0 - m / rnorm;
+//#ifdef BRANCHLESS
+//  double alpha = -m / (1e0 * ksi) +
+//          (enorm == 1e0) * std::numeric_limits<double>::infinity(); // [return]
+//  double rho = (enorm != 1e0) * (alpha * (1e0 - enorm * enorm)) +
+//        (enorm == 1e0) * (h.norm_squared() / m);
+//#else
+//  double alpha =
+//      (enorm == 1e0) ? std::numeric_limits<double>::infinity() : -m / (1e0 * ksi);
+//  double rho = (enorm == 1e0) ? (h.norm_squared() / m) : alpha * (1e0 - enorm * enorm);
+//#endif
 
-  omega = std::acos(n.dot_product(e)/(nnorm*enorm));
-  if (e.z()<0e0) omega = dso::D2PI - omega;
+  keplerian[1] = std::acos(h.z() / hnorm);
 
-  ni = std::acos(e.dot_product(r)/(enorm*rnorm));
-  if (r.dot_product(v)<0e0) ni = dso::D2PI - ni;
+  double Omega = std::acos(n.x() / nnorm);
+  if (n.y() < 0e0)
+    Omega = iers2010::D2PI - Omega;
+  keplerian[2] = Omega;
+
+  double omega = std::acos(n.dot_product(e) / (nnorm * enorm));
+  if (e.z() < 0e0)
+    omega = iers2010::D2PI - omega;
+  keplerian[4] = omega;
+
+  double ni = std::acos(e.dot_product(r) / (enorm * rnorm));
+  if (r.dot_product(v) < 0e0)
+    ni = iers2010::D2PI - ni;
+  keplerian[5] = ni;
+
+  return 0;
 }
 
 int dso::state2kepler(const double *state, double *keplerian,
@@ -103,11 +153,6 @@ int dso::state2kepler(const double *state, double *keplerian,
   // or ... just compute the magnitude ...., the forth orbital element
   // keplerian[3] = std::sqrt(1e0 + (h/m)*(h/m)*(v*v - (2e0*m) / r));
   const double e = ev.norm();
-#ifdef DEBUG
-  // keplerian[3] = std::sqrt(1e0 + (keplerian[0] / m) * (keplerian[0] / m) *
-  //                                   (v * v - (2e0 * m) / r));
-  // printf(">> Note difference in magnitudes of e, is: %e\n", keplerian[3]-e);
-#endif
   keplerian[3] = e;
 
   // Calculate the argument of perigee.

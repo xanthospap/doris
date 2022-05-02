@@ -1,4 +1,4 @@
-#include "satellite.hpp"
+#include "astrodynamics.hpp"
 #include <cmath>
 #ifdef ASSERT_ERROR
 #include <cassert>

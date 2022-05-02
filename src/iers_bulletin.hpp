@@ -67,6 +67,10 @@ public:
   /// @return Anything other than 0, denotes an error. If the returned value is
   /// < 0, then the given date was not found. If it is  > 0, a parsing error
   /// occured.
+  /// @warning Be careful on how you use the extracted values. According to
+  ///          IERS Conventions, e.g. x/y pole coordinates need to be corrected
+  ///          for a number of effects before used in Terrestrial/Celestial
+  ///          transformations.
   int get_section1_at(int mjd, IersBulletinB_Section1Block &block,
                       bool include_preliminary = true) noexcept;
 
@@ -84,7 +88,7 @@ public:
 
 }; // IersBulletinB
 
-int download_iers_bulletinb_for(long mjd, const char *dir=nullptr) noexcept;
+int download_iers_bulletinb_for(long mjd, char *downloaded_fn=nullptr, const char *dir=nullptr) noexcept;
 
 } // namespace dso
 
