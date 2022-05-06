@@ -11,6 +11,37 @@
 
 using dso::Vector3;
 
+int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
+                   dso::OrbitalElements &ele, double GM) noexcept {
+  const Vector3 h = r.cross_product(v);
+  const double hmag = h.norm();
+
+  ele.Omega() = std::fmod(std::atan2(h.x(), -h.y()), iers2010::D2PI);
+  ele.inclination() = std::atan2(std::sqrt(h.x()*h.x()+h.y()*h.y()), h.y());
+  
+  // argument of latitude
+  const double u = std::atan2(r.z() * hmag, -r.x()*h.y()+r.y()*h.x());
+  
+  const double rmag = r.norm();
+  ele.semimajor() = 1e0 / (2e0/rmag - v.dot_product(v)/GM);
+  const double a = ele.semimajor();
+
+  const double eCosE = 1e0 - rmag/a;
+  const double eSinE = r.dot_product(v) / std::sqrt(GM*a);
+  const double e2 = eCosE*eCosE + eSinE*eSinE;
+  
+  ele.eccentricity() = std::sqrt(e2);
+
+  // eccentric anomaly
+  const double E = std::atan2(eSinE,eCosE);
+
+  ele.mean_anomaly() = std::fmod(E-eSinE, iers2010::D2PI);
+  ele.true_anomaly() = std::atan2(std::sqrt(1e0-e2)*eSinE, eCosE-e2);
+  ele.omega() = std::fmod(u-ele.true_anomaly(), iers2010::D2PI);
+
+  return 0;
+}
+
 int dso::alternatives::state2kepler_montenbruck(const double *state,
                                             double *keplerian,
                                             double m) noexcept {

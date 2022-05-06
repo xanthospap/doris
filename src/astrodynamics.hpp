@@ -46,6 +46,34 @@ double bernese_shadow1(const dso::Vector3 &r_sat,
 } // namespace utest
 
 namespace dso {
+
+struct OrbitalElements {
+  /// [0]: Semimajor axis a
+  /// [1]: Eccentricity e
+  /// [2]: Inclination i, [rad], range: [0, π]
+  /// [3]: Longitude of ascending node Ω, [rad], range [0,2π]
+  /// [4]: Argument of pericenter, ω, [rad], range [0,2π]
+  /// [5]: Mean Anomaly M [rad]
+  /// [6]: True Anomaly θ [rad], range [0,2π]
+  double elements[7];
+  constexpr double& semimajor() noexcept {return elements[0];}
+  constexpr double& eccentricity() noexcept {return elements[1];}
+  constexpr double& inclination() noexcept {return elements[2];}
+  constexpr double& Omerga() noexcept {return elements[3];}
+  constexpr double& omega() noexcept {return elements[4];}
+  constexpr double& mean_anomaly() noexcept {return elements[5];}
+  constexpr double& true_anomaly() noexcept {return elements[6];}
+  constexpr double semimajor()    const noexcept {return elements[0];}
+  constexpr double eccentricity() const noexcept {return elements[1];}
+  constexpr double inclination()  const noexcept {return elements[2];}
+  constexpr double Omerga()       const noexcept {return elements[3];}
+  constexpr double omega()        const noexcept {return elements[4];}
+  constexpr double mean_anomaly() const noexcept {return elements[5];}
+  constexpr double true_anomaly() const noexcept {return elements[6];}
+};
+int state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
+                   OrbitalElements &elements, double GM) noexcept;
+
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity
 /// @param[in] M mean anomaly [radians]
