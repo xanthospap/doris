@@ -2,7 +2,7 @@
 \def\r{3.5}
 \pgfmathsetmacro{\inclination}{35}
 \pgfmathsetmacro{\nuSatellite}{55}
-\pgfmathsetmacro{\gammaAngle}{290}
+\pgfmathsetmacro{\OmegaAngle}{-290}
 \pgfmathsetmacro{\omegaSatellite}{90}
 
 \tdplotsetmaincoords{70}{165}
@@ -22,41 +22,61 @@
         (0,-\r,0);
             
     % Draw Line of nodes
-    \draw[dashed] (0,-1.3*\r,0) -- (0,1.4*\r,0) node[right] {Line of nodes};
+    \draw[dashed] 
+      (0,-1.3*\r,0) -- (0,1.4*\r,0) node[right] {Line of nodes};
 
     % Draw Equinox line
-    \draw[black,->] (0,0,0) -- (1.5,2.0*\r,0) node[right] {Vernal Equinox (\aries)};
+    \tdplotsetcoord{V}{2.0*\r}{90}{\OmegaAngle};
+    \draw[->] (0,0,0) -- (V) node[anchor=west] {Vernal Equinox (\aries)};
 
     % Draw Omega angle
-    \tdplotdrawarc[thick,-stealth,black]
-        {(0,0,0)}{0.6*\r}{77}{90}
-        {anchor=north}{$\boldsymbol\Omega$};
+    \tdplotresetrotatedcoordsorigin
+    \tdplotsetrotatedcoords{0}{0}{180}
+    \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,black]
+      {(0,0,0)}{0.6*\r}{250}{270}
+      {anchor=north}{$\boldsymbol\Omega$};
 
-    % vertical vector to orbital plane 
-    %\tdplotsetcoord{Pg}{1.3*\r}{90}{\gammaAngle}
-    %\draw[->] (0,0,0) -- (Pg) node[anchor=east] {Reference direction $\boldsymbol{\gamma}$};
+    % Draw orbital ellipse
+    \tdplotsetrotatedcoords{0}{\inclination}{90}
+    \tdplotdrawarc[tdplot_rotated_coords,thin,blue]
+      {(0,0,0)}{\r}{-125}{180}
+      {label={[xshift=-5.7cm, yshift=-2.2cm]Orbital plane}}{}
+    \tdplotdrawarc[tdplot_rotated_coords,dotted,blue]
+    {(0,0,0)}{\r}{180}{235}
+    {}{}
 
-    % Create a new rotated system in the center
-	\tdplotsetrotatedcoords{0}{\inclination}{90}
-				
-	% Draw orbital ellipse
-	\tdplotdrawarc[tdplot_rotated_coords,thin,blue]{(0,0,0)}{\r}{-125}{180}{label={[xshift=-5.7cm, yshift=-2.2cm]Orbital plane}}{}
-	\tdplotdrawarc[tdplot_rotated_coords,dotted,blue]{(0,0,0)}{\r}{180}{235}{}{}
+    % Draw satellite on orbital plane
+    \tdplotsetrotatedcoords{0}{\inclination}{90};
+    \pgfmathsetmacro{\omegaSatellite}{90}
+    \pgfmathsetmacro{\xmRot}{\r*cos(\omegaSatellite+\nuSatellite)}
+    \pgfmathsetmacro{\ymRot}{\r*sin(\omegaSatellite+\nuSatellite)}
+    \pgfmathsetmacro{\zmRot}{0}
+    \draw[tdplot_rotated_coords,thin,->,blue] 
+      (0,0,0) -- (\xmRot,\ymRot,\zmRot);
+    \filldraw[tdplot_rotated_coords, blue] 
+      (\xmRot,\ymRot,\zmRot) circle (2pt) node[above left] {$sat$};
 
     % Draw periapsis line
-	\draw[dashed,tdplot_rotated_coords,blue] (0,0,0) -- (0,\r,0) node[anchor=south west] {Periapsis};
+    \draw[dashed,tdplot_rotated_coords,blue] 
+      (0,0,0) -- (0,\r,0) node[anchor=south west] {Periapsis};
 
     % Draw omega angle
     \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,blue]
         {(0,0,0)}{0.4*\r}{0}{\omegaSatellite}
         {anchor=south west}{$\boldsymbol\omega$};
 
+    % Draw v angle (true anomaly)
+    \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,blue]
+      {(0,0,0)}{0.4*\r}{\omegaSatellite}{\omegaSatellite+\nuSatellite}
+      {anchor=south west}{v};
+
     % Draw inclination angle
     \tdplotresetrotatedcoordsorigin
-	\tdplotsetrotatedcoords{0}{0}{180}
+    \tdplotsetrotatedcoords{0}{0}{180}
     \coordinate (Shift) at (0,\r,0);
     \tdplotsetrotatedcoordsorigin{(Shift)}
     \tdplotsetrotatedthetaplanecoords{0};
     \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,brown]
         {(Shift)}{0.3*\r}{90}{90-\inclination}{anchor=west}{$\bm{i}$}
+
 \end{tikzpicture}
