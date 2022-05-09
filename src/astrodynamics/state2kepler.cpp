@@ -1,6 +1,7 @@
 #include "astrodynamics.hpp"
 #include "iers2010/iersc.hpp"
 #include <cmath>
+#include <iers2010/matvec.hpp>
 #include <limits>
 #ifdef ASSERT_ERROR
 #include <cassert>
@@ -10,6 +11,47 @@
 #endif
 
 using dso::Vector3;
+
+int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3 &r,
+                   dso::Vector3 &v, double GM) noexcept
+{
+  const double cf = std::cos(ele.true_anomaly());
+  const double sf = std::sin(ele.true_anomaly());
+
+  // mean anomaly M at time t
+  constexpr const double a = ele.semimajor();
+  const double M = ele.mean_anomaly() + std::sqrt(GM/(a*a*a))*dt;
+
+  // solve kepler's equation
+  constexpr const double e = ele.eccentricity();
+  int ok;
+  const double E = dso::kepler(e, M, ok);
+  if (ok) return ok;
+
+  // perifocal coordinates (see Montenbruck 2.2.3)
+  const double cE = std::cos(E);
+  const double sE = std::sin(E);
+  const double f = std::sqrt((1e0-e)*(1e0+e)); // aka (1-e^2)^(1/2)
+  const double rmag = a*(1e0-e*cE);
+  const dso::Vector3 rf({a*(cE-e), a*f*sE, 0e0});
+  const double vmag = std::sqrt(GM*a) / rmag;
+  const dso::Vector3 vf({-vmag*sE,vmag*f*cE, 0e0});
+
+  // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
+  const double sO = std::sin(ele.Omega());
+  const double cO = std::cos(ele.Omega());
+  const double so = std::sin(ele.omega());
+  const double co = std::cos(ele.omega());
+  const double si = std::sin(ele.inclination());
+  const double ci = std::cos(ele.inclination());
+  const dso::Mat3x3 T({cO*co - sO*so*ci, -cO*so - sO*co*ci, sO*si,
+                       sO*co + cO*so*ci, -sO*so + cO*co*ci, -cO*si,
+                       so*si,             co*si,            ci});
+  
+  // rotate to get equatorial, aka geocentric/(quasi-)inertial
+  r = T * rf;
+  v = T * vf;
+}
 
 int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
                    dso::OrbitalElements &ele, double GM) noexcept {
@@ -36,8 +78,8 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   const double E = std::atan2(eSinE,eCosE);
 
   ele.mean_anomaly() = std::fmod(E-eSinE, iers2010::D2PI);
-  ele.true_anomaly() = std::atan2(std::sqrt(1e0-e2)*eSinE, eCosE-e2);
-  ele.omega() = std::fmod(u-ele.true_anomaly(), iers2010::D2PI);
+  const double true_anomaly = std::atan2(std::sqrt(1e0-e2)*eSinE, eCosE-e2);
+  ele.omega() = std::fmod(u-true_anomaly, iers2010::D2PI);
 
   return 0;
 }

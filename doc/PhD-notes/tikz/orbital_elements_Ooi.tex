@@ -1,0 +1,62 @@
+%% https://tex.stackexchange.com/questions/386030/how-to-draw-orbital-elements
+\def\r{3.5}
+\pgfmathsetmacro{\inclination}{35}
+\pgfmathsetmacro{\nuSatellite}{55}
+\pgfmathsetmacro{\gammaAngle}{290}
+\pgfmathsetmacro{\omegaSatellite}{90}
+
+\tdplotsetmaincoords{70}{165}
+\begin{tikzpicture}[tdplot_main_coords]
+
+    % Earth
+    \fill (0,0) coordinate (O) circle (3pt) node[left=7pt] {$M_\oplus$};
+            
+    % Draw equatorial plane
+    \draw[] (0,-\r,0) -- 
+        (\r,-\r,0) node[below]{Equatorial plane} -- 
+        (\r,\r,0) -- 
+        (-\r,\r,0) -- 
+        (-\r,-0.65*\r,0) ;
+    \draw[dotted] (-\r,-0.65*\r,0) -- 
+        (-\r,-\r,0) -- 
+        (0,-\r,0);
+            
+    % Draw Line of nodes
+    \draw[dashed] (0,-1.3*\r,0) -- (0,1.4*\r,0) node[right] {Line of nodes};
+
+    % Draw Equinox line
+    \draw[black,->] (0,0,0) -- (1.5,2.0*\r,0) node[right] {Vernal Equinox (\aries)};
+
+    % Draw Omega angle
+    \tdplotdrawarc[thick,-stealth,black]
+        {(0,0,0)}{0.6*\r}{77}{90}
+        {anchor=north}{$\boldsymbol\Omega$};
+
+    % vertical vector to orbital plane 
+    %\tdplotsetcoord{Pg}{1.3*\r}{90}{\gammaAngle}
+    %\draw[->] (0,0,0) -- (Pg) node[anchor=east] {Reference direction $\boldsymbol{\gamma}$};
+
+    % Create a new rotated system in the center
+	\tdplotsetrotatedcoords{0}{\inclination}{90}
+				
+	% Draw orbital ellipse
+	\tdplotdrawarc[tdplot_rotated_coords,thin,blue]{(0,0,0)}{\r}{-125}{180}{label={[xshift=-5.7cm, yshift=-2.2cm]Orbital plane}}{}
+	\tdplotdrawarc[tdplot_rotated_coords,dotted,blue]{(0,0,0)}{\r}{180}{235}{}{}
+
+    % Draw periapsis line
+	\draw[dashed,tdplot_rotated_coords,blue] (0,0,0) -- (0,\r,0) node[anchor=south west] {Periapsis};
+
+    % Draw omega angle
+    \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,blue]
+        {(0,0,0)}{0.4*\r}{0}{\omegaSatellite}
+        {anchor=south west}{$\boldsymbol\omega$};
+
+    % Draw inclination angle
+    \tdplotresetrotatedcoordsorigin
+	\tdplotsetrotatedcoords{0}{0}{180}
+    \coordinate (Shift) at (0,\r,0);
+    \tdplotsetrotatedcoordsorigin{(Shift)}
+    \tdplotsetrotatedthetaplanecoords{0};
+    \tdplotdrawarc[tdplot_rotated_coords,thick,-stealth,brown]
+        {(Shift)}{0.3*\r}{90}{90-\inclination}{anchor=west}{$\bm{i}$}
+\end{tikzpicture}
