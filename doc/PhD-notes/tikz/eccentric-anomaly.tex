@@ -1,61 +1,102 @@
 \begin{tikzpicture}
-  \def\xstart{0}
-  \def\ystart{0}
-  \def\r{4}
   \def\a{4}
   \def\e{0.6}
+  \def\E{30}
+  \def\xstart{0}
+  \def\ystart{0}
+
   % geometry of ellipse
   \pgfmathsetmacro\b{{\a * sqrt(1.0 - \e * \e)}}
   \pgfmathsetmacro\c{{sqrt(\a * \a - \b * \b)}}
-  % coordinates of centers
-  \pgfmathsetmacro\xc{{\xstart - \r *cos(0)}}
-  \pgfmathsetmacro\yc{{\ystart - \r *sin(0)}}
+  
+  % coordinates of center (outer circle and ellipse)
+  \pgfmathsetmacro\xc{{\xstart - \a *cos(0)}}
+  \pgfmathsetmacro\yc{{\ystart - \a *sin(0)}}
+  
+  % coordinates of start (inner circle)
+  \pgfmathsetmacro\xcs{{\xc + \b)}}
+  \pgfmathsetmacro\ycs{{\yc}}
+  
   % focal point (aka earth)
   \pgfmathsetmacro\xf{\xc + \c }
   \pgfmathsetmacro\yf{\yc }
-  % projection of P on x-axis
-  \pgfmathsetmacro\xp{{\xf + \c / 3e0}}
-  \pgfmathsetmacro\ype{{sqrt((\a * \a - (\xp -\xc ) * (\xp -\xc ))*(1.0 - \e *\e )) + \yc }}
-  \pgfmathsetmacro\ypc{{sqrt(\r *\r - (\xp -\xc ) * (\xp -\xc )) + \yc }}
 
-  % auxiliary circle arc
-  \draw ( \xstart , \ystart ) arc(0:180:\r);
+  % point on outer circle
+  \pgfmathsetmacro\xa{{ \a * cos(\E) + \xc }}
+  \pgfmathsetmacro\ya{{ \a * sin(\E) + \yc }}
+  
+  % point on inner circle
+  \pgfmathsetmacro\xb{{ \b * cos(\E) + \xc }}
+  \pgfmathsetmacro\yb{{ \b * sin(\E) + \yc }}
+
+  % point on ellipse
+  \pgfmathsetmacro\xp{\xa}
+  \pgfmathsetmacro\yp{\yb}
+  
+  % auxiliary circle arc, r=a
+  \draw[red] ( \xstart , \ystart ) arc(0:180:\a);
+  
+  % auxiliary circle arc, r=b
+  \draw[green] ( \xcs , \ycs ) arc(0:180:\b);
+
+  % mark perigee
   \node[] (perigee) 
     at ( \xstart , \ystart )
     {};
-  \node[anchor=north] () at (perigee){Perigee};
+  \node[anchor=north west] () at (perigee){Perigee};
   
+  % center
   \node[] (center) at (\xc , \yc ) {};
-  %\node[anchor=north] () at (center){Center};
 
+  % mark apogee
   \node[] (apogee) 
-    at ({\xstart - \r *cos(0)+ \r *cos(180)}, {\ystart - \r *sin(0)+ \r *sin(180)})
+    at ({\xstart - \a *cos(0)+ \a *cos(180)}, {\ystart - \a *sin(0)+ \a *sin(180)})
     {};
   \node[anchor=north] () at (apogee){Apogee};
   
   % ellipse arc
-  \draw[red] ( \xstart , \ystart ) arc(0:180:\a cm and \b cm);
+  \draw[] ( \xstart , \ystart ) arc(0:180:\a cm and \b cm);
   
-  % earth (one foci)
+  % earth (one ellipse foci)
   \node[] (earth) 
     at ( \xf , \yf ){};
   \node[anchor=north] () 
-    at (earth){$\bm{\oplus}$};
+    at (earth){$M_{\oplus}$};
 
-  % point on ellipse and auxiliary sphere
-  \draw[] (\xp , \yc ) -- (\xp , \ypc );
-
-  \draw[] ( \xc , \yc ) -- (\xp , \ypc );
-  \node[] (pcircle) at (\xp , \ypc ){};
-  \pic [draw, ->, "$E$", angle eccentricity=1.5] {angle = earth--center--pcircle};
-  \draw[->] (\xf , \yf )  -- (\xp , \ype );
-  \node[] (ecircle) at (\xp , \ype ){};
-  \pic [draw, ->, "v", angle eccentricity=1.2] {angle = perigee--earth--ecircle};
-    
+  % lines ...
+  \draw[red] (\xa , \yc ) -- (\xa , \ya );
+  \draw[red] (\xc , \yc) -- (\xa , \ya);
+  \draw[green] (\xc , \yc) -- (\xb , \yb);
+  \node[] (A) at (\xa , \ya){};
+  \pic [draw, red, -stealth, "$E$", angle eccentricity=1.5] 
+    {angle = earth--center--A};
+  \draw[green, dashed] (\xc , \yp) -- (\xp, \yp);
+  \draw[thick, -stealth] (\xf , \yf )  -- (\xp , \yp );
+  \draw[] (\xf , \yf )  --node[above=2pt,anchor=east]{$\bm{r}$} (\xp , \yp );
+  \node[] (P) at (\xp , \yp ){};
+  \pic [draw, -stealth, "$v$", angle eccentricity=1.2] {angle = perigee--earth--P};
+  \draw[] (\xc , \yc ) -- node[anchor=north]{$\alpha e$} (\xf , \yf );
+  \draw[] (\xa, \yc ) -- node[anchor=west]{$y$} (\xa , \yb);
+  \draw[] (\xf, \yf ) -- node[anchor=north]{$x$} (\xa , \yc);
+  
   % x-axis
   \draw[] ($(apogee) - (.2,0)$)  -- ($(perigee)+(.2,0)$);
 
   % y-axis
-  \draw[] ($(center)+(0, -.2)$) -- ($(center)+(0,\r+.2)$);
+  \draw[] ($(center)+(0, -.2)$) -- ($(center)+(0,\a+.2)$);
+
+  \pgfmathsetmacro\yaf{{ \yc - (1e0/6e0) * \a }}
+  \path (\xc ,\yaf) -- 
+    node[](amlpt){$\alpha$} 
+    (\xc - \a , \yaf);
+  \draw [<-] (\xc ,\yaf) -- (amlpt); 
+  \draw [->] (amlpt) -- (\xc - \a , \yaf);
+  
+  \pgfmathsetmacro\ybf{{ \yc - (1e0/10e0) * \a }}
+  \path (\xc ,\ybf) -- 
+    node[](bmlpt){$b$} 
+    (\xc - \b , \ybf);
+  \draw [<-] (\xc ,\ybf) -- (bmlpt); 
+  \draw [->] (bmlpt) -- (\xc - \b , \ybf);
 
 \end{tikzpicture}

@@ -9,11 +9,42 @@
 \label{fig:orbital-elements-Ooi}
 \end{figure}
 
+\section{Satellite Orbits}
+\subsection{Perifocal Coordinate System}
+The \emph{perifocal coordinate system} (often designated \emph{PQW}) is 
+convinient for processing satellite observations. In general, the frame is 
+centered at the focus of the orbit and the unit vectors $\hat{\bm{p}}$ and 
+$\hat{\bm{q}}$ lie in the orbital plane; $\hat{\bm{p}}$ is directed towards 
+the periapsis while $\hat{\bm{q}}$ has a true anomaly ($v$) of \SI{90}{\degree} 
+past the periapsis. The unit vector $\hat{\bm{w}}$ is the angular momentum 
+vector $\vec{\bm{h}}$, normal to the orbital plane, such that 
+$\hat{\bm{w}} = \hat{\bm{p}} \times \hat{\bm{q}} = \frac{\vec{\bm{h}}}{h}$.
+
+In the case of an Earth-orbiting satellite, the fundamental plane is the 
+satellite orbit and the origin is the center of the Earth. The $\hat{\bm{p}}$ 
+axis points towards the perigee (see \ref{fig:eccentric-anomaly}). For 
+perfectly circular orbits, other recerence systems are prefered due to the 
+lack of perigee (\cite{Vallado}).
+
+In the perifocal frame, the position vector $\vec{\bm{r}}$ can be written as:
+\begin{equation}
+  \vec{\bm{r}} = \bar{x} \hat{\bm{p}} + \bar{y} \hat{\bm{q}}
+\end{equation}
+where
+\begin{equation}
+  \begin{aligned}
+  \bar{x} &= r \cos v &= \alpha ( \cos E - e ) &\\
+  \bar{y} &= r \sin v &= b \sin E              &= \alpha \sqrt{1-e^2} \sin E \\
+  \end{aligned}
+\end{equation}
+
+
+
 \begin{figure}
 \centering
 \tdplotsetmaincoords{70}{165}
 \input{tikz/eccentric-anomaly.tex}
-\caption{Orbital Elements $\Omega$, $\omega$ and $i$}
+\caption{Perifocal Coordinates}
 \label{fig:eccentric-anomaly}
 \end{figure}
 

@@ -192,7 +192,8 @@ manufacturing process and error budget have been improved (\cite{DORISGSM}).
     \draw [-stealth] (prt) to ($(l2pc)-(0.2,0.0)$);
 
     \path ($(l1pc)+(5.5, 0.0)$) -- node[](h2g){h\textsubscript{2GHz} = \SI{487}{\mm}} ($(l2pc)+(5.5, 0.0)$);
-    \draw [<-] ($(l1pc)+(5.5, 0.0)$) -- (h2g); \draw [->] (h2g) -- ($(l2pc)+(5.5, 0.0)$);
+    \draw [<-] ($(l1pc)+(5.5, 0.0)$) -- (h2g); 
+    \draw [->] (h2g) -- ($(l2pc)+(5.5, 0.0)$);
 
     \node[rectangle, align=left] (rptext) at ($(l2pc)-(2.0,2.0)$) {DORIS reference point \\ \(\begin{bmatrix} x_s y_s z_s \end{bmatrix}^{T} \) beacon \\position in earth reference \\frame};
     \draw [-stealth] (rptext) to ($(l2pc)-(3.5pt,4.5pt)$);
