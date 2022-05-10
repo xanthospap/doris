@@ -1,6 +1,26 @@
 \chapter{Satellite Orbits}
 \label{ch:satellite-orbits}
 
+\section{Satellite Orbits}
+
+\subsection{Orbital Elements}
+\label{ssec:orbital-elements}
+To define an orbit in the plane requires two parameters: eccentricity and angular
+momentum. To locate a point on the orbit requires a third parameter, the true 
+anomaly. Describing the orientation of an orbit in three dimensions requires 
+three additional parameters, called the \emph{orbital elements} or 
+\emph{Euler angles}. The six orbital elements, are:
+\begin{description}
+    \item $\bm{\alpha}$: the \emph{semi-major axis} (sometimes $\bm{h}$, the specific 
+    \emph{angular momentum} is used instead),
+    \item $\bm{i}$: \emph{inclination},
+    \item $\bm{\Omega}$: \emph{right ascension of the ascending node},
+    \item $\bm{e}$: \emph{eccentricity},
+    \item $\bm{\omega}$: \emph{argument of perigee},
+    \item $\bm{\theta}$: \emph{true anomaly} (sometimes $\bm{M}$, the \emph{mean anomaly} 
+    is used instead)
+\end{description}
+
 \begin{figure}
 \centering
 \tdplotsetmaincoords{70}{165}
@@ -9,16 +29,31 @@
 \label{fig:orbital-elements-Ooi}
 \end{figure}
 
-\section{Satellite Orbits}
+$\alpha$ and $e$ describe the form of the orbit, $\theta$ (or $M$) defines the 
+position along the orbit and the remnianing three elements, $\Omega$, $\omega$ 
+and $i$ define the orientation of the orbit in space. Given these six elements, 
+it is always possible to uniquely calculate the state vector.
+
+
 \subsection{Perifocal Coordinate System}
 The \emph{perifocal coordinate system} (often designated \emph{PQW}) is 
 convinient for processing satellite observations. In general, the frame is 
 centered at the focus of the orbit and the unit vectors $\hat{\bm{p}}$ and 
 $\hat{\bm{q}}$ lie in the orbital plane; $\hat{\bm{p}}$ is directed towards 
-the periapsis while $\hat{\bm{q}}$ has a true anomaly ($v$) of \SI{90}{\degree} 
-past the periapsis. The unit vector $\hat{\bm{w}}$ is the angular momentum 
-vector $\vec{\bm{h}}$, normal to the orbital plane, such that 
+the periapsis while $\hat{\bm{q}}$ has a true anomaly ($\theta$) of 
+\SI{90}{\degree} past the periapsis. The unit vector $\hat{\bm{w}}$ is the 
+angular momentum vector $\vec{\bm{h}}$, normal to the orbital plane, such that 
 $\hat{\bm{w}} = \hat{\bm{p}} \times \hat{\bm{q}} = \frac{\vec{\bm{h}}}{h}$.
+
+\begin{figure}
+\centering
+\tdplotsetmaincoords{70}{165}
+\input{tikz/eccentric-anomaly.tex}
+\caption{Perifocal Coordinates; the third unit vector, $\hat{\bm{w}}$ is 
+         normal to the page.}
+\label{fig:eccentric-anomaly}
+\end{figure}
+
 
 In the case of an Earth-orbiting satellite, the fundamental plane is the 
 satellite orbit and the origin is the center of the Earth. The $\hat{\bm{p}}$ 
@@ -28,25 +63,64 @@ lack of perigee (\cite{Vallado}).
 
 In the perifocal frame, the position vector $\vec{\bm{r}}$ can be written as:
 \begin{equation}
+  \label{eq:kurtis2107}
   \vec{\bm{r}} = \bar{x} \hat{\bm{p}} + \bar{y} \hat{\bm{q}}
 \end{equation}
 where
+\begin{subequations}
+  \begin{align}
+  \label{eq:mong230a}
+  \bar{x} &= r \cos \theta = \alpha ( \cos E - e ) \\
+  \label{eq:mong230b}
+  \bar{y} &= r \sin \theta = b \sin E = \alpha \sqrt{1-e^2} \sin E
+  \end{align}
+\end{subequations}
+
+The velocity components can be computed by differentiating \ref{eq:kurtis2107}
 \begin{equation}
-  \begin{aligned}
-  \bar{x} &= r \cos v &= \alpha ( \cos E - e ) &\\
-  \bar{y} &= r \sin v &= b \sin E              &= \alpha \sqrt{1-e^2} \sin E \\
-  \end{aligned}
+  \bm{v} = \dot{\bm{r}} = \dot{\bar{x}} \hat{\bm{p}} + \dot{\bar{y}} \hat{\bm{q}}
+\end{equation}
+which results in (see e.g. \cite{curtisb})
+\begin{equation}
+  \bm{v} = \frac{\mu}{h} \left( -\sin \theta \hat{\bm{p}}
+    + (e + \cos \theta ) \hat{\bm{q}} \right)
+\end{equation}
+or equivalently (see \cite{Montenbruck2000}), using the eccentric anomaly 
+instead of the true anomaly, \todo[color=red!40]{Are the two equations equivalent? Provide more info for the derivation}:
+\begin{equation}
+  \bm{v} = \frac{\sqrt{G M \alpha }}{r} \left( -\sin E \hat{\bm{p}} 
+   + \sqrt{1 - e^2} \cos E \hat{\bm{q}} \right)
 \end{equation}
 
+\subsubsection{Perifocal To Equatorial Coordinate Transformation}
+The transformation from the geocentric equatorial frame into the perifocal frame
+may be accomplished by the sequence of three rotations, namely $R_3(\Omega)$,
+$R_1(i)$ and $R_3(\omega)$. That is:
+\begin{equation}
+  \label{eq:ge2pf}
+  \bm{r}_{geocentric\text{ }equatorial} = R_3(\omega)  R_1(i)  R_3(\Omega) \bm{r}_{perifocal}
+\end{equation}
+Obviously, 
+\begin{equation}
+  \bm{r}_{perifocal} = R_3(-\Omega)  R_1(-i)  R_3(-\omega) \bm{r}_{geocentric\text{ }equatorial}
+\end{equation}
 
-
-\begin{figure}
-\centering
-\tdplotsetmaincoords{70}{165}
-\input{tikz/eccentric-anomaly.tex}
-\caption{Perifocal Coordinates}
-\label{fig:eccentric-anomaly}
-\end{figure}
+The composite rotation in \ref{eq:ge2pf} is given by the matrix:
+\begin{equation}
+  R_3(\omega)  R_1(i)  R_3(\Omega) = 
+  \begin{pmatrix}
+    c_{\Omega} c_{\omega} - s_{\Omega} s_{\omega} c_{i} & 
+      -c_{\Omega} s_{\omega} - s_{\Omega} c_{\omega} c_{i} &
+      s_{\Omega} s_{i} \\
+    s_{\Omega} c_{\omega} + c_{\Omega} s_{\omega} c_{i} &
+      -s_{\Omega} s_{\omega} + c_{\Omega} c_{\omega} c_{i} &
+      -c_{\Omega} s_{i} \\
+    s_{\Omega} s_{i}                                    &
+      c_{\omega} s_{i}                                  &
+      c_{i}
+  \end{pmatrix}
+\end{equation}
+with $c_{\phi} \equiv \cos \phi$ and $s_{\phi} \equiv \sin \phi$.
 
 \section{Geopotential}
 For precise orbit determination, we need to drop the assumption of the total mass 

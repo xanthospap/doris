@@ -74,7 +74,7 @@
   \draw[thick, -stealth] (\xf , \yf )  -- (\xp , \yp );
   \draw[] (\xf , \yf )  --node[above=2pt,anchor=east]{$\bm{r}$} (\xp , \yp );
   \node[] (P) at (\xp , \yp ){};
-  \pic [draw, -stealth, "$v$", angle eccentricity=1.2] {angle = perigee--earth--P};
+  \pic [draw, -stealth, "$\theta$", angle eccentricity=1.4] {angle = perigee--earth--P};
   \draw[] (\xc , \yc ) -- node[anchor=north]{$\alpha e$} (\xf , \yf );
   \draw[] (\xa, \yc ) -- node[anchor=west]{$y$} (\xa , \yb);
   \draw[] (\xf, \yf ) -- node[anchor=north]{$x$} (\xa , \yc);
@@ -98,5 +98,14 @@
     (\xc - \b , \ybf);
   \draw [<-] (\xc ,\ybf) -- (bmlpt); 
   \draw [->] (bmlpt) -- (\xc - \b , \ybf);
+
+  \draw[thick,brown,dashed] (\xf, \yf ) -- ($(\xstart , \ystart)+(.2,0)$);
+  \draw[thick,brown,-stealth] ($(\xstart , \ystart)+(.2,0)$) -- ++(0.5,0);
+  \node[brown,anchor=south] () at ($(\xstart , \ystart)+(.2,0)$){$\hat{\bm{p}}$};
+
+  \pgfmathsetmacro\yef{{\b * sqrt(1e0-((\xf -\xc )*(\xf -\xc ))/(\a *\a)) + \yc }}
+  \draw[thick,brown,dashed] (\xf, \yf ) -- (\xf , \yef);
+  \draw[thick,brown,-stealth] (\xf , \yef) -- ++(0.0,0.5);
+  \node[brown,anchor=west] () at (\xf , \yef){$\hat{\bm{q}}$};
 
 \end{tikzpicture}

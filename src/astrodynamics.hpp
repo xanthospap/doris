@@ -72,6 +72,18 @@ int state2elements(const Vector3 &r, const Vector3 &v,
                    OrbitalElements &elements, double GM) noexcept;
 int elements2state(const OrbitalElements &elements, double dt, Vector3 &r,
                    Vector3 &v, double GM) noexcept;
+/// @brief Orbital elements to perifocal coordinates
+/// @param[in]  ele Orbital elements
+/// @param[in]  E   Eccentric anomaly [rad]
+/// @param[in]  GM  Gravitational factor
+/// @param[out] r   Resulting position in perifocal frame [m]
+/// @param[out] r   Resulting velocity in perifocal frame [m]
+/// @see Montenbruck et al, 2000, Eq. 2.43 and Eq. 2.44
+int elements2perifocal(const OrbitalElements &ele, double E,
+                            double GM, Vector3 &r,
+                            Vector3 &v) noexcept;
+int elements2perifocal(const OrbitalElements &ele, double GM,
+                            Vector3 &r, Vector3 &v) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity
