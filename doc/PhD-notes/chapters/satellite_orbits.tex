@@ -8,8 +8,9 @@
 To define an orbit in the plane requires two parameters: eccentricity and angular
 momentum. To locate a point on the orbit requires a third parameter, the true 
 anomaly. Describing the orientation of an orbit in three dimensions requires 
-three additional parameters, called the \emph{orbital elements} or 
-\emph{Euler angles}. The six orbital elements, are:
+three additional parameters, called the \emph{orbital elements}. The six 
+orbital elements, are (see \ref{fig:orbital-elements-3d} and 
+\ref{fig:orbital-elements-Ooi}):
 \begin{description}
     \item $\bm{\alpha}$: the \emph{semi-major axis} (sometimes $\bm{h}$, the specific 
     \emph{angular momentum} is used instead),
@@ -17,23 +18,31 @@ three additional parameters, called the \emph{orbital elements} or
     \item $\bm{\Omega}$: \emph{right ascension of the ascending node},
     \item $\bm{e}$: \emph{eccentricity},
     \item $\bm{\omega}$: \emph{argument of perigee},
-    \item $\bm{\theta}$: \emph{true anomaly} (sometimes $\bm{M}$, the \emph{mean anomaly} 
+    \item $\bm{\theta}$\footnote{True anomaly is often deisgnated with the letter 
+    $\bm{\nu}$ of $\bm{f}$, but here we are following the notation $\bm{\theta}$}.: 
+    \emph{true anomaly} (sometimes $\bm{M}$, the \emph{mean anomaly} 
     is used instead)
 \end{description}
 
 \begin{figure}
 \centering
-\tdplotsetmaincoords{70}{165}
+\input{tikz/orbital_elements_3d.tex}
+\caption{Geometry of Orbital Elements}
+\label{fig:orbital-elements-3d}
+\end{figure}
+
+$\alpha$ and $e$ describe the form of the orbit, $\theta$ (or $M$) defines the 
+position along the orbit and the remaining three elements, $\Omega$, $\omega$ 
+and $i$, sometimes called \emph{Euler angles}, define the orientation of the 
+orbit in space (that w.r.t. a reference coordinate system). Given these six 
+elements, it is always possible to uniquely calculate the state vector.
+
+\begin{figure}
+\centering
 \input{tikz/orbital_elements_Ooi.tex}
 \caption{Orbital Elements $\Omega$, $\omega$ and $i$}
 \label{fig:orbital-elements-Ooi}
 \end{figure}
-
-$\alpha$ and $e$ describe the form of the orbit, $\theta$ (or $M$) defines the 
-position along the orbit and the remnianing three elements, $\Omega$, $\omega$ 
-and $i$ define the orientation of the orbit in space. Given these six elements, 
-it is always possible to uniquely calculate the state vector.
-
 
 \subsection{Perifocal Coordinate System}
 The \emph{perifocal coordinate system} (often designated \emph{PQW}) is 

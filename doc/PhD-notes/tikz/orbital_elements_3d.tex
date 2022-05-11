@@ -1,0 +1,66 @@
+%% see https://tex.stackexchange.com/questions/386030/how-to-draw-orbital-elements
+\tdplotsetmaincoords{70}{110}
+\begin{tikzpicture}[tdplot_main_coords,scale=5]
+  \pgfmathsetmacro{\r}{.8}
+  \pgfmathsetmacro{\O}{45} % right ascension of ascending node [deg]
+  \pgfmathsetmacro{\i}{30} % inclination [deg]
+  \pgfmathsetmacro{\f}{35} % true anomaly [deg]
+
+  \coordinate (O) at (0,0,0);
+  
+  % rotate and plot orbital plane (so that the ecliptic goes above it)
+  \tdplotsetrotatedcoords{-\O}{\i}{0};
+  \tdplotdrawarc [tdplot_rotated_coords,fill opacity=0.8,fill=red!20]
+    {(O)}{\r}{0}{360}{}{};
+
+  % rotate back and plot the ecliptic RF
+  \tdplotsetrotatedcoords{\O}{-\i}{0};
+  \node at (0,-\r,0) [left,text width=4em] {Ecliptic Plane}; % name of plane
+  \tdplotdrawarc [dashed,fill=gray!10,fill opacity=0.9]
+    {(O)}{\r}{0}{360}{}{}; % draw plane and fill it
+  \draw [] (O) -- (\r,0,0); % x-axis, solid part
+  \draw [-stealth,dashed] (\r,0,0) -- (2*\r + \r /2,0,0) 
+    node[anchor=north east] {$\bm{x} (\aries)$}; % x-axis, dashed part
+  \draw [-stealth] (O) -- (0,\r,0) node[anchor=north west] {$\bm{y}$};
+  \draw [-stealth] (O) -- (0,0,\r) node[anchor=south] {$\bm{z}$};
+  
+  % rotate and plot the line of nodes
+  \tdplotsetrotatedcoords{\O}{0}{0};
+  \draw [tdplot_rotated_coords] (-1,0,0) -- (1,0,0) 
+    node [below right] {Line of Nodes};
+  \tdplotdrawarc[thick,-stealth]{(O)}{.33*\r}
+    {0}{\O}{anchor=north}{$\bm{\Omega}$} % Omega angle
+
+  % rotate back and plot the orbital RF
+  \tdplotsetrotatedcoords{-\O}{\i}{0};
+  % re-plot the part of the orbital plane above the ecliptic
+  \tdplotdrawarc [tdplot_rotated_coords,fill opacity=0.8,fill=red!20]
+    {(O)}{\r}{90}{270}{}{};
+  \begin{scope}[tdplot_rotated_coords]
+    \draw[red,-stealth] (O) -- (0,0,\r) node [above] {$\hat{\bm{h}}$};
+    \tdplotdrawarc[thick,-stealth,red]{(O)}{.33*\r}{90}{180}
+      {anchor=west}{$\bm{\omega}$};
+    \coordinate (Sat) at (180+\f:\r);
+    \draw [-stealth] (O) -- (Sat);
+    \filldraw [black] (Sat) circle (0.5pt) node[anchor=south west]{Sat};
+    \tdplotdrawarc[thick,-stealth,red]{(O)}{.33*\r}{180}{180+\f}
+      {anchor=south west}{$\bm{\theta}$};
+    \draw [thick] (O) -- (-\r,0,0) node[anchor=south west]{Periapsis/Perigee} ;
+  \end{scope}
+ 
+  % inclination ....
+  \pgfmathsetmacro\ANx{\r * cos(\O)}   
+  \pgfmathsetmacro\ANy{\r * sin(\O)}   
+  \coordinate (Shift) at (\ANx,\ANy,0);
+  \tdplotsetrotatedcoordsorigin{(Shift)};
+  \tdplotsetrotatedcoords{180}{90}{180+\O)};
+  %\begin{scope}[tdplot_rotated_coords]
+  %\draw [tdplot_rotated_coords,blue] (0,0,0) -- (\r,0,0) node{xx};
+  %\draw [tdplot_rotated_coords,blue] (0,0,0) -- (0,\r,0) node{yy};
+  %\draw [tdplot_rotated_coords,blue] (0,0,0) -- (0,0,\r) node{zz};
+  %\draw [tdplot_rotated_coords,black] (\r,0,0) circle (0.5pt) node[anchor=south west]{(r,0,0)};
+  \tdplotdrawarc[tdplot_rotated_coords,thick,stealth-,black]
+    {(Shift)}{0.2*\r}{0}{\i}{anchor=west}{$\bm{i}$};
+  %\end{scope}
+
+\end{tikzpicture}
