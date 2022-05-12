@@ -327,3 +327,130 @@ by \gls{iers}.
 Details on the position of the \gls{cip} in the \gls{gcrs} and implementation 
 details, can be found in \cite{CapitaineAndWallace2006} and 
 \cite{Capitaineetal2003a}.
+
+\section{Site Coordinates}
+\label{sec:site-coordinates}
+
+\emph{For the following we consider a site to mean a DORIS ground beacon.}
+
+\subsection{tl;dr}
+For consistency we are probably better off using DORIS site coordinates in the 
+PDOP realization. Appropriate source code has been added to extrapolate site 
+coordinates at a given epoch, using a corresponding DPOD \gls{sinex} file.
+
+\begin{tikzpicture}[node distance=2cm]
+\node (rnxin) [io] {DORIS RINEX};
+\node (parsehdr) [process, below of=rnxin] {Parse header; get sites id's};
+\node (xtrapolate) [process, below of=parsehdr] {Extrapolate coordinates};
+\node (snxin) [io, right of=xtrapolate, xshift=4cm] {DPOD SINEX};
+\node (out1) [io, below of=xtrapolate] {Site coordinates at requested epoch};
+\draw [arrow] (rnxin) -- (parsehdr);
+\draw [arrow] (parsehdr) -- (xtrapolate);
+\draw [arrow] (snxin) -- (xtrapolate);
+\draw [arrow] (xtrapolate) -- (out1);
+\end{tikzpicture}
+
+\subsection{DPOD}
+\label{ssec:pdop}
+For the analysis of DORIS observations, we need to have (at least approximate) 
+site coordinates for the observed DORIS sites/beacons. Note that in DORIS RINEX 
+v3 format \cite{DORISRNX3}, the RINEX files record all the observed sites at the 
+file header, using the fields (among others):
+\begin{itemize}
+    \item 4-character station code,
+    \item Station name (\textit{max 30characters long}) and 
+    \item DOMES number
+\end{itemize}
+
+Example:
+
+\begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
+\begin{BVerbatim}
+    51                                                      # OF STATIONS
+D01  AMVB AMSTERDAM                     91401S005  3   0    STATION REFERENCE
+D02  MAUB MARION ISLAND                 30313S005  3   0    STATION REFERENCE
+...
+D50  BADB BADARY                        12338S002  3   0    STATION REFERENCE 
+D51  GRFB GREENBELT                     40451S178  3   0    STATION REFERENCE
+\end{BVerbatim}
+\end{adjustbox}
+
+To match the sites with external sources (e.g. \gls{sinex} files), we will 
+normally use the 4-character station code and/or the domes number.
+
+In the meeting on the 15\textsuperscript{th} October 2021, it was suggested 
+that instead of ITRF(2014, ...) we should better use the \gls{ids} published DPOD 
+set of coordinates/veclocities (for better consistency). PDOP is a 
+``DORIS extension of the ITRF for Precise Orbit Determination'' estimated and 
+delivered by the \gls{ids} Combination Center; details can be found on the 
+\href{https://ids-doris.org/analysis-coordination/combination/dpod.html}{IDS DPOD webpage}.
+
+Currently (October 2021) the latest PDOP realization is DPOD2014 
+\cite{Moreaux2019118} and the latest release is 
+``August 2020 - version \#5 - \textbf{dpod2014\_0}'' \cite{Moreaux2020};
+the corresponding information files are published by 
+\href{ftp://cddis.gsfc.nasa.gov/pub/doris/products/dpod/dpod2014/}{cddis} and
+\href{ftp://doris.ensg.ign.fr/pub/doris/products/dpod/dpod2014/}{ign} in both 
+\gls{sinex} and ascii/text format. Of the two, we are going to use the 
+\gls{sinex} files (since they are more comprehensive, self-contained, capable 
+of holding much more detailed information and widely used is Satellite Geodesy). 
+
+Appropriate source code is written so as to be able to read and parse the DPOD 
+\gls{sinex} file(s) and extrapolate site coordinates to a desired epoch. The 
+sites we want to extrapolate coordinates for, are distinguished via their 
+4-character id.
+
+\subsection{Todo}
+\subsubsection{Coordinate Std Deviations}
+Also compute (extrapolated) coordinate stdandard deviations to go with the 
+computed coordinate components.
+
+\subsubsection{Ignored SINEX Sections}
+The \textbf{dpod2014\_0} \gls{sinex} file contains a couple of blocks that (at 
+this point) are not considered when parsing/extrapolating. These are 
+(\cite{Moreaux2020}):
+\begin{itemize}
+    \item SOLUTION/DISCONTINUITY: origin (ex: earthquake, beacon change, antenna problem...) of
+the position discontinuities
+    \item SOLUTION/DATA\_REJECT: periods of time not included in the combination
+    \item STATION/TO\_BE\_UPDATED: stations with non-negligible position change wrt DPOD2014v03
+\end{itemize}
+
+These are not crucial at this point but should be considered further on.
+
+\subsubsection{Technicalities}
+
+Main source code for the above is developed within the 
+\begin{itemize}
+    \item \href{https://github.com/xanthospap/libsinex}{sinex} and
+    \item \href{https://github.com/xanthospap/doris}{doris}
+\end{itemize}
+repositories.
+
+%The main function that does the work, is:
+%\begin{lstlisting}
+%#if __cplusplus >= 202002L
+%template <typename T>
+%    requires(T::is_of_sec_type && !std::is_same_v<T, dso::microseconds>)
+%#else
+%template <class T,
+%          typename = std::enable_if_t<(T::is_of_sec_type) &&
+%                                      (!std::is_same_v<T, dso::microseconds>)>>
+%#endif
+%int extrapolate_sinex_coordinates(
+%            const char *snx_fn, char **site_ids, int num_sites,
+%            const dso::datetime<T> &t) noexcept {
+%    dso::datetime<dso::microseconds> t_micro =
+%    t.template cast_to<dso::microseconds>();
+%return extrapolate_sinex_coordinates(snx_fn, site_ids, num_sites, t_micro);
+%}
+%\end{lstlisting}
+
+The following example (\href{https://github.com/xanthospap/doris/blob/main/test/test\_pdop\_crd.cc}{test\_pdop\_crd.cc}) 
+extrapolates the coordinates of all the sites recorded in a DORIS RINEX file using a DPOD 
+SINEX file. It is tested with the following SINEX files:
+\begin{itemize}
+    \item dpod2014\_053.snx
+\end{itemize}
+
+%\codelst{source/test_pdop_crd.cc}

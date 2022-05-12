@@ -3,9 +3,12 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \graphicspath{ {./../figures/} }
+\usepackage{pgfplots} % for ploting in latex
+\usetikzlibrary{pgfplots.groupplots} % pgf groupplots
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor,cancel}
+\usepackage{adjustbox} % e.g. wrap verbatim larger than linewidth
 \usepackage{fancyvrb} % Verbatim and coloring therein
 \usepackage{hyperref}
 \usepackage{imakeidx} % for index
@@ -134,9 +137,10 @@
 \newacronym{tcb}{TCB}{Barycentric Coordinate Time}
 \newacronym{tcg}{TCG}{Geocentric Coordinate Time}
 \newacronym{tt}{TT}{Terestrial Time}
+\newacronym{tai}{TAI}{International Atomic Time}
 \newacronym{eop}{EOP}{Earth Orientation Parameters}
-%\newacronym{}{}{}
-%\newacronym{}{}{}
+\newacronym{leo}{LEO}{Low Earth Orbit}
+\newacronym{sinex}{SINEX}{Solution INdependent EXchange Format}
 %\newacronym{}{}{}
 %\newacronym{}{}{}
 
@@ -157,7 +161,6 @@
 
 \include{chapters/doris_theory}
 \include{chapters/doris_rinex}
-\include{chapters/station_coordinates}
 \include{chapters/ground_segment}
 \include{chapters/satellite_orbits}
 \include{chapters/orbit_intergators}
