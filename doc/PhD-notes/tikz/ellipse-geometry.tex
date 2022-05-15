@@ -1,0 +1,168 @@
+\begin{tikzpicture}
+  \tikzstyle{every node}=[font=\scriptsize]
+  \pgfmathsetmacro\a{4.0}
+  \pgfmathsetmacro\e{0.7}
+  \pgfmathsetmacro\xstart{0}
+  \pgfmathsetmacro\ystart{0}
+  % geometry of ellipse
+  \pgfmathsetmacro\asqr{\a *\a}
+  \pgfmathsetmacro\esqr{\e *\e}
+  \pgfmathsetmacro\b{{\a * sqrt(1.0 - \e * \e)}}
+  \pgfmathsetmacro\bsqr{\b *\b}
+  \pgfmathsetmacro\c{{sqrt(\asqr - \bsqr)}}
+  % coordinates of center
+  \pgfmathsetmacro\xc{{\xstart - \a *cos(0)}}
+  \pgfmathsetmacro\yc{{\ystart - \a *sin(0)}}
+  % focal point (aka earth)
+  \pgfmathsetmacro\xe{\xc + \c }
+  \pgfmathsetmacro\ye{\yc }
+  % left focal point
+  \pgfmathsetmacro\xf{\xc - \c }
+  \pgfmathsetmacro\yf{\yc }
+  % true anomaly
+  \pgfmathsetmacro\v{120}
+  % point on ellipse, satellite
+  \pgfmathsetmacro\vr{{\v}}
+  \pgfmathsetmacro\p{{\a * (1e0 - \e * \e )}}
+  \pgfmathsetmacro\r{{\p / (1+\e*cos(\v))}}
+  \pgfmathsetmacro\xsat{{\r * cos(\v) - \xc}}
+  \pgfmathsetmacro\ysat{{\r * sin(\v ) - \yc}}
+  % semilatus rectum
+  \pgfmathsetmacro\vsr{{90}}
+  \pgfmathsetmacro\xsr{\xe}
+  \pgfmathsetmacro\xsrq{{\xsr - \xc}}
+  \pgfmathsetmacro\ysr{{\b *sqrt(1-(\xsrq *\xsrq)/\asqr) -\yc}}
+
+  % mark perigee
+  \node[] (perigee) 
+    at ( \xstart , \ystart )
+    {};
+  \draw[fill=black] (perigee) circle[radius=1pt];
+  \node[anchor=north west,align=center] () at (perigee){P\\Perigee};
+  
+  % mark empty focal point
+  \node[] (empty-focal) 
+    at ( \xf , \yf )
+    {};
+  \draw[fill=black] (empty-focal) circle[radius=1pt];
+  \node[anchor=north,align=center] () at (empty-focal){F'\\Empty Focus};
+  
+  % mark earth
+  \node[] (earth)
+    at ( \xe , \ye )
+    {};
+  \draw[fill=black] (earth) circle[radius=1pt];
+  \node[anchor=north,align=center] () at (earth){F\\Focus};
+  
+  % center
+  \node[] (center) at (\xc , \yc ) {};
+  \draw[fill=black] (center) circle[radius=1pt];
+  \node[anchor=north, align=center] () at (center){C\\Geometric Center};
+
+  % mark apogee
+  \node[] (apogee) 
+    at ({\xstart - \a *cos(0)+ \a *cos(180)}, {\ystart - \a *sin(0)+ \a *sin(180)})
+    {};
+  \draw[fill=black] (apogee) circle[radius=1pt];
+  \node[anchor=north east, align=center] () at (apogee){A\\Apogee};
+  
+  % ellipse arc
+  \draw[] ( \xstart , \ystart ) arc(0:360:\a cm and \b cm);
+  
+  % x-axis
+  \draw[] ($(apogee) - (.2,0)$)  -- ($(perigee)+(.2,0)$);
+
+  % true anomaly (coordinate system centered at F/Earth)
+  \pgfmathsetmacro\xsat{{\xe - \r * cos(180 -\v)}}
+  \pgfmathsetmacro\ysat{{\ye + \r * sin(180 -\v )}}
+  \coordinate (Shift) at (\xe,\ye,0);
+  \tdplotsetrotatedcoordsorigin{(Shift)}
+  \draw[tdplot_rotated_coords,black,-stealth] (0,0) -- ++(\v:\r) node[midway,below left,align=center] {Radius\\$r$};
+  \node[anchor=south west] () at (\xsat, \ysat) {Satellite};
+  \draw[tdplot_rotated_coords,fill=black] (\v:\r) circle[radius=1pt];
+  \tdplotdrawarc[tdplot_rotated_coords,-stealth]
+        {(Shift)}{0.1*\b}{0}{\v}{anchor=south,align=center}{True Anomaly\\$\theta$};
+
+  % semilatus rectum
+  \draw[gray,thin] ($(perigee)+(.2,0)$) -- ($(perigee)+(.2,0)+(1.0,0)$);
+  \draw[gray,thin] ($(\xe,\ye)+(0,\b/1.8)$) -- ($(\xe,\ye)+(0,\b-\b/10)$);
+  \draw[gray,thin] ($(\xsr,\ysr)$) -- ($(perigee)+(.2,0)+(1.0,0)+(0,\ysr)$);
+  \path ($(perigee)+(.2,0)+(1.0,0)+(0,\ysr)$) 
+    -- node[align=center](semirec){$p=\alpha (1-e^2)$\\Semi-latus Rectum}
+    ($(perigee)+(.2,0)+(1.0,0)$);
+  \draw[gray,stealth-] ($(\xstart,\ysr)+(.2,0)+(1.0,0)$) -- (semirec);
+  \draw[gray,-stealth] (semirec) -- ($(perigee)+(.2,0)+(1.0,0)$);
+
+  % satellite velocity
+  \pgfmathsetmacro\gfa{60} % angle gamma
+  \pgfmathsetmacro\bfa{90-\gfa} % angle beta
+  \pgfmathsetmacro\vel{{\r / 2}}
+  \pgfmathsetmacro\velx{{cos(\gfa) * \vel}}
+  \pgfmathsetmacro\vely{{sin(\gfa) * \vel}}
+  \coordinate (Shift) at (\xsat,\ysat);
+  \tdplotsetrotatedcoordsorigin{(Shift)}
+  \draw[tdplot_rotated_coords,gray,thin] (0,0) -- ++(\v:\vely);
+  \draw[tdplot_rotated_coords,black,-stealth] (0,0) -- ++(\v + \bfa : \vel) node[midway,above]{$\nu$};
+  \draw[tdplot_rotated_coords,black,thin,-stealth] (0,0) -- ++(\v+90:\velx) node[midway,below] {$\nu _n$};
+  \tdplotsetrotatedcoordsorigin{($(Shift)+(\v+90:\velx)$)}
+  \draw[tdplot_rotated_coords,black,thin,-stealth] (0,0) -- ++(\v:\vely) node[midway,below,xshift=-0.6ex] {$\nu _r$};
+  \tdplotdrawarc[tdplot_rotated_coords,-stealth]
+        {(Shift)}{0.1*\b}{\v+90}{\v+90-\gfa}{anchor=center,yshift=1ex}{$\gamma$};
+  \tdplotdrawarc[tdplot_rotated_coords,-stealth]
+        {(Shift)}{0.15*\b}{\v}{\v+\bfa}{anchor=center,yshift=1.0ex}{$\beta$};
+
+
+  % lower part dimensioning
+  % -----------------------
+  \pgfmathsetmacro\ygoff{{-\b / 4}}
+
+  % semi-major axis
+  \pgfmathsetmacro\ydaoff{{-\b -\b / 4}}
+  \draw[gray,thin] ($(apogee) +  (0, \ygoff)$) 
+    -- ($(apogee) +  (0, -\b -\b / 3)$);
+  \draw[gray,thin] ($(perigee) + (0, \ygoff)$) 
+    -- ($(perigee) + (0, -\b -\b / 3)$);
+  \draw[gray,thin] ($(center) +  (0, -\b -\b / 8)$) 
+    -- ($(center) + (0, -\b -\b / 3)$);
+  \path ($(apogee) +  (0, \ydaoff)$) 
+    --node[](alphaleft){$\alpha$} ($(center) + (0, \ydaoff)$);
+  \draw[gray,thin,stealth-] ($(apogee) +  (0, \ydaoff)$) -- (alphaleft);
+  \draw[gray,thin,-stealth] (alphaleft) -- ($(center) + (0, -\b \ygoff)$);
+  \path ($(center) +  (0, \ydaoff)$) 
+    -- node[align = center](alpharight){$\alpha$\\Semi-Major axis}
+      ($(perigee) + (0, \ydaoff)$);
+  \draw[gray,thin,stealth-] ($(center) +  (0, \ydaoff)$) -- (alpharight);
+  \draw[gray,thin,-stealth] (alpharight) -- ($(perigee) + (0, \ydaoff)$);
+  
+  % apogee radius
+  \pgfmathsetmacro\ydaroff{{-\b / 1.5}}
+  \draw[gray,thin] ($(\xe,\ye) +  (0, \ygoff)$) 
+    -- ($(\xe,\ye) +  (0, -\b / 1.2)$);
+  \path ($(apogee)+(0,\ydaroff)$)
+    -- node[align = center](apogeeradius){$r_\alpha =\alpha (1+e)$\\Apogee Radius}
+     ($(\xe,\ye)+(0,\ydaroff)$);
+  \draw[gray,stealth-] ($(apogee)+(0,\ydaroff)$) -- (apogeeradius);
+  \draw[gray,-stealth] (apogeeradius) -- ($(\xe,\ye)+(0,\ydaroff)$);
+  % perigee radius
+  \draw[gray, thin, -stealth] ($(\xe,\ye) + (- \a * \e / 5, \ydaroff + \a /8)$) -- ($(\xe, \ye) + (0,\ydaroff + \a /8)$);
+  \draw[gray, thin, -stealth] ($(perigee) + (\a * \e / 5, \ydaroff + \a /8)$) -- ($(perigee) + (0, \ydaroff + \a /8)$);
+  %\path ($(\xe, \ye) + (0,\ydaroff + \a /8)$)
+  %  -- node[align = center](perigeeradius){$r_p =\alpha (1-e)$\\Perigee Radius}
+  %  ($(perigee) + (0, \ydaroff + \a /8)$);
+  \node[anchor = west, align=center] () at ($(perigee) + (\a * \e / 5, \ydaroff + \a /8)$)
+    {$r_p =\alpha (1-e)$\\Perigee Radius};
+
+  % to foci
+  \pgfmathsetmacro\ydaroff{{-\b / 3}}
+  \draw[gray,thin] ($(\xf,\yf) +  (0, \ygoff)$)
+    -- ($(\xf,\yf) +  (0, -\b / 2)$);
+  \path ($(\xf,\yf) +  (0, \ydaroff)$) --node[](aeleft){$\alpha e$}($(\xc,\yc) +  (0, \ydaroff)$);
+  \draw[gray,thin,stealth-] ($(\xf,\yf)+(0,\ydaroff)$) -- (aeleft);
+  \draw[gray,thin,-stealth] (aeleft) -- ($(\xc,\yc) +  (0, \ydaroff)$);
+  \draw[gray,thin] ($(\xc,\yc) +  (0, \ygoff)$)
+    -- ($(\xc,\yc) +  (0, -\b / 2)$);
+  \path ($(\xc,\yc) +  (0, \ydaroff)$) --node[](aeright){$\alpha e$}($(\xe,\ye) +  (0, \ydaroff)$);
+  \draw[gray,thin,stealth-] ($(\xc,\yc)+(0,\ydaroff)$) -- (aeright);
+  \draw[gray,thin,-stealth] (aeright) -- ($(\xe,\ye) +  (0, \ydaroff)$);
+  
+\end{tikzpicture}

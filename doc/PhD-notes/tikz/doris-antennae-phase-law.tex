@@ -1,0 +1,47 @@
+\begin{tikzpicture}
+\pgfplotstableread{tikz/phase_law.dat}{\table}
+\begin{groupplot}[
+  group style={
+        group name= phase-law-plots,
+        group size=1 by 2,
+        xlabels at=edge bottom,
+        xticklabels at=edge bottom,
+        vertical sep=8pt,
+    },
+  %title={\texttt{patch type=quadratic spline}},
+  xmin=0, xmax=90,
+  ymin=-5, ymax=25,
+  xtick distance = 5,
+  ytick distance = 5,
+  grid = both,
+  minor tick num = 1,
+  major grid style = {lightgray},
+  minor grid style = {lightgray!25},
+  width = \textwidth,
+  height = 0.4\textwidth,
+  xlabel = {Zenith angle ($^{\circ}$)},
+]
+\nextgroupplot[]
+\addlegendimage{empty legend};
+%\addplot[blue, mark = *] table [x = {Zenith}, y = {Alcatel_1}] {\table};
+\addplot[mark=o,mark size=0.6pt] table [x = {Zenith}, y = {Alcatel_1}] {\table};
+\addlegendentry{\texttt{Alcatel Antenna}}[15 pt];
+\coordinate (top) at (rel axis cs:0,1);% coordinate at top of the first plot
+
+\nextgroupplot[]
+\addlegendimage{empty legend};
+\addplot[mark = *,mark size=0.6pt] table [x = {Zenith}, y = {Starec_1}] {\table};
+\addlegendentry{\texttt{Starec Antenna}}[15 pt];
+\coordinate (bot) at (rel axis cs:0,0);% coordinate at bottom of the last plot
+
+\end{groupplot}
+
+\path (top-|current bounding box.west)-- node[anchor=south,rotate=90] 
+  {Phase Correction for 2GHz ($mm$)} (bot-|current bounding box.west);
+
+\path (top-|current bounding box.west) --
+  node[anchor=south]{\textbf{DORIS Antennae Phase Law}} 
+  (top-|current bounding box.east);
+%\node (title) at ($(group c1r1.center)!0.5!(group c2r1.center)+(0,2cm)$) 
+%  {DORIS Antenae Phase Law};
+\end{tikzpicture}

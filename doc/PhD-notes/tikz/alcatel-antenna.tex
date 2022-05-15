@@ -1,3 +1,6 @@
+\tikzset{cross/.style={cross out, draw=red, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt},
+%default radius will be 1pt. 
+cross/.default={1pt}}
 \begin{tikzpicture}
     \draw (2,-2) -- (2,-7); %% left vertical
     \coordinate (LT) at (2,-2);

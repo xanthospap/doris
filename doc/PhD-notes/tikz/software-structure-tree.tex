@@ -1,0 +1,18 @@
+\begin{tikzpicture}[thick,scale=0.6, every node/.style={transform shape}]
+  \path[mindmap,concept color=black,text=white]
+    node[concept] {My Software}
+    [clockwise from=0]
+    child[concept color=green!50] {
+      node[concept] {ggdatetime}
+      %[clockwise from=90]
+      %child { node[concept] {algorithms} }
+    }
+    child[concept color=blue!50] {
+      node[concept] {sp3}
+      %[clockwise from=-30]
+      %child { node[concept] {databases} }
+    }
+    child[concept color=red!50]    { node[concept] {ggeodesy} }
+    child[concept color=orange!50] { node[concept] {iers2010} }
+    child[concept color=purple!50] { node[concept] {sinex} };
+\end{tikzpicture}

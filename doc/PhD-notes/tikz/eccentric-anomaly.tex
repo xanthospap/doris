@@ -1,9 +1,9 @@
 \begin{tikzpicture}
-  \def\a{4}
-  \def\e{0.6}
-  \def\E{30}
-  \def\xstart{0}
-  \def\ystart{0}
+  \pgfmathsetmacro\a{4}
+  \pgfmathsetmacro\e{0.6}
+  \pgfmathsetmacro\E{30}
+  \pgfmathsetmacro\xstart{0}
+  \pgfmathsetmacro\ystart{0}
 
   % geometry of ellipse
   \pgfmathsetmacro\b{{\a * sqrt(1.0 - \e * \e)}}
@@ -61,7 +61,7 @@
   \node[] (earth) 
     at ( \xf , \yf ){};
   \node[anchor=north] () 
-    at (earth){$M_{\oplus}$};
+    at (earth){$M_\Earth$};
 
   % lines ...
   \draw[red] (\xa , \yc ) -- (\xa , \ya );

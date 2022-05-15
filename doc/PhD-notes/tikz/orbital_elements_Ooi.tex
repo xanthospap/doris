@@ -1,16 +1,15 @@
 %% https://tex.stackexchange.com/questions/386030/how-to-draw-orbital-elements
 \tdplotsetmaincoords{70}{165}
-\def\r{3.5}
+\pgfmathsetmacro\r{3.5}
 \pgfmathsetmacro{\inclination}{35}
 \pgfmathsetmacro{\nuSatellite}{55}
 \pgfmathsetmacro{\OmegaAngle}{-290}
 \pgfmathsetmacro{\omegaSatellite}{90}
 
-\tdplotsetmaincoords{70}{165}
 \begin{tikzpicture}[tdplot_main_coords]
 
     % Earth
-    \fill (0,0) coordinate (O) circle (3pt) node[left=7pt] {$M_\oplus$};
+    \fill (0,0) coordinate (O) circle (3pt) node[left=7pt] {$M_\Earth$};
             
     % Draw equatorial plane
     \draw[] (0,-\r,0) -- 
