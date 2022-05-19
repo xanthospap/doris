@@ -222,10 +222,10 @@ A perturbing force is \emph{conservative}\footnote{
 A force field $\bm{F}$ is is called a conservative force if it meets one of the 
 following three demands:
   \begin{enumerate}
-    \item the \emph{curl} of $\bm{F}$ is zero:\begin{equation}\nabla \times \bm{F} = \bm{0}\end{equation}
+    \item the \emph{curl} of $\bm{F}$ is zero:\begin{equation}\vec{\nabla} \times \bm{F} = \bm{0}\end{equation}
     \item there is zero net work done by the force when moving a particle 
       through a loop trajectory:\begin{equation}W \equiv \oint _C \bm{F}d\bm{r}=0 \end{equation}
-    \item the force can be written as the gradient of a potential:\begin{equation}\bm{F}=-\nabla U\end{equation}
+    \item the force can be written as the gradient of a potential:\begin{equation}\bm{F}=-\vec{\nabla} U\end{equation}
   \end{enumerate}
   } if it is derivable from a scalar 
 function:
@@ -242,17 +242,67 @@ following discussion of a more realistic model is adopted, where it is convenien
 to use an equivalent representation involving the gradient of the corresponding 
 gravity potential \(U\)
 \begin{equation}
-    \ddot{\vec{r}} = \nabla U \textrm{ where } U = G M_{\Earth} \frac{1}{r}
+    \label{eq:geopotential}
+    \ddot{\bm{r}} = \nabla U \textrm{ where } U = G M_{\Earth} \frac{1}{r}
 \end{equation}
 
-This expression for the potential may easily be generalized to an arbitrary mass
-distribution by summing up the contributions created by individual mass elements
+Models for the geopotential usually describe the static part of the field. For 
+precision applications, time varying effects should also be taken into account. 
+According to \cite{iers2010}, these are:
+\begin{itemize}
+  \item secular variations of coefficients,
+  \item solid Earth tides,
+  \item ocean tides,
+  \item solid Earth pole tide and
+  \item ocean pole tide
+\end{itemize}
+
+The expression for the potential (\ref{eq:geopotential}) may easily be 
+generalized to an arbitrary mass distribution by summing up the contributions 
+created by individual mass elements
 \(dm = \rho(\vec{s}) d^3 \vec{s}\) according to (\cite{Montenbruck2000})
 \begin{equation}
     U = G \int{\frac{\rho(\vec{s}) d^3 \vec{s}}{\lvert \vec{r} - \vec{s} \rvert}}
 \end{equation}
 
-For computations, the Earth's gravity potential at point \((\phi , \lambda)\) 
+
+\subsection{Earth's Geopotential Models}
+The geopotential field $U$ at the point $(r, \phi , \lambda )$ is expanded in 
+spherical harmonics up to degree $N$, as
+\begin{equation}
+  \label{eq:iers201061}
+  U(r, \phi , \lambda ) = \frac{G M_{\Earth}}{r} \sum_{n=0}^N 
+    {\left(\frac{\alpha _e}{r}\right)}^n 
+     \sum_{m=0}^n \left[ \bar{C}_{nm} \cos {m \lambda} + \bar{S}_{nm} \sin{m \lambda} \right] 
+     \bar{P}_{nm}( \sin \phi )
+\end{equation}
+with $\bar{S}_{n0} = 0$ and $\bar{C}_{nm}$, $\bar{S}_{nm}$ the normalized 
+geopotential coefficients the normalized. $\bar{P}_{nm}$ are the normalized 
+associated Legendre functions, related to the unnormalized ones by:
+\begin{subequations}
+  \begin{align}
+    \bar{P}_{nm} &= N_{nm} P_{nm} \label{eq:iers201062a} \\
+    N_{nm} &= \sqrt{\frac{(n-m)!(2n+1)(2-\delta _{0m})}{(n+m)!}} 
+      \quad \delta _{0m} = 
+        \begin{cases}
+          1 \quad \text{ if } m = 0 \\
+          0 \quad \text{ if } m \neq 0
+        \end{cases}
+        \label{eq:iers201062b}
+  \end{align}
+\end{subequations}
+Correspondingly, the normalized and unnormalized geopotential coefficients are 
+related by:
+\begin{subequations}
+  \begin{align}
+    C_{nm} &= N_{nm} \bar{C}_{nm} \\
+    S_{nm} &= N_{nm} \bar{S}_{nm}
+  \end{align}
+\end{subequations}
+
+
+\subsubsection{Static Geopotential Models}
+For computations, the Earth's gravity potential at point $(r, \phi , \lambda )$
 can be approximated using a spherical harmonics expansion 
 (e.g. \cite{Montenbruck2000})
 \begin{equation}
@@ -263,7 +313,7 @@ can be approximated using a spherical harmonics expansion
 
 with the coefficients \(C_{nm}\) and \(S_{nm}\) describing the dependence on the 
 Earth's internal mass distribution. These coefficients can be extracted from a 
-suitable  \emph{geopotential model}.
+suitable geopotential model.
 
 Note that Geopotential coefficients with \(m=0\) are called  \emph{zonal} coefficients, 
 since they describe the part of the potential that does not depend on the longitude. 
@@ -279,7 +329,7 @@ Note that these expressions, use the \underline{non-normalized} harmonic
 coefficients. 
 \end{minipage}}
 
-\subsection{Gravity Models}
+%\subsubsection{Gravity Models}
 The \href{http://icgem.gfz-potsdam.de/home}{International Centre for Global Earth Models (ICGEM)}  
 (\cite{icgempub}) web service hosts a large number of gravity field models, 
 published in what is called the \emph{The ICGEM-format}(\cite{ICGEMFormat}). 
@@ -287,6 +337,27 @@ published in what is called the \emph{The ICGEM-format}(\cite{ICGEMFormat}).
 Such static model files can be parsed and the respective harmonic coeefficients 
 (\(C_{nm}\) and \(S_{nm}\)) be used to compute satellite acceleration induced by 
 the geopotential.
+
+Practicaly, the degree and order used depends on the accuracy of the 
+application and can be truncated. According to \cite{iers2010}, truncation levels 
+providing a 3-dimensional orbit accuracy of better than \SI{0.5}{\mm} as a 
+function of orbit radius, are listed in \ref{table:egm2008-truncation-levels} 
+for EGM2008 (\cite{pavlisegm08}).
+
+\begin{table}
+\centering
+\begin{tabular}{c c c}
+ \hline
+ Orbit radius [km] & Example Satellite & Truncation level \\
+ \hline
+  7331  & Starlette & 90 \\
+  12270 & Lageos    & 20 \\
+  26600 & GPS       & 12 \\
+ \hline
+\end{tabular}
+\caption{Suggested truncation levels for use of EGM2008 at different orbits according to \cite{iers2010}.}
+\label{table:egm2008-truncation-levels}
+\end{table}
 
 \section{Sun and Moon Perturbing Acceleration}
 According to Newton's law of gravity, the acceleration of a satellite by a point 
