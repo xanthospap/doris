@@ -15,18 +15,15 @@ using dso::Vector3;
 int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3 &r,
                    dso::Vector3 &v, double GM) noexcept
 {
-  const double cf = std::cos(ele.true_anomaly());
-  const double sf = std::sin(ele.true_anomaly());
-
   // mean anomaly M at time t
-  constexpr const double a = ele.semimajor();
+  const double a = ele.semimajor();
   const double M = ele.mean_anomaly() + std::sqrt(GM/(a*a*a))*dt;
 
   // solve kepler's equation
-  constexpr const double e = ele.eccentricity();
+  const double e = ele.eccentricity();
   int ok;
   const double E = dso::kepler(e, M, ok);
-  if (ok) return ok;
+  // if (ok) return ok;
 
   // perifocal coordinates (see Montenbruck 2.2.3)
   const double cE = std::cos(E);
@@ -51,6 +48,8 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3
   // rotate to get equatorial, aka geocentric/(quasi-)inertial
   r = T * rf;
   v = T * vf;
+
+  return ok;
 }
 
 int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,

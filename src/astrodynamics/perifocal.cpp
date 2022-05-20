@@ -1,6 +1,29 @@
 #include "astrodynamics.hpp"
 #include <iers2010/matvec.hpp>
 
+// transformation is: r_eq = T r_pf
+dso::Mat3x3 perifocal2equatorial_matrix(double Omega, double omega,
+                                        double i) noexcept {
+  const double cO = std::cos(Omega);
+  const double sO = std::sin(Omega);
+  const double co = std::cos(omega);
+  const double so = std::sin(omega);
+  const double ci = std::cos(i);
+  const double si = std::sin(i);
+
+  const double m00 = cO * co - sO * so * ci;
+  const double m01 = -cO * so - sO * co * ci;
+  const double m02 = sO * si;
+  const double m10 = sO * co + cO * so * ci;
+  const double m11 = -sO * so + cO * co * ci;
+  const double m12 = -cO * si;
+  const double m20 = sO * si;
+  const double m21 = cO * si;
+  const double m22 = ci;
+
+  return dso::Mat3x3({m00, m01, m02, m10, m11, m12, m20, m21, m22});
+}
+
 void compute_perifocal(double a, double e, double E, double GM, dso::Vector3 &r,
                        dso::Vector3 &v) noexcept {
   const double sE = std::sin(E);
@@ -19,9 +42,6 @@ void compute_perifocal(double a, double e, double E, double GM, dso::Vector3 &r,
 int dso::elements2perifocal(const dso::OrbitalElements &ele, double E,
                             double GM, dso::Vector3 &r,
                             dso::Vector3 &v) noexcept {
-  const double a = ele.semimajor();
-  const double e = ele.eccentricity();
-
   compute_perifocal(ele.semimajor(), ele.eccentricity(), E, GM, r, v);
 
   return 0;
@@ -58,27 +78,4 @@ int dso::equatorial2perifocal(const dso::OrbitalElements &ele,
   rp = T * re;
   vp = T * ve;
   return 0;
-}
-
-// transformation is: r_eq = T r_pf
-dso::Mat3x3 perifocal2equatorial_matrix(double Omega, double omega, double i) noexcept {
-  const double cO = std::cos(Omega);
-  const double sO = std::sin(Omega);
-  const double co = std::cos(omega);
-  const double so = std::sin(omega);
-  const double ci = std::cos(i);
-  const double si = std::sin(i);
-
-
-  const double m00 = cO * co - sO * so * ci;
-  const double m01 = -cO * so - sO * co * ci;
-  const double m02 = sO * si;
-  const double m10 = sO * co + cO * so * ci;
-  const double m11 = -sO * so + cO * co * ci;
-  const double m12 = -cO * si;
-  const double m20 = sO * si;
-  const double m21 = cO * si;
-  const double m22 = ci;
-  
-  return dso::Mat3x3({m00, m01, m02, m10, m11, m12, m20, m21, m22});
 }

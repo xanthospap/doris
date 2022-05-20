@@ -84,6 +84,12 @@ int elements2perifocal(const OrbitalElements &ele, double E,
                             Vector3 &v) noexcept;
 int elements2perifocal(const OrbitalElements &ele, double GM,
                             Vector3 &r, Vector3 &v) noexcept;
+int perifocal2equatorial(const dso::OrbitalElements &ele,
+                         const dso::Vector3 &rp, const dso::Vector3 &vp,
+                         dso::Vector3 &re, dso::Vector3 &ve) noexcept;
+int equatorial2perifocal(const dso::OrbitalElements &ele,
+                         const dso::Vector3 &re, const dso::Vector3 &ve,
+                         dso::Vector3 &rp, dso::Vector3 &vp) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity
