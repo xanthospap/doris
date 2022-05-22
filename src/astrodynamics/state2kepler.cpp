@@ -1,4 +1,5 @@
 #include "astrodynamics.hpp"
+#include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include <cmath>
 #include <iers2010/matvec.hpp>
@@ -12,12 +13,11 @@
 
 using dso::Vector3;
 
-int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3 &r,
-                   dso::Vector3 &v, double GM) noexcept
-{
+int dso::elements2state(const dso::OrbitalElements &ele, double dt,
+                        dso::Vector3 &r, dso::Vector3 &v, double GM) noexcept {
   // mean anomaly M at time t
   const double a = ele.semimajor();
-  const double M = ele.mean_anomaly() + std::sqrt(GM/(a*a*a))*dt;
+  const double M = ele.mean_anomaly() + std::sqrt(GM / (a * a * a)) * dt;
 
   // solve kepler's equation
   const double e = ele.eccentricity();
@@ -28,11 +28,11 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3
   // perifocal coordinates (see Montenbruck 2.2.3)
   const double cE = std::cos(E);
   const double sE = std::sin(E);
-  const double f = std::sqrt((1e0-e)*(1e0+e)); // aka (1-e^2)^(1/2)
-  const double rmag = a*(1e0-e*cE);
-  const dso::Vector3 rf({a*(cE-e), a*f*sE, 0e0});
-  const double vmag = std::sqrt(GM*a) / rmag;
-  const dso::Vector3 vf({-vmag*sE,vmag*f*cE, 0e0});
+  const double f = std::sqrt((1e0 - e) * (1e0 + e)); // aka (1-e^2)^(1/2)
+  const double rmag = a * (1e0 - e * cE);
+  const dso::Vector3 rf({a * (cE - e), a * f * sE, 0e0});
+  const double vmag = std::sqrt(GM * a) / rmag;
+  const dso::Vector3 vf({-vmag * sE, vmag * f * cE, 0e0});
 
   // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
   const double sO = std::sin(ele.Omega());
@@ -41,10 +41,10 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3
   const double co = std::cos(ele.omega());
   const double si = std::sin(ele.inclination());
   const double ci = std::cos(ele.inclination());
-  const dso::Mat3x3 T({cO*co - sO*so*ci, -cO*so - sO*co*ci, sO*si,
-                       sO*co + cO*so*ci, -sO*so + cO*co*ci, -cO*si,
-                       so*si,             co*si,            ci});
-  
+  const dso::Mat3x3 T({cO * co - sO * so * ci, -cO * so - sO * co * ci, sO * si,
+                       sO * co + cO * so * ci, -sO * so + cO * co * ci,
+                       -cO * si, so * si, co * si, ci});
+
   // rotate to get equatorial, aka geocentric/(quasi-)inertial
   r = T * rf;
   v = T * vf;
@@ -53,39 +53,44 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt, dso::Vector3
 }
 
 int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
-                   dso::OrbitalElements &ele, double GM) noexcept {
+                        dso::OrbitalElements &ele, double GM) noexcept {
   const Vector3 h = r.cross_product(v);
   const double hmag = h.norm();
 
-  ele.Omega() = std::fmod(std::atan2(h.x(), -h.y()), iers2010::D2PI);
-  ele.inclination() = std::atan2(std::sqrt(h.x()*h.x()+h.y()*h.y()), h.y());
-  
+  ele.Omega() = dso::norm_angle<double, dso::AngleUnit::Radians>(
+      std::atan2(h.x(), -h.y()));
+  ele.inclination() =
+      std::atan2(std::sqrt(h.x() * h.x() + h.y() * h.y()), h.z());
+
   // argument of latitude
-  const double u = std::atan2(r.z() * hmag, -r.x()*h.y()+r.y()*h.x());
-  
+  const double u = std::atan2(r.z() * hmag, -r.x() * h.y() + r.y() * h.x());
+
   const double rmag = r.norm();
-  ele.semimajor() = 1e0 / (2e0/rmag - v.dot_product(v)/GM);
+  ele.semimajor() = 1e0 / (2e0 / rmag - v.dot_product(v) / GM);
   const double a = ele.semimajor();
 
-  const double eCosE = 1e0 - rmag/a;
-  const double eSinE = r.dot_product(v) / std::sqrt(GM*a);
-  const double e2 = eCosE*eCosE + eSinE*eSinE;
-  
+  const double eCosE = 1e0 - rmag / a;
+  const double eSinE = r.dot_product(v) / std::sqrt(GM * a);
+  const double e2 = eCosE * eCosE + eSinE * eSinE;
+
   ele.eccentricity() = std::sqrt(e2);
 
   // eccentric anomaly
-  const double E = std::atan2(eSinE,eCosE);
+  const double E = std::atan2(eSinE, eCosE);
 
-  ele.mean_anomaly() = std::fmod(E-eSinE, iers2010::D2PI);
-  const double true_anomaly = std::atan2(std::sqrt(1e0-e2)*eSinE, eCosE-e2);
-  ele.omega() = std::fmod(u-true_anomaly, iers2010::D2PI);
+  ele.mean_anomaly() =
+      dso::norm_angle<double, dso::AngleUnit::Radians>(E - eSinE);
+  const double true_anomaly =
+      std::atan2(std::sqrt(1e0 - e2) * eSinE, eCosE - e2);
+  ele.omega() =
+      dso::norm_angle<double, dso::AngleUnit::Radians>(u - true_anomaly);
 
   return 0;
 }
 
 int dso::alternatives::state2kepler_montenbruck(const double *state,
-                                            double *keplerian,
-                                            double m) noexcept {
+                                                double *keplerian,
+                                                double m) noexcept {
   // split to position and velocity vectors
   const Vector3 r(Vector3::to_vec3(state));
   const Vector3 v(Vector3::to_vec3(state + 3));
@@ -94,23 +99,23 @@ int dso::alternatives::state2kepler_montenbruck(const double *state,
   const Vector3 h = r.cross_product(v);
   const double hmag = h.norm();
   keplerian[0] = hmag;
-  const Vector3 W{{h.x()/hmag, h.y()/hmag, h.z()/hmag}};
+  const Vector3 W{{h.x() / hmag, h.y() / hmag, h.z() / hmag}};
 
-  keplerian[1] = std::atan2(std::sqrt(W.x()*W.x()+W.y()*W.y()), W.z());
+  keplerian[1] = std::atan2(std::sqrt(W.x() * W.x() + W.y() * W.y()), W.z());
   keplerian[2] = std::atan2(W.x(), -W.y());
 
   const double p = h.norm_squared() / m;
-  const double a = 1e0 / ( (2e0/rmag) - (v.norm_squared() / m) );
-  const double n = std::sqrt(m / (a*a*a));
-  const double e = std::sqrt(1e0 - (p/a));
+  const double a = 1e0 / ((2e0 / rmag) - (v.norm_squared() / m));
+  const double n = std::sqrt(m / (a * a * a));
+  const double e = std::sqrt(1e0 - (p / a));
   keplerian[3] = e;
 
-  const double E = atan2(r.dot_product(v)/a*a/n, 1e0-rmag/a);
+  const double E = atan2(r.dot_product(v) / a * a / n, 1e0 - rmag / a);
   const double sE = std::sin(E);
   // const double M = E - e * sE;
 
-  const double u = std::atan2(r.z(), -r.x()*W.y() + r.y()*W.x());
-  const double t = std::atan2(std::sqrt(1e0-e*e) * sE, std::cos(E)-e);
+  const double u = std::atan2(r.z(), -r.x() * W.y() + r.y() * W.x());
+  const double t = std::atan2(std::sqrt(1e0 - e * e) * sE, std::cos(E) - e);
   keplerian[4] = u - t;
   keplerian[5] = t;
 
@@ -137,17 +142,20 @@ int dso::alternatives::state2kepler_vallado(const double *state,
   double enorm = e.norm();
   keplerian[3] = enorm;
 
-//  const double ksi = v.norm_squared() / 2e0 - m / rnorm;
-//#ifdef BRANCHLESS
-//  double alpha = -m / (1e0 * ksi) +
-//          (enorm == 1e0) * std::numeric_limits<double>::infinity(); // [return]
-//  double rho = (enorm != 1e0) * (alpha * (1e0 - enorm * enorm)) +
-//        (enorm == 1e0) * (h.norm_squared() / m);
-//#else
-//  double alpha =
-//      (enorm == 1e0) ? std::numeric_limits<double>::infinity() : -m / (1e0 * ksi);
-//  double rho = (enorm == 1e0) ? (h.norm_squared() / m) : alpha * (1e0 - enorm * enorm);
-//#endif
+  //  const double ksi = v.norm_squared() / 2e0 - m / rnorm;
+  //#ifdef BRANCHLESS
+  //  double alpha = -m / (1e0 * ksi) +
+  //          (enorm == 1e0) * std::numeric_limits<double>::infinity(); //
+  //          [return]
+  //  double rho = (enorm != 1e0) * (alpha * (1e0 - enorm * enorm)) +
+  //        (enorm == 1e0) * (h.norm_squared() / m);
+  //#else
+  //  double alpha =
+  //      (enorm == 1e0) ? std::numeric_limits<double>::infinity() : -m / (1e0 *
+  //      ksi);
+  //  double rho = (enorm == 1e0) ? (h.norm_squared() / m) : alpha * (1e0 -
+  //  enorm * enorm);
+  //#endif
 
   keplerian[1] = std::acos(h.z() / hnorm);
 
