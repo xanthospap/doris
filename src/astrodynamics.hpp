@@ -55,11 +55,11 @@ struct OrbitalElements {
   /// [4]: Argument of pericenter, ω, [rad], range [0,2π]
   /// [5]: Mean Anomaly M [rad]
   double elements[7];
-  constexpr double& semimajor() noexcept {return elements[0];}
+  constexpr double& semimajor()    noexcept {return elements[0];}
   constexpr double& eccentricity() noexcept {return elements[1];}
-  constexpr double& inclination() noexcept {return elements[2];}
-  constexpr double& Omega() noexcept {return elements[3];}
-  constexpr double& omega() noexcept {return elements[4];}
+  constexpr double& inclination()  noexcept {return elements[2];}
+  constexpr double& Omega()        noexcept {return elements[3];}
+  constexpr double& omega()        noexcept {return elements[4];}
   constexpr double& mean_anomaly() noexcept {return elements[5];}
   constexpr double semimajor()    const noexcept {return elements[0];}
   constexpr double eccentricity() const noexcept {return elements[1];}
