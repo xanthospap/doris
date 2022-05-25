@@ -8,20 +8,20 @@ namespace dso {
 
 template <int N, typename S> struct ExtendedKalmanFilter {
   dso::datetime<S> t;
-  eigen::Matrix<double, N, 1> x;
-  eigen::Matrix<double, N, N> P;
-  eigen::Matrix<double, N, 1> K;
+  Eigen::Matrix<double, N, 1> x;
+  Eigen::Matrix<double, N, N> P;
+  Eigen::Matrix<double, N, 1> K;
 
-  void initialize(const dso::datetime<S> &t0,
-                  const eigen::Matrix<double, N, 1> &x0,
-                  const eigen::Matrix<double, N, N> &P0) noexcept {
+  ExtendedKalmanFilter(const dso::datetime<S> &t0,
+                  const Eigen::Matrix<double, N, 1> &x0,
+                  const Eigen::Matrix<double, N, N> &P0) noexcept {
     t = t0;
     x = x0;
     P = P0;
   }
 
-  void initialize(const dso::datetime<S> &t0,
-                  const eigen::Matrix<double, N, 1> &x0,
+  ExtendedKalmanFilter(const dso::datetime<S> &t0,
+                  const Eigen::Matrix<double, N, 1> &x0,
                   const double *sigmas) noexcept {
     t = t0;
     x = x0;
@@ -31,24 +31,24 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   }
 
   void time_update(const dso::datetime<S> &tk,
-                   const eigen::Matrix<double, N, 1> &xk,
-                   const eigen::Matrix<double, N, N> &phi) noexcept {
+                   const Eigen::Matrix<double, N, 1> &xk,
+                   const Eigen::Matrix<double, N, N> &phi) noexcept {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose();
   }
 
   void time_update(const dso::datetime<S> &tk,
-                   const eigen::Matrix<double, N, 1> &xk,
-                   const eigen::Matrix<double, N, N> &phi,
-                   const eigen::Matrix<double, N, N> &Qdt) noexcept {
+                   const Eigen::Matrix<double, N, 1> &xk,
+                   const Eigen::Matrix<double, N, N> &phi,
+                   const Eigen::Matrix<double, N, N> &Qdt) noexcept {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose() + Qdt;
   }
 
   void observation_update(double z, double g, double sigma,
-                          const eigen::Matrix<double, N, 1> &H) noexcept {
+                          const Eigen::Matrix<double, N, 1> &H) noexcept {
     double inv_w = sigma * sigma;
     // kalman gain
     K = P * H / (inv_w + H * P * H);
@@ -56,7 +56,7 @@ template <int N, typename S> struct ExtendedKalmanFilter {
     x = x + K * (z - g);
     // covariance update (Joseph)
     auto KWm1Kt = (K * sigma) * (K * sigma).transpose();
-    auto ImKG = eigen::Matrix<double, N, N>::Identity() - K * H.transpose();
+    auto ImKG = Eigen::Matrix<double, N, N>::Identity() - K * H.transpose();
     P = ImKG * P * ImKG.transpose() + KWm1Kt;
   }
 
