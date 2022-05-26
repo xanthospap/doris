@@ -460,3 +460,88 @@ SINEX file. It is tested with the following SINEX files:
 
 \subsubsection{Local Level System}
 \label{sssec:local-level-system}
+
+The \emph{local level} or \emph{topocentric} coordinate system is widely used 
+when processing satellite data. The system is referred to the tangential plane 
+to the level surface at a point $P_i$ and to the local vertical (\cite{moritz}). 
+The axes $n_i$, $e_i$ and $u_i$ of this system, at the point $P_i$ correspond 
+to the north, east and up directions (\ref{fig:local-level-system}).
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.4\textwidth}
+      \centering
+      \input{tikz/local-level-system.tex}
+      \caption{Local level plane}
+      \label{fig:local-level-system-a}
+    \end{subfigure}
+    \quad
+    \quad
+    \begin{subfigure}{.4\textwidth}
+      \centering
+      \input{tikz/local-level-system-zoom.tex}
+      \caption{Azimouth and zenith angle}
+      \label{fig:local-level-system-b}
+    \end{subfigure}
+    \caption{Local level coordinate system}
+    \label{fig:local-level-system}
+\end{figure}
+
+\begin{equation}
+  \bm{n}_i = \begin{bmatrix} 
+    -\sin \phi \cos \lambda \\
+    -\sin \phi \sin \lambda \\
+    \cos \phi
+  \end{bmatrix}
+  \quad
+  \bm{e}_i = \begin{bmatrix} 
+    -\sin \lambda \\
+    \cos \lambda \\
+    0
+  \end{bmatrix}
+  \quad
+  \bm{u}_i = \begin{bmatrix} 
+    \cos \phi \cos \lambda \\
+    \cos \phi \sin \lambda \\
+    \sin \phi
+  \end{bmatrix}
+\end{equation}
+
+The components of the $\bm{x}_{ij}$ vector in the local level system 
+(\ref{fig:local-level-system-b})  are obtained by the projection of the geocentric 
+$\bm{X}_{ij}$ vector on to the local level axes, $\bm{n}_i$, $\bm{e}_i$ and 
+$\bm{u}_i$:
+\begin{equation}
+  \label{eq:moritz565}
+  \bm{x}_{ij} = \begin{bmatrix} n_{ij} \\ e_{ij} \\ u_{ij} \end{bmatrix} = 
+    \begin{bmatrix} 
+      \bm{n}_i \cdot \bm{X}_{ij} \\
+      \bm{e}_i \cdot \bm{X}_{ij} \\
+      \bm{u}_i \cdot \bm{X}_{ij}
+      \end{bmatrix}
+\end{equation}
+
+Stacking the vectors $\bm{n}_i$, $\bm{e}_i$ and $\bm{u}_i$ as columns in an 
+orthogonal matrix $\bm{D}_i$, i.e.
+\begin{equation}
+  \bm{D}_i = \begin{bmatrix}
+    -\sin \phi \cos \lambda & -\sin \lambda & \cos \phi \cos \lambda \\
+    -\sin \phi \sin \lambda & \cos \lambda  & \cos \phi \sin \lambda \\
+    \cos \phi & 0 & \sin \phi
+  \end{bmatrix}
+\end{equation}
+
+we can rewrite \ref{eq:moritz565} as (\cite{moritz})
+\begin{equation}
+  \bm{x}_{ij} = \bm{D}_i \bm{X}_{ij}
+\end{equation}
+
+Using the local level system, we can easily derive formulas for the 
+(ellipsoidal) azimouth $\alpha _{ij}$ and zenith distance $z_{ij}$, as:
+\begin{equation}
+  \begin{aligned}
+    s_{ij} &= \sqrt{ n^2_{ij} + e^2_{ij} + u^2_{ij}} \\
+    \tan{\alpha _{ij}} &= \frac{e_{ij}}{n_{ij}} \\
+    \cos{z_{ij}} &= \frac{u_{ij}}{s_{ij}}
+  \end{aligned}
+\end{equation}

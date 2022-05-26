@@ -1,0 +1,51 @@
+\tdplotsetmaincoords{75}{110}
+%
+\pgfmathsetmacro{\rvec}{.8}
+\pgfmathsetmacro{\thetavec}{40}
+\pgfmathsetmacro{\phivec}{35}
+%
+%\definecolor{darkgreen}{rgb}{0.1,0.7,0.1}
+
+\begin{tikzpicture}[scale=5,tdplot_main_coords]
+\coordinate (O) at (0,0,0);
+\draw[thick,->] (0,0,0) -- (1,0,0) node[anchor=north east]{$X$};
+\draw[thick,->] (0,0,0) -- (0,1,0) node[anchor=north west]{$Y$};
+\draw[thick,->] (0,0,0) -- (0,0,1) node[anchor=south]{$Z$};
+
+\tdplotsetcoord{C}{\rvec / 5}{90}{\phivec}
+%\filldraw[black] (C) circle (2pt) node[anchor=west]{Intersection point};
+\tdplotsetcoord{P}{\rvec}{\thetavec}{\phivec}
+\draw[-stealth,color=red,dashed] (C) -- (P);
+\draw[dashed, color=red, shorten >= -15pt ] (O) -- (Pxy);
+\tdplotdrawarc[-stealth]{(O)}{0.3}{0}{\phivec}{anchor=north}{$\bm{\lambda}$}
+\tdplotdrawarc[black]{(O)}{0.8}{0}{90}{}{}
+\tdplotdrawarc[dashed,black]{(O)}{0.8}{90}{180}{}{}
+%
+\tdplotsetthetaplanecoords{\phivec}
+\tdplotdrawarc[tdplot_rotated_coords,shorten <= 6.0pt, stealth-]{(0,0,0)}{0.4}{\thetavec}%
+{90}{right}{$\bm{\phi}$}
+\tdplotdrawarc[tdplot_rotated_coords]{(0,0,0)}{0.8}
+{0}{90}{}{} %% the local meridian
+
+% prime meridian
+\tdplotsetthetaplanecoords{0}
+\tdplotdrawarc[tdplot_rotated_coords]{(0,0,0)}{0.8}{0}{90}{left}
+  {\rotatebox[origin=cc]{85}{}}
+
+% Earth's meridian on Y axis
+\tdplotsetthetaplanecoords{90}
+\tdplotdrawarc[tdplot_rotated_coords,black]{(0,0,0)}{0.8}{0}{90}{}{}
+
+%
+\tdplotsetrotatedcoords{\phivec}{\thetavec}{0}
+\tdplotsetrotatedcoordsorigin{(P)}
+\draw[thick,tdplot_rotated_coords,-,draw=black,fill=black!10] (-0.1,-0.1,0)
+-- (-0.1,0.1,0) -- (0.1,0.1,0)  -- (0.1,-0.1,0)  -- cycle  ;
+\draw[thick,tdplot_rotated_coords,-stealth,black,thick] (0,0,0)
+-- (-0.3,0,0) node[anchor=west]{$\bm{\hat{n}}$};
+\draw[thick,tdplot_rotated_coords,-stealth,black,thick] (0,0,0)
+-- (0,0.3,0) node[anchor=south]{$\bm{\hat{e}}$};
+\draw[thick,tdplot_rotated_coords,-stealth,black,thick] (0,0,0)
+-- (0,0,0.3) node[anchor=west]{$\bm{\hat{u}}$};
+
+\end{tikzpicture}

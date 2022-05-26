@@ -1,0 +1,36 @@
+\tdplotsetmaincoords{70}{110}
+\begin{tikzpicture}[,tdplot_main_coords,scale=5]
+
+\pgfmathsetmacro{\ep}{0.7}
+\pgfmathsetmacro{\np}{0.6}
+\pgfmathsetmacro{\up}{0.7}
+\pgfmathsetmacro{\az}{40.6}
+\pgfmathsetmacro{\zen}{47.5}
+
+\coordinate (O) at (0,0,0);
+\draw[thick,->] (0,0,0) -- (1,0,0) node[anchor=north east]{$\bm{e} _i$};
+\draw[thick,->] (0,0,0) -- (0,1,0) node[anchor=north west]{$\bm{n} _i$};
+\draw[thick,->] (0,0,0) -- (0,0,1) node[anchor=west]{$\bm{u} _i$};
+
+\coordinate (P) at (\ep, \np, \up);
+\draw[black,fill=black] (P) circle (0.2pt);
+\node[circle,anchor=west] () at (P) {$P_j$};
+\draw[-stealth,color=black] (O) -- node[anchor=north west]{$\bm{x}_{ij}$} (P);
+\draw[black,fill=black] (O) circle (0.2pt);
+\node[circle,anchor=east] () at (O) {$P_i$};
+
+\coordinate (Pxyp) at (\ep, \np, 0);
+%\draw[black,fill=black] (Pxyp) circle (0.5pt);
+
+\draw[dashed, color=black] (O) -- (Pxyp);
+\draw[dashed, color=black] (P) -- (Pxyp);
+\draw[dashed, color=black] (Pxyp) -- (\ep, 0, 0);
+\draw[dashed, color=black] (Pxyp) -- (0, \np, 0);
+
+\tdplotdrawarc[stealth-]{(O)}{0.3}{\az}{90}{anchor=north west}{$\bm{\alpha _{ij}}$}
+
+\tdplotsetthetaplanecoords{\zen}
+\tdplotdrawarc[tdplot_rotated_coords]{(O)}{0.5}{0}%
+  {\zen}{-stealth,anchor=south west}{$\bm{z_{ij}}$}
+
+\end{tikzpicture}
