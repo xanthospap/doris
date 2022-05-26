@@ -104,13 +104,11 @@ int main() {
     Vector3 yv({state_prev(3), state_prev(4), state_prev(5)});
     double dt = (t.delta_sec(t0)).to_fractional_seconds();
     dso::propagate_state(iers2010::GMe, yr, yv, dt, r, v);
-
+    auto Phi = dso::state_partials(iers2010::GMe,
 
     Y(0) = r.x(); Y(1) = r.y(); Y(2) = r.z();
     Y(3) = v.x(); Y(4) = v.y(); Y(5) = v.z();
   }
-
-
 
   return 0;
 }
