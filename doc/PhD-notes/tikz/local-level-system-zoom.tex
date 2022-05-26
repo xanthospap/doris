@@ -15,7 +15,7 @@
 \coordinate (P) at (\ep, \np, \up);
 \draw[black,fill=black] (P) circle (0.2pt);
 \node[circle,anchor=west] () at (P) {$P_j$};
-\draw[-stealth,color=black] (O) -- node[anchor=north west]{$\bm{x}_{ij}$} (P);
+\draw[-Latex,color=black] (O) -- node[anchor=north west]{$\bm{x}_{ij}$} (P);
 \draw[black,fill=black] (O) circle (0.2pt);
 \node[circle,anchor=east] () at (O) {$P_i$};
 
@@ -27,10 +27,9 @@
 \draw[dashed, color=black] (Pxyp) -- (\ep, 0, 0);
 \draw[dashed, color=black] (Pxyp) -- (0, \np, 0);
 
-\tdplotdrawarc[stealth-]{(O)}{0.3}{\az}{90}{anchor=north west}{$\bm{\alpha _{ij}}$}
+\tdplotdrawarc[Latex-]{(O)}{0.3}{\az}{90}{anchor=north west}{$\bm{\alpha _{ij}}$}
 
 \tdplotsetthetaplanecoords{\zen}
-\tdplotdrawarc[tdplot_rotated_coords]{(O)}{0.5}{0}%
-  {\zen}{-stealth,anchor=south west}{$\bm{z_{ij}}$}
+\tdplotdrawarc[tdplot_rotated_coords]{(O)}{0.5}{0}{\zen}{Latex-,anchor=south west}{$\bm{z_{ij}}$}
 
 \end{tikzpicture}
