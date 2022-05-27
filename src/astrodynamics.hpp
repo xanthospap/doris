@@ -3,6 +3,8 @@
 
 #include "iers2010/iersc.hpp"
 #include "iers2010/matvec.hpp"
+#include "eigen3/Eigen/Dense"
+#include "eigen3/Eigen/Eigen"
 #include <limits>
 
 namespace utest {
@@ -93,7 +95,10 @@ int equatorial2perifocal(const dso::OrbitalElements &ele,
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
                          double dt, Vector3 &r, Vector3 &v) noexcept;
 int state_partials(dso::OrbitalElements &ele, double GM,
-                        double dt) noexcept;
+                        double dt, Eigen::Matrix<double,6,6> &dYda) noexcept;
+int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
+                         double dt, Vector3 &r, Vector3 &v,
+                         Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity

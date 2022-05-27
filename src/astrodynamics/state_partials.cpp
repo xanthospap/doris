@@ -1,7 +1,7 @@
 #include "astrodynamics.hpp"
 
 int dso::state_partials(dso::OrbitalElements &ele, double GM,
-                        double dt) noexcept {
+                        double dt, Eigen::Matrix<double,6,6> &dYda) noexcept {
   // compute perifocal coordinates
   const Vector3 r, v;
   if (elements2perifocal(ele, GM, r, v))
@@ -74,5 +74,5 @@ int dso::state_partials(dso::OrbitalElements &ele, double GM,
     dYdA(i,5) = dvdi.data[j];
   }
 
-  return dYdA;
+  return 0;
 }

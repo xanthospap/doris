@@ -14,6 +14,13 @@
 
 using dso::Vector3;
 
+Eigen::Matrix<double,6,1> rv2state(const Vector3 &r, const Vector3 &v) noexcept {
+  Eigen::Matrix<double,6,1> Y;
+  Y(0,0) = r.x(); Y(0,1) = r.y(); Y(0,2) = r.z();
+  Y(0,3) = v.x(); Y(0,4) = v.y(); Y(0,5) = v.z();
+  return Y;
+}
+
 // Ground station, Bangalore
 const Vector3 xsta({1344e3, 6069e3, 1429e3}); // [m]
 
@@ -90,6 +97,8 @@ int main() {
   P(3,3) = P(4,4) = P(5,5) = 1e2;
 
   dso::ExtendedKalmanFilter<6,dso::milliseconds> Filter(t0, Y, P);
+  Eigen::Matrix<double, 6, 6> Phi;
+  Eigen::Matrix<double, 6, 6> Phi_true;
 
   // measurements ...
   for (int i=0; i<6; i++) {
@@ -103,8 +112,14 @@ int main() {
     Vector3 yr({state_prev(0), state_prev(1), state_prev(2)});
     Vector3 yv({state_prev(3), state_prev(4), state_prev(5)});
     double dt = (t.delta_sec(t0)).to_fractional_seconds();
-    dso::propagate_state(iers2010::GMe, yr, yv, dt, r, v);
-    auto Phi = dso::state_partials(iers2010::GMe,
+    dso::propagate_state(GM, yr, yv, dt, r, v, Phi);
+
+    // time update
+    Filter.time_update(t, rv2state(r,v), Phi);
+
+    // truth orbit
+    Vector3 r_true, v_true;
+    dso::propagate_state(GM, svr0, svv0, dt, r_true, v_true, Phi_true);
 
     Y(0) = r.x(); Y(1) = r.y(); Y(2) = r.z();
     Y(3) = v.x(); Y(4) = v.y(); Y(5) = v.z();
