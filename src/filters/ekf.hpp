@@ -1,6 +1,7 @@
 #ifndef __EXTENDED_KALMAN_FILTER_HPP__
 #define __EXTENDED_KALMAN_FILTER_HPP__
 
+#include "iers2010/matvec.hpp"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Eigen"
 
@@ -11,6 +12,14 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   Eigen::Matrix<double, N, 1> x;
   Eigen::Matrix<double, N, N> P;
   Eigen::Matrix<double, N, 1> K;
+
+  Vector3 state_position_vector() const noexcept {
+    return Vector3({x(0), x(1), x(2)});
+  }
+  
+  Vector3 state_velocity_vector() const noexcept {
+    return Vector3({x(3), x(4), x(5)});
+  }
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
                   const Eigen::Matrix<double, N, 1> &x0,

@@ -58,27 +58,22 @@ int main() {
     auto t = t0;
     t.add_seconds(dso::milliseconds(static_cast<long>(dt * 1e3)));
 
-    // propagate state vector (t0, t)
-    // printf("\tinitial    state: %.3f %.3f %.3f %.3f %.3f %.3f\n", svr0.x(),
-    // svr0.y(), svr0.z(), svv0.x(), svv0.y(), svv0.z());
     if (dso::propagate_state(iers2010::GMe, svr0, svv0, dt, r, v)) {
       printf("ERROR, failed to propagate state!\n");
       return 1;
     }
-    // printf("\tpropagated state: %.3f %.3f %.3f %.3f %.3f %.3f\n", r.x(),
-    // r.y(), r.z(), v.x(), v.y(), v.z());
 
     // site-satellite vector, topocentric (eith limited precision)
     const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
     dso::Mat3x3 rz;
     rz.rotz(gmst);
     const Vector3 sat_ec = rz * r;
-    Vector3 neu;
+    Vector3 enu;
     dso::car2top<dso::ellipsoid::grs80>(xsta.x(), xsta.y(), xsta.z(),
                                         sat_ec.x(), sat_ec.y(), sat_ec.z(),
-                                        neu.x(), neu.y(), neu.z());
+                                        enu.x(), enu.y(), enu.z());
     double s, az, zen;
-    dso::top2daz(neu.x(), neu.y(), neu.z(), s, az, zen);
+    dso::top2daz(enu.x(), enu.y(), enu.z(), s, az, zen);
 
     printf("%s %.3f %.3f %.3f\n", dso::strftime_ymd_hmfs(t, buf),
            dso::rad2deg(az), dso::rad2deg(dso::DPI/2e0 - zen), s / 1e3);
@@ -121,8 +116,19 @@ int main() {
     Vector3 r_true, v_true;
     dso::propagate_state(GM, svr0, svv0, dt, r_true, v_true, Phi_true);
 
-    Y(0) = r.x(); Y(1) = r.y(); Y(2) = r.z();
-    Y(3) = v.x(); Y(4) = v.y(); Y(5) = v.z();
+    // site-satellite vector, topocentric (eith limited precision)
+    const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
+    dso::Mat3x3 rz;
+    rz.rotz(gmst);
+    const Vector3 rsat = Filter.state_position_vector();
+    const Vector3 sat_ec = rz * rsat;
+    Vector3 enu;
+    dso::car2top<dso::ellipsoid::grs80>(xsta.x(), xsta.y(), xsta.z(),
+                                        rsat.x(), rsat.y(), rsat.z(),
+                                        enu.x(), enu.y(), enu.z());
+    double s, az, zen;
+    dso::top2dae(*enu, double &distance, double &azimouth,
+                  double &elevation, double *dAdr, double *dEdr);
   }
 
   return 0;
