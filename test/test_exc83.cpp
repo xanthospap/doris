@@ -39,6 +39,8 @@ struct ObsType {
   double azim, elev, dist;
 };
 
+constexpr const double GM = iers2010::GMe;
+
 int main() {
 
   // a buffer to write datetime info
@@ -87,7 +89,7 @@ int main() {
   Y(0) = svr0.x() + 10e3; Y(1) = svr0.y() - 5e3; Y(2) = svr0.z()+1e3;
   Y(3) = svv0.x() - 1e0; Y(4) = svr0.y() + 3e0; Y(5) = svr0.z() - 5e-1;
   
-  Eigen::Matrix<double, N, N> P = Eigen::Matrix<double, N, N>::Zeros();
+  Eigen::Matrix<double, N, N> P = Eigen::Matrix<double, N, N>::Zero();
   P(0,0) = P(1,1) = P(2,2) = 1e8;
   P(3,3) = P(4,4) = P(5,5) = 1e2;
 
@@ -103,7 +105,7 @@ int main() {
     auto state_prev = Filter.x;
 
     // propagation to measurement epoch
-    auto t = Obs[i].t;
+    auto t = obs[i].t;
     Vector3 yr({state_prev(0), state_prev(1), state_prev(2)});
     Vector3 yv({state_prev(3), state_prev(4), state_prev(5)});
     double dt = (t.delta_sec(t0)).to_fractional_seconds();
@@ -116,7 +118,7 @@ int main() {
     Vector3 r_true, v_true;
     dso::propagate_state(GM, svr0, svv0, dt, r_true, v_true, Phi_true);
 
-    // site-satellite vector, topocentric (eith limited precision)
+    // site-satellite vector, topocentric (with limited precision)
     const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
     dso::Mat3x3 rz;
     rz.rotz(gmst);
@@ -126,9 +128,9 @@ int main() {
     dso::car2top<dso::ellipsoid::grs80>(xsta.x(), xsta.y(), xsta.z(),
                                         rsat.x(), rsat.y(), rsat.z(),
                                         enu.x(), enu.y(), enu.z());
-    double s, az, zen;
-    dso::top2dae(*enu, double &distance, double &azimouth,
-                  double &elevation, double *dAdr, double *dEdr);
+    double s, az, el;
+    Vector3 dAdr, dEdr;
+    dso::top2dae(enu.data, s, az, el, dAdr.data, dEdr.data);
   }
 
   return 0;
