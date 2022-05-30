@@ -2,7 +2,7 @@
 #define __DSO_ELEMENTARY_ASTRODYNAMICS_HPP__
 
 #include "iers2010/iersc.hpp"
-#include "iers2010/matvec.hpp"
+#include "matvec/matvec.hpp"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Eigen"
 #include <limits>
@@ -89,6 +89,8 @@ int elements2perifocal(const OrbitalElements &ele, double GM,
 int perifocal2equatorial(const dso::OrbitalElements &ele,
                          const dso::Vector3 &rp, const dso::Vector3 &vp,
                          dso::Vector3 &re, dso::Vector3 &ve) noexcept;
+Mat3x3 perifocal2equatorial_matrix(double Omega, double omega,
+                                        double i) noexcept;
 int equatorial2perifocal(const dso::OrbitalElements &ele,
                          const dso::Vector3 &re, const dso::Vector3 &ve,
                          dso::Vector3 &rp, dso::Vector3 &vp) noexcept;

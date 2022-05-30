@@ -1,9 +1,9 @@
 #include "astrodynamics.hpp"
 
 int dso::state_partials(dso::OrbitalElements &ele, double GM,
-                        double dt, Eigen::Matrix<double,6,6> &dYda) noexcept {
+                        double dt, Eigen::Matrix<double,6,6> &dYdA) noexcept {
   // compute perifocal coordinates
-  const Vector3 r, v;
+  Vector3 r, v;
   if (elements2perifocal(ele, GM, r, v))
     return 1;
 
@@ -38,40 +38,47 @@ int dso::state_partials(dso::OrbitalElements &ele, double GM,
   const auto dvdo = v_perif.x()*dPdo + v_perif.y()*dQdo;
 
   // Partials w.r.t. semimajor axis, eccentricity and mean anomaly at time dt
-  const double r = r_perif.norm();
+  const double R = r_perif.norm();
   const double a = ele.semimajor();
   const double e = ele.eccentricity();
   const double fac = (1e0 - e) * (1e0 + e);
   const auto drda = (r_perif.x() / a) * P + (r_perif.y() / a) * Q;
   const auto dvda =
       (-v_perif.x() / (2e0 * a)) * P + (-v_perif.y() / (2e0 * a)) * Q;
-  const auto drde = (-a - (r_perif.y / fac) * (r_perif.y / fac) / r) * P +
-                    (r_perif.x() * r_perif.y() / (r * fac * fac)) * Q;
+  const auto drde = (-a - (r_perif.y() / fac) * (r_perif.y() / fac) / R) * P +
+                    (r_perif.x() * r_perif.y() / (R * fac * fac)) * Q;
   const double n = std::sqrt(GM / (a * a * a));
   const auto dvde =
       (v_perif.x() *
        (2e0 * a * r_perif.x() + e * std::pow(r_perif.y() / fac, 2e0)) /
-       (r * r)) *
+       (R * R)) *
           P +
-      ((n / fac) * std::pow(a / r, 2e0) *
-       (r_perif.x() * r_perif.x() / r - std::pow(r_perif.y() / fac, 2e0) / a)) *
+      ((n / fac) * std::pow(a / R, 2e0) *
+       (r_perif.x() * r_perif.x() / R - std::pow(r_perif.y() / fac, 2e0) / a)) *
           Q;
   const auto drdM = (v_perif.x()*P+v_perif.y()*Q)/n;
-  const auto dvdM = (-n*std::pow(a/r,3e0))*(r_perif.x()*P + r_perif.y()*Q);
+  const auto dvdM = (-n*std::pow(a/R,3e0))*(r_perif.x()*P + r_perif.y()*Q);
 
   // Derivative of mean anomaly at time dt w.r.t. the semimajor axis at epoch
   const double dMda = -1.5e0 * (n/a) * dt;
 
   // Combined partial derivative matrix of state with respect to epoch elements
-  Eigen::Matrix<double, 6, 6> dYdA;
+  // Eigen::Matrix<double, 6, 6> dYdA;
   for (int i=0; i<3; i++) {
-    dYdA(i,0) = drda.data[j] + drdM.data[j] * dMda;
-    dYdA(i,1) = drde.data[j];
-    dYdA(i,2) = drdi.data[j];
+    dYdA(i,0) = drda.data[i] + drdM.data[i] * dMda;
+    dYdA(i,1) = drde.data[i];
+    dYdA(i,2) = drdi.data[i];
+    dYdA(i,3) = drdO.data[i];
+    dYdA(i,4) = drdo.data[i];
+    dYdA(i,5) = drdM.data[i];
+  }
   for (int i=3; i<6; i++) {
-    dYdA(i,3) = dvda.data[j] + dvdM.data[j] * dMda;
-    dYdA(i,4) = dvde.data[j];
-    dYdA(i,5) = dvdi.data[j];
+    dYdA(i,0) = dvda.data[i-3] + drdM.data[i-3] * dMda;
+    dYdA(i,1) = dvde.data[i-3];
+    dYdA(i,2) = dvdi.data[i-3];
+    dYdA(i,3) = dvdO.data[i-3];
+    dYdA(i,4) = dvdo.data[i-3];
+    dYdA(i,5) = dvdM.data[i-3];
   }
 
   return 0;

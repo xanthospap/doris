@@ -3,7 +3,7 @@
 
 #include "compact2dmat.hpp"
 #include "harmonic_coeffs.hpp"
-#include "iers2010/matvec.hpp"
+#include "matvec/matvec.hpp"
 
 namespace dso {
 

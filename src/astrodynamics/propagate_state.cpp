@@ -40,6 +40,7 @@ int dso::propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
 
   // cartesian to keplerian partial derivatives
   const double sqe2 = std::sqrt((1e0-e)*(1e0+e));
+  const double n    = std::sqrt(GM/(a*a*a));
   const double naa  = std::sqrt(GM/a)*a;
   const double P_aM = -2e0/(n*a);                   // P(a,M)     = -P(M,a)
   const double P_eM = -(1e0-e)*(1e0+e)/(naa*e);     // P(e,M)     = -P(M,e)
@@ -49,26 +50,29 @@ int dso::propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
 
 
   // Partials of epoch elements w.r.t. epoch state
-  for (int i=0; i<3; i++) {
-    dA0dY0(0,i) = P_am * dY0dA0(i+3,5);
-    dA0dY0(0,i+3) = - P_aM*dY0dA0(i, 5);
+  Eigen::Matrix<double, 6, 6> dA0dY0;
+  for (int j=0; j<3; j++) {
+    dA0dY0(0,j) = P_aM * dY0dA0(j+3,5);
+    dA0dY0(0,j+3) = - P_aM*dY0dA0(j, 5);
 
-    dA0dY0(1,i)   = + P_eo*dY0dA0(i+3,4) + P_eM*dY0dA0(i+3,5);
-    dA0dY0(1,i+3) = - P_eo*dY0dA0(i  ,4) - P_eM*dY0dA0(i  ,5);
+    dA0dY0(1,j)   = + P_eo*dY0dA0(j+3,4) + P_eM*dY0dA0(j+3,5);
+    dA0dY0(1,j+3) = - P_eo*dY0dA0(j  ,4) - P_eM*dY0dA0(j  ,5);
 
-    dA0dY0(2,i)   = + P_iO*dY0dA0(i+3,3) + P_io*dY0dA0(i+3,4);
-    dA0dY0(2,i+3) = - P_iO*dY0dA0(i  ,3) - P_io*dY0dA0(i  ,4);
+    dA0dY0(2,j)   = + P_iO*dY0dA0(j+3,3) + P_io*dY0dA0(j+3,4);
+    dA0dY0(2,j+3) = - P_iO*dY0dA0(j  ,3) - P_io*dY0dA0(j  ,4);
 
-    dA0dY0(3,i)   = - P_iO*dY0dA0(i+3,2);
-    dA0dY0(3,i+3) = + P_iO*dY0dA0(i  ,2);
+    dA0dY0(3,j)   = - P_iO*dY0dA0(j+3,2);
+    dA0dY0(3,j+3) = + P_iO*dY0dA0(j  ,2);
 
-    dA0dY0(4,i)   = - P_eo*dY0dA0(i+3,1) - P_io*dY0dA0(i+3,2);
-    dA0dY0(4,i+3) = + P_eo*dY0dA0(i  ,1) + P_io*dY0dA0(i  ,2);
+    dA0dY0(4,j)   = - P_eo*dY0dA0(j+3,1) - P_io*dY0dA0(j+3,2);
+    dA0dY0(4,j+3) = + P_eo*dY0dA0(j  ,1) + P_io*dY0dA0(j  ,2);
 
-    dA0dY0(5,i)   = - P_aM*dY0dA0(i+3,0) - P_eM*dY0dA0(i+3,1);
-    dA0dY0(5,i+3) = + P_aM*dY0dA0(i  ,0) + P_eM*dY0dA0(i  ,1);
+    dA0dY0(5,j)   = - P_aM*dY0dA0(j+3,0) - P_eM*dY0dA0(j+3,1);
+    dA0dY0(5,j+3) = + P_aM*dY0dA0(j  ,0) + P_eM*dY0dA0(j  ,1);
   }
 
   // state transition matrix
   dYdY0 = dYdA0 * dA0dY0;
+
+  return 0;
 }

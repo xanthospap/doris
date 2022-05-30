@@ -2,7 +2,7 @@
 #include <iers2010/matvec.hpp>
 
 // transformation is: r_eq = T r_pf
-dso::Mat3x3 perifocal2equatorial_matrix(double Omega, double omega,
+dso::Mat3x3 dso::perifocal2equatorial_matrix(double Omega, double omega,
                                         double i) noexcept {
   const double cO = std::cos(Omega);
   const double sO = std::sin(Omega);
