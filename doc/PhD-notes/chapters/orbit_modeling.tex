@@ -961,3 +961,59 @@ Thus, \(W^* = M^T W \) and since \(M\) is an orthogonal matrix, it follows that
 
 The numerical conditioning of \(W\) is generally much better than that of \(P\) (see
 e.g. \cite{lawson1995}, \cite{tapley}).
+
+\section{Partial Derivatives}
+
+\subsection{Partial Derivatives of Observations}
+Angle and distance measurements (to orbiting bodies) may be expressed as 
+functions of the \emph{topocentric local tangent} coordinates 
+(\ref{sssec:local-level-system}) 
+$\bm{r}_{enu} \equiv \begin{bmatrix}e & n & u \end{bmatrix}^T$, 
+which are related to the Earth-centered, space-fixed satellite position vector 
+$\bm{r}$ and the Earth-fixed station coordinates $\bm{R}$ by:
+\begin{equation}
+  \label{eq:mont791}
+  \bm{r}_{enu} = \bm{E} \left( \bm{U}(t) \bm{r}(t) - \bm{R} \right)
+\end{equation}
+with $\bm{U}(t)$ the matrix describing the transformation from space-fixed to 
+Earth-fixed coordinates, and
+\begin{equation}
+  \label{eq:mont792}
+  \bm{E} = \begin{bmatrix}
+    \hat{\bm{e}}^T_{east} \\
+    \hat{\bm{e}}^T_{north} \\
+    \hat{\bm{e}}^T_{up}
+    \end{bmatrix}
+\end{equation}
+the orthonormal matrix made up by the east, north and zenith unit vectors. The 
+partial derivatives of a range or angle observation $z$ may be expressed as 
+(\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont793}
+  \frac{\partial z}{\partial \bm{r}} 
+   = \frac{\partial z}{\partial \bm{r}_{enu}} \bm{E} \bm{U}
+\end{equation}
+
+\subsubsection{Azimouth}
+\label{sssec:azimouth}
+\begin{equation}
+  \label{eq:mont798}
+  \frac{\partial Az}{\partial \bm{r}} = \begin{bmatrix} 
+      \frac{n}{e^2 + n^2} \\
+      \frac{-e}{e^2 + n^2} \\
+      0 \end{bmatrix}^T
+    \bm{E} \bm{U}
+\end{equation}
+
+\subsubsection{Elevation}
+\label{sssec:elevation}
+\begin{equation}
+  \label{eq:mont799}
+  \frac{\partial El}{\partial \bm{r}} = 
+    \begin{bmatrix} 
+        \frac{-e u}{ \norm{\bm{r}_{enu}} ^2 \sqrt{e^2 + n^2}} \\
+        \frac{-n u}{ \norm{\bm{r}_{enu}} ^2 \sqrt{e^2 + n^2}} \\
+        \frac{\sqrt{e^2 + n^2}}{\norm{\bm{r}_{enu}}} 
+      \end{bmatrix}^T
+    \bm{E} \bm{U}
+\end{equation}

@@ -70,12 +70,9 @@ int main() {
     dso::Mat3x3 rz;
     rz.rotz(gmst);
     const Vector3 sat_ec = rz * r;
-    Vector3 enu;
-    dso::car2top<dso::ellipsoid::grs80>(xsta.x(), xsta.y(), xsta.z(),
-                                        sat_ec.x(), sat_ec.y(), sat_ec.z(),
-                                        enu.x(), enu.y(), enu.z());
+    Vector3 enu = dso::car2top<dso::ellipsoid::grs80>(xsta, sat_ec);
     double s, az, zen;
-    dso::top2daz(enu.x(), enu.y(), enu.z(), s, az, zen);
+    dso::top2daz(enu, s, az, zen);
 
     printf("%s %.3f %.3f %.3f\n", dso::strftime_ymd_hmfs(t, buf),
            dso::rad2deg(az), dso::rad2deg(dso::DPI/2e0 - zen), s / 1e3);
@@ -124,10 +121,8 @@ int main() {
     rz.rotz(gmst);
     const Vector3 rsat = Filter.state_position_vector();
     const Vector3 sat_ec = rz * rsat;
-    Vector3 enu;
-    dso::car2top<dso::ellipsoid::grs80>(xsta.x(), xsta.y(), xsta.z(),
-                                        rsat.x(), rsat.y(), rsat.z(),
-                                        enu.x(), enu.y(), enu.z());
+    Vector3 enu =
+    dso::car2top<dso::ellipsoid::grs80>(xsta, rsat);
     double s, az, el;
     Vector3 dAdr, dEdr;
     dso::top2dae(enu.data, s, az, el, dAdr.data, dEdr.data);
