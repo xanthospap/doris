@@ -1,5 +1,13 @@
 #
 ref/
+.sconsign.dblite
+*.ps
+*.pdf
+*.png
+*.jpg
+*.Z
+*.dat
+data/
 
 # MATLAB files
 *.m

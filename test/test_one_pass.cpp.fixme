@@ -11,6 +11,8 @@
 int apply_iono_correction = 1;
 int new_arc_on_discontinuity = 1;
 
+
+
 struct LatestBeaconData {
   ids::BeaconObservations obs {};
   dso::datetime<dso::nanoseconds> t;
@@ -298,8 +300,10 @@ int main(int argc, char* argv[])
   // transform coordinates to ellipsoidal; will be of use ...
   ids::BeaconCoordinates* crd_ell = new ids::BeaconCoordinates[rnx.stations().size()];
   for (int i = 0; i < (int)rnx.stations().size(); i++) {
-    dso::car2ell<dso::ellipsoid::grs80>(
-        crd[i].x, crd[i].y, crd[i].z, crd_ell[i].x, crd_ell[i].y, crd_ell[i].z);
+    dso::core::car2ell(crd[i].x, crd[i].y, crd[i].z,
+                       dso::ellipsoid_traits<dso::ellipsoid::grs80>::a,
+                       dso::ellipsoid_traits<dso::ellipsoid::grs80>::f, crd_ell[i].x,
+                       crd_ell[i].y, crd_ell[i].z);
   }
 
   // starec Iono-free PCO (do we have alcatele antennas?)
@@ -428,9 +432,11 @@ int main(int argc, char* argv[])
 
         // compute mapping functions (need zenith distance first)
         double north, east, up;
-        dso::car2top<dso::ellipsoid::grs80>(xyz[0], xyz[1], xyz[2], bpos_xyz->x,
-            bpos_xyz->y, bpos_xyz->z, north,
-            east, up);
+        dso::core::car2top(xyz[0], xyz[1], xyz[2],
+                           dso::ellipsoid_traits<dso::ellipsoid::grs80>::a,
+                           dso::ellipsoid_traits<dso::ellipsoid::grs80>::f,
+                           bpos_xyz->x, bpos_xyz->y, bpos_xyz->z, north, east,
+                           up);
         double distance, azimouth, zenith;
         dso::top2daz(north, east, up, distance, azimouth, zenith);
 #ifdef dEBUG

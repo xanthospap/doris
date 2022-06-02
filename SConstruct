@@ -80,6 +80,7 @@ penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wsha
 
 ## Command line arguments ...
 debug = ARGUMENTS.get('debug', 0)
+eigen = ARGUMENTS.get('eigen', 0)
 
 ## Construct the build enviroment
 env = denv.Clone() if int(debug) else penv.Clone()
@@ -98,6 +99,14 @@ if GetOption('branchls'): env.Append(CXXFLAGS=' -DBRANCHLESS')
 for key, value in ARGLIST:
     if key == 'count_kepler_iterations':
         env.Append(CXXFLAGS=' -DCOUNT_KEPLER_ITERATIONS')
+
+## !! Warning !!
+## This affects build of ggeodesy (header files)
+if eigen:
+    math_lib = ''
+    env.Append(CXXFLAGS=' -DUSE_EIGEN')
+else:
+    math_lib = 'matvec'
 
 ## (shared) library ...
 vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=['src/'], SHLIBVERSION=lib_version)

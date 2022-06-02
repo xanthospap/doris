@@ -1,10 +1,11 @@
 #include "sp3/sv_interpolate.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
-#include "geodesy/car2ell.hpp"
+#include "geodesy/geodesy.hpp"
 #include "iers2010/tropo.hpp"
 #include <algorithm>
 #include <cmath>
+#include "eigen3/Eigen/Eigen"
 
 int beacon_vector2str_array(const std::vector<ids::BeaconStation> &beacons,
                             char **&strarray) noexcept {
@@ -77,13 +78,16 @@ int main(int argc, char *argv[]) {
   delete[] sites_array;
 
   // transform beacon coordinates to geodetic, aka [x,y,z]->[lat,lon,hell]
-  double lat, lon, hgt;
+  // double lat, lon, hgt;
+  Eigen::Matrix<double,3,1> xsta;
   for (int i = 0; i < (int)rnx.stations().size(); i++) {
-    dso::car2ell<dso::ellipsoid::grs80>(crd[i].x, crd[i].y, crd[i].z, lat, lon,
-                                        hgt);
-    crd[i].x = lat;
-    crd[i].y = lon;
-    crd[i].z = hgt;
+    xsta << crd[i].x, crd[i].y, crd[i].z;
+    auto lfh = dso::car2ell<dso::ellipsoid::grs80>(xsta);
+    //dso::car2ell<dso::ellipsoid::grs80>(crd[i].x, crd[i].y, crd[i].z, lat, lon,
+    //                                    hgt);
+    crd[i].x = lfh(1); //lat;
+    crd[i].y = lfh(0); //lon;
+    crd[i].z = lfh(2); //hgt;
   }
 
   // get an iterator to the RINEXs data blocks
