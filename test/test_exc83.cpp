@@ -1,8 +1,6 @@
 #include "astrodynamics.hpp"
 #include "datetime/datetime_write.hpp"
 #include "datetime/dtcalendar.hpp"
-#include "geodesy/car2top.hpp"
-#include "geodesy/ellipsoid.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iau.hpp"
@@ -11,27 +9,31 @@
 #include "filters/ekf.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
+#include "eigen3/Eigen/Eigen"
 
-using dso::Vector3;
+// using dso::Vector3;
+using vec3 = Eigen::Matrix<double, 3, 1>;
+using vec6 = Eigen::Matrix<double, 6, 1>;
 
-Eigen::Matrix<double,6,1> rv2state(const Vector3 &r, const Vector3 &v) noexcept {
-  Eigen::Matrix<double,6,1> Y;
-  Y(0,0) = r.x(); Y(0,1) = r.y(); Y(0,2) = r.z();
-  Y(0,3) = v.x(); Y(0,4) = v.y(); Y(0,5) = v.z();
-  return Y;
-}
+//Eigen::Matrix<double,6,1> rv2state(const Vector3 &r, const Vector3 &v) noexcept {
+//  Eigen::Matrix<double,6,1> Y;
+//  Y(0,0) = r.x(); Y(0,1) = r.y(); Y(0,2) = r.z();
+//  Y(0,3) = v.x(); Y(0,4) = v.y(); Y(0,5) = v.z();
+//  return Y;
+//}
 
 // Ground station, Bangalore
-const Vector3 xsta({1344e3, 6069e3, 1429e3}); // [m]
+// const Vector3 xsta({1344e3, 6069e3, 1429e3}); // [m]
 
 // zero-epoch for observations
 dso::datetime<dso::milliseconds> t0(dso::year(1995), dso::month(3),
                                     dso::day_of_month(30),
                                     dso::milliseconds(0));
 
-// (2-part) state vector, at t0
-const Vector3 svr0({-6345e3, -3723e3, -580e3});    // [m]
-const Vector3 svv0({2.169e3, -9.266e3, -1.079e3}); // [m/s]
+// state vector, at t0 [m] and [m/s]
+// vec6 Y0; Y0 << -6345e3, -3723e3, -580e3, 2.169e3, -9.266e3, -1.079e3;
+//const Vector3 svr0({-6345e3, -3723e3, -580e3});    // [m]
+//const Vector3 svv0({2.169e3, -9.266e3, -1.079e3}); // [m/s]
 
 // struct Obs
 struct ObsType {
@@ -42,6 +44,11 @@ struct ObsType {
 constexpr const double GM = iers2010::GMe;
 
 int main() {
+// Ground station, Bangalore
+Eigen::Matrix<double,3,1> xsta;
+// state vector, at t0 [m] and [m/s]
+vec6 Y0; Y0 << -6345e3, -3723e3, -580e3, 2.169e3, -9.266e3, -1.079e3;
+xsta << 1344e3, 6069e3, 1429e3; //[m]
 
   // a buffer to write datetime info
   char buf[64];
@@ -49,7 +56,8 @@ int main() {
   // artificial observations
   ObsType obs[6];
 
-  Vector3 r, v;
+  vec3 r, v;
+  vec6 Y;
   printf("Date       A [deg] Ele [deg] Range [km]\n");
   // make synthetic/artificial observation set
   for (int i = 0; i < 6; i++) {
@@ -60,17 +68,15 @@ int main() {
     auto t = t0;
     t.add_seconds(dso::milliseconds(static_cast<long>(dt * 1e3)));
 
-    if (dso::propagate_state(iers2010::GMe, svr0, svv0, dt, r, v)) {
-      printf("ERROR, failed to propagate state!\n");
-      return 1;
-    }
+    Y = dso::propagate_state(iers2010::GMe, Y0, dt);
 
     // site-satellite vector, topocentric (eith limited precision)
     const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
-    dso::Mat3x3 rz;
-    rz.rotz(gmst);
-    const Vector3 sat_ec = rz * r;
-    Vector3 enu = dso::car2top<dso::ellipsoid::grs80>(xsta, sat_ec);
+    // dso::Mat3x3 rz;
+    // rz.rotz(gmst);
+    // const Vector3 sat_ec = rz * r;
+    Eigen::AngleAxisd rotz(gmst, Eigen::Vector3d::UnitZ());
+    vec3 enu = dso::car2top<dso::ellipsoid::grs80>(xsta, /*sat_ec*/rotz*r);
     double s, az, zen;
     dso::top2daz(enu, s, az, zen);
 
@@ -80,6 +86,7 @@ int main() {
     obs[i] = ObsType({t, az, dso::DPI/2e0 - zen, s});
   }
 
+  /*
   // Orbit determination; initial time t0
   constexpr const int N = 6;
   Eigen::Matrix<double, N, 1> Y;
@@ -127,6 +134,6 @@ int main() {
     Vector3 dAdr, dEdr;
     dso::top2dae(enu.data, s, az, el, dAdr.data, dEdr.data);
   }
-
+*/
   return 0;
 }

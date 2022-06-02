@@ -72,8 +72,12 @@ struct OrbitalElements {
 };
 int state2elements(const Vector3 &r, const Vector3 &v,
                    OrbitalElements &elements, double GM) noexcept;
+int state2elements(const Eigen::Matrix<double, 6, 1> &Y,
+                   OrbitalElements &elements, double GM) noexcept;
 int elements2state(const OrbitalElements &elements, double dt, Vector3 &r,
                    Vector3 &v, double GM) noexcept;
+int elements2state(const OrbitalElements &elements, double dt,
+                   Eigen::Matrix<double, 6, 1> &Y, double GM) noexcept;
 /// @brief Orbital elements to perifocal coordinates
 /// @param[in]  ele Orbital elements
 /// @param[in]  E   Eccentric anomaly [rad]
@@ -81,26 +85,48 @@ int elements2state(const OrbitalElements &elements, double dt, Vector3 &r,
 /// @param[out] r   Resulting position in perifocal frame [m]
 /// @param[out] r   Resulting velocity in perifocal frame [m]
 /// @see Montenbruck et al, 2000, Eq. 2.43 and Eq. 2.44
-int elements2perifocal(const OrbitalElements &ele, double E,
-                            double GM, Vector3 &r,
-                            Vector3 &v) noexcept;
-int elements2perifocal(const OrbitalElements &ele, double GM,
-                            Vector3 &r, Vector3 &v) noexcept;
+int elements2perifocal(const OrbitalElements &ele, double E, double GM,
+                       Vector3 &r, Vector3 &v) noexcept;
+Eigen::Matrix<double, 6, 1> elements2perifocal(const OrbitalElements &ele,
+                                               double E, double GM) noexcept;
+
+int elements2perifocal(const OrbitalElements &ele, double GM, Vector3 &r,
+                       Vector3 &v) noexcept;
+Eigen::Matrix<double, 6, 1> elements2perifocal(const OrbitalElements &ele,
+                                               double GM) noexcept;
+
 int perifocal2equatorial(const dso::OrbitalElements &ele,
                          const dso::Vector3 &rp, const dso::Vector3 &vp,
                          dso::Vector3 &re, dso::Vector3 &ve) noexcept;
+Eigen::Matrix<double, 6, 1>
+perifocal2equatorial(const dso::OrbitalElements &ele,
+                     const Eigen::Matrix<double, 6, 1> &Y) noexcept;
+
 Mat3x3 perifocal2equatorial_matrix(double Omega, double omega,
-                                        double i) noexcept;
+                                   double i) noexcept;
+
 int equatorial2perifocal(const dso::OrbitalElements &ele,
                          const dso::Vector3 &re, const dso::Vector3 &ve,
                          dso::Vector3 &rp, dso::Vector3 &vp) noexcept;
-int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
-                         double dt, Vector3 &r, Vector3 &v) noexcept;
-int state_partials(dso::OrbitalElements &ele, double GM,
-                        double dt, Eigen::Matrix<double,6,6> &dYda) noexcept;
-int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
-                         double dt, Vector3 &r, Vector3 &v,
-                         Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
+Eigen::Matrix<double, 6, 1>
+equatorial2perifocal(const dso::OrbitalElements &ele,
+                     const Eigen::Matrix<double, 6, 1> &Y) noexcept;
+
+int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
+                    Vector3 &r, Vector3 &v) noexcept;
+Eigen::Matrix<double, 6, 1>
+propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
+                double dt) noexcept;
+
+int state_partials(dso::OrbitalElements &ele, double GM, double dt,
+                   Eigen::Matrix<double, 6, 6> &dYda) noexcept;
+
+int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
+                    Vector3 &r, Vector3 &v,
+                    Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
+Eigen::Matrix<double, 6, 1>
+propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0, double dt,
+                Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity

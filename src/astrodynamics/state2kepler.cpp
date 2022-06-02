@@ -2,7 +2,7 @@
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include <cmath>
-#include <iers2010/matvec.hpp>
+#include <matvec/matvec.hpp>
 #include <limits>
 #ifdef ASSERT_ERROR
 #include <cassert>
@@ -51,6 +51,13 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
 
   return ok;
 }
+int dso::elements2state(const dso::OrbitalElements &ele, double dt,
+                        Eigen::Matrix<double,6,1> &Y, double GM) noexcept {
+  dso::Vector3 r,v;
+  int error = dso::elements2state(ele, dt, r, v, GM);
+  Y << r(0), r(1), r(2), v(0), v(1), v(2);
+  return error;
+}
 
 int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
                         dso::OrbitalElements &ele, double GM) noexcept {
@@ -86,6 +93,13 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
       dso::norm_angle<double, dso::AngleUnit::Radians>(u - true_anomaly);
 
   return 0;
+}
+
+int dso::state2elements(const Eigen::Matrix<double, 6, 1> &Y,
+                        dso::OrbitalElements &ele, double GM) noexcept {
+  const dso::Vector3 r({Y(0),Y(1),Y(2)});
+  const dso::Vector3 v({Y(3),Y(4),Y(5)});
+  return dso::state2elements(r,v,ele,GM);
 }
 
 int dso::alternatives::state2kepler_montenbruck(const double *state,

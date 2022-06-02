@@ -1,9 +1,11 @@
 #include "astrodynamics.hpp"
-#include <iers2010/matvec.hpp>
+#include <matvec/matvec.hpp>
+
+using dso::Vector3;
 
 // transformation is: r_eq = T r_pf
 dso::Mat3x3 dso::perifocal2equatorial_matrix(double Omega, double omega,
-                                        double i) noexcept {
+                                             double i) noexcept {
   const double cO = std::cos(Omega);
   const double sO = std::sin(Omega);
   const double co = std::cos(omega);
@@ -38,13 +40,25 @@ void compute_perifocal(double a, double e, double E, double GM, dso::Vector3 &r,
   v.y() = vfac * me2p1 * cE;
   v.z() = 0e0;
 }
+Eigen::Matrix<double, 6, 1> compute_perifocal(double a, double e, double E,
+                                              double GM) noexcept {
+  Vector3 r,v;
+  compute_perifocal(a, e, E, GM, r, v);
+  Eigen::Matrix<double, 6, 1> Y;
+  Y << r(0), r(1), r(2), v(0), v(1), v(2);
+  return Y;
+}
 
 int dso::elements2perifocal(const dso::OrbitalElements &ele, double E,
                             double GM, dso::Vector3 &r,
                             dso::Vector3 &v) noexcept {
   compute_perifocal(ele.semimajor(), ele.eccentricity(), E, GM, r, v);
-
   return 0;
+}
+Eigen::Matrix<double, 6, 1>
+dso::elements2perifocal(const dso::OrbitalElements &ele, double E,
+                        double GM) noexcept {
+  return compute_perifocal(ele.semimajor(), ele.eccentricity(), E, GM);
 }
 
 int dso::elements2perifocal(const dso::OrbitalElements &ele, double GM,
@@ -58,6 +72,14 @@ int dso::elements2perifocal(const dso::OrbitalElements &ele, double GM,
   compute_perifocal(a, e, E, GM, r, v);
   return 0;
 }
+Eigen::Matrix<double, 6, 1>
+dso::elements2perifocal(const dso::OrbitalElements &ele, double GM) noexcept {
+  Vector3 r,v;
+  dso::elements2perifocal(ele, GM, r, v);
+  Eigen::Matrix<double, 6, 1> Y;
+  Y << r(0), r(1), r(2), v(0), v(1), v(2);
+  return Y;
+}
 
 int dso::perifocal2equatorial(const dso::OrbitalElements &ele,
                               const dso::Vector3 &rp, const dso::Vector3 &vp,
@@ -67,6 +89,17 @@ int dso::perifocal2equatorial(const dso::OrbitalElements &ele,
   re = T * rp;
   ve = T * vp;
   return 0;
+}
+Eigen::Matrix<double, 6, 1>
+dso::perifocal2equatorial(const dso::OrbitalElements &ele,
+                          const Eigen::Matrix<double, 6, 1> &Yperif) noexcept {
+  const Vector3 rp({Yperif(0), Yperif(1), Yperif(2)});
+  const Vector3 vp({Yperif(3), Yperif(4), Yperif(5)});
+  Vector3 r, v;
+  dso::perifocal2equatorial(ele, rp, vp, r, v);
+  Eigen::Matrix<double, 6, 1> Y;
+  Y << r(0), r(1), r(2), v(0), v(1), v(2);
+  return Y;
 }
 
 int dso::equatorial2perifocal(const dso::OrbitalElements &ele,
@@ -78,4 +111,15 @@ int dso::equatorial2perifocal(const dso::OrbitalElements &ele,
   rp = T * re;
   vp = T * ve;
   return 0;
+}
+Eigen::Matrix<double, 6, 1>
+dso::equatorial2perifocal(const dso::OrbitalElements &ele,
+                          const Eigen::Matrix<double, 6, 1> &Yeq) noexcept {
+  const Vector3 req({Yeq(0), Yeq(1), Yeq(2)});
+  const Vector3 veq({Yeq(3), Yeq(4), Yeq(5)});
+  Vector3 r, v;
+  dso::equatorial2perifocal(ele,req,veq,r,v);
+  Eigen::Matrix<double,6,1> Y;
+  Y << r(0),r(1),r(2),v(0),v(1),v(2);
+  return Y;
 }
