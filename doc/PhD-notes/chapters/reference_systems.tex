@@ -515,24 +515,26 @@ $\bm{u}_i$:
   \label{eq:moritz565}
   \bm{x}_{ij} = \begin{bmatrix} n_{ij} \\ e_{ij} \\ u_{ij} \end{bmatrix} = 
     \begin{bmatrix} 
-      \bm{n}_i \cdot \bm{X}_{ij} \\
-      \bm{e}_i \cdot \bm{X}_{ij} \\
-      \bm{u}_i \cdot \bm{X}_{ij}
+      \bm{\hat{n}}_i \cdot \bm{X}_{ij} \\
+      \bm{\hat{e}}_i \cdot \bm{X}_{ij} \\
+      \bm{\hat{u}}_i \cdot \bm{X}_{ij}
       \end{bmatrix}
 \end{equation}
 
-Stacking the vectors $\bm{n}_i$, $\bm{e}_i$ and $\bm{u}_i$ as columns in an 
-orthogonal matrix $\bm{D}_i$, i.e.
+Stacking the vectors $\bm{\hat{n}}_i$, $\bm{\hat{e}}_i$ and $\bm{\hat{u}}_i$ 
+in an orthogonal matrix $\bm{D}_i = \begin{pmatrix} \bm{\hat{n}}_i & \bm{\hat{e}}_i & \bm{\hat{u}}_i \end{pmatrix}^T$, i.e.
 \begin{equation}
+  \label{eq:moritz566}
   \bm{D}_i = \begin{bmatrix}
-    -\sin \phi \cos \lambda & -\sin \lambda & \cos \phi \cos \lambda \\
-    -\sin \phi \sin \lambda & \cos \lambda  & \cos \phi \sin \lambda \\
-    \cos \phi & 0 & \sin \phi
+    -\sin \phi \cos \lambda & -\sin \phi \sin \lambda & \cos \phi \\
+    -\sin \lambda           & \cos \lambda            & 0 \\
+    \cos \phi \cos \lambda  & \cos \phi \sin \lambda  & \sin \phi
   \end{bmatrix}
 \end{equation}
 
 we can rewrite \ref{eq:moritz565} as (\cite{moritz})
 \begin{equation}
+  \label{eq:moritz567}
   \bm{x}_{ij} = \bm{D}_i \bm{X}_{ij}
 \end{equation}
 
@@ -545,3 +547,37 @@ Using the local level system, we can easily derive formulas for the
     \cos{z_{ij}} &= \frac{u_{ij}}{s_{ij}}
   \end{aligned}
 \end{equation}
+
+\subsubsection{Station to Satellite Vector in Local Tangent System}
+\label{sssec:station-to-satellite-vector-in-local-tangent-system}
+When processing observation data, it is often the case where we have an 
+observation performed at a site on the Earth's surface, with known coordinates 
+in an Earth-fixed coordinate system (e.g. \gls{itrf}), denoted as $\bm{R}$. 
+Such measurements could be range, azimouth, elevation. On the other hand, the 
+satellite's position is often available in a geocentric, equatorial coordinate 
+system, $\bm{r}$. To express the satellite position vector $\bm{r}$ in the 
+local tangent coordinate system, first a rotation by the Greenwich hour angle 
+$\theta$ around the $z$-axis must be performed, thus:
+\begin{equation}
+  \label{eq:mont289}
+  \bm{r}_{ef} = \bm{R}_z (\theta ) \bm{r}
+\end{equation}
+
+which yields the satellite's position in an Earth-fixed coordinate system hat 
+is aligned with the equatorial plane and the Greenwich meridian 
+(\cite{Montenbruck2000}). The difference 
+$\bm{s}_{ef} = \bm{r}_{ef} - \bm{R}$ then yields the topocentric 
+station-satellite vector in Earth-fixed, equatorial coordinates. The satellite's 
+local tangent coordinates, are then (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont294}
+  \bm{s} = \begin{bmatrix} 
+      s_{north} \\
+      s_{east} \\
+      s_{up}
+    \end{bmatrix} 
+  = \bm{D} \left( \bm{R}_z (\theta ) \bm{r} - \bm{R} \right)
+\end{equation}
+
+with $\bm{D}$ given by \ref{eq:moritz566}.
+

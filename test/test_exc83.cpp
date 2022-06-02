@@ -9,7 +9,7 @@
 #include "filters/ekf.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
-#include "eigen3/Eigen/Eigen"
+#include <matvec/matvec.hpp>
 
 // using dso::Vector3;
 using vec3 = Eigen::Matrix<double, 3, 1>;
@@ -100,6 +100,8 @@ xsta << 1344e3, 6069e3, 1429e3; //[m]
   dso::ExtendedKalmanFilter<6,dso::milliseconds> Filter(t0, Y, P);
   Eigen::Matrix<double, 6, 6> Phi;
   Eigen::Matrix<double, 6, 6> Phi_true;
+    
+  dso::Mat3x3 ltc(car2ell<dso::ellipsoid::grs80>(xsta));
 
   // measurements ...
   for (int i=0; i<6; i++) {
@@ -132,7 +134,8 @@ xsta << 1344e3, 6069e3, 1429e3; //[m]
     dso::car2top<dso::ellipsoid::grs80>(xsta, rsat);
     double s, az, el;
     Vector3 dAdr, dEdr;
-    dso::top2dae(enu.data, s, az, el, dAdr.data, dEdr.data);
+    dso::top2dae(enu, s, az, el, dAdr, dEdr);
+    dso::Vector dAdY = dAdr * lct * rz.rotz(gmst);   
   }
 */
   return 0;
