@@ -2,7 +2,6 @@
 #define __EXTENDED_KALMAN_FILTER_HPP__
 
 #include "iers2010/matvec.hpp"
-#include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Eigen"
 
 namespace dso {
@@ -20,6 +19,8 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   Vector3 state_velocity_vector() const noexcept {
     return Vector3({x(3), x(4), x(5)});
   }
+
+  Eigen::Matrix<double, N, 1> state() const noexcept {return x;}
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
                   const Eigen::Matrix<double, N, 1> &x0,
@@ -60,7 +61,8 @@ template <int N, typename S> struct ExtendedKalmanFilter {
                           const Eigen::Matrix<double, N, 1> &H) noexcept {
     double inv_w = sigma * sigma;
     // kalman gain
-    K = P * H / (inv_w + H * P * H);
+    // K = P * H / (inv_w + H.transpose() * P * H);
+    K = P * H / (inv_w + H.dot(P * H));
     // state update
     x = x + K * (z - g);
     // covariance update (Joseph)

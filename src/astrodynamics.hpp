@@ -3,7 +3,6 @@
 
 #include "iers2010/iersc.hpp"
 #include "matvec/matvec.hpp"
-#include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Eigen"
 #include <limits>
 
