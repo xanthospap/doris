@@ -72,6 +72,7 @@ int dso::elements2perifocal(const dso::OrbitalElements &ele, double GM,
   compute_perifocal(a, e, E, GM, r, v);
   return 0;
 }
+
 Eigen::Matrix<double, 6, 1>
 dso::elements2perifocal(const dso::OrbitalElements &ele, double GM) noexcept {
   Vector3 r,v;

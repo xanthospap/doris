@@ -117,8 +117,10 @@ Eigen::Matrix<double, 6, 1>
 propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
                 double dt) noexcept;
 
-int state_partials(dso::OrbitalElements &ele, double GM, double dt,
-                   Eigen::Matrix<double, 6, 6> &dYda) noexcept;
+/*int state_partials(dso::OrbitalElements &ele, double GM, double dt,
+                   Eigen::Matrix<double, 6, 6> &dYda) noexcept;*/
+Eigen::Matrix<double,6,6> state_partials(dso::OrbitalElements &ele, double GM,
+                        double dt, int &status) noexcept;
 
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
                     Vector3 &r, Vector3 &v,

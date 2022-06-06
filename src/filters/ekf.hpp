@@ -3,6 +3,9 @@
 
 #include "iers2010/matvec.hpp"
 #include "eigen3/Eigen/Eigen"
+#ifdef DEBUG
+#include <cstdio>
+#endif
 
 namespace dso {
 
@@ -21,6 +24,7 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   }
 
   Eigen::Matrix<double, N, 1> state() const noexcept {return x;}
+  dso::datetime<S> time() const noexcept {return t;}
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
                   const Eigen::Matrix<double, N, 1> &x0,
@@ -46,6 +50,16 @@ template <int N, typename S> struct ExtendedKalmanFilter {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose();
+    #ifdef DEBUG
+      //printf("\tEKF::time update ->\n");
+      //printf("\tx=[%+12.2f %+12.2f %+12.2f %+12.2f %+12.2f %+12.2f]\n", x(0),x(1),x(2),x(3),x(4),x(5));
+      //printf("\t  [%+6.3f %+6.3f %+6.3f %+6.3f %+6.3f %+6.3f]\n", phi(0,0),phi(0,1),phi(0,2),phi(0,3),phi(0,4),phi(0,5));
+      //printf("\t  [             %+6.3f %+6.3f %+6.3f %+6.3f %+6.3f]\n", phi(1,1),phi(1,2),phi(1,3),phi(1,4),phi(1,5));
+      //printf("\t  [                          %+6.3f %+6.3f %+6.3f %+6.3f]\n", phi(2,2),phi(2,3),phi(2,4),phi(2,5));
+      //printf("\t  [                                       %+6.3f %+6.3f %+6.3f]\n", phi(3,3),phi(3,4),phi(3,5));
+      //printf("\t  [                                                    %+6.3f %+6.3f]\n", phi(4,4),phi(4,5));
+      //printf("\t  [                                                                 %+6.3f]\n", phi(5,5));
+    #endif
   }
 
   void time_update(const dso::datetime<S> &tk,

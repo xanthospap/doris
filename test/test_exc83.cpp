@@ -13,22 +13,6 @@
 using vec3 = Eigen::Matrix<double, 3, 1>;
 using vec6 = Eigen::Matrix<double, 6, 1>;
 
-// Eigen::Matrix<double,6,1> rv2state(const Vector3 &r, const Vector3 &v)
-// noexcept {
-//   Eigen::Matrix<double,6,1> Y;
-//   Y(0,0) = r.x(); Y(0,1) = r.y(); Y(0,2) = r.z();
-//   Y(0,3) = v.x(); Y(0,4) = v.y(); Y(0,5) = v.z();
-//   return Y;
-// }
-
-// Ground station, Bangalore
-// const Vector3 xsta({1344e3, 6069e3, 1429e3}); // [m]
-
-// state vector, at t0 [m] and [m/s]
-// vec6 Y0; Y0 << -6345e3, -3723e3, -580e3, 2.169e3, -9.266e3, -1.079e3;
-// const Vector3 svr0({-6345e3, -3723e3, -580e3});    // [m]
-// const Vector3 svv0({2.169e3, -9.266e3, -1.079e3}); // [m/s]
-
 // struct Obs
 struct ObsType {
   dso::datetime<dso::milliseconds> t;
@@ -75,25 +59,14 @@ int main() {
     // site-satellite vector, topocentric (eith limited precision)
     const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
 
-    // dso::Mat3x3 rz;
-    // rz.rotz(gmst);
-    // const Vector3 sat_ec = rz * r;
-    // printf("Note enu=[%.3f,%.3f,%.3f]\n", enu(0),enu(1),enu(2));
-
     Eigen::Matrix<double, 3, 3> Rz(Eigen::Matrix<double, 3, 3>::Identity());
     Rz = Eigen::AngleAxisd(gmst, Eigen::Vector3d::UnitZ());
     vec3 enu = dso::car2top<dso::ellipsoid::grs80>(
         xsta, /*sat_ec*/ Rz.transpose() * Y.head<3>());
-    // auto foo = Rz.transpose() * Y.head<3>();
-    // printf("\tcar2top for (%.3f %.3f %.3f) - (%.3f %.3f %.3f)\n", foo(0),
-    // foo(1), foo(2), xsta(0), xsta(1), xsta(2)); printf("\tENU=(%.3f %.3f
-    // %.3f)\n", enu(0),enu(1),enu(2));
 
     double s, az, el;
     dso::top2dae(enu, s, az, el);
 
-    // printf("\tState=(%.3f %.3f %.3f %.3f %.3f %.3f) [m,m/s]\n\tgmst=%.5f
-    // deg.\n", Y(0),Y(1),Y(2),Y(3),Y(4),Y(5),dso::rad2deg(gmst));
     printf("%s %.3f %.3f %.3f\n", dso::strftime_ymd_hmfs(t, buf),
            dso::rad2deg(az), dso::rad2deg(el), s / 1e3);
 
@@ -130,16 +103,20 @@ int main() {
   for (int i = 0; i < 6; i++) {
 
     // previous step
-    // auto t_prev = Filter.t;
-    auto Yprev = Filter.x;
+    auto Yprev = Filter.state();
+    auto tprev = Filter.time();
 
     // propagation to measurement epoch
     auto t = obs[i].t;
-    // Vector3 yr({state_prev(0), state_prev(1), state_prev(2)});
-    // Vector3 yv({state_prev(3), state_prev(4), state_prev(5)});
-    double dt = (t.delta_sec(t0)).to_fractional_seconds();
-    // dso::propagate_state(GM, yr, yv, dt, r, v, Phi);
+    double dt = (t.delta_sec(tprev)).to_fractional_seconds();
     Y = dso::propagate_state(GM, Yprev, dt, Phi);
+    printf("\tpropagation to measurement epoch:");
+    printf("\tdt=%.5f Y=[%.3f %.3f %.3f %.5f %.5f %.5f]\n", dt,Y(0),Y(1),Y(2),Y(3),Y(4),Y(5));
+    
+    // Earth rotation angle to be used for local tangent coords
+    const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
+    Eigen::Matrix<double, 3, 3> Rz(Eigen::Matrix<double, 3, 3>::Identity());
+    Rz = Eigen::AngleAxisd(gmst, Eigen::Vector3d::UnitZ());
 
     // time update
     Filter.time_update(t, Y, Phi);
@@ -148,9 +125,6 @@ int main() {
     Ytrue = dso::propagate_state(GM, Y0, dt, Phi_true);
 
     // Handle azimouth measurement
-    const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
-    Eigen::Matrix<double, 3, 3> Rz(Eigen::Matrix<double, 3, 3>::Identity());
-    Rz = Eigen::AngleAxisd(gmst, Eigen::Vector3d::UnitZ());
     vec3 enu =
         dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
     dso::top2dae(enu, s, az, el, dAdenu, dEdenu);
@@ -160,7 +134,35 @@ int main() {
 
     // Measurement update (azimouth)
     Filter.observation_update(obs[i].azim,az,sigma_angle/std::cos(el),dAdY);
+
+    // Handle elevation measurement
+    enu =
+        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
+    dso::top2dae(enu, s, az, el, dAdenu, dEdenu);
+    Eigen::Matrix<double, 6, 1> dEdY;
+    dEdY << (dEdenu.transpose() * lct * Rz).transpose(),
+        Eigen::Matrix<double, 3, 1>::Zero();
+
+    // Measurement update (elevation)
+    Filter.observation_update(obs[i].elev,el,sigma_angle,dEdY);
+    
+    // Handle range measurement
+    enu =
+        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
+    dso::top2dae(enu, s, az, el);
+    Eigen::Matrix<double, 3, 1> dDdenu = enu / enu.norm();
+    Eigen::Matrix<double, 6, 1> dDdY;
+    dDdY << (dDdenu.transpose() * lct * Rz).transpose(),
+        Eigen::Matrix<double, 3, 1>::Zero();
+
+    // Measurement update (elevation)
+    Filter.observation_update(obs[i].dist,s,sigma_range,dDdY);
+
   }
+
+  auto x = Filter.state();
+  printf("State: [%.3f %.3f %.3f] m.\n", x(0), x(1), x(2));
+  printf("       [%.5f %.5f %.5f] m/s.\n", x(3), x(4), x(5));
 
   return 0;
 }

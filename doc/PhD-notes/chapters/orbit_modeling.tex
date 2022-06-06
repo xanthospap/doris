@@ -216,7 +216,7 @@ Assume that we have a new, additional obervation at epoch \(t_k\),
 	\quad E\left[\bm{\epsilon} _k \bm{\epsilon} ^T_j \right] = R_k \delta _{kj}
 \end{equation}
 
-(where \(\delta _{kj}\) is the \emph{Kronicker delta}). We wish to process
+(where \(\delta _{kj}\) is the \emph{Kronecker delta}). We wish to process
 \(\bm{y} _k\) in order to determine \(\hat{\bm{x}} _k\). The best estimate of
 \(\bm{x} _k\) is
 
@@ -993,6 +993,18 @@ partial derivatives of a range or angle observation $z$ may be expressed as
   \label{eq:mont793}
   \frac{\partial z}{\partial \bm{r}} 
    = \frac{\partial z}{\partial \bm{r}_{enu}} \bm{D} \bm{U}
+\end{equation}
+
+\subsubsection{Range}
+\label{sssec:range}
+Neglecting light-time corrections and propagation effects, the partial derivative 
+of a range measurement $\rho$ with repsect to the instaneous position vector, 
+is given by (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont794}
+  \frac{\partial \rho}{\partial \bm{r}} = 
+  \frac{\partial \bm{r} _{enu}}{\partial \bm{r}} =
+  \frac{\bm{r}^T_{enu}}{\norm{r_{enu}}} \bm{D} \bm{U}
 \end{equation}
 
 \subsubsection{Azimouth}

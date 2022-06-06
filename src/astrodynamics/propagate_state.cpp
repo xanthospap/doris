@@ -32,6 +32,8 @@ dso::propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
 int dso::propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
                          double dt, Vector3 &r, Vector3 &v,
                          Eigen::Matrix<double, 6, 6> &dYdY0) noexcept {
+  int status = 0;
+
   // state to orbital elements
   dso::OrbitalElements ele0;
   if (state2elements(r0, v0, ele0, GM))
@@ -46,13 +48,13 @@ int dso::propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
     return 2;
 
   // State vector partials w.r.t epoch elements
-  Eigen::Matrix<double, 6, 6> dY0dA0;
-  if (dso::state_partials(ele0, GM, 0e0, dY0dA0))
-    return 3;
+  Eigen::Matrix<double, 6, 6> dY0dA0 = dso::state_partials(ele0, GM, 0e0, status);
 
-  Eigen::Matrix<double, 6, 6> dYdA0;
-  if (dso::state_partials(ele0, GM, dt, dYdA0))
-    return 3;
+  printf("\t%s -> dY0dA0\n\t", __func__);
+  for (int k=0; k<6; k++) printf("%+6.1f ", dY0dA0(0,k));
+  printf("\n");
+
+  Eigen::Matrix<double, 6, 6> dYdA0 = dso::state_partials(ele0, GM, dt, status);
 
   // cartesian to keplerian partial derivatives
   const double sqe2 = std::sqrt((1e0 - e) * (1e0 + e));
@@ -69,24 +71,24 @@ int dso::propagate_state(double GM, const Vector3 &r0, const Vector3 &v0,
 
   // Partials of epoch elements w.r.t. epoch state
   Eigen::Matrix<double, 6, 6> dA0dY0;
-  for (int j = 0; j < 3; j++) {
-    dA0dY0(0, j) = P_aM * dY0dA0(j + 3, 5);
-    dA0dY0(0, j + 3) = -P_aM * dY0dA0(j, 5);
+  for (int k = 0; k < 3; k++) {
+        dA0dY0(0,k)   = + P_aM*dY0dA0(k+3,5);
+    dA0dY0(0,k+3) = - P_aM*dY0dA0(k  ,5);
 
-    dA0dY0(1, j) = +P_eo * dY0dA0(j + 3, 4) + P_eM * dY0dA0(j + 3, 5);
-    dA0dY0(1, j + 3) = -P_eo * dY0dA0(j, 4) - P_eM * dY0dA0(j, 5);
+    dA0dY0(1,k)   = + P_eo*dY0dA0(k+3,4) + P_eM*dY0dA0(k+3,5);
+    dA0dY0(1,k+3) = - P_eo*dY0dA0(k  ,4) - P_eM*dY0dA0(k  ,5);
 
-    dA0dY0(2, j) = +P_iO * dY0dA0(j + 3, 3) + P_io * dY0dA0(j + 3, 4);
-    dA0dY0(2, j + 3) = -P_iO * dY0dA0(j, 3) - P_io * dY0dA0(j, 4);
+    dA0dY0(2,k)   = + P_iO*dY0dA0(k+3,3) + P_io*dY0dA0(k+3,4);
+    dA0dY0(2,k+3) = - P_iO*dY0dA0(k  ,3) - P_io*dY0dA0(k  ,4);
 
-    dA0dY0(3, j) = -P_iO * dY0dA0(j + 3, 2);
-    dA0dY0(3, j + 3) = +P_iO * dY0dA0(j, 2);
+    dA0dY0(3,k)   = - P_iO*dY0dA0(k+3,2);
+    dA0dY0(3,k+3) = + P_iO*dY0dA0(k  ,2);
 
-    dA0dY0(4, j) = -P_eo * dY0dA0(j + 3, 1) - P_io * dY0dA0(j + 3, 2);
-    dA0dY0(4, j + 3) = +P_eo * dY0dA0(j, 1) + P_io * dY0dA0(j, 2);
+    dA0dY0(4,k)   = - P_eo*dY0dA0(k+3,1) - P_io*dY0dA0(k+3,2);
+    dA0dY0(4,k+3) = + P_eo*dY0dA0(k  ,1) + P_io*dY0dA0(k  ,2);
 
-    dA0dY0(5, j) = -P_aM * dY0dA0(j + 3, 0) - P_eM * dY0dA0(j + 3, 1);
-    dA0dY0(5, j + 3) = +P_aM * dY0dA0(j, 0) + P_eM * dY0dA0(j, 1);
+    dA0dY0(5,k)   = - P_aM*dY0dA0(k+3,0) - P_eM*dY0dA0(k+3,1);
+    dA0dY0(5,k+3) = + P_aM*dY0dA0(k  ,0) + P_eM*dY0dA0(k  ,1);
   }
 
   // state transition matrix
