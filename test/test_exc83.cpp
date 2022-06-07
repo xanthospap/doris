@@ -102,6 +102,8 @@ int main() {
   Eigen::Matrix<double, 3, 1> dAdenu, dEdenu;
   for (int i = 0; i < 6; i++) {
 
+    printf("Orbit determination, iteration %d\n", i);
+
     // previous step
     auto Yprev = Filter.state();
     auto tprev = Filter.time();
@@ -109,6 +111,7 @@ int main() {
     // propagation to measurement epoch
     auto t = obs[i].t;
     double dt = (t.delta_sec(tprev)).to_fractional_seconds();
+    printf("\n\tPropagating state = [%.3f %.3f %.3f %.5f %.5f %.5f] with dt=%.3f\n", Yprev(0),Yprev(1),Yprev(2),Yprev(3),Yprev(4),Yprev(5), dt);
     Y = dso::propagate_state(GM, Yprev, dt, Phi);
     printf("\tpropagation to measurement epoch:");
     printf("\tdt=%.5f Y=[%.3f %.3f %.3f %.5f %.5f %.5f]\n", dt,Y(0),Y(1),Y(2),Y(3),Y(4),Y(5));

@@ -77,6 +77,12 @@ int elements2state(const OrbitalElements &elements, double dt, Vector3 &r,
                    Vector3 &v, double GM) noexcept;
 int elements2state(const OrbitalElements &elements, double dt,
                    Eigen::Matrix<double, 6, 1> &Y, double GM) noexcept;
+
+OrbitalElements state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y
+                        ) noexcept;
+Eigen::Matrix<double, 6, 1>
+propagate_state(double GM, const dso::OrbitalElements &Ele,
+                     double dt) noexcept;
 /// @brief Orbital elements to perifocal coordinates
 /// @param[in]  ele Orbital elements
 /// @param[in]  E   Eccentric anomaly [rad]
@@ -114,13 +120,16 @@ equatorial2perifocal(const dso::OrbitalElements &ele,
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
                     Vector3 &r, Vector3 &v) noexcept;
 Eigen::Matrix<double, 6, 1>
-propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
+propagate_state(double GM, const OrbitalElements &elements,
                 double dt) noexcept;
+inline Eigen::Matrix<double, 6, 1>
+propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
+                double dt) noexcept
+{
 
-/*int state_partials(dso::OrbitalElements &ele, double GM, double dt,
-                   Eigen::Matrix<double, 6, 6> &dYda) noexcept;*/
-Eigen::Matrix<double,6,6> state_partials(dso::OrbitalElements &ele, double GM,
-                        double dt, int &status) noexcept;
+  const auto Elements = state2elements(GM, Y0);
+  return propagate_state(GM,Elements,dt);
+}
 
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
                     Vector3 &r, Vector3 &v,
@@ -128,6 +137,8 @@ int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
 Eigen::Matrix<double, 6, 1>
 propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0, double dt,
                 Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
+Eigen::Matrix<double,6,6> state_partials(double GM, const dso::OrbitalElements &ele,
+                        double dt) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity

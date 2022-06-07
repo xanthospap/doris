@@ -95,11 +95,45 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   return 0;
 }
 
-int dso::state2elements(const Eigen::Matrix<double, 6, 1> &Y,
-                        dso::OrbitalElements &ele, double GM) noexcept {
-  const dso::Vector3 r({Y(0),Y(1),Y(2)});
-  const dso::Vector3 v({Y(3),Y(4),Y(5)});
-  return dso::state2elements(r,v,ele,GM);
+dso::OrbitalElements dso::state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y
+                        ) noexcept {
+
+  const auto r = Y.block<3,1>(0,0);
+  const auto v = Y.block<3,1>(3,0);
+  const auto h = r.cross(v);
+  const double H = h.norm();
+
+  dso::OrbitalElements ele;
+
+  ele.Omega() = dso::norm_angle<double, dso::AngleUnit::Radians>(
+      std::atan2(h(0), -h(1)));
+  ele.inclination() =
+      std::atan2(std::sqrt(h(0)*h(0)+h(1)*h(1)), h(2));
+  
+  // argument of latitude
+  const double u = std::atan2(r(2)*H, -r(0)*h(1)+r(1)*h(0));
+
+  const double R = r.norm();
+  ele.semimajor() = 1e0 / (2e0/R-(v.dot(v))/GM); 
+  const double a = ele.semimajor();
+
+  const double eCosE = 1e0-R/a;
+  const double eSinE = r.dot(v)/sqrt(GM*a);
+  const double e2 = eCosE * eCosE + eSinE * eSinE;
+
+  ele.eccentricity() = std::sqrt(e2);
+
+  // eccentric anomaly
+  const double E = std::atan2(eSinE, eCosE);
+
+  ele.mean_anomaly() =
+      dso::norm_angle<double, dso::AngleUnit::Radians>(E - eSinE);
+  const double true_anomaly =
+      std::atan2(std::sqrt(1e0 - e2) * eSinE, eCosE - e2);
+  ele.omega() =
+      dso::norm_angle<double, dso::AngleUnit::Radians>(u - true_anomaly);
+
+  return ele;
 }
 
 int dso::alternatives::state2kepler_montenbruck(const double *state,
