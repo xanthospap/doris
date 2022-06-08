@@ -6,7 +6,7 @@
 #ifdef DEBUG
 #include <cstdio>
 #endif
-
+/*
 using dso::Mat3x3;
 using dso::Vector3;
 
@@ -46,3 +46,4 @@ int dso::kepler2state(const double *keplerian, double *state,
 
   return 0;
 }
+*/

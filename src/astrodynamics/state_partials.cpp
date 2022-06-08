@@ -6,7 +6,7 @@ Eigen::Matrix<double, 6, 6> dso::state_partials(double GM,
                                                 const dso::OrbitalElements &ele,
                                                 double dt) noexcept {
   // compute perifocal coordinates
-  Eigen::Matrix<double, 6, 1> state = dso::elements2perifocal(ele, GM);
+  Eigen::Matrix<double, 6, 1> state = dso::elements2perifocal(GM,ele,dt);
   const double x = state(0);
   const double y = state(1);
   const double vx = state(3);

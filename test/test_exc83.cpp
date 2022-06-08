@@ -20,7 +20,7 @@ struct ObsType {
 };
 
 constexpr const double sigma_range = 10e0; // [m]
-constexpr const double sigma_angle = dso::rad2deg(1e-2); // [rad]
+constexpr const double sigma_angle = dso::deg2rad(1e-2); // [rad]
 constexpr const double GM = /*iers2010::GMe;*/ 398600.4415e+9;
 
 int main() {
@@ -103,6 +103,13 @@ int main() {
 
   Eigen::Matrix<double, 3, 3> lct(
       dso::topocentric_matrix(dso::car2ell<dso::ellipsoid::grs80>(xsta)));
+  printf("LTC Matrix:\n");
+  for (int i=0; i<3; i++) {
+    printf("  |");
+    for (int k=0; k<3; k++)
+      printf("%+.3e ", lct(i,k));
+    printf("|\n");
+  }
 
   // measurements ...
   double s, az, el;
@@ -118,9 +125,9 @@ int main() {
     // propagation to measurement epoch
     auto t = obs[i].t;
     double dt = (t.delta_sec(tprev)).to_fractional_seconds();
-    // printf("\n\tPropagating state = [%.3f %.3f %.3f %.5f %.5f %.5f] with
-    // dt=%.3f\n", Yprev(0),Yprev(1),Yprev(2),Yprev(3),Yprev(4),Yprev(5), dt);
+    printf("\tPropagating state = [%.1f %.1f %.1f %.3f %.3f %.3f] with dt=%.1f\n", Yprev(0),Yprev(1),Yprev(2),Yprev(3),Yprev(4),Yprev(5), dt);
     Y = dso::propagate_state(GM, Yprev, dt, Phi);
+    printf("\tPropagated  state = [%.1f %.1f %.1f %.3f %.3f %.3f]\n",Y(0),Y(1),Y(2),Y(3),Y(4),Y(5));
     // printf("\tpropagation to measurement epoch:");
     // printf("\tdt=%.5f Y=[%.3f %.3f %.3f %.5f %.5f %.5f]\n",
     // dt,Y(0),Y(1),Y(2),Y(3),Y(4),Y(5));
@@ -128,7 +135,7 @@ int main() {
     // Earth rotation angle to be used for local tangent coords
     const double gmst = iers2010::sofa::gmst06(t.as_jd(), 0e0, t.as_jd(), 0e0);
     Eigen::Matrix<double, 3, 3> Rz(Eigen::Matrix<double, 3, 3>::Identity());
-    Rz = Eigen::AngleAxisd(gmst, Eigen::Vector3d::UnitZ());
+    Rz = Eigen::AngleAxisd(-gmst, Eigen::Vector3d::UnitZ());
 
     // time update
     Filter.time_update(t, Y, Phi);
@@ -138,42 +145,50 @@ int main() {
 
     // Handle azimouth measurement
     vec3 enu =
-        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
+        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz * Filter.state().head<3>());
     s = dso::top2dae(enu, az, el, dAdenu, dEdenu);
+    printf("\tdAdenu=[%.3e %.3e %.3e]\n", dAdenu(0),dAdenu(1),dAdenu(2));
     Eigen::Matrix<double, 6, 1> dAdY;
     dAdY << (dAdenu.transpose() * lct * Rz).transpose(),
         Eigen::Matrix<double, 3, 1>::Zero();
+    printf("\tdAdY  =[%.3e %.3e %.3e]\n", dAdY(0),dAdY(1),dAdY(2));
 
     // Measurement update (azimouth)
     Filter.observation_update(obs[i].azim, az, sigma_angle / std::cos(el),
                               dAdY);
+    printf("\tUpdated state     = [%.1f %.1f %.1f %.3f %.3f %.3f] (azimouth)\n",Filter.state()(0),Filter.state()(1),Filter.state()(2),Filter.state()(3),Filter.state()(4),Filter.state()(5));
 
     // Handle elevation measurement
     enu =
-        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
+        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz * Filter.state().head<3>());
     s = dso::top2dae(enu, az, el, dAdenu, dEdenu);
+    printf("\tdEdenu=[%.3e %.3e %.3e]\n", dEdenu(0),dEdenu(1),dEdenu(2));
     Eigen::Matrix<double, 6, 1> dEdY;
     dEdY << (dEdenu.transpose() * lct * Rz).transpose(),
         Eigen::Matrix<double, 3, 1>::Zero();
 
     // Measurement update (elevation)
     Filter.observation_update(obs[i].elev, el, sigma_angle, dEdY);
+    printf("\tUpdated state     = [%.1f %.1f %.1f %.3f %.3f %.3f] (elevation)\n",Filter.state()(0),Filter.state()(1),Filter.state()(2),Filter.state()(3),Filter.state()(4),Filter.state()(5));
 
     // Handle range measurement
     enu =
-        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz.transpose() * Y.head<3>());
+        dso::car2top<dso::ellipsoid::grs80>(xsta, Rz * Filter.state().head<3>());
     s = dso::top2dae(enu, az, el);
     Eigen::Matrix<double, 3, 1> dDdenu = enu / enu.norm();
+    printf("\tdDdenu=[%.3e %.3e %.3e]\n", dDdenu(0),dDdenu(1),dDdenu(2));
     Eigen::Matrix<double, 6, 1> dDdY;
     dDdY << (dDdenu.transpose() * lct * Rz).transpose(),
         Eigen::Matrix<double, 3, 1>::Zero();
+    printf("\tdDdY  =[%.3e %.3e %.3e]\n", dDdY(0),dDdY(1),dDdY(2));
 
     // Measurement update (elevation)
     Filter.observation_update(obs[i].dist, s, sigma_range, dDdY);
+    printf("\tUpdated state     = [%.1f %.1f %.1f %.3f %.3f %.3f] (range)\n",Filter.state()(0),Filter.state()(1),Filter.state()(2),Filter.state()(3),Filter.state()(4),Filter.state()(5));
 
-    auto x = Filter.state();
-    printf("State: [%.3f %.3f %.3f] m.\n", x(0), x(1), x(2));
-    printf("       [%.5f %.5f %.5f] m/s.\n", x(3), x(4), x(5));
+    //auto x = Filter.state();
+    //printf("State: [%.3f %.3f %.3f] m.\n", x(0), x(1), x(2));
+    //printf("       [%.5f %.5f %.5f] m/s.\n", x(3), x(4), x(5));
   }
 
   return 0;

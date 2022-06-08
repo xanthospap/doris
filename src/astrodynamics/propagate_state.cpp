@@ -139,6 +139,13 @@ dso::propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
   // State vector partials w.r.t epoch elements
   const auto dY0dA0 = dso::state_partials(GM,elements,0e0);
   const auto dYdA0  = dso::state_partials(GM,elements,dt);
+  //  printf("\tdso::propagate_state Matrix dYdA0: (note dt=%.3f)\n",dt);
+  //  for (int i=0;i<6;i++) {
+  //    printf("\t\t|");
+  //    for (int j=0; j<6; j++)
+  //      printf("%8.1f ", dYdA0(i,j));
+  //    printf("\n");
+  //  }
 
   const double a = elements.semimajor();
   const double e = elements.eccentricity();
@@ -179,6 +186,13 @@ dso::propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
 
   // State transition matrix
   dYdY0 = dYdA0 * dA0dY0;
+    printf("\tdso::propagate_state Matrix dYdY0: (note dt=%.3f)\n",dt);
+    for (int k=0;k<6;k++) {
+      printf("\t\t|");
+      for (int j=0; j<6; j++)
+        printf("%8.1f ", dYdY0(k,j));
+      printf("\n");
+    }
 
   // propagate state
   return dso::propagate_state(GM, elements, dt);

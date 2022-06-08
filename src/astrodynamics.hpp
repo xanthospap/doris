@@ -90,16 +90,23 @@ propagate_state(double GM, const dso::OrbitalElements &Ele,
 /// @param[out] r   Resulting position in perifocal frame [m]
 /// @param[out] r   Resulting velocity in perifocal frame [m]
 /// @see Montenbruck et al, 2000, Eq. 2.43 and Eq. 2.44
-int elements2perifocal(const OrbitalElements &ele, double E, double GM,
+namespace core {
+Eigen::Matrix<double, 6, 1>
+elements2perifocal(double GM, double E, double e, double a) noexcept;
+}
+Eigen::Matrix<double, 6, 1>
+elements2perifocal(double GM, const dso::OrbitalElements &ele, double dt) noexcept;
+Eigen::Matrix<double, 6, 1>
+elements2perifocal(double GM, const dso::OrbitalElements &ele) noexcept;
+/*int elements2perifocal(const OrbitalElements &ele, double E, double GM,
                        Vector3 &r, Vector3 &v) noexcept;
 Eigen::Matrix<double, 6, 1> elements2perifocal(const OrbitalElements &ele,
                                                double E, double GM) noexcept;
-
 int elements2perifocal(const OrbitalElements &ele, double GM, Vector3 &r,
                        Vector3 &v) noexcept;
 Eigen::Matrix<double, 6, 1> elements2perifocal(const OrbitalElements &ele,
                                                double GM) noexcept;
-
+*/
 int perifocal2equatorial(const dso::OrbitalElements &ele,
                          const dso::Vector3 &rp, const dso::Vector3 &vp,
                          dso::Vector3 &re, dso::Vector3 &ve) noexcept;
@@ -243,8 +250,8 @@ int state2kepler_montenbruck(const double *state, double *kepler_ele,
 ///       [m], transform the input quantities accordingly (i.e. state and GM)
 /// @see Orbital Mechanics for Engineering Students, H. D. Curtis, (Fourth
 ///      Edition), Chapter 4
-int kepler2state(const double *kepler_ele, double *state,
-                 double GM = iers2010::GMe) noexcept;
+/*int kepler2state(const double *kepler_ele, double *state,
+                 double GM = iers2010::GMe) noexcept;*/
 
 /// @brief Compute the perturbing acceleration due to the atmospheric drag.
 /// @param[in] r  Satellite position vector in the inertial system [m]
