@@ -50,15 +50,6 @@ template <int N, typename S> struct ExtendedKalmanFilter {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose();
-    //#ifdef DEBUG
-    //printf("\tekf::time_update Matrix phi:\n");
-    //for (int i=0;i<6;i++) {
-    //  printf("\t\t|");
-    //  for (int j=0; j<6; j++)
-    //    printf("%8.1f ", phi(i,j));
-    //  printf("\n");
-    //}
-    //#endif
   }
 
   void time_update(const dso::datetime<S> &tk,
@@ -72,22 +63,10 @@ template <int N, typename S> struct ExtendedKalmanFilter {
 
   void observation_update(double z, double g, double sigma,
                           const Eigen::Matrix<double, N, 1> &H) noexcept {
-    printf("\tObservation Update: z=%.3f g=%.3f sigma=%.3f\n", z,g,sigma);
-    printf("\t                  : H=[%.3e %.3e %.3e %.3e %.3e %.3e]\n", H(0),H(1),H(2),H(3),H(4),H(5));
-    printf("\t                  : P=\n");
-    for (int k=0;k<6;k++) {
-      printf("\t\t|");
-      for (int j=0; j<6; j++)
-        printf("%15.5f ", P(k,j));
-      printf("\n");
-    }
     double inv_w = sigma * sigma;
     // kalman gain
     // K = P * H / (inv_w + H.transpose() * P * H);
     K = P * H / (inv_w + H.dot(P * H));
-    const auto PH = P*H;
-    printf("\t                  :PH=[%.3f %.3f %.3f %.3f %.3f %.3f]\n", PH(0),PH(1),PH(2),PH(3),PH(4),PH(5));
-    printf("\t                  : K=[%.3f %.3f %.3f %.3f %.3f %.3f]\n", K(0),K(1),K(2),K(3),K(4),K(5));
     // state update
     x = x + K * (z - g);
     // covariance update (Joseph)
