@@ -83,7 +83,6 @@ int main() {
 
   // Orbit determination; initial time t0
   constexpr const int N = 6;
-  // Eigen::Matrix<double, N, 1> Y;
   Y = Y0;
   Y(0) += 10e3;
   Y(1) += -5e3;

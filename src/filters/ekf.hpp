@@ -67,8 +67,10 @@ template <int N, typename S> struct ExtendedKalmanFilter {
     // kalman gain
     // K = P * H / (inv_w + H.transpose() * P * H);
     K = P * H / (inv_w + H.dot(P * H));
+    
     // state update
     x = x + K * (z - g);
+    
     // covariance update (Joseph)
     auto KWm1Kt = (K * sigma) * (K * sigma).transpose();
     auto ImKG = Eigen::Matrix<double, N, N>::Identity() - K * H.transpose();
