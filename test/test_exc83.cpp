@@ -203,7 +203,7 @@ int main() {
   }
   printf("Final Result:\n");
   for (int i = 0; i < 6; i++)
-    printf("\t%+12.6f +- %10.6f\n", Filter.state()(i),
+    printf("\t%+20.6f +- %15.6f\n", Filter.state()(i),
            std::sqrt(Filter.P(i, i)));
 
   return 0;
