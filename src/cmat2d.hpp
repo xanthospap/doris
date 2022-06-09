@@ -7,8 +7,8 @@
 #include <cstdio>
 #endif
 
-/// @file Naive implementation of 2Dimensional matrices; note that this 
-/// implementation targets 2-dimensional matrices that are only mean to store 
+/// @file Naive implementation of 2-Dimensional matrices; note that this
+/// implementation targets 2-dimensional matrices that are only meant to store
 /// data NOT perform arithmetic operations.
 
 namespace dso {
@@ -17,10 +17,10 @@ namespace dso {
 enum class MatrixStorageType : char {
   RowWise,    ///< Row-Wise storage
   ColumnWise, ///< Column-Wise storage
-  Trapezoid   ///< a trapezoid matrix with row-wise storage
-};// MatrixStorageType
+  Trapezoid   ///< A trapezoid matrix with row-wise storage
+};            // MatrixStorageType
 
-/// @brief implementation details depending on storage type, aka 
+/// @brief implementation details depending on storage type, aka
 ///        MatrixStorageType
 template <MatrixStorageType S> struct StorageImplementation {};
 
@@ -51,8 +51,8 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
     return std::min(row + 1, cols);
   }
 
-  /// Return the offset from the begining of the data array, given a row number.
-  /// First row is row 0 (NOT row 1).
+  /// Return the offset from the begining of the data array, given a row
+  /// number. First row is row 0 (NOT row 1).
   /// That means that if the data is stored in an array e.g.
   ///   double *data = new double[num_pts];
   ///   double *row_3 = data[0] + slice(2);
@@ -179,7 +179,9 @@ public:
 
   constexpr int cols() const noexcept { return m_storage.cols; }
 
-  constexpr long num_elements() const noexcept { return m_storage.num_elements(); }
+  constexpr long num_elements() const noexcept {
+    return m_storage.num_elements();
+  }
 
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   double &operator()(int i, int j) noexcept {
@@ -258,6 +260,6 @@ public:
 
 }; // Mat2D
 
-} // namespace dso
+} // dso
 
 #endif

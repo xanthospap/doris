@@ -4,7 +4,7 @@
 /// Define a data structure to hold Harmonics coefficients. This structure
 /// stores a two-dimensional data matrix, where each row corresponds to the
 /// S and C coefficients of a certain degree. To save space, the data matrix
-/// is in compact form, as follows:
+/// is in compact form, as follows (degree=n, order=m):
 /// C_00 S_n1 S_n2     S_n3     ... S_nm
 /// C_10 C_11 S_(n-1)1 S_(n-1)2 ... S_(n-1)m
 /// ...
@@ -18,6 +18,22 @@
 
 namespace dso {
 
+/// @brief Storage and access of Harmonic Coefficients.
+/// We are allocating and using a 2-d array of size degree * degree (hence
+/// not actually using the order of the Coefficients). This make take up more
+/// space than actually needed but is a bit faster.
+/// The struct is 'agnostic' concerning the order of the coefficients. It is
+/// the user's responsibility to use consistent values for order.
+///
+/// @note No checks are performed for the validity of the degree/order indexes
+///       when asking the structure to privide an element (or a row of C or S
+///       coefficients. It is the user's responsibility to use correct values.
+///
+/// @warning Snm coefficients are always zero for m=0. Hence, these values are
+///       not even stored in the storage matrix and asking for them, e.g.
+///       HarmonicCoeffs hc(...);
+///       ....
+///       hc.S(1,0); // Error!!
 class HarmonicCoeffs {
 public:
   int m_degree{0};          ///< maximum degree
@@ -85,9 +101,9 @@ public:
   const double &C(int i, int j) const noexcept { return C_row(i)[j]; }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
-  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are 
-  ///          not stored in the data array. Hence, in contrast to the 
-  ///          corresponding S_row() function, this function will not return a 
+  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are
+  ///          not stored in the data array. Hence, in contrast to the
+  ///          corresponding S_row() function, this function will not return a
   ///          pointer to S_0m, a pointer to S_1m.
   /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point
   /// to the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
@@ -98,9 +114,9 @@ public:
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
-  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are 
-  ///          not stored in the data array. Hence, in contrast to the 
-  ///          corresponding S_row() function, this function will not return a 
+  /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are
+  ///          not stored in the data array. Hence, in contrast to the
+  ///          corresponding S_row() function, this function will not return a
   ///          pointer to S_0m, a pointer to S_1m.
   /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point to
   /// the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
@@ -122,6 +138,6 @@ public:
 
 }; // HarmonicCoeffs
 
-}// dso
+} // namespace dso
 
 #endif

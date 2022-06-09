@@ -1,5 +1,5 @@
 #include "atmosphere.hpp"
-#include "compact2dmat.hpp"
+#include "cmat2d.hpp"
 #include <cmath>
 #ifdef DEBUG
 #include <cassert>

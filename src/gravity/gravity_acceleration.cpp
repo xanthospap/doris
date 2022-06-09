@@ -1,4 +1,4 @@
-#include "compact2dmat.hpp"
+#include "cmat2d.hpp"
 #include "harmonic_coeffs.hpp"
 #include "egravity.hpp"
 #include <algorithm>

@@ -1,7 +1,7 @@
 #ifndef __EARTH_GRAVITY_N_POTENTIAL_HPP__
 #define __EARTH_GRAVITY_N_POTENTIAL_HPP__
 
-#include "compact2dmat.hpp"
+#include "cmat2d.hpp"
 #include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
 

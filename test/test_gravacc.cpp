@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   }
 
   // de-normalize the harmonics coeffs
-  // hc.denormalize();
+  hc.denormalize();
 
   // ok, we now have the harmonic coefficients; we need the Lagrange
   // polynomials.
