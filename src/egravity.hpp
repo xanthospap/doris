@@ -4,6 +4,7 @@
 #include "cmat2d.hpp"
 #include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
+#include "eigen3/Eigen/Eigen"
 
 namespace dso {
 
@@ -32,21 +33,33 @@ int lagrange_polynomials(
 
 /// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian) 
 /// position vector.
-/// @param[in] x X-component of position vector in meters
-/// @param[in] y Y-component of position vector in meters
-/// @param[in] z Z-component of position vector in meters
+/// @param[in] x X-component of position vector in meters [m]
+/// @param[in] y Y-component of position vector in meters [m]
+/// @param[in] z Z-component of position vector in meters [m]
 /// @param[in] R Earth radius (depending on gravity model)
 /// @param[in] l max degree
 /// @param[in] k max order (k <= l)
 /// @param[out] V Computed values of V lagrange polynomials
 /// @param[out] W Computed values for W lagrange polynomials
 /// 
+/// Note that to to for Spherical Harmonics up to C_nn and S_nn, we need to 
+/// compute the V and W values up to n+1.
 /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      ch. 3.2.4, p. 66
 int lagrange_polynomials(
     double x, double y, double z, double R, int l, int k,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
+
+inline int lagrange_polynomials(
+    const Eigen::Matrix<double, 3, 1> &xyz, double R, int l, int k,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept {
+  const double x = xyz(0);
+  const double y = xyz(1);
+  const double z = xyz(2);
+  return lagrange_polynomials(x, y, z, R, l, k, V, W);
+}
 
 /// @brief Computes the acceleration due to the harmonic gravity field of the
 /// central body
@@ -55,9 +68,13 @@ int lagrange_polynomials(
 /// @param[in] hc Spherical harmonics coefficients (un-normalized)
 /// @param[in] degree Maximum degree; less or equal to the degree of the hc
 /// @param[in] order Maximum order (m_max<=n_max; m_max=0 for zonals, only)
-/// @param[out] V Computed values of V lagrange polynomials
-/// @param[out] W Computed values for W lagrange polynomials
-/// @param[out] acc Acceleration (a=d^2r/dt^2) in x, y, z components
+/// @param[out] V Computed values of V lagrange polynomials (computed in an 
+///               Earth-fixed coordinate system)
+/// @param[out] W Computed values for W lagrange polynomials (computed in an 
+///               Earth-fixed coordinate system)
+/// @param[out] acc Acceleration (a=d^2r/dt^2) in x, y, z components in an 
+///               Earth-fixed coordinate system (the same as the one used
+///               to compute the lagrange polynomial values stored in V and W)
 /// @warning Note that if we need to compute the potential, aka the harmonic
 ///          expansion of degree N and order M, then we need the V and W values
 ///          for degree N+1 and order M+1. Hence, when allocating the structs,
@@ -70,6 +87,12 @@ int grav_potential_accel(int degree, int order, double Re, double GM,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
                          const dso::HarmonicCoeffs &hc, double *acc) noexcept;
+inline int grav_potential_accel(int degree, int order,
+                         const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                         const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                         const dso::HarmonicCoeffs &hc, double *acc) noexcept {
+  return grav_potential_accel(degree, order, hc.Re(), hc.GM(),  V, W, hc, acc);
+}
 }// dso
 
 #endif

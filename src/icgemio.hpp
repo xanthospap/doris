@@ -2,16 +2,16 @@
 #define __ICGEM_POTENTIAL_IO_HPP__
 
 /// Basic handling of icgem files (holding gravity potential models).
-/// Information can be found on the International Centre for Global Earth Models
-/// (ICGEM) website, http://icgem.gfz-potsdam.de/home
+/// Information can be found on the International Centre for Global Earth 
+/// Models (ICGEM) website, http://icgem.gfz-potsdam.de/home
 /// see Ince, E. S., Barthelmes, F., Reißland, S., Elger, K., Förste, C.,
 /// Flechtner, F., Schuh, H. (2019): ICGEM – 15 years of successful collection 
 /// and distribution of global gravitational models, associated services and 
 /// future plans.- Earth System Science Data, 11, pp.647 - 674, DOI : 
-/// http : // doi.org/10.5194/essd-11-647-2019.
+/// http:// doi.org/10.5194/essd-11-647-2019.
 
 #include <fstream>
-#include <string>
+#include <cstring>
 #include "harmonic_coeffs.hpp"
 
 namespace dso {
@@ -46,6 +46,10 @@ public:
     int degree() const noexcept { return max_degree; }
     double earth_radius() const noexcept { return radius; }
     double gm() const noexcept { return earth_gravity_constant; }
+  
+    bool is_normalized() const noexcept {
+      return !std::strcmp(norm, "fully_normalized");
+    }
 
     #ifdef DEBUG
     void print_details();
@@ -57,6 +61,9 @@ public:
     /// @brief Parse harmonic coefficients up to degree l and order m.
     /// Note that only data/values with a key value of 'gfc' are read. Some
     /// models however, include parameters with more keys.
+    /// The function will also assign the model's constants (aka GM and Re) as
+    /// well as the normalization status of the coefficients.
+    ///
     /// @param[in] l Max degree of S/C harmonic coeffients values to read and
     ///            store.
     /// @param[in] k Max order of S/C harmonic coeffients values to read and

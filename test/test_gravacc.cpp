@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   // allocate memory to store harmonic coefficients
   HarmonicCoeffs hc(degree);
   // parse data; store coefficients to hc
-  if (gfc.parse_data(degree, degree, &hc)) {
+  if (gfc.parse_data(degree, order, &hc)) {
     fprintf(stderr, "ERROR! Failed to parse harmonic coefficients\n");
     return 1;
   }
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   hc.denormalize();
 
   // ok, we now have the harmonic coefficients; we need the Lagrange
-  // polynomials.
+  // polynomials, for the given point
   // Note that we need to compute V and W for degree + 1 (see Montenbruck,
   // 3.2.5)
   Mat2D<MatrixStorageType::Trapezoid> V(degree + 2, order + 2),
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   }
 
   double acc[3];
-  if (grav_potential_accel(degree, order, gfc.earth_radius(), gfc.gm(), V, W,
+  if (grav_potential_accel(degree, order, V, W,
                            hc, acc)) {
     fprintf(stderr, "ERROR. Failed to compute acceleration.\n");
     return 1;

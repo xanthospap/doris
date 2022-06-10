@@ -36,19 +36,30 @@ namespace dso {
 ///       hc.S(1,0); // Error!!
 class HarmonicCoeffs {
 public:
+  double _GM{0e0}; ///< gravitational constant times mass of the earth
+  double _Re{0e0}; ///< reference radius of the spherical harmonic development
+  bool _cnormalized{true};  ///< coefficients are normaliized (?)
   int m_degree{0};          ///< maximum degree
   double **m_data{nullptr}; ///< the actual data/coefficients
 
   /// @brief allocate memory to hold the data.
-  int allocate() noexcept;
+  double *allocate() noexcept;
 
   /// @brief free memmory used by the structure.
   int deallocate() noexcept;
 
 public:
-  HarmonicCoeffs() : m_degree(0), m_data(nullptr){};
+  HarmonicCoeffs()
+      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_data(nullptr){};
 
-  HarmonicCoeffs(int n) : m_degree(n) { allocate(); }
+  HarmonicCoeffs(int n, double GM, double Re)
+      : _GM(GM), _Re(Re), _cnormalized(true), m_degree(n) {
+    allocate();
+  }
+
+  HarmonicCoeffs(int n) : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n) {
+    allocate();
+  }
 
   HarmonicCoeffs(const HarmonicCoeffs &h) = delete;
 
@@ -72,8 +83,15 @@ public:
 #endif
 
   int degree() const noexcept { return m_degree; }
+  double GM() const noexcept { return _GM; }
+  double Re() const noexcept { return _Re; }
+  bool normalized() const noexcept { return _cnormalized; }
+  double &GM() noexcept { return _GM; }
+  double &Re() noexcept { return _Re; }
+  bool &normalized() noexcept { return _cnormalized; }
 
   /// @brief De-normalize harmonic coefficients.
+  /// If the coefficients are alredy un-normalized, this is a no-op.
   /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
   /// See Eq. 3.13 in Chapter 3.2
   int denormalize(int order = -1) noexcept;

@@ -30,12 +30,13 @@ std::size_t coeffs_nr(int l, int m) noexcept {
 ///          enough memmory to hold the (to-be-) parsed coefficients.
 int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
 
+  int error = 0;
   if (l > max_degree || m > l) {
     fprintf(
         stderr,
         "[ERROR] Invalid degree/order given to data parse (traceback: %s)\n",
         __func__);
-    return 1;
+    error = 1;
   }
 
   if (coeffs->degree() < l) {
@@ -43,15 +44,22 @@ int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
             "[ERROR] Cannot read harmonics of degree %d to HarmonicsCoeffs of "
             "degree %d (traceback: %s)\n",
             l, coeffs->degree(), __func__);
-    return 1;
+    error = 1;
   }
 
   std::ifstream fin(filename.c_str());
   if (!fin.is_open()) {
     fprintf(stderr, "[ERROR] Failed opening icgem file %s (traceback: %s)\n",
             filename.c_str(), __func__);
-    return 1;
+    error = 1;
   }
+
+  if (error) return error;
+
+  // assign gravity model constants
+  coeffs->GM() = earth_gravity_constant;
+  coeffs->Re() = radius;
+  coeffs->normalized() = this->is_normalized();
 
   fin.seekg(data_section_pos);
 

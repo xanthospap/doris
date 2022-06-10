@@ -4,11 +4,11 @@
 #include <cmath>
 #include <cstdio>
 
-int dso::HarmonicCoeffs::allocate() noexcept {
+double *dso::HarmonicCoeffs::allocate() noexcept {
   m_data = new double *[m_degree + 1];
   for (int i = 0; i <= m_degree; i++)
     m_data[i] = new double[m_degree + 1];
-  return 0;
+  return m_data[0];
 }
 
 int dso::HarmonicCoeffs::deallocate() noexcept {
@@ -24,6 +24,9 @@ dso::HarmonicCoeffs::HarmonicCoeffs(dso::HarmonicCoeffs &&h) noexcept {
   this->deallocate();
   this->m_degree = h.m_degree;
   this->m_data = h.m_data;
+  this->_GM = h._GM;
+  this->_Re = h._Re;
+  this->_cnormalized = h._cnormalized;
   h.m_degree = 0;
   h.m_data = nullptr;
 }
@@ -32,6 +35,9 @@ dso::HarmonicCoeffs &
 dso::HarmonicCoeffs::operator=(dso::HarmonicCoeffs &&h) noexcept {
   this->m_degree = h.m_degree;
   this->m_data = h.m_data;
+  this->_GM = h._GM;
+  this->_Re = h._Re;
+  this->_cnormalized = h._cnormalized;
   h.m_degree = 0;
   h.m_data = nullptr;
   return *this;
@@ -55,6 +61,8 @@ int compute_fac(int n, int m, double *fac) noexcept {
 }
 
 int dso::HarmonicCoeffs::denormalize(int order) noexcept {
+  if (!normalized()) return 0;
+
   if (order < 0)
     order = m_degree;
   if (order > m_degree) {
@@ -83,5 +91,6 @@ int dso::HarmonicCoeffs::denormalize(int order) noexcept {
   }
   delete[] facs;
 
+  this->_cnormalized = false;
   return 0;
 }
