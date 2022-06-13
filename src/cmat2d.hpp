@@ -5,6 +5,7 @@
 #include <cstring>
 #ifdef DEBUG
 #include <cstdio>
+#include <cassert>
 #endif
 
 /// @file Naive implementation of 2-Dimensional matrices; note that this
@@ -185,11 +186,17 @@ public:
 
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   double &operator()(int i, int j) noexcept {
+#ifdef DEBUG
+    assert(i<rows() && j < cols());
+#endif
     return m_data[m_storage.element_offset(i, j)];
   }
 
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   const double &operator()(int i, int j) const noexcept {
+#ifdef DEBUG
+    assert(i<rows() && j < cols());
+#endif
     return m_data[m_storage.element_offset(i, j)];
   }
 

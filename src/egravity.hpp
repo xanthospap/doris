@@ -2,9 +2,9 @@
 #define __EARTH_GRAVITY_N_POTENTIAL_HPP__
 
 #include "cmat2d.hpp"
+#include "eigen3/Eigen/Eigen"
 #include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
-#include "eigen3/Eigen/Eigen"
 
 namespace dso {
 
@@ -15,9 +15,8 @@ namespace dso {
 /// @param[in] robj Point mass position vector (e.g. moon)
 /// @return A vector containing the acceleration components
 /// @see e.g. Curtis, Chapter 10.10
-inline
-Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
-                         double GM) noexcept {
+inline Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
+                                double GM) noexcept {
   //  Relative position vector of satellite w.r.t. point mass
   auto d = rsat - robj;
   // Acceleration
@@ -31,7 +30,7 @@ int lagrange_polynomials(
     dso::Mat2D<dso::MatrixStorageType::RowWise> &W) noexcept;
 #endif
 
-/// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian) 
+/// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian)
 /// position vector.
 /// @param[in] x X-component of position vector in meters [m]
 /// @param[in] y Y-component of position vector in meters [m]
@@ -41,9 +40,10 @@ int lagrange_polynomials(
 /// @param[in] k max order (k <= l)
 /// @param[out] V Computed values of V lagrange polynomials
 /// @param[out] W Computed values for W lagrange polynomials
-/// 
-/// Note that to to for Spherical Harmonics up to C_nn and S_nn, we need to 
-/// compute the V and W values up to n+1.
+///
+/// Note that for Spherical Harmonics up to C_nn and S_nn, we need to
+/// compute the V and W values up to n+1. If we want partials, we must expand
+/// to n+2
 /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      ch. 3.2.4, p. 66
 int lagrange_polynomials(
@@ -68,11 +68,11 @@ inline int lagrange_polynomials(
 /// @param[in] hc Spherical harmonics coefficients (un-normalized)
 /// @param[in] degree Maximum degree; less or equal to the degree of the hc
 /// @param[in] order Maximum order (m_max<=n_max; m_max=0 for zonals, only)
-/// @param[out] V Computed values of V lagrange polynomials (computed in an 
+/// @param[out] V Computed values of V lagrange polynomials (computed in an
 ///               Earth-fixed coordinate system)
-/// @param[out] W Computed values for W lagrange polynomials (computed in an 
+/// @param[out] W Computed values for W lagrange polynomials (computed in an
 ///               Earth-fixed coordinate system)
-/// @param[out] acc Acceleration (a=d^2r/dt^2) in x, y, z components in an 
+/// @param[out] acc Acceleration (a=d^2r/dt^2) in x, y, z components in an
 ///               Earth-fixed coordinate system (the same as the one used
 ///               to compute the lagrange polynomial values stored in V and W)
 /// @warning Note that if we need to compute the potential, aka the harmonic
@@ -87,12 +87,29 @@ int grav_potential_accel(int degree, int order, double Re, double GM,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
                          const dso::HarmonicCoeffs &hc, double *acc) noexcept;
-inline int grav_potential_accel(int degree, int order,
+
+int grav_potential_accel(int degree, int order, double Re, double GM,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
-                         const dso::HarmonicCoeffs &hc, double *acc) noexcept {
-  return grav_potential_accel(degree, order, hc.Re(), hc.GM(),  V, W, hc, acc);
+                         const dso::HarmonicCoeffs &hc, double *acc,
+                         Eigen::Matrix<double, 3, 3> &partials) noexcept;
+inline int
+grav_potential_accel(int degree, int order,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc, double *acc) noexcept {
+  return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc, acc);
 }
-}// dso
+
+// Note that if we want the partials, V and W indexes must span [0,degree+2]
+// (hence the actual number should be degree+3)
+inline
+int grav_potential_accel(int degree, int order,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc, double *acc, Eigen::Matrix<double, 3, 3> &partials) noexcept {
+  return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc, acc, partials);
+}
+} // namespace dso
 
 #endif

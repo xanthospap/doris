@@ -156,6 +156,6 @@ public:
 
 }; // HarmonicCoeffs
 
-} // namespace dso
+} // dso
 
 #endif
