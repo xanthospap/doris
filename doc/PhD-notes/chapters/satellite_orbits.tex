@@ -409,6 +409,133 @@ the potential from,
 $\ddot{\bm{r}} = \left( \frac{\partial U}{\partial \bm{r}} \right) ^T$,
 see \cite{Montenbruck2000}.
 
+The partial derivatives of $\ddot{\bm{r}}$ with respect to $\bm{r}$ are just the 
+second partial derivatives of the potential $U$, where $U=GM\frac{1}{\bm{r}}$ 
+(\ref{eq:mont757}), which are clearly symmetric, since the order of 
+differentiation with respect to the components of $\bm{r}$ may be interchanged, 
+i.e. \cite{Montenbruck2000}
+\begin{equation}
+  \label{eq:mont760}
+  \frac{\partial \ddot{y}}{\partial x} = 
+  \frac{\partial ^2 U}{\partial x \partial y} =
+  \frac{\partial ^2 U}{\partial y \partial x} = 
+  \frac{\partial \ddot{x}}{\partial y}
+\end{equation}
+
+Since this symmetry is independent of the particular form of U, it is not only valid
+for the central term of the Earth's potential but also for all higher order harmonics.
+
+The symmetry property of the matrix $\frac{\partial \ddot{\bm{r}}}{\partial \bm{r}}$ 
+of partial derivatives of the Earth's attraction with respect to the position 
+and the condition of a vanishing sum of the diagonal elements reduces the number 
+of independent components that have to be considered in the computation from 
+nine to five. In an \emph{Earth-fixed frame} these components may conveniently be 
+obtained from
+\begin{equation}
+  \label{eq:mont764}
+  \frac{\partial \ddot{\bm{r}}}{\partial \bm{r}} = 
+    \sum_{n,m} \frac{\partial \ddot{\bm{r}_{nm}}}{\partial \bm{r}}
+\end{equation}
+
+Explicit formulas for the individual components are given below, and are 
+copied from \cite{Montenbruck2000}
+\begin{equation}
+  \label{eq:mont765}
+  \frac{\partial \ddot{x} _{nm}}{\partial x} 
+    = \frac{GM}{R_{\Earth}^3} \left\{
+    \begin{array}{ll}
+      
+      \frac{1}{2} \left( (C_{n0}V_{n+2,2}) - \frac{(n+2)!}{n!} (C_{n0}V_{n+2,0})
+      \right) & m = 0 \\  [\bigskipamount]
+      
+      \begin{aligned}
+        \frac{1}{4} & \left( (C_{n1}V_{n+2,3} + S_{n1} W_{n+2,3}) \right. \\
+                    & \left.  + \frac{(n+1)!}{(n-1)!}(-3C_{n1}V_{n+2,1} - S_{n1}W_{n+2,1}) \right)
+      \end{aligned}
+      & m = 1 \\ [\bigskipamount]
+      
+      \begin{aligned}
+        \frac{1}{4} & \left( (C_{nm}V_{n+2,m+2} + S_{nm} W_{n+2,m+2}) + \right. \\
+                    &  + 2\frac{(n-m+2)!}{(n-m)!}(-C_{nm}V_{n+2,m} - S_{nm}W_{n+2,m}) \\
+                    &  + \left. \frac{(n-m+4)!}{(n-m)!}(C_{nm}V_{n+2,m-2} + S_{nm}W_{n+2,m-2}) \right) 
+      \end{aligned}
+      & m > 0
+    
+    \end{array}
+  \right.
+\end{equation}
+
+\begin{equation}
+  \label{eq:mont766}
+  \frac{\partial \ddot{x} _{nm}}{\partial y} 
+    = \frac{GM}{R_{\Earth}^3} \left\{
+    \begin{array}{ll}
+      
+      \frac{1}{2} \left( C_{n0}W_{n+2,2}  \right) & m = 0 \\ [\bigskipamount] 
+      
+      \begin{aligned}
+        \frac{1}{4} & \left( (C_{n1}W_{n+2,3} - S_{n1} V_{n+2,3}) \right. \\
+                    & \left.  + \frac{(n+1)!}{(n-1)!}(-C_{n1}W_{n+2,1} - S_{n1}V_{n+2,1}) \right)
+      \end{aligned}
+      & m = 1 \\ [\bigskipamount]
+      
+      \begin{aligned}
+        \frac{1}{4} & \left( (C_{nm}W_{n+2,m+2} - S_{nm} V_{n+2,m+2}) + \right. \\
+                    &  + \left. \frac{(n-m+4)!}{(n-m)!}(-C_{nm}w_{n+2,m-2} + S_{nm}W_{n+2,m-2}) \right) 
+      \end{aligned}
+      & m > 0
+    
+    \end{array}
+  \right.
+\end{equation}
+%
+\begin{equation}
+  \label{eq:mont767}
+  \frac{\partial \ddot{x} _{nm}}{\partial z} 
+    = \frac{GM}{R_{\Earth}^3} \left\{
+    \begin{array}{ll}
+      
+      (n+1) \left( C_{n0}V_{n+2,1}  \right) & m = 0 \\ [\bigskipamount]
+      
+      \begin{aligned}
+        & \frac{n-m+1}{2} \left( C_{nm}V_{n+2,m+1} + S_{nm} W_{n+2,m+1} \right) \\
+        & +\frac{1}{2} \frac{(n-m+3)!}{(n-m)!} \left( -C_{nm}V_{n+2,m-1} - S_{nm}W_{n+2,m-1}) \right) 
+      \end{aligned}
+      & m > 0
+    
+    \end{array}
+  \right.
+\end{equation}
+%
+\begin{equation}
+  \label{eq:mont768}
+  \frac{\partial \ddot{y} _{nm}}{\partial z} 
+    = \frac{GM}{R_{\Earth}^3} \left\{
+    \begin{array}{ll}
+      
+      (n+1) \left( C_{n0}W_{n+2,1}  \right) & m = 0 \\ [\bigskipamount]
+      
+      \begin{aligned}
+        & \frac{n-m+1}{2} \left( C_{nm}W_{n+2,m+1} - S_{nm} V_{n+2,m+1} \right) \\
+        & +\frac{1}{2} \frac{(n-m+3)!}{(n-m)!} \left( C_{nm}W_{n+2,m-1} - S_{nm}V_{n+2,m-1} \right) 
+      \end{aligned}
+      & m > 0
+    
+    \end{array}
+  \right.
+\end{equation}
+
+\begin{equation}
+  \label{eq:mont769}
+  \frac{\partial \ddot{z} _{nm}}{\partial z} 
+    = \frac{GM}{R_{\Earth}^3} \left\{ 
+      \frac{(n-m+2)!}{(n-m)!} \left( C_{nm}V_{n+2,m} + S_{nm}W_{n+2,m} \right) \right\}
+\end{equation}
+
+Since the acceleration due to the Earth's attraction does not depend on the
+satellite's velocity, the partial derivatives with respect to the position are 
+all that is required to compute the contribution of the geopotential to the 
+variational equations for the state transition matrix.
 
 \section{Sun and Moon Perturbing Acceleration}
 According to Newton's law of gravity, the acceleration of a satellite by a point 
@@ -432,6 +559,19 @@ due to M. Both values have to be subtracted to obtain the second derivative
     \ddot{\vec{r}} = G M (\frac{\vec{s}-\vec{r}}{\lvert \vec{s} - \vec{r} \rvert ^3} - \frac{\vec{s}}{\lvert \vec{s} \rvert ^3})
 \end{equation}
 of the satellite's Earth-centered position vector.
+
+\subsection{Derivatives of Point-Mass Perturbations}
+\label{ssec:derivatives-of-point-mass-perturbations}
+Only the direct gravitational attraction depends on the satellite coordinates 
+and the partial derivatives of the acceleration with respect to $\bm{r}$ 
+are therefore given by (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont775}
+  \frac{\partial \ddot{\bm{r}}}{\partial \bm{r}} = 
+    -GM \left( \frac{1}{\norm{\bm{r}-\bm{s}} ^3} \bm{I}_{3\times 3} 
+    -3 \left( \bm{r}-\bm{s} \right) 
+      \frac{\left( \bm{r}-\bm{s} \right) ^T}{\norm{\bm{r}-\bm{s}} ^5} \right)
+\end{equation}
 
 \subsection{Sun, Moon and Planetary Ephemerides}
 To use the formula \ref{eq:mon337} we need the (geocentric) coordinates of the 

@@ -23,6 +23,11 @@ inline Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
   return -GM * (d / std::pow(d.norm(), 3) + robj / std::pow(robj.norm(), 3));
 }
 
+Eigen::Matrix<double, 3, 1>
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
+                 const Eigen::Matrix<double, 3, 1> &robj,
+                 Eigen::Matrix<double, 3, 3> &partials) noexcept;
+
 #ifdef DEBUG
 int lagrange_polynomials(
     double x, double y, double z, double R, int l, int k,
@@ -35,7 +40,7 @@ int lagrange_polynomials(
 /// @param[in] x X-component of position vector in meters [m]
 /// @param[in] y Y-component of position vector in meters [m]
 /// @param[in] z Z-component of position vector in meters [m]
-/// @param[in] R Earth radius (depending on gravity model)
+/// @param[in] Re Earth radius (depending on gravity model)
 /// @param[in] l max degree
 /// @param[in] k max order (k <= l)
 /// @param[out] V Computed values of V lagrange polynomials
@@ -47,18 +52,18 @@ int lagrange_polynomials(
 /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
 ///      ch. 3.2.4, p. 66
 int lagrange_polynomials(
-    double x, double y, double z, double R, int l, int k,
+    double x, double y, double z, double Re, int l, int k,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
 
 inline int lagrange_polynomials(
-    const Eigen::Matrix<double, 3, 1> &xyz, double R, int l, int k,
+    const Eigen::Matrix<double, 3, 1> &xyz, double Re, int l, int k,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept {
   const double x = xyz(0);
   const double y = xyz(1);
   const double z = xyz(2);
-  return lagrange_polynomials(x, y, z, R, l, k, V, W);
+  return lagrange_polynomials(x, y, z, Re, l, k, V, W);
 }
 
 /// @brief Computes the acceleration due to the harmonic gravity field of the
@@ -88,11 +93,16 @@ int grav_potential_accel(int degree, int order, double Re, double GM,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
                          const dso::HarmonicCoeffs &hc, double *acc) noexcept;
 
+// Note that if we want the partials, V and W indexes must span [0,degree+2]
+// (hence the actual number should be degree+3)
 int grav_potential_accel(int degree, int order, double Re, double GM,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
                          const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
                          const dso::HarmonicCoeffs &hc, double *acc,
                          Eigen::Matrix<double, 3, 3> &partials) noexcept;
+
+// Here, the values of Re and GM are extracted from the Gravity model, aka
+// the passed in hc instance
 inline int
 grav_potential_accel(int degree, int order,
                      const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
@@ -101,14 +111,18 @@ grav_potential_accel(int degree, int order,
   return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc, acc);
 }
 
+// Here, the values of Re and GM are extracted from the Gravity model, aka
+// the passed in hc instance.
 // Note that if we want the partials, V and W indexes must span [0,degree+2]
-// (hence the actual number should be degree+3)
-inline
-int grav_potential_accel(int degree, int order,
+// (hence the actual number should be degree+3).
+inline int
+grav_potential_accel(int degree, int order,
                      const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
                      const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
-                     const dso::HarmonicCoeffs &hc, double *acc, Eigen::Matrix<double, 3, 3> &partials) noexcept {
-  return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc, acc, partials);
+                     const dso::HarmonicCoeffs &hc, double *acc,
+                     Eigen::Matrix<double, 3, 3> &partials) noexcept {
+  return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc, acc,
+                              partials);
 }
 } // namespace dso
 
