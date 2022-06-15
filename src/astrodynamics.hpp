@@ -272,6 +272,19 @@ int state2kepler_montenbruck(const double *state, double *kepler_ele,
 ///     Chapter 8.6.2
 Vector3 drag_accel(const Vector3 &r, const Vector3 &v, double Area, double mass,
                    double CD, double atmdens) noexcept;
+
+/// @brief Acceleration due to Solar Radiation Pressure
+/// This is a simplified model, as described in Montenbruck et al, 2000
+Eigen::Matrix<double, 3, 1>
+solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
+                             const Eigen::Matrix<double, 3, 1> &rsun,
+                             double Area, double mass, double C) noexcept;
+Eigen::Matrix<double, 3, 1>
+solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
+                                  const Eigen::Matrix<double, 3, 1> &rsun,
+                                  double Area, double mass, double C,
+                                  Eigen::Matrix<double, 3, 1> &dadr,
+                                  Eigen::Matrix<double, 3, 1> &dadC) noexcept;
 } // namespace dso
 
 #endif
