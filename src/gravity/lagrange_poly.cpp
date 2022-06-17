@@ -96,7 +96,7 @@ int dso::lagrange_polynomials(
   int n = 0, m = 0;
   for (n = 2; n <= l; n++) {
     V(n, 0) =
-        ((2 * n - 1) * z0 * V(n - 1, 0) - (n - 1) * rho * V(n - 2, 0)) / n;
+        ((2e0 * n - 1e0) * z0 * V(n - 1, 0) - (n - 1) * rho * V(n - 2, 0)) / n;
     W(n, 0) = 0e0;
   }
 

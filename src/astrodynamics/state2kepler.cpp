@@ -2,7 +2,7 @@
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include <cmath>
-#include <matvec/matvec.hpp>
+#include "matvec/matvec.hpp"
 #include <limits>
 #ifdef ASSERT_ERROR
 #include <cassert>
@@ -51,12 +51,39 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
 
   return ok;
 }
-int dso::elements2state(const dso::OrbitalElements &ele, double dt,
-                        Eigen::Matrix<double,6,1> &Y, double GM) noexcept {
-  dso::Vector3 r,v;
-  int error = dso::elements2state(ele, dt, r, v, GM);
-  Y << r(0), r(1), r(2), v(0), v(1), v(2);
-  return error;
+
+Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
+                                                const dso::OrbitalElements &ele,
+                                                int &error) noexcept {
+  // mean anomaly M at time t
+  const double a = ele.semimajor();
+  const double M = ele.mean_anomaly() + std::sqrt(GM / (a * a * a)) * dt;
+
+  // solve kepler's equation
+  const double e = ele.eccentricity();
+  const double E = dso::kepler(e, M, error);
+
+  // perifocal coordinates (see Montenbruck 2.2.3)
+  const double cE = std::cos(E);
+  const double sE = std::sin(E);
+  const double f = std::sqrt((1e0 - e) * (1e0 + e)); // aka (1-e^2)^(1/2)
+  const double rmag = a * (1e0 - e * cE);
+  const double vmag = std::sqrt(GM * a) / rmag;
+  Eigen::Matrix<double, 6, 1> Y;
+  Y << a * (cE - e), a * f * sE, 0e0, -vmag * sE, vmag * f * cE, 0e0;
+
+  // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
+  const double Omega = ele.Omega();
+  const double omega = ele.omega();
+  const double i = ele.inclination();
+  Eigen::Matrix3d R(Eigen::AngleAxisd(-Omega, Eigen::Vector3d::UnitZ()) *
+                    Eigen::AngleAxisd(-i, Eigen::Vector3d::UnitX()) *
+                    Eigen::AngleAxisd(-omega, Eigen::Vector3d::UnitZ()));
+
+  // rotate to get equatorial, aka geocentric/(quasi-)inertial
+  Y.block<3,1>(0,0) = R * Y.block<3,1>(0,0);
+  Y.block<3,1>(3,0) = R * Y.block<3,1>(3,0);
+  return Y;
 }
 
 int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,

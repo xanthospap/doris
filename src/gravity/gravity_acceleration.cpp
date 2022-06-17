@@ -9,11 +9,11 @@
 #include <cstdio>
 #endif
 
-int dso::grav_potential_accel(
+Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     int degree, int order, double Re, double GM,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
-    const dso::HarmonicCoeffs &hc, double *acc) noexcept {
+    const dso::HarmonicCoeffs &hc) noexcept {
 
   double xacc(0e0), yacc(0e0), zacc(0e0);
 
@@ -55,18 +55,21 @@ int dso::grav_potential_accel(
 
   zacc *= GM / (Re * Re);
 
-  acc[0] = xacc;
-  acc[1] = yacc;
-  acc[2] = zacc;
+  //acc[0] = xacc;
+  //acc[1] = yacc;
+  //acc[2] = zacc;
 
-  return 0;
+  Eigen::Matrix<double,3,1> acc;
+  acc << xacc, yacc, zacc;
+
+  return acc;
 }
 
-int dso::grav_potential_accel(
+Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     int degree, int order, double Re, double GM,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
-    const dso::HarmonicCoeffs &hc, double *acc,
+    const dso::HarmonicCoeffs &hc,
     Eigen::Matrix<double, 3, 3> &partials) noexcept {
 
   // factorial look-up table up to N=120
@@ -174,8 +177,6 @@ int dso::grav_potential_accel(
 
         dazdz_m2 += fac2 * (Cnm * V(i + 2, j) + Snm * W(i + 2, j));
 
-        // printf("\tUsed factorial values: %.2f %.2f %.2f for n=%d and m=%d\n",
-        // fac2, fac3, fac4, i, j);
         fac2 *= ((double)(i - j) / (double)(i - j + 2));
         fac3 *= ((double)(i - j) / (double)(i - j + 3));
         fac4 *= ((double)(i - j) / (double)(i - j + 4));
@@ -192,14 +193,10 @@ int dso::grav_potential_accel(
 
   zacc *= GM / (Re * Re);
 
-  acc[0] = xacc;
-  acc[1] = yacc;
-  acc[2] = zacc;
+  Eigen::Matrix<double,3,1> acc;
+  acc << xacc, yacc, zacc;
 
   // Sum-up partial derivatives
-  // printf("\tdx/dx = %.9f + %.9f + %.9f\n", daxdx_m0, daxdx_m1, daxdx_m2);
-  // printf("\tdx/dy = %.9f + %.9f + %.9f\n", daxdy_m0, daxdy_m1, daxdy_m2);
-  // printf("\tdx/dz = %.9f + %.9f \n", daxdz_m0, daxdz_m2);
   partials(0, 0) = daxdx_m0 + daxdx_m1 + daxdx_m2; // dax/dx
   partials(0, 1) = daxdy_m0 + daxdy_m1 + daxdy_m2; // dax/dy
   partials(0, 2) = daxdz_m0 + daxdz_m2;            // dax/dz
@@ -218,5 +215,5 @@ int dso::grav_potential_accel(
 
   partials *= (GM / Re / Re / Re);
 
-  return 0;
+  return acc;
 }

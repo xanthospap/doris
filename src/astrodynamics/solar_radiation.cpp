@@ -21,7 +21,7 @@ Eigen::Matrix<double, 3, 1>
 dso::solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
                                   const Eigen::Matrix<double, 3, 1> &rsun,
                                   double Area, double mass, double C,
-                                  Eigen::Matrix<double, 3, 1> &dadr,
+                                  Eigen::Matrix<double, 3, 3> &dadr,
                                   Eigen::Matrix<double, 3, 1> &dadC) noexcept {
   // Relative position vector of spacecraft w.r.t. Sun
   const Eigen::Matrix<double, 3, 1> d = rsat - rsun;
@@ -35,11 +35,12 @@ dso::solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
   // partials w.r.t sat position, see Monentbruck, 7.3.3
   dadr = P0 * C * (Area / mass) * AU2 *
          (Eigen::Matrix<double, 3, 3>::Identity() / D3 -
-          3e0 * d * d.transpose() / (D3 * D * D));
+          3e0 * (d * d.transpose()) / (D3 * D * D));
 
   // acceleration
-  const double acceleration = C * (Area / mass) * P0 * AU2 * d / D3;
-  
+  const Eigen::Matrix<double, 3, 1> acceleration =
+      C * (Area / mass) * P0 * AU2 * d / D3;
+
   // partials w.r.t C, see Monentbruck, 7.3.3
   dadC = acceleration / C;
 

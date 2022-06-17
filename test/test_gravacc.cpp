@@ -1,8 +1,8 @@
 #include "egravity.hpp"
+#include "eigen3/Eigen/Eigen"
 #include "icgemio.hpp"
 #include <cassert>
 #include <cstdio>
-#include "eigen3/Eigen/Eigen"
 
 using namespace dso;
 
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   int order = degree;
   if (argc == 4)
     order = std::atoi(argv[3]);
-  printf("Note: Setting order for spherical harmonics to %d\n",order);
+  printf("Note: Setting order for spherical harmonics to %d\n", order);
   assert(degree <= gfc.degree() && order <= degree);
 
   // allocate memory to store harmonic coefficients
@@ -62,28 +62,19 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  double acc[3];
-  if (grav_potential_accel(degree, order, V, W,
-                           hc, acc)) {
-    fprintf(stderr, "ERROR. Failed to compute acceleration.\n");
-    return 1;
-  }
-
-  printf("Acceleration components:\n");
-  printf("Xacc: %15.10e\nYacc: %15.10e\nZacc: %15.10e\n", acc[0], acc[1],
-         acc[2]);
+  Eigen::Matrix<double, 3, 1> acc =
+      grav_potential_accel(degree, order, V, W, hc);
+          printf("Acceleration components:\n");
+  printf("Xacc: %15.10e\nYacc: %15.10e\nZacc: %15.10e\n", acc(0), acc(1),
+         acc(2));
 
   // Also compute partials
-  Eigen::Matrix<double,3,3> G;
-  if (grav_potential_accel(degree, order, V, W,
-                           hc, acc, G)) {
-    fprintf(stderr, "ERROR. Failed to compute acceleration/partials.\n");
-    return 1;
-  }
-  printf("Acceleration: %+15.9f %+15.9f %+15.9f\n",acc[0], acc[1], acc[2]);
-  printf("Partials    : %+15.9f %+15.9f %+15.9f\n",G(0,0),G(0,1),G(0,2));
-  printf("            : %+15.9f %+15.9f %+15.9f\n",G(1,0),G(1,1),G(1,2));
-  printf("            : %+15.9f %+15.9f %+15.9f\n",G(2,0),G(2,1),G(2,2));
+  Eigen::Matrix<double, 3, 3> G;
+  acc = grav_potential_accel(degree, order, V, W, hc, G);
+      printf("Acceleration: %+15.9f %+15.9f %+15.9f\n", acc(0), acc(1), acc(2));
+  printf("Partials    : %+15.9f %+15.9f %+15.9f\n", G(0, 0), G(0, 1), G(0, 2));
+  printf("            : %+15.9f %+15.9f %+15.9f\n", G(1, 0), G(1, 1), G(1, 2));
+  printf("            : %+15.9f %+15.9f %+15.9f\n", G(2, 0), G(2, 1), G(2, 2));
 
   return 0;
 }

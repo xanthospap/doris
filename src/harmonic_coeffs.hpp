@@ -13,17 +13,30 @@
 /// If degree > order, empty space is left between the S and C coefficients.
 
 #ifdef DEBUG
+#include <cassert>
 #include <cstdio>
 #endif
 
 namespace dso {
 
 /// @brief Storage and access of Harmonic Coefficients.
-/// We are allocating and using a 2-d array of size degree * degree (hence
-/// not actually using the order of the Coefficients). This make take up more
-/// space than actually needed but is a bit faster.
+/// We are allocating and using a 2-d array of size (degree+1) * (degree+1) 
+/// (hence not actually using the order of the Coefficients). This make take 
+/// up more space than actually needed but is a bit faster.
 /// The struct is 'agnostic' concerning the order of the coefficients. It is
 /// the user's responsibility to use consistent values for order.
+/// As mentioned, internaly the sctructure holds coefficients spanning S/C
+/// from [0-n] and [0-m] for degree and order respectively. Hence, the 
+/// following is perfectly legal and what **should** be done:
+/// int degree = 20;
+/// int order  = 15;
+/// HarmonicCoeffs HC(degree);
+/// ....
+/// HC.C(20,15) = ....
+/// Aka, you can ask for the coefficient with degree=20 and order=15.
+///
+/// However, you cannot ask for S coefficients with order=0. These are always
+/// equal to zero and **are not stored** in the structure.
 ///
 /// @note No checks are performed for the validity of the degree/order indexes
 ///       when asking the structure to privide an element (or a row of C or S
@@ -101,6 +114,9 @@ public:
   /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
   /// coefficient (that is degree=5 and order=5).
   double *C_row(int degree) noexcept {
+#ifdef DEBUG
+    assert(degree <= m_degree);
+#endif
     return m_data[degree]; // C(degree,0)-> C(degree, degree)
   }
 
@@ -109,14 +125,27 @@ public:
   /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
   /// coefficient (that is degree=5 and order=5).
   const double *C_row(int degree) const noexcept {
+#ifdef DEBUG
+    assert(degree <= m_degree);
+#endif
     return m_data[degree]; // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get the C coefficient of degree i and order j
-  double &C(int i, int j) noexcept { return C_row(i)[j]; }
+  double &C(int i, int j) noexcept { 
+#ifdef DEBUG
+    assert(i <= m_degree && j <= i);
+#endif
+    return C_row(i)[j];
+  }
 
   /// @brief Get the C coefficient of degree i and order j
-  const double &C(int i, int j) const noexcept { return C_row(i)[j]; }
+  const double &C(int i, int j) const noexcept { 
+#ifdef DEBUG
+    assert(i <= m_degree && j <= i);
+#endif
+    return C_row(i)[j];
+  }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
   /// @warning Sn0 (aka S coefficients for degree=0) are always zero and are
@@ -127,6 +156,9 @@ public:
   /// to the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).
   double *S_row(int degree) noexcept {
+#ifdef DEBUG
+    assert(degree <= m_degree && degree != 0);
+#endif
     int off = m_degree - degree;
     return m_data[off] + off + 1; // S(degree,1)-> S(degree, degree)
   }
@@ -140,6 +172,9 @@ public:
   /// the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).
   const double *S_row(int degree) const noexcept {
+#ifdef DEBUG
+    assert(degree <= m_degree && degree != 0);
+#endif
     int off = m_degree - degree;
     return m_data[off] + off + 1; // S(degree,1)-> S(degree, degree)
   }
@@ -147,12 +182,22 @@ public:
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  double &S(int i, int j) noexcept { return S_row(i)[j - 1]; }
+  double &S(int i, int j) noexcept { 
+#ifdef DEBUG
+    assert(i <= m_degree && j <= i && i!=0);
+#endif
+    return S_row(i)[j - 1];
+  }
 
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  const double &S(int i, int j) const noexcept { return S_row(i)[j - 1]; }
+  const double &S(int i, int j) const noexcept { 
+#ifdef DEBUG
+    assert(i <= m_degree && j <= i && i!=0);
+#endif
+    return S_row(i)[j - 1];
+  }
 
 }; // HarmonicCoeffs
 

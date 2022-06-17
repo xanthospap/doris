@@ -55,7 +55,7 @@ struct OrbitalElements {
   /// [3]: Longitude of ascending node Ω, [rad], range [0,2π]
   /// [4]: Argument of pericenter, ω, [rad], range [0,2π]
   /// [5]: Mean Anomaly M [rad]
-  double elements[7];
+  double elements[7]={0e0};
   constexpr double& semimajor()    noexcept {return elements[0];}
   constexpr double& eccentricity() noexcept {return elements[1];}
   constexpr double& inclination()  noexcept {return elements[2];}
@@ -75,8 +75,9 @@ int state2elements(const Eigen::Matrix<double, 6, 1> &Y,
                    OrbitalElements &elements, double GM) noexcept;
 int elements2state(const OrbitalElements &elements, double dt, Vector3 &r,
                    Vector3 &v, double GM) noexcept;
-int elements2state(const OrbitalElements &elements, double dt,
-                   Eigen::Matrix<double, 6, 1> &Y, double GM) noexcept;
+Eigen::Matrix<double, 6, 1> elements2state(double GM, double dt,
+                                           const OrbitalElements &elements,
+                                           int &error) noexcept;
 
 OrbitalElements state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y
                         ) noexcept;
@@ -283,7 +284,7 @@ Eigen::Matrix<double, 3, 1>
 solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
                                   const Eigen::Matrix<double, 3, 1> &rsun,
                                   double Area, double mass, double C,
-                                  Eigen::Matrix<double, 3, 1> &dadr,
+                                  Eigen::Matrix<double, 3, 3> &dadr,
                                   Eigen::Matrix<double, 3, 1> &dadC) noexcept;
 } // namespace dso
 
