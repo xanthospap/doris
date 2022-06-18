@@ -49,6 +49,9 @@ void variational_equations(double t, const Eigen::Matrix<double, 6, 1> &y,
   assert(t==0);
   
   Eigen::Matrix<double, 3, 1> r = y.block<3,1>(0,0);
+  printf("Satellite position : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
+  Eigen::Matrix<double, 3, 1> v = y.block<3,1>(3,0);
+  printf("Satellite velocity : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
 
   // compute gravity-induced acceleration and gradient
   Eigen::Matrix<double, 3, 3> gpartials;

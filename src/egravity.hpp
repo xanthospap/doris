@@ -6,6 +6,9 @@
 #include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
 #include <cassert>
+#ifdef DEBUG
+#include <cstdio>
+#endif
 
 namespace dso {
 
@@ -163,6 +166,10 @@ grav_potential_accel(const Eigen::Matrix<double, 3, 1> &pos, int degree,
   // validate the size of V and W
   assert(V.rows() == degree + 3 && V.cols() == order + 3);
   assert(W.rows() == degree + 3 && W.cols() == order + 3);
+#ifdef DEBUG
+  printf("Computing gravitational acceleration with r=%+15.6f %+15.6f %+15.6f\n",pos(0),pos(1),pos(2));
+  printf("GM=%20.15e Re=%20.15e\n", hc.GM(), hc.Re());
+#endif
   // compute Langrange polynomials
   assert(!dso::lagrange_polynomials(pos, hc.Re(), degree + 2, order + 2, V, W));
   // return acceleration

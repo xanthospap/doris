@@ -25,7 +25,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     yacc += -Cn0 * W(i + 1, 1);
   }
 
-  double xacc2(0e0), yacc2(0e0);
+  double xacc2(0e0), yacc2(0e0), zacc2(0e0);
   // m != 0
   for (int i = 1; i <= degree; i++) {
     for (int j = 1; j <= std::min(i, order); j++) {
@@ -42,8 +42,8 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       xacc2 += 0.5e0 * (-Cnm * Vnp1mp1 - Snm * Wnp1mp1) +
                fac * (Cnm * Vnp1mm1 + Snm * Wnp1mm1);
       yacc2 += 0.5e0 * (-Cnm * Wnp1mp1 + Snm * Vnp1mp1) +
-               fac * (-Cnm * Vnp1mm1 + Snm * Wnp1mm1);
-      zacc += (i - j + 1) * (-Cnm * Vnp1mp0 - Snm * Wnp1mp0);
+               fac * (-Cnm * Wnp1mm1 + Snm * Vnp1mm1);
+      zacc2 += (i - j + 1) * (-Cnm * Vnp1mp0 - Snm * Wnp1mp0);
     }
   }
 
@@ -53,11 +53,8 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   yacc += yacc2;
   yacc *= GM / (Re * Re);
 
+  zacc += zacc2;
   zacc *= GM / (Re * Re);
-
-  //acc[0] = xacc;
-  //acc[1] = yacc;
-  //acc[2] = zacc;
 
   Eigen::Matrix<double,3,1> acc;
   acc << xacc, yacc, zacc;
@@ -89,9 +86,9 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     /*const double Sn0 = hc.S(i, 0) = 0e0;*/
 
     // acceleration
-    zacc += -(i + 1) * Cn0 * V(i + 1, 0);
-    xacc += -Cn0 * V(i + 1, 1);
-    yacc += -Cn0 * W(i + 1, 1);
+    zacc -= (i + 1) * Cn0 * V(i + 1, 0);
+    xacc -= Cn0 * V(i + 1, 1);
+    yacc -= Cn0 * W(i + 1, 1);
 
     // partials ...
     daxdx_m0 += 0.5e0 * (Cn0 * V(i + 2, 2) - fac * (Cn0 * V(i + 2, 0)));
@@ -103,6 +100,8 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
 
     fac *= ((double)(i + 3) / (double)(i + 1));
   }
+  // printf("\tGravitational potential (m=0)\n");
+  // printf("\t%+15.6f %+15.6f %15.6f\n", xacc, yacc, zacc);
 
   double daxdx_m1(0e0), daxdy_m1(0e0), dazdz_m1(0e0);
   // m = 1 part (only considered for partials)
@@ -119,7 +118,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     fac *= ((double)(i + 2) / (double)i);
   }
 
-  double xacc2(0e0), yacc2(0e0);
+  double xacc2(0e0), yacc2(0e0), zacc2(0e0);
   double daxdx_m2(0e0), daxdy_m2(0e0), daxdz_m2(0e0), daydz_m2(0e0),
       dazdz_m2(0e0);
   // m > 1
@@ -146,14 +145,14 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       const double Wnp1mm1 = W(i + 1, j - 1);
       const double Wnp1mp0 = W(i + 1, j);
       const double Wnp1mp1 = W(i + 1, j + 1);
-      const double afac = (i - j + 1) * (i - j + 2) / 2e0;
+      const double afac = static_cast<double>((i - j + 1) * (i - j + 2)) / 2e0;
 
       // acceleration
       xacc2 += 0.5e0 * (-Cnm * Vnp1mp1 - Snm * Wnp1mp1) +
                afac * (Cnm * Vnp1mm1 + Snm * Wnp1mm1);
       yacc2 += 0.5e0 * (-Cnm * Wnp1mp1 + Snm * Vnp1mp1) +
-               afac * (-Cnm * Vnp1mm1 + Snm * Wnp1mm1);
-      zacc += (i - j + 1) * (-Cnm * Vnp1mp0 - Snm * Wnp1mp0);
+               afac * (-Cnm * Wnp1mm1 + Snm * Vnp1mm1);
+      zacc2 += (i - j + 1) * (-Cnm * Vnp1mp0 - Snm * Wnp1mp0);
 
       // partials ... (already computed for m==1)
       if (j > 1) {
@@ -183,6 +182,8 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       }
     }
   }
+  // printf("\tGravitational potential (m>0)\n");
+  // printf("\t%+15.6f %+15.6f %15.6f\n", xacc2, yacc2, zacc2);
 
   // Sum-up acceleration
   xacc += xacc2;
@@ -191,6 +192,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   yacc += yacc2;
   yacc *= GM / (Re * Re);
 
+  zacc += zacc2;
   zacc *= GM / (Re * Re);
 
   Eigen::Matrix<double,3,1> acc;
