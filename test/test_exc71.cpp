@@ -41,25 +41,39 @@ int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
 }
 
 // Computes the variational equations
-void variational_equations(double t, const Eigen::Matrix<double, 6, 1> &y,
+void variational_equations(double t,
+                           /* state */
+                           const Eigen::Matrix<double, 6, 1> &y,
+                           /* state transition matrix */
                            const Eigen::Matrix<double, 6, 6> &Phi,
                            const AuxParams &params,
-                           Eigen::Matrix<double, 6, 6> &Phip) {
+                           /* state derivative */
+                           Eigen::Matrix<double, 6, 1> &dy,
+                           /* state transition matrix derivative */
+                           Eigen::Matrix<double, 6, 6> &dPhi) {
   printf("--- Variational Equations ---\n");
   assert(t==0);
   
   Eigen::Matrix<double, 3, 1> r = y.block<3,1>(0,0);
-  printf("Satellite position : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
+  printf("Satellite position  : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
   Eigen::Matrix<double, 3, 1> v = y.block<3,1>(3,0);
-  printf("Satellite velocity : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
+  printf("Satellite velocity  : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
 
   // compute gravity-induced acceleration and gradient
   Eigen::Matrix<double, 3, 3> gpartials;
   Eigen::Matrix<double, 3, 1> gacc =
       dso::grav_potential_accel(r, params.degree, params.order, *(params.V),
                                 *(params.W), *(params.hc), gpartials);
+
+  // state derivative (aka [v,a])
+  dy.block<3,1>(0,0) = v;
+  dy.block<3,1>(3,0) = gacc;
+  
   assert(r(0)==y(0) && r(1)==y(1) && r(2) == y(2));
   printf("Gravity Acceleration: %+15.6f %+15.6f %+15.6f\n", gacc(0), gacc(1), gacc(2));
+  printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0,0), gpartials(0,1), gpartials(0,2));
+  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1,0), gpartials(1,1), gpartials(1,2));
+  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(2,0), gpartials(2,1), gpartials(2,2));
 
   // derivative of state transition matrix
   Eigen::Matrix<double,6,6> dfdy;
@@ -68,11 +82,11 @@ void variational_equations(double t, const Eigen::Matrix<double, 6, 1> &y,
   dfdy.block<3,3>(3,0) = gpartials;
   dfdy.block<3,3>(3,3) = Eigen::Matrix<double,3,3>::Zero();
 
-  Phip = dfdy * Phi;
-  printf("Derivative of state transition matrix\n");
+  dPhi = dfdy * Phi;
+  printf("Derivative of state transition matrix:\n");
   for (int i=0;i<6;i++) {
     for (int j=0;j<6;j++) {
-      printf("%+15.6f  ", Phip(i,j));
+      printf("%+15.6f  ", dPhi(i,j));
     }
     printf("\n");
   }
@@ -141,11 +155,12 @@ int main(int argc, char *argv[]) {
   }
 
   // const auto yPhi2 = yPhi1;
-  Eigen::Matrix<double, 6, 6> Phip;
+  Eigen::Matrix<double, 6, 6> dPhi;
+  Eigen::Matrix<double, 6, 1> dy;
   printf("State: ");
   for (int i=0;i<6;i++) printf("%+15.6f  ", y0(i));
   printf("\n");
-  variational_equations(0e0,y0,Phi,params,Phip);
+  variational_equations(0e0,y0,Phi,params,dy,dPhi);
 
   return 0;
 }
