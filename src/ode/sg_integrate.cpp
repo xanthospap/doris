@@ -1,6 +1,6 @@
 #include "ode.hpp"
-#include <limits>
 #include <cmath>
+#include <limits>
 
 constexpr const double FourEps = 4e0 * std::numeric_limits<double>::epsilon();
 
@@ -14,7 +14,7 @@ dso::GSOdeSolver::integrate(double &t, double tout, double *y) noexcept {
 
   if ((this->relerr < 0e0) || // Negative relative error bound
       (this->abserr < 0e0) || // Negative absolute error bound
-      (eps <= 0e0) ||   // Both error bounds are non-positive
+      (eps <= 0e0) ||         // Both error bounds are non-positive
       ((!this->init) && (t != told))) {
     return ebs.set(dso::ODEStatusCode::INVPARAM); // Set error code
   }
@@ -25,9 +25,7 @@ dso::GSOdeSolver::integrate(double &t, double tout, double *y) noexcept {
   const double del = tout - t;
   const double absdel = std::abs(del);
 
-  const double tend = t + 1e2 * del;
-  if (!permitTout)
-    tend = tout;
+  const double tend = (permitTout) ? (t + 1e2 * del) : (tout);
 
   int nostep = 0;
   int kle4 = 0;
@@ -39,17 +37,18 @@ dso::GSOdeSolver::integrate(double &t, double tout, double *y) noexcept {
     // On start and restart also set the work variables x and yy(*),
     // store the direction of integration and initialize the step size
     this->start = true;
-    x = t;
+    this->x = t;
     for (int i = 0; i < neqn; i++)
       this->yy(i) = y[i];
     this->delsgn = std::copysign(1e0, del);
-    this->h = std::copysign(std::max(FourEps * std::abs(x), std::abs(tout - x)),
-                      tout - x);
+    this->h = std::copysign(
+        std::max(FourEps * std::abs(this->x), std::abs(tout - this->x)),
+        tout - this->x);
   }
 
   while (true) {
     // If already past output point, interpolate solution and return
-    if (std::abs(x - t) >= absdel) {
+    if (std::abs(this->x - t) >= absdel) {
       interpolate(tout, y, this->ypout());
       t = tout; // Set independent variable
       told = t; // Store independent variable
@@ -60,41 +59,47 @@ dso::GSOdeSolver::integrate(double &t, double tout, double *y) noexcept {
 
     // If cannot go past output point and sufficiently close,
     // extrapolate and return
-    if (!this->permitTout && (std::abs(tout - x) < FourEps * std::abs(x))) {
-      h = tout - x;
-      f(x, yy, yp);    // Compute derivative yp(x)
-      y = yy + h * yp; // Extrapolate vector from x to tout
-      t = tout;        // Set independent variable
-      told = t;        // Store independent variable
+    if (!this->permitTout &&
+        (std::abs(tout - this->x) < FourEps * std::abs(this->x))) {
+      h = tout - this->x;
+      f(this->x, this->yy(), this->yp()); // Compute derivative yp(x)
+      for (int i = 0; i < neqn; i++)
+        y[i] = yy(i) + h * yp(i); // Extrapolate vector from x to tout
+      t = tout;                   // Set independent variable
+      told = t;                   // Store independent variable
       this->oldPermit = this->permitTout;
       // Normal exit
       return ebs.set(dso::ODEStatusCode::DONE);
     }
 
     // Test for too much work
-    if (nostep >= maxnum) {
-      // State = DE_NUMSTEPS;          // Too many steps
+    if (nostep >= this->maxnum) {
+      // Too many steps
       if (stiff)
-        ebs.set(dso::ODEStatusCode::DE_STIFF); // Stiffness suspected
-      y = yy;                                  // Copy last step
-      t = x;
+        ebs.set(dso::ODEStatusCode::STIFF); // Stiffness suspected
+      // Copy last step
+      for (int i = 0; i < neqn; i++)
+        y[i] = yy(i);
+      t = this->x;
       told = t;
-      this->OldPermit = true;
+      this->oldPermit = true;
       return ebs.set(dso::ODEStatusCode::NUMSTEPS); // Weak failure exit
     }
 
     // Limit step size, set weight vector and take a step
-    this->h = std::copysign(std::min(std::abs(this->h), std::abs(tend - x)), this->h);
+    this->h = std::copysign(
+        std::min(std::abs(this->h), std::abs(tend - this->x)), this->h);
     for (int l = 0; l < neqn; l++)
       this->wt(l) = releps * std::abs(this->yy(l)) + abseps;
-    int crash = this->step(x, this->yy(), eps);
+    int crash = this->step(this->x, this->yy(), eps);
 
     // Test for too small tolerances
     if (crash) {
       this->relerr = eps * releps; // Modify relative and absolute
       this->abserr = eps * abseps; // accuracy requirements
-      y = yy;                // Copy last step
-      t = x;
+      for (int i = 0; i < neqn; i++)
+        y[i] = yy(i);
+      t = this->x;
       told = t;
       this->oldPermit = true;
       return ebs.set(dso::ODEStatusCode::BADACC); // Weak failure exit

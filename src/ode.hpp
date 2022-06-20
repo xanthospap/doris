@@ -44,13 +44,14 @@ private:
   double MemPool14[2 * 14]; ///< sig, g
   dso::Mat2D<dso::MatrixStorageType::ColumnWise> phi; ///<
   double *VecPool;                                    ///< yy, wt, p, yp, ypout
-  double h, hold, told, delsgn;
+  double x, h, hold, told, delsgn;
   double relerr; ///< Desired relative accuracy of the solution
   double abserr; ///< Desired absolute accuracy of the solution
   // double t;      ///< Value of independent variable
   int ns, k, kold;
   int kmax; // Maximum order
-  uint8_t OldPermit, phase1, start, nornd, init;
+  int maxnum = 500;  // Maximum number of steps to take
+  uint8_t oldPermit, phase1, start, nornd, init;
   bool permitTout; // Flag for integrating past tout
                    // (default = true)
 
@@ -103,6 +104,7 @@ private:
     return VecPool[i];
   }
   double *yy() noexcept {return VecPool;}
+  const double *yy() const noexcept {return VecPool;}
   double &wt(int i) noexcept {
 #ifdef DEBUG
     assert(i >= 0 && i < neqn);
@@ -115,12 +117,14 @@ private:
 #endif
     return VecPool[2 * neqn + i];
   }
+  const double *p() const noexcept {return VecPool + 2 * neqn;}
   double &yp(int i) noexcept {
 #ifdef DEBUG
     assert(i >= 0 && i < neqn);
 #endif
     return VecPool[3 * neqn + i];
   }
+  double *yp() noexcept { return VecPool + 3 * neqn; }
   double &ypout(int i) noexcept {
 #ifdef DEBUG
     assert(i >= 0 && i < neqn);
@@ -141,7 +145,7 @@ public:
   int step(double &x, double *y, double &eps) noexcept;
 
   /// interpolation
-  int interpolate(double xout, const double *y, double *yout) noexcept;
+  int interpolate(double xout, double *y, double *yout) noexcept;
 
   EnumBitset<ODEStatusCode> integrate(double &t, double tout,
                                       double *y) noexcept;

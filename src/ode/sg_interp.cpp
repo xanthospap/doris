@@ -43,7 +43,7 @@ Parameters:
   interpolating polynomial.
 
 */
-int dso::GSOdeSolver::interp(double xout, double *yout,
+int dso::GSOdeSolver::interpolate(double xout, double *yout,
                              double *ypout) noexcept {
   /*
     double x, const double *y, double xout, double *yout,
@@ -68,10 +68,10 @@ int dso::GSOdeSolver::interp(double xout, double *yout,
   double rho[14] = {1e0};
   double term = 0e0;
   for (int j = 2; j < ki + 1; j++) {
-    const double psijm1 = psi[j - 1];
+    const double psijm1 = psi(j - 1);
     const double gamma = (hi + term) / psijm1;
     const double eta = hi / psijm1;
-    for (i = 1; i <= ki - j + 1; i++) {
+    for (int i = 1; i <= ki - j + 1; i++) {
       w[i] = gamma * w[i] - eta * w[i + 1];
     }
     g[j] = w[1];
@@ -87,16 +87,16 @@ int dso::GSOdeSolver::interp(double xout, double *yout,
   // solution ypout
   // 𝐲° ← 𝛗 𝐠 (matrix-vector)
   // 𝐲°′ ← 𝛗 𝛒 (matrix-vector)
-  for (int k = 1; j < ki + 1; j++) {
-    const int = ki - j + 1;
+  for (int j = 1; j < ki + 1; j++) {
+    const int i = ki - j + 1;
     const double *PhiColi = phi.slice(i);
     vecmul(yout, g[i], PhiColi, neqn);
     vecmul(ypout, rho[i], PhiColi, neqn);
   }
 
   // 𝐲° ← 𝐲 + hi 𝐲°
-  for (int k = 0; k < neqn; k++)
-    yout[k] = yy[k] + hi * yout[k];
+  for (int i = 0; i < neqn; i++)
+    yout[i] = yy(i) + hi * yout[i];
 
   return 0;
 }

@@ -10,7 +10,7 @@ constexpr const double FourEps = 4e0 * std::numeric_limits<double>::epsilon();
 
 // STEP integrates the system of ODEs one step, from X to X+H.
 // returns crash
-int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
+int dso::GSOdeSolver::step(double &xin, double *y, double &eps) noexcept {
   const double p5eps = 0.5e0 * eps;
 
   int crash = 0;
@@ -24,9 +24,8 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
   // starting step size. If step size is too small, determine an
   // acceptable one.
   //
-  if (std::abs(h) < FourEps * std::abs(x)) {
-    h = std::copysign(FourEps * std::abs(x), h);
-    // crash = true;
+  if (std::abs(h) < FourEps * std::abs(xin)) {
+    h = std::copysign(FourEps * std::abs(xin), h);
     return (crash=1);
   }
 
@@ -35,32 +34,31 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
   // round = 2 ε ‖𝐲 / 𝛚‖
   double round = 0e0;
   for (int i = 0; i < neqn; i++)
-    round += (y[i] * y[i]) / (wt[i] * wt[i]);
+    round += (y[i] * y[i]) / (wt(i) * wt(i));
   round = 2e0 * meps * std::sqrt(round);
   if (p5eps < round) {
     eps = 2e0 * round * (1e0 + FourEps);
-    // crash = true;
     return (crash=1);
   }
 
-  g[1] = 1e0;
-  g[2] = 0e5;
-  sig[1] = 1e0;
+  g(1) = 1e0;
+  g(2) = 0e5;
+  sig(1) = 1e0;
 
   if (start) {
     // Initialize. Compute appropriate step size for first step
-    f(x, y, yp);
+    f(xin, y, this->yp());
     double sum = 0e0;
     for (int i = 0; i < neqn; i++) {
-      phi(i, 1) = yp[i];
+      phi(i, 1) = yp(i);
       phi(i, 2) = 0e0;
-      sum += (yp[i] * yp[i]) / (wt[i] * wt[i]);
+      sum += (yp(i) * yp(i)) / (wt(i) * wt(i));
     }
     sum = std::sqrt(sum);
     absh = std::abs(h);
     if (eps < 16e0 * sum * h * h)
       absh = 0.25e0 * std::sqrt(eps / sum);
-    h = std::copysign(std::max(absh, 4e0 * meps * std::abs(x)), h);
+    h = std::copysign(std::max(absh, 4e0 * meps * std::abs(xin)), h);
     hold = 0e0; /* instance member */
     hnew = 0e0;
     k = 1;         /* instance member */
@@ -75,12 +73,13 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
         phi(i, 15) = 0e0;
     }
   } // end start
-  ifail = 0;
+  int ifail = 0;
 
 #ifdef DEBUG
   int kp1;
 #endif
 
+  int knew;
   //
   // Repeat blocks 1, 2 (and 3) until step is successful
   //
@@ -115,7 +114,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
           psi(i - 1) = temp1;
           beta(i) = beta(i - 1) * psi(i - 1) / temp2;
           temp1 = temp2 + h;
-          alpah(i) = h / temp1;
+          alpha(i) = h / temp1;
           sig(i + 1) = (double)i * alpha(i) * sig(i);
         }
       } // k >= nsp1
@@ -171,7 +170,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
       // φ[i] <- φ[i] β[i]
       for (int i = ns + 1; i < k + 1; i++) {
         for (int l = 0; l < neqn; l++) {
-          phi(l, i) *= beta[i];
+          phi(l, i) *= beta(i);
         }
       }
     }
@@ -197,7 +196,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
     }
     if (nornd) {
       // 𝐩 ← 𝐲 + h 𝐩
-      for (int i = 0; i < ; i++)
+      for (int i = 0; i < neqn; i++)
         p(i) = y[i] + h * p(i);
     } else {
       // 𝛕 = h 𝐩 - 𝛗[14]
@@ -209,10 +208,10 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
         phi(l, 16) = (p(l) - y[l]) - tau;
       }
     }
-    double xold = x;
-    x += h;
+    double xold = xin;
+    xin += h;
     absh = std::abs(h);
-    f(x, p, yp);
+    f(xin, this->p(), this->yp());
 
     // Estimate errors at orders k, k-1, k-2
     // erkm2 = ‖(𝛗[k - 2] + 𝐲′ - 𝛗[0]) / 𝛚‖²
@@ -240,7 +239,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
     const double temp5 = absh * std::sqrt(erk);
     const double err = temp5 * (g(k) - g(k + 1));
     erk = temp5 * sig(k + 1) * gstr[k];
-    int knew = k;
+    knew = k;
 
     // Test if order should be lowered
     if (k > 2)
@@ -269,7 +268,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
 
       // Restore x, phi[*,*] and psi[*]
       phase1 = false;
-      x = xold;
+      xin = xold;
       for (int i = 1; i < k + 1; i++) {
         for (int l = 0; l < neqn; l++) {
           phi(l, i) = (phi(l, i) - phi(l, i + 1)) / beta(i);
@@ -294,8 +293,8 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
       // WARNING! set new k
       h = temp2 * h;
       k = knew;
-      if (std::abs(h) < FourEps * std::abs(x)) {
-        h = std::copysign(FourEps * std::abs(x), h);
+      if (std::abs(h) < FourEps * std::abs(xin)) {
+        h = std::copysign(FourEps * std::abs(xin), h);
         eps += eps;
         return (crash=1);
       }
@@ -337,7 +336,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
       phi(l, 15) = (y[l] - p(l)) - rho;
     }
   }
-  f(x, y, yp);
+  f(xin, y, this->yp());
 
   // update differences for next step
   // 𝛗[k] ← 𝐲′ - 𝛗[0]
@@ -357,7 +356,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
   // - in first phase when always raise order,
   // - already decided to lower order,
   // - step size not constant so estimate unreliable
-  erkp1 = 0e0;
+  double erkp1 = 0e0;
   if ((knew == k - 1) || (k == kmax))
     phase1 = false;
 
@@ -412,7 +411,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
     if (p5eps < erk) {
       const double r = std::pow(p5eps / erk, 1e0 / (k + 1));
       hnew = absh * std::max(0.5e0, std::min(0.9e0, r));
-      hnew = std::copysign(std::max(hnew, FourEps * std::abs(x)), h);
+      hnew = std::copysign(std::max(hnew, FourEps * std::abs(xin)), h);
     } else {
       hnew = h;
     }

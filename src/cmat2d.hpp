@@ -205,14 +205,14 @@ public:
   /// offset of the ith row; if data is stored in a column-wise manner, it will
   /// return the index of the first elelement of the ith column
   const double *slice(int i) const noexcept {
-    return m_data[m_storage(slice(i))];
+    return m_data+m_storage.slice(i);
   }
 
   /// @brief Row/Column indexing (rows and columns start from 0 --not 1--)
   /// If the data is tored in a Row-Wise manner, this function will return the
   /// offset of the ith row; if data is stored in a column-wise manner, it will
   /// return the index of the first elelement of the ith column
-  double *slice(int i) noexcept { return m_data[m_storage(slice(i))]; }
+  double *slice(int i) noexcept { return m_data+m_storage.slice(i); }
 
   void fill_with(double val) noexcept {
     std::fill(m_data, m_data + m_storage.num_elements(), val);
