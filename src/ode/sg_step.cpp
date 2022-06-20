@@ -1,4 +1,6 @@
 #include "ode.hpp"
+#include <limits>
+#include <cmath>
 #ifdef DEBUG
 #include <cassert>
 #endif
@@ -7,10 +9,12 @@ constexpr const double meps = std::numeric_limits<double>::epsilon();
 constexpr const double FourEps = 4e0 * std::numeric_limits<double>::epsilon();
 
 // STEP integrates the system of ODEs one step, from X to X+H.
-//
-int dso::GSOdeSolver::step(double &x, double *y, double &eps,
-                           int &crash) noexcept {
+// returns crash
+int dso::GSOdeSolver::step(double &x, double *y, double &eps) noexcept {
   const double p5eps = 0.5e0 * eps;
+
+  int crash = 0;
+  double hnew,absh,erk,erkm1,erkm2;
 
   //
   // Begin block 0
@@ -22,10 +26,9 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
   //
   if (std::abs(h) < FourEps * std::abs(x)) {
     h = std::copysign(FourEps * std::abs(x), h);
-    crash = true;
-    return;
+    // crash = true;
+    return (crash=1);
   }
-  crash = false;
 
   // If error tolerance is too small, increase it to an
   // acceptable value.
@@ -36,8 +39,8 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
   round = 2e0 * meps * std::sqrt(round);
   if (p5eps < round) {
     eps = 2e0 * round * (1e0 + FourEps);
-    crash = true;
-    return;
+    // crash = true;
+    return (crash=1);
   }
 
   g[1] = 1e0;
@@ -54,12 +57,12 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
       sum += (yp[i] * yp[i]) / (wt[i] * wt[i]);
     }
     sum = std::sqrt(sum);
-    double absh = std::abs(h);
+    absh = std::abs(h);
     if (eps < 16e0 * sum * h * h)
       absh = 0.25e0 * std::sqrt(eps / sum);
     h = std::copysign(std::max(absh, 4e0 * meps * std::abs(x)), h);
     hold = 0e0; /* instance member */
-    double hnew = 0e0;
+    hnew = 0e0;
     k = 1;         /* instance member */
     kold = 0;      /* instance member */
     start = false; /* instance member */
@@ -77,9 +80,11 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
 #ifdef DEBUG
   int kp1;
 #endif
+
   //
   // Repeat blocks 1, 2 (and 3) until step is successful
   //
+  bool success = false;
   do {
     kp1 = k + 1;
 
@@ -95,7 +100,6 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
       ns = 0;
     if (ns <= kold)
       ++ns;
-    const int nsp1 = ns + 1;
 
     if (k >= ns) {
       // PRE: ns => 1
@@ -214,9 +218,9 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
     // erkm2 = ‖(𝛗[k - 2] + 𝐲′ - 𝛗[0]) / 𝛚‖²
     // erkm1 = ‖(𝛗[k - 1] + 𝐲′ - 𝛗[0]) / 𝛚‖²
     // erk   = ‖(𝐲′ - 𝛗[0]) / 𝛚‖²
-    double erkm2 = 0e0;
-    double erkm1 = 0e0;
-    double erk = 0e0;
+    erkm2 = 0e0;
+    erkm1 = 0e0;
+    erk = 0e0;
     for (int l = 0; l < neqn; l++) {
       const double temp3 = 1e0 / wt(l);
       const double temp4 = yp(l) - phi(l, 1);
@@ -229,28 +233,28 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
     }
 
     if (k > 2)
-      erkm2 = absh * sig(k - 1) * gstr(k - 2) * std::sqrt(erkm2);
+      erkm2 = absh * sig(k - 1) * gstr[k - 2] * std::sqrt(erkm2);
     if (k >= 2)
-      erkm1 = absh * sig(k) * gstr(k - 1) * std::sqrt(erkm1);
+      erkm1 = absh * sig(k) * gstr[k - 1] * std::sqrt(erkm1);
 
     const double temp5 = absh * std::sqrt(erk);
     const double err = temp5 * (g(k) - g(k + 1));
-    const double erk = temp5 * sig(k + 1) * gstr(k);
+    erk = temp5 * sig(k + 1) * gstr[k];
     int knew = k;
 
     // Test if order should be lowered
     if (k > 2)
       if (std::max(erkm1, erkm2) <= erk)
-        knew = km1;
+        knew = k-1;
     if (k == 2)
       if (erkm1 <= 0.5e0 * erk)
-        knew = km1;
+        knew = k-1;
 
     //
     // If step is successful continue with block 4, otherwise repeat
     // blocks 1 and 2 after executing block 3
     //
-    int success = (err <= eps);
+    success = (err <= eps);
     if (!success) {
       //
       // Begin block 3
@@ -291,10 +295,9 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
       h = temp2 * h;
       k = knew;
       if (std::abs(h) < FourEps * std::abs(x)) {
-        crash = true;
         h = std::copysign(FourEps * std::abs(x), h);
         eps += eps;
-        return;
+        return (crash=1);
       }
 
       //
@@ -372,7 +375,7 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
         for (int l = 0; l < neqn; l++) {
           erkp1 += (phi(l, k + 2) / wt(l)) * (phi(l, k + 2) / wt(l));
         }
-        erkp1 = absh * gstr(k + 1) * std::sqrt(erkp1);
+        erkp1 = absh * gstr[k + 1] * std::sqrt(erkp1);
 
         // Using estimated error at order k+1, determine
         // appropriate order for next step
@@ -417,5 +420,5 @@ int dso::GSOdeSolver::step(double &x, double *y, double &eps,
 
   h = hnew;
 
-  return;
+  return crash;
 }
