@@ -1,4 +1,13 @@
+#include "ode.hpp"
 #include <algorithm>
+
+// y <- y + s * a
+// where s is a scalar and y, a are vector
+double *vecmul(double *y, double s, const double *a, int sz) noexcept {
+  for (int i = 0; i < sz; i++)
+    y[i] += s * a[i];
+  return y;
+}
 
 /*
 INTRP approximates the solution at XOUT by polynomial interpolation.
@@ -34,9 +43,13 @@ Parameters:
   interpolating polynomial.
 
 */
-int dso::sg::interp(double x, const double *y, double xout, double *yout,
-                     double *ypout, int neqn, int kold, const double *phi,
-                     const double *psi) noexcept {
+int dso::GSOdeSolver::interp(double xout, double *yout,
+                             double *ypout) noexcept {
+  /*
+    double x, const double *y, double xout, double *yout,
+    double *ypout, int neqn, int kold, const double *phi,
+    const double *psi) noexcept {
+  */
   if (kold >= 13) {
     fprintf(stderr, "ERROR Invalid call to %s (kold>=13)\n", __func__);
     return 1;
@@ -46,39 +59,44 @@ int dso::sg::interp(double x, const double *y, double xout, double *yout,
   const int ki = kold + 1;
 
   // initialize W for computing G
-  double w[13];
-  for (int i=0; i<13; i++) w[i] = 1e0 / (double)(i+1);
+  double w[14];
+  for (int i = 1; i < ki + 1; i++)
+    w[i] = 1e0 / (double)i;
 
   // compute G
-  double g[13] = {1e0};
-  double rho[13] = {1e0};
+  double g[14] = {1e0};
+  double rho[14] = {1e0};
   double term = 0e0;
-  for (int j = 1; j < ki; j++) {
+  for (int j = 2; j < ki + 1; j++) {
     const double psijm1 = psi[j - 1];
     const double gamma = (hi + term) / psijm1;
     const double eta = hi / psijm1;
-    for (i = 0; i < ki - j; i++) {
-      w[i] = gamma * w[i] - eta * w[i+1];
+    for (i = 1; i <= ki - j + 1; i++) {
+      w[i] = gamma * w[i] - eta * w[i + 1];
     }
-    g[j] = w[0];
+    g[j] = w[1];
     rho[j] = gamma * rho[j - 1];
     term = psijm1;
   }
-  
-  // set output vectors to zero
-  std::fill(yout, yout+neqn, 0e0);
-  std::fill(ypout, ypout+neqn, 0e0);
 
-  // interpolate
-  for (int i=ki; i>0; i--) {
-    const int im1 = i-1;
-    for (int k = 0; k < neqn; k++) {
-      yout[k] = yout[k] + g[im1] * phi[k + im1 * neqn];
-      ypout[k] = ypout[k] + rho[im1] * phi[k + im1 * neqn];
-    }
+  // set output vectors to zero
+  std::fill(yout, yout + neqn, 0e0);
+  std::fill(ypout, ypout + neqn, 0e0);
+
+  // interpolate for the solution yout and for the derivative of the
+  // solution ypout
+  // 𝐲° ← 𝛗 𝐠 (matrix-vector)
+  // 𝐲°′ ← 𝛗 𝛒 (matrix-vector)
+  for (int k = 1; j < ki + 1; j++) {
+    const int = ki - j + 1;
+    const double *PhiColi = phi.slice(i);
+    vecmul(yout, g[i], PhiColi, neqn);
+    vecmul(ypout, rho[i], PhiColi, neqn);
   }
 
-  for (int k=0; k<neqn; k++) yout[k] = y[k] + hi * yout[k];
+  // 𝐲° ← 𝐲 + hi 𝐲°
+  for (int k = 0; k < neqn; k++)
+    yout[k] = yy[k] + hi * yout[k];
 
   return 0;
 }
