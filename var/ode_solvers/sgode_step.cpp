@@ -41,7 +41,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   // if(.not.start) go to 99 TODO
   
   double hold,absh;
-  int ifail,kold;
+  int ifail;
   if (start) {
     // initialize.  compute appropriate step size for first step
     f(x, yy(), yp(), params);
@@ -69,7 +69,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   // Repeat blocks 1, 2 (and 3) until step is successful               
   // 
   int step_success = false;
-  int kp1,kp2,km1,knew,ns;
+  int kp1,kp2,km1,km2,knew,ns;
   double erkm2,erkm1,erk,xold;
   while (!step_success) {
     // 
@@ -77,10 +77,10 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     //
     // compute coefficients of formulas for this step.  avoid computing
     // those quantities not changed when step size is not changed.
-    int kp1 = k + 1;
-    int kp2 = k + 2;
-    int km1 = k - 1;
-    int km2 = k - 2;
+    kp1 = k + 1;
+    kp2 = k + 2;
+    km1 = k - 1;
+    km2 = k - 2;
 
     // ns is the number of steps taken with size h, including the current
     // one.  when k.lt.ns, no coefficients change

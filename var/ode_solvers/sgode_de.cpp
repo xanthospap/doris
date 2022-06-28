@@ -1,5 +1,8 @@
 #include "sgode.hpp"
 #include <limits>
+#ifdef DEBUG
+#include <cstdio>
+#endif
 
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double twou = 2e0 * umach;
@@ -28,8 +31,24 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
   // test for improper parameters
   double eps = std::max(relerr, abserr);
   if (neqn < 1 || t == tout || (relerr < 0e0 || abserr < 0e0) || eps < 0e0 ||
-      !iflag || t != told) {
+      !iflag || (t != told && std::abs(iflag) != 1)) {
     iflag = 6;
+#ifdef DEBUG
+    int error_flag = -1;
+    if (neqn < 1)
+      error_flag = 1;
+    else if (t==tout)
+      error_flag = 2;
+    else if (relerr < 0e0 || abserr < 0e0)
+      error_flag = 3;
+    else if (eps < 0e0)
+      error_flag = 4;
+    else if (!iflag)
+      error_flag = 5;
+    else if (t!=told && std::abs(iflag) != 1)
+      error_flag = 6;
+    fprintf(stderr, "ERROR Invalid parameters to %s. error-flag: %d\n", __func__, error_flag);
+#endif
     return 1;
   }
 

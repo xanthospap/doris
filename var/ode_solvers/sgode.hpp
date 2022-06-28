@@ -27,6 +27,8 @@ public:
     if (Arrays13) delete[] Arrays13;
   }
 
+  int flag() const noexcept {return iflag;}
+
   int de(double t0, double tout, const Eigen::VectorXd &y0,
          Eigen::VectorXd &yout) noexcept;
   int step(double &eps, int &crash) noexcept;
@@ -60,7 +62,7 @@ public:
     return Arrays13[2 * 13 + i];
   }
   
-  double * __restrict__ v() noexcept { return Arrays13 + 3 * 13; }
+  double *v() noexcept { return Arrays13 + 3 * 13; }
   double &v(int i) noexcept {
 #ifdef DEBUG 
     assert(i >= 0 && i < 13);
@@ -68,7 +70,7 @@ public:
     return Arrays13[3 * 13 + i];
   }
   
-  double * __restrict__ w() noexcept { return Arrays13 + 4 * 13; }
+  double *w() noexcept { return Arrays13 + 4 * 13; }
   double &w(int i) noexcept {
 #ifdef DEBUG 
     assert(i >= 0 && i < 13);
