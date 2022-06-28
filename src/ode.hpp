@@ -11,7 +11,7 @@ namespace dso {
 // void f (double x, const Vector y, Vector yp[])
 typedef void (*ODEfun)(double x,        // Independent variable
                        const double *y, // State vector
-                       double *yp      // Derivative y'=f(x,y)
+                       double *yp       // Derivative y'=f(x,y)
 );
 
 enum class ODEStatusCode : unsigned int {
