@@ -29,6 +29,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
 
   //  if error tolerance is too small, increase it to an acceptable value
   const double round = twou * (yy().array() / wt().array()).matrix().norm();
+  printf("    step::round=%20.15e\n", round);
   if (p5eps < round) {
     eps = 2e0*round*(1e0 + fouru);
     return 0;
@@ -38,18 +39,21 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   g(0) = 1e0;
   g(1) = 5e-1;
   sig(0) = 1e0;
-  // if(.not.start) go to 99 TODO
   
   double hold,absh;
   int ifail;
   if (start) {
     // initialize.  compute appropriate step size for first step
+    printf("    step::initialize partials:\n");
     f(x, yy(), yp(), params);
+    for (int i=0; i<neqn; i++) printf("yp(%d)=%25.15e\n", i, yp(i));
     Phi.col(0) = yp();
     Phi.col(1).setZero();
     const double sum = (yp().array() / wt().array()).matrix().norm();
     absh = std::abs(h);
+    printf("    sum=%25.15e h=%25.15e\n", sum, h);
     if (eps < 16e0 * sum * h *h) absh = 0.25e0 * std::sqrt(eps/sum);
+    h = std::copysign(std::max(absh,fouru*std::abs(x)),h);
     hold = 0e0;
     k = 1;
     kold = 0;
@@ -72,6 +76,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   int kp1,kp2,km1,km2,knew,ns;
   double erkm2,erkm1,erk,xold;
   while (!step_success) {
+    printf("    iterating ...\n");
     // 
     // ***     begin block 1     ***
     //
@@ -90,6 +95,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
       ++ns;
     int nsp1 = ns + 1;
     if (k >= ns) { // this should exit in 199:
+      printf("    k=%d, ns=%d h=%25.15e\n", k,ns,h);
       // compute those components of alpha(*),beta(*),psi(*),sig(*) which
       // are changed
       beta(ns - 1) = 1e0;
@@ -104,11 +110,18 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
           beta(i) = beta(im1) * psi(im1) / tmp2;
           tmp1 = tmp2 + h;
           alpha(i) = h / tmp1;
-          sig(i + 1) = alpha(i) * i * sig(i);
+          printf("    sig(%d)=%25.15e*%25.15e*%25.15e\n",i+1,alpha(i),(double)(i+1),sig(i));
+          sig(i + 1) = (double)(i+1e0) * (alpha(i)*sig(i));
         }
       }
       // -- break point 110: --
       psi(k - 1) = tmp1;
+      for (int i=0; i<12; i++) {
+        printf("    %25.15e %25.15e %25.15e %15.15e\n", psi(i), beta(i), alpha(i), sig(i));
+      }
+      for (int i=12; i<13; i++) {
+        printf("    %25.15e %25.15e %25.15e\n", psi(i), beta(i), alpha(i));
+      }
 
       // compute coefficients g(*)
 
@@ -120,18 +133,26 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
         }
         std::memcpy(w(), v(), sizeof(double) * k);
         // next step is 140:
+        printf("    w and v arrays:\n");
+        for (int i=0; i<k; i++) printf("    %3d %20.15e %20.15e\n", i, v(i), w(i));
       } else {
         // aka (ns > 1)
         // if order was raised, update diagonal part of v(*)
         // -- break point 120: --
         if (k > kold) { // else goto 130:
+          printf("    order raised, updating v:\n");
           v(k - 1) = 1e0 / (double)(k * kp1);
+          printf("v(%d) = %20.15e\n", k-1, v(k-1));
           const int nsm2 = ns - 2;
           if (nsm2 >= 1) { // else goto 130:
             for (int j = 0; j < ns - 2; j++) {
               int i = k - j - 1;
               // TODO is indexing correct here ?
               v(i) -= alpha(j) * v(i + 1);
+            }
+            for (int j = 0; j < ns - 2; j++) {
+              int i = k - j - 1;
+              printf("v(%d) = %20.15e\n", i, v(i)); 
             }
           }
         }
@@ -146,6 +167,8 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
         }
         std::memcpy(w(), v(), sizeof(double) * limit1);
         g(nsp1 - 1) = w(0);
+        printf("    BreakPoint 130:\n");
+        for (int iq=0; iq<limit1; iq++) printf("    i=%d %20.15e %20.15e\n",iq, v(iq), w(iq));
       }
 
       // compute the g(*) in the work vector w(*)
@@ -161,6 +184,8 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
           g(i - 1) = w(0);
         }
       }
+    } else {
+      printf("    goto 199");
     }
     // -- break point 199: --
     // ***     end block 1     **
@@ -185,7 +210,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     // -- break point 215: --
     Phi.col(kp2 - 1) = Phi.col(kp1 - 1);
     Phi.col(kp1 - 1).setZero();
-    this->p().setZero();
+    p().setZero();
     // -- break point 220: --
     for (int j = 1; j <= k; j++) {
       const int i = kp1 - j;
@@ -215,8 +240,8 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     erkm1 = 0e0;
     erk = 0e0;
     for (int l = 0; l < neqn; l++) {
-      const double t3 = 1e0 / wt()(l);
-      const double t4 = yp()(l) - Phi(l, 0);
+      const double t3 = 1e0 / wt(l);
+      const double t4 = yp(l) - Phi(l, 0);
       if (km2 > 0)
         erkm2 += std::pow((Phi(l, km1 - 1) + t4) * t3, 2);
       if (km2 >= 0)
@@ -234,12 +259,16 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
 
     // test if order should be lowered
     if (km2 > 0) {
-      if (std::max(erkm1, erkm2) <= erk)
+      if (std::max(erkm1, erkm2) <= erk) {
         knew = km1;
+        printf("    lowering order, knew=%d\n", knew);
+      }
       // exit at 299:
     } else if (km2 == 0) {
-      if (erkm1 <= 5e-1 * erk)
+      if (erkm1 <= 5e-1 * erk) {
         knew = km1;
+        printf("    lowering order, knew=%d\n", knew);
+      }
     }
     // -- break point 299: --
     step_success = (err <= eps);
@@ -259,6 +288,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
       // restore x, phi(*,*) and psi(*)
       phase1 = false;
       x = xold;
+      printf("    step failure, x=%20.15e\n", x);
       for (int i = 0; i < k; i++) {
         const double t1 = 1e0 / beta(i);
         Phi.col(i) = t1 * (Phi.col(i) - Phi.col(i + 1));
@@ -279,6 +309,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
         knew = 1;
       h *= t2;
       k = knew;
+      printf("    setting k=%d\n", k);
       if (!(std::abs(h) >= fouru * std::abs(x))) {
         crash = true;
         h = std::copysign(fouru * std::abs(x), h);
@@ -343,7 +374,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     // goto 460
   } else {
     for (int l=0; l<neqn; l++)
-      erkp1 += std::pow(Phi(l,kp2-1) / wt()(l), 2);
+      erkp1 += std::pow(Phi(l,kp2-1) / wt(l), 2);
     erkp1 = absh * gstr[kp1-1] * std::sqrt(erkp1);
     // using estimated error at order k+1, determine appropriate order
     // for next step
@@ -363,6 +394,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
       erk = erkp1;
     }
   }
+  printf("    4**, setting k=%d\n",k);
 
   // with new order determine appropriate step size for next step
   // --break point 460: --

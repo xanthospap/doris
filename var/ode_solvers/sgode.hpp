@@ -29,7 +29,7 @@ public:
 
   int flag() const noexcept {return iflag;}
 
-  int de(double t0, double tout, const Eigen::VectorXd &y0,
+  int de(double &t, double tout, const Eigen::VectorXd &y0,
          Eigen::VectorXd &yout) noexcept;
   int step(double &eps, int &crash) noexcept;
   int intrp(double xout, Eigen::VectorXd &yout,
@@ -40,6 +40,11 @@ public:
   Eigen::Ref<Eigen::VectorXd> yy()    noexcept { return ArraysNeqn.col(2); }
   Eigen::Ref<Eigen::VectorXd> yp()    noexcept { return ArraysNeqn.col(3); }
   Eigen::Ref<Eigen::VectorXd> ypout() noexcept { return ArraysNeqn.col(4); }
+  double &wt   (int i) noexcept { return ArraysNeqn(i,0); }
+  double &p    (int i) noexcept { return ArraysNeqn(i,1); }
+  double &yy   (int i) noexcept { return ArraysNeqn(i,2); }
+  double &yp   (int i) noexcept { return ArraysNeqn(i,3); }
+  double &ypout(int i) noexcept { return ArraysNeqn(i,4); }
   
   double &psi  (int i) noexcept {
   #ifdef DEBUG 
@@ -92,7 +97,8 @@ public:
     return Arrays13[6 * 13 + i];
   } // rows = 12
 
-private:
+public:
+//private:
   ODEfun f;
   int neqn;
   int iflag;
@@ -102,7 +108,7 @@ private:
   double *Arrays13;
   double h;
   double x;
-  double t,told;
+  double /*t,*/told;
   double delsgn;
   double relerr,abserr;
   /// May store a pointer to some king of parameters that are passed in the

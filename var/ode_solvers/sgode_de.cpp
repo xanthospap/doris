@@ -8,7 +8,7 @@ constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double twou = 2e0 * umach;
 constexpr const double fouru = 4e0 * umach;
 
-int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
+int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
   // ***********************************************************************
   // *  the only machine dependent constant is based on the machine unit   *
@@ -26,7 +26,6 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
   constexpr const int maxnum = 500;
 
   int crash = false;
-  t = t0;
 
   // test for improper parameters
   double eps = std::max(relerr, abserr);
@@ -55,7 +54,7 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
   const int isn = std::copysign(1, iflag);
   iflag = std::abs(iflag);
 
-  if (!(iflag == 1 || (iflag >= 2 && iflag <= 5)))
+  if (iflag<0 || iflag > 5)
     return 1;
 
   // on each call set interval of integration and counter for number of
@@ -72,14 +71,15 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
   int kle4 = 0;
   int stiff = false;
   const double releps = relerr / eps;
+  printf("releps = %25.17e / %25.17e = %15.17e\n", relerr, eps, releps);
   const double abseps = abserr / eps;
+  printf("abseps = %25.17e / %25.17e = %15.17e\n", abserr, eps, abseps);
 
-  // copy intput vector y0 to yy
-  yy() = y0;
-  
-  if (delsgn * del <= 0e0) {
+  if (delsgn * del <= 0e0 || iflag == 1) {
     // on start and restart also set work variables x and yy(*), store the
     // direction of integration and initialize the step size
+    x = t;
+    yy() = y0;
     // -- break point 30: --
     start = true;
     // -- break point 40: --
@@ -92,6 +92,7 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
     if (std::abs(x - t) >= absdel) {
       // if already past output point, interpolate and return
       // -- break point 50: --
+      printf("\tPerforming interpolation ...\n");
       intrp(tout, yout, ypout());
       iflag = 2;
       t = tout;
@@ -105,6 +106,7 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
     if (!(isn > 0 || std::abs(tout - x) >= fouru * std::abs(x))) {
       // -- break point 60: --
       h = tout - x;
+      printf("\tExtrapolating ....\n");
       f(x, yy(), yp(), params); // derivate at yp()
       yout = yy() + h * yp();
       iflag = 2;
@@ -116,6 +118,7 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
 
     // test too many steps
     if (nostep >= maxnum) {
+      printf("\ttoo many steps ....\n");
       // -- break point 80: --
       iflag = isn * 4;
       if (stiff)
@@ -132,7 +135,12 @@ int dso::SGOde::de(double t0, double tout, const Eigen::VectorXd &y0,
     // -- break point 100: --
     h = std::copysign(std::min(std::abs(h), std::abs(tend - x)), h);
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
+    printf("releps=%25.17e abseps=%25.17e\n", releps,abseps);
+    for (int i=0; i<neqn; i++) printf("wt[%d]        =%20.15e\n", i, wt(i));
+    printf("->taking step ... (%d)\n", nostep);
     this->step(eps, crash);
+    printf("->finished step ... (%d)\n", nostep);
+    printf("Solution: %20.15e %20.15e %20.15e\n", yy(0), yy(1), yy(2));
 
     // test for tolerances too small
     if (crash) {
