@@ -12,7 +12,7 @@ void f([[maybe_unused]] double x,      // Independent variable
        [[maybe_unused]] void *params) {
   yp(0) = y(1) * y(2);
   yp(1) = -y(0) * y(2);
-  yp(2) = -0.5e0 * y(0) * y(1);
+  yp(2) = -0.51e0 * y(0) * y(1);
   return;
 }
 

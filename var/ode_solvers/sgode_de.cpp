@@ -86,6 +86,8 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     delsgn = std::copysign(1e0, del);
     h = std::copysign(std::max(std::abs(tout - x), fouru * std::abs(x)),
                       tout - x);
+
+    printf("    changing h on 40:%20.15e\n", h);
   }
 
   while (true) {
@@ -106,6 +108,7 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     if (!(isn > 0 || std::abs(tout - x) >= fouru * std::abs(x))) {
       // -- break point 60: --
       h = tout - x;
+      printf("    changing h on 60:%20.15e\n", h);
       printf("\tExtrapolating ....\n");
       f(x, yy(), yp(), params); // derivate at yp()
       yout = yy() + h * yp();
@@ -134,13 +137,15 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     // limit step size, set weight vector and take a step
     // -- break point 100: --
     h = std::copysign(std::min(std::abs(h), std::abs(tend - x)), h);
+    printf("    changing h on 100:%20.15e\n",h);
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
     printf("releps=%25.17e abseps=%25.17e\n", releps,abseps);
-    for (int i=0; i<neqn; i++) printf("wt[%d]        =%20.15e\n", i, wt(i));
+    //for (int i=0; i<neqn; i++) printf("wt[%d]        =%20.15e\n", i, wt(i));
     printf("->taking step ... (%d)\n", nostep);
     this->step(eps, crash);
     printf("->finished step ... (%d)\n", nostep);
-    printf("Solution: %20.15e %20.15e %20.15e\n", yy(0), yy(1), yy(2));
+    printf("t=%20.15e, x=%20.15e, h=%20.15e\n",t,x,h);
+    // printf("Solution: %20.15e %20.15e %20.15e\n", yy(0), yy(1), yy(2));
 
     // test for tolerances too small
     if (crash) {
