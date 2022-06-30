@@ -278,9 +278,13 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     // }
     printf("    note, km2=%d\n", km2);
     {
-      const auto t4array = yp().array() - Phi.col(0).array();
+      const Eigen::ArrayXd t4array = yp().array() - Phi.col(0).array();
       Eigen::ArrayXd tmpar = t4array / wt().array();
+      for (int i=0; i<neqn; i++) {
+        printf("    tmp[%d]=%25.15e wt=%25.15e yp=%25.15e phi=%25.15e\n",i, tmpar(i),wt(i), yp(i),Phi(i,0));
+      } 
       erk = tmpar.matrix().squaredNorm();
+      printf("    erk   on 265 is %20.15e\n", erk);
       for (int i = 0; i < neqn; i++)
         printf("    Phi(%d,0) = %25.15e\n", i, Phi(i, 0));
       if (!km2 || km2 > 0) {
@@ -324,6 +328,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     }
     // -- break point 299: --
     step_success = (err <= eps);
+    printf("    testing if %25.15e <= %25.15e\n", err, eps);
     //
     // ***     end block 2     ***
     //
