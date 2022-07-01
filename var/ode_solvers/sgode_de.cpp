@@ -71,9 +71,9 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
   int kle4 = 0;
   int stiff = false;
   const double releps = relerr / eps;
-  printf("releps = %25.17e / %25.17e = %15.17e\n", relerr, eps, releps);
+  //printf("releps = %25.17e / %25.17e = %15.17e\n", relerr, eps, releps);
   const double abseps = abserr / eps;
-  printf("abseps = %25.17e / %25.17e = %15.17e\n", abserr, eps, abseps);
+  //printf("abseps = %25.17e / %25.17e = %15.17e\n", abserr, eps, abseps);
 
   if (delsgn * del <= 0e0 || iflag == 1) {
     // on start and restart also set work variables x and yy(*), store the
@@ -87,14 +87,14 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     h = std::copysign(std::max(std::abs(tout - x), fouru * std::abs(x)),
                       tout - x);
 
-    printf("    changing h on 40:%20.15e\n", h);
+    //printf("    changing h on 40:%20.15e\n", h);
   }
 
   while (true) {
     if (std::abs(x - t) >= absdel) {
       // if already past output point, interpolate and return
       // -- break point 50: --
-      printf("\tPerforming interpolation ...\n");
+      //printf("\tPerforming interpolation ...\n");
       intrp(tout, yout, ypout());
       iflag = 2;
       t = tout;
@@ -108,8 +108,8 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     if (!(isn > 0 || std::abs(tout - x) >= fouru * std::abs(x))) {
       // -- break point 60: --
       h = tout - x;
-      printf("    changing h on 60:%20.15e\n", h);
-      printf("\tExtrapolating ....\n");
+      //printf("    changing h on 60:%20.15e\n", h);
+      //printf("\tExtrapolating ....\n");
       f(x, yy(), yp(), params); // derivate at yp()
       yout = yy() + h * yp();
       iflag = 2;
@@ -121,7 +121,7 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
 
     // test too many steps
     if (nostep >= maxnum) {
-      printf("\ttoo many steps ....\n");
+      //printf("\ttoo many steps ....\n");
       // -- break point 80: --
       iflag = isn * 4;
       if (stiff)
@@ -137,15 +137,15 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     // limit step size, set weight vector and take a step
     // -- break point 100: --
     h = std::copysign(std::min(std::abs(h), std::abs(tend - x)), h);
-    printf("    changing h on 100:%20.15e\n",h);
+    //printf("    changing h on 100:%20.15e\n",h);
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
-    printf("releps=%25.17e abseps=%25.17e\n", releps,abseps);
+    //printf("releps=%25.17e abseps=%25.17e\n", releps,abseps);
     //for (int i=0; i<neqn; i++) printf("wt[%d]        =%20.15e\n", i, wt(i));
     printf("->taking step ... (%d)\n", nostep);
     this->step(eps, crash);
     printf("->finished step ... (%d)\n", nostep);
     printf("t=%20.15e, x=%20.15e, h=%20.15e\n",t,x,h);
-    // printf("Solution: %20.15e %20.15e %20.15e\n", yy(0), yy(1), yy(2));
+    printf("Solution: %20.15e %20.15e %20.15e\n", yy(0), yy(1), yy(2));
 
     // test for tolerances too small
     if (crash) {

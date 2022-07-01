@@ -1,5 +1,8 @@
 #include "sgode.hpp"
 #include <limits>
+#ifdef DEBUG
+#include <cassert>
+#endif
 
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double twou = 2e0 * umach;
@@ -22,7 +25,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
   crash = true;
   if (std::abs(h) < fouru * std::abs(x)) {
     h = std::copysign(fouru * std::abs(x), h);
-    printf("    changing h on 5:%20.15e\n", h);
+    // printf("    changing h on 5:%20.15e\n", h);
     return 0;
   }
 
@@ -31,7 +34,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
 
   //  if error tolerance is too small, increase it to an acceptable value
   const double round = twou * (yy().array() / wt().array()).matrix().norm();
-  printf("    step::round=%20.15e\n", round);
+  // printf("    step::round=%20.15e\n", round);
   if (p5eps < round) {
     eps = 2e0 * round * (1e0 + fouru);
     return 0;
@@ -50,16 +53,16 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     f(x, yy(), yp(), params);
     // for (int i=0; i<neqn; i++) printf("yp(%d)=%25.15e\n", i, yp(i));
     Phi.col(0) = yp();
-    printf("    copying phi.col(0)\n");
-    printf("    Phi.col(0)=%25.15e %25.15e %25.15e\n", Phi(0, 0), Phi(1, 0), Phi(2, 0));
+    //printf("    copying phi.col(0)\n");
+    //printf("    Phi.col(0)=%25.15e %25.15e %25.15e\n", Phi(0, 0), Phi(1, 0), Phi(2, 0));
     Phi.col(1).setZero();
     const double sum = (yp().array() / wt().array()).matrix().norm();
     absh = std::abs(h);
-    printf("    sum=%25.15e h=%25.15e\n", sum, h);
+    //printf("    sum=%25.15e h=%25.15e\n", sum, h);
     if (eps < 16e0 * sum * h * h)
       absh = 0.25e0 * std::sqrt(eps / sum);
     h = std::copysign(std::max(absh, fouru * std::abs(x)), h);
-    printf("    changing h on start, set to: %20.15e\n", h);
+    //printf("    changing h on start, set to: %20.15e\n", h);
     hold = 0e0;
     k = 1;
     kold = 0;
@@ -82,7 +85,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
   int kp1, kp2, km1, km2, knew, ns;
   double erkm2, erkm1, erk, xold;
   while (!step_success) {
-    printf("    iterating ...\n");
+    //printf("    iterating ...\n");
     //
     // ***     begin block 1     ***
     //
@@ -101,7 +104,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
       ++ns;
     int nsp1 = ns + 1;
     if (k >= ns) { // this should exit in 199:
-      printf("    k=%d, ns=%d h=%25.15e\n", k, ns, h);
+      //printf("    k=%d, ns=%d h=%25.15e\n", k, ns, h);
       // compute those components of alpha(*),beta(*),psi(*),sig(*) which
       // are changed
       beta(ns - 1) = 1e0;
@@ -146,7 +149,7 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
         // if order was raised, update diagonal part of v(*)
         // -- break point 120: --
         if (k > kold) { // else goto 130:
-          printf("    order raised, updating v:\n");
+          //printf("    order raised, updating v:\n");
           v(k - 1) = 1e0 / (double)(k * kp1);
           // printf("v(%d) = %20.15e\n", k-1, v(k-1));
           const int nsm2 = ns - 2;
@@ -190,9 +193,9 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
           g(i - 1) = w(0);
         }
       }
-    } else {
+    } /*else {
       printf("    goto 199");
-    }
+    }*/
     // -- break point 199: --
     // ***     end block 1     **
 
@@ -202,24 +205,29 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     // k-1, k-2 as if constant step size were used.
     // ***
 
+    //printf("    going to block2, with phi:\n");
+    //for (int i=0; i<kp1; i++) {
+    //  printf("    col=%d %20.15e %20.15e %20.15e\n", i,Phi(0,i), Phi(1,i), Phi(2,i));
+    //}
     // change phi to phi star
     if (k >= nsp1) { // else goto 215:
-      for (int i = nsp1; i < k; i++) {
-        const double b = beta(i - 1);
+      for (int i = nsp1-1; i < k; i++) {
+        const double b = beta(i);
         // for (int l = 0; l < neqn; l++) {
         //   Phi(l, i - 1) = b * Phi(l, i - 1);
         // }
-        Phi.col(i - 1) *= b;
-        if (i - 1 == 0) {
-          printf("    changing col0 of Phi on 210!\n");
-        }
+        Phi.col(i) *= b;
       }
     }
 
     // predict solution and differences
     // -- break point 215: --
-    if ((kp2 - 1 == 0) || (kp1 - 1 == 0))
-      printf("    changing col0 of Phi on 215!\n");
+    //printf("    going to 215, with phi:\n");
+    //for (int i=0; i<kp1; i++) {
+    //  printf("    col=%d %20.15e %20.15e %20.15e\n", i,Phi(0,i), Phi(1,i), Phi(2,i));
+    //}
+    //if ((kp2 - 1 == 0) || (kp1 - 1 == 0))
+    //  printf("    changing col0 of Phi on 215!\n");
     Phi.col(kp2 - 1) = Phi.col(kp1 - 1);
     Phi.col(kp1 - 1).setZero();
     p().setZero();
@@ -236,15 +244,21 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
 #ifdef DEBUG
     assert(kp1 == k + 1);
 #endif
-    printf("    Phi.col(0)=%25.15e %25.15e %25.15e\n", Phi(0, 0), Phi(1, 0), Phi(2, 0));
+    //printf("    going to 220, with phi:\n");
+    //for (int i=0; i<kp1; i++) {
+    //  printf("    col=%d %20.15e %20.15e %20.15e\n", i,Phi(0,i), Phi(1,i), Phi(2,i));
+    //}
+    // printf("    Phi.col(%d)=%25.15e %25.15e %25.15e\n", k, Phi(0, k), Phi(1, k), Phi(2, k));
     for (int i = k - 1; i >= 0; i--) {
-      if (i == 0)
-        printf("    changing col0 of Phi on 220!\n");
+      // printf("    Phi.col(%d)=%25.15e %25.15e %25.15e, g=%15.15e\n", i, Phi(0, i), Phi(1, i), Phi(2, i), g(i));
+      //if (i == 0)
+      //  printf("    changing col0 of Phi on 220!\n");
+      //printf("    assigning column %d using %d\n", i, i+1);
       const double gi = g(i);
       p() += gi * Phi.col(i);
       Phi.col(i) += Phi.col(i + 1);
     }
-    printf("    Phi.col(0)=%25.15e %25.15e %25.15e\n", Phi(0, 0), Phi(1, 0), Phi(2, 0));
+    //printf("    Phi.col(0)=%25.15e %25.15e %25.15e\n", Phi(0, 0), Phi(1, 0), Phi(2, 0));
     // -- break point 230: --
     if (!nornd) { // else goto 240:
       const auto tau = h * p() - Phi.col(14);
@@ -259,9 +273,9 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     xold = x;
     x += h;
     absh = std::abs(h);
-    printf("    call to f with: %25.15e %25.15e %25.15e %25.15e\n",x,p(0),p(1),p(2));
+    //printf("    call to f with: %25.15e %25.15e %25.15e %25.15e\n",x,p(0),p(1),p(2));
     f(x, p(), yp(), params);
-    printf("    result: %25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
+    //printf("    result: %25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
 
     // estimate errors at orders k,k-1,k-2
     erkm2 = 0e0;
@@ -276,26 +290,26 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     //     erkm1 += std::pow((Phi(l, k - 1) + t4) * t3, 2);
     //   erk += (t4 * t3) * (t4 * t3);
     // }
-    printf("    note, km2=%d\n", km2);
+    //printf("    note, km2=%d\n", km2);
     {
       const Eigen::ArrayXd t4array = yp().array() - Phi.col(0).array();
       Eigen::ArrayXd tmpar = t4array / wt().array();
-      for (int i=0; i<neqn; i++) {
-        printf("    tmp[%d]=%25.15e wt=%25.15e yp=%25.15e phi=%25.15e\n",i, tmpar(i),wt(i), yp(i),Phi(i,0));
-      } 
+      //for (int i=0; i<neqn; i++) {
+      //  printf("    tmp[%d]=%25.15e wt=%25.15e yp=%25.15e phi=%25.15e\n",i, tmpar(i),wt(i), yp(i),Phi(i,0));
+      //} 
       erk = tmpar.matrix().squaredNorm();
-      printf("    erk   on 265 is %20.15e\n", erk);
-      for (int i = 0; i < neqn; i++)
-        printf("    Phi(%d,0) = %25.15e\n", i, Phi(i, 0));
+      //printf("    erk   on 265 is %20.15e\n", erk);
+      //for (int i = 0; i < neqn; i++)
+      //  printf("    Phi(%d,0) = %25.15e\n", i, Phi(i, 0));
       if (!km2 || km2 > 0) {
-        for (int i = 0; i < neqn; i++)
-          printf("    Phi(%d,%d) = %25.15e\n", i, k - 1, Phi(i, k - 1));
+        //for (int i = 0; i < neqn; i++)
+        //  printf("    Phi(%d,%d) = %25.15e\n", i, k - 1, Phi(i, k - 1));
         tmpar = (Phi.col(k - 1).array() + t4array) / wt().array();
         erkm1 = absh * sig(k - 1) * gstr[km1 - 1] * tmpar.matrix().norm();
       }
       if (km2 > 0) {
-        for (int i = 0; i < neqn; i++)
-          printf("    Phi(%d,%d) = %25.15e\n", i, km1 - 1, Phi(i, km1 - 1));
+        //for (int i = 0; i < neqn; i++)
+        //  printf("    Phi(%d,%d) = %25.15e\n", i, km1 - 1, Phi(i, km1 - 1));
         tmpar = (Phi.col(km1 - 1).array() + t4array) / wt().array();
         erkm2 = absh * sig(km1 - 1) * gstr[km2 - 1] * tmpar.matrix().norm();
       }
@@ -308,27 +322,27 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     const double t5 = absh * std::sqrt(erk);
     const double err = t5 * (g(k - 1) - g(kp1 - 1));
     erk = t5 * sig(kp1 - 1) * gstr[k - 1];
-    printf("    erk   on 280 is %20.15e\n", erk);
-    printf("    erkm1 on 280 is %20.15e\n", erkm1);
-    printf("    erkm2 on 280 is %20.15e\n", erkm2);
+    //printf("    erk   on 280 is %20.15e\n", erk);
+    //printf("    erkm1 on 280 is %20.15e\n", erkm1);
+    //printf("    erkm2 on 280 is %20.15e\n", erkm2);
     knew = k;
 
     // test if order should be lowered
     if (km2 > 0) {
       if (std::max(erkm1, erkm2) <= erk) {
         knew = km1;
-        printf("    lowering order, knew=%d\n", knew);
+        //printf("    lowering order, knew=%d\n", knew);
       }
       // exit at 299:
     } else if (km2 == 0) {
       if (erkm1 <= 5e-1 * erk) {
         knew = km1;
-        printf("    lowering order, knew=%d\n", knew);
+        //printf("    lowering order, knew=%d\n", knew);
       }
     }
     // -- break point 299: --
     step_success = (err <= eps);
-    printf("    testing if %25.15e <= %25.15e\n", err, eps);
+    //printf("    testing if %25.15e <= %25.15e\n", err, eps);
     //
     // ***     end block 2     ***
     //
@@ -345,8 +359,8 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
       // restore x, phi(*,*) and psi(*)
       phase1 = false;
       x = xold;
-      printf("    step failure, x=%20.15e\n", x);
-      printf("    changing col0 of Phi on 305!\n");
+      //printf("    step failure, x=%20.15e\n", x);
+      //printf("    changing col0 of Phi on 305!\n");
       for (int i = 0; i < k; i++) {
         const double t1 = 1e0 / beta(i);
         Phi.col(i) = t1 * (Phi.col(i) - Phi.col(i + 1));
@@ -367,11 +381,11 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
         knew = 1;
       h *= t2;
       k = knew;
-      printf("    setting k=%d\n", k);
+      //printf("    setting k=%d\n", k);
       if (!(std::abs(h) >= fouru * std::abs(x))) {
         crash = true;
         h = std::copysign(fouru * std::abs(x), h);
-        printf("    changing h on 320:%20.15e\n", h);
+        //printf("    changing h on 320:%20.15e\n", h);
         eps += eps;
         return 1;
       }
@@ -393,6 +407,11 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
   kold = k;
   hold = h;
 
+  //printf("    Going to block 4 with Phi:\n");
+  //for (int i=0; i<kp1; i++) {
+  //  printf("    col=%d %20.15e %20.15e %20.15e\n", i,Phi(0,i), Phi(1,i), Phi(2,i));
+  //}
+
   // correct and evaluate
   const double t1 = h * g(kp1 - 1);
   if (!nornd) {
@@ -403,18 +422,18 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
     yy() = p() + t1 * (yp() - Phi.col(0));
   }
   // -- break point 420: --
-  printf("    call to f with: %25.15e %25.15e %25.15e %25.15e\n",x,yy(0),yy(1),yy(2));
+  //printf("    call to f with: %25.15e %25.15e %25.15e %25.15e\n",x,yy(0),yy(1),yy(2));
   f(x, yy(), yp(), params);
-  printf("    result: %25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
+  //printf("    result: %25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
 
   // update differences for next step
-  if ((kp1 - 1 == 0) || (kp2 - 1 == 0))
-    printf("    changing col0 of Phi on 425!\n");
+  //if ((kp1 - 1 == 0) || (kp2 - 1 == 0))
+  //  printf("    changing col0 of Phi on 425!\n");
   Phi.col(kp1 - 1) = yp() - Phi.col(0);
   Phi.col(kp2 - 1) = Phi.col(kp1 - 1) - Phi.col(kp2 - 1);
-  printf("    changing col0 of Phi on 430!\n");
-  printf("    Phi.col(%d)=%25.15e %25.15e %25.15e\n",kp1-1,Phi(0,kp1-1), Phi(1,kp1-1),Phi(2,kp1-1));
-  printf("    yp.col(0)=%25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
+  //printf("    changing col0 of Phi on 430!\n");
+  //printf("    Phi.col(%d)=%25.15e %25.15e %25.15e\n",kp1-1,Phi(0,kp1-1), Phi(1,kp1-1),Phi(2,kp1-1));
+  //printf("    yp.col(0)=%25.15e %25.15e %25.15e\n",yp(0),yp(1),yp(2));
   for (int i = 0; i < k; i++)
     Phi.col(i) += Phi.col(kp1 - 1);
 
@@ -426,47 +445,56 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
   if (knew == km1 || k == 12)
     phase1 = false;
 
+  int new_degree = 999;
   if (phase1) {
-    // 450:
-    k = kp1;
-    erk = erkp1;
-    // goto 460:
+    new_degree = 1;
   } else if (knew == km1) {
-    // 455:
-    k = km1;
-    erk = erkp1;
-    // goto 460
+    new_degree = -1;
   } else if (kp1 > ns) {
-    ;
-    // goto 460
-  } else {
-    for (int l = 0; l < neqn; l++)
-      erkp1 += std::pow(Phi(l, kp2 - 1) / wt(l), 2);
+    new_degree = 0;
+  }
+
+  if (new_degree == 999) {
+    for (int i = 0; i < neqn; i++)
+      erkp1 += std::pow(Phi(i, kp2 - 1) / wt(i), 2e0);
     erkp1 = absh * gstr[kp1 - 1] * std::sqrt(erkp1);
-    // using estimated error at order k+1, determine appropriate order
-    // for next step
+
     if (k > 1) {
       if (erkm1 <= std::min(erk, erkp1)) {
-        // 455:
-        k = km1;
-        erk = erkm1;
-        // goto 460:
+        new_degree = -1;
+      } else if (erkp1 >= erk || k == 12) {
+        new_degree = 0;
+      } else {
+        new_degree = 1;
       }
-    } else if (erkp1 >= 0.5e0 * erk) {
-      ;
-      // goto 460:
+    } else if (erkp1 >= 5e-1 * erk) {
+      new_degree = 0;
     } else {
-      // 450:
-      k = kp1;
-      erk = erkp1;
+      new_degree = 1;
     }
   }
-  printf("    4**, setting k=%d\n", k);
+
+#ifdef DEBUG
+  assert(new_degree > -2 && new_degree < 2);
+#endif
+
+  switch (new_degree) {
+    case -1:
+      k = km1;
+      erk = erkm1;
+      break;
+    case 0:
+      break;
+    case 1:
+      k = kp1;
+      erk = erkp1;
+  }
 
   // with new order determine appropriate step size for next step
   // --break point 460: --
   double hnew = h + h;
-  printf("phase1=%1d p5eps=%25.15e erk=%25.15e two=%25.15e\n", phase1, p5eps, erk, two[k]);
+  //printf("phase1=%1d p5eps=%25.15e erk=%25.15e two=%25.15e\n", phase1, p5eps, erk, two[k]);
+  printf("deciding h, with phase1=%1d p5eps=%25.15e erk=%25.15e\n", phase1, p5eps, erk);
   if (!(phase1 || p5eps >= erk * two[k])) {
     hnew = h;
     if (p5eps < erk) {
@@ -478,6 +506,11 @@ int dso::SGOde::step(double& eps, int& crash) noexcept
   }
   // --break point 465: --
   h = hnew;
-  printf("    changing h on 465:%20.15e\n", h);
+  printf("setting new h in block 4, h=%20.15f\n", h);
+  //printf("    changing h on 465:%20.15e\n", h);
+  //printf("    Leaving block 4 with Phi:\n");
+  //for (int i=0; i<kp1; i++) {
+  //  printf("    col=%d %20.15e %20.15e %20.15e\n", i,Phi(0,i), Phi(1,i), Phi(2,i));
+  //}
   return 0;
 }
