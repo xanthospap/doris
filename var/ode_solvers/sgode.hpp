@@ -20,7 +20,7 @@ public:
         params(_params) {
     Phi  = Eigen::MatrixXd(neqn,16);
     ArraysNeqn = Eigen::MatrixXd(neqn,5); // wt, p, ypout, yp, yy
-    Arrays13 = new double[13 * 7];// psi, alpha, beta, v, w, sig, g (col-major)
+    Arrays13 = new double[13 * 7]; // psi, alpha, beta, v, w, sig, g (col-major)
   }
 
   ~SGOde() noexcept {
@@ -46,67 +46,78 @@ public:
   double &yp   (int i) noexcept { return ArraysNeqn(i,3); }
   double &ypout(int i) noexcept { return ArraysNeqn(i,4); }
   
+  /// get psi array coefficient (size=12)
   double &psi  (int i) noexcept {
   #ifdef DEBUG 
-  assert(i>=0 && i<13); 
+  assert(i>=0 && i<12); 
   #endif 
   return Arrays13[0*13+i]; 
   }
   
+  /// get alpha array coefficient (size=12)
   double &alpha(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 13);
+    assert(i >= 0 && i < 12);
 #endif 
     return Arrays13[1 * 13 + i];
   }
   
+  /// get beta array coefficient (size=12)
   double &beta(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 13);
+    assert(i >= 0 && i < 12);
 #endif 
     return Arrays13[2 * 13 + i];
   }
   
+  /// pointer to the first element in the v array (size=12)
   double *v() noexcept { return Arrays13 + 3 * 13; }
+  
+  /// get v array coefficient (size=12)
   double &v(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 13);
+    assert(i >= 0 && i < 12);
 #endif 
     return Arrays13[3 * 13 + i];
   }
   
+  /// pointer to the first element in the w array (size=12)
   double *w() noexcept { return Arrays13 + 4 * 13; }
+  
+  /// get w array coefficient (size=12)
   double &w(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 13);
+    assert(i >= 0 && i < 12);
 #endif 
     return Arrays13[4 * 13 + i];
   }
   
+  /// get sig array coefficient (size=13)
   double &sig(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 12);
+    assert(i >= 0 && i < 13);
 #endif 
     return Arrays13[5 * 13 + i];
-  } // rows = 12
+  }
   
+  /// get g array coefficient (size=13)
   double &g(int i) noexcept {
 #ifdef DEBUG 
-    assert(i >= 0 && i < 12);
+    assert(i >= 0 && i < 13);
 #endif 
     return Arrays13[6 * 13 + i];
-  } // rows = 12
+  }
 
 public:
 //private:
   ODEfun f;
   int neqn;
   int iflag;
-  int start,phase1,nornd,isnold,kold,k;
+  int start,phase1,nornd,isnold,kold,k,ns;
   Eigen::MatrixXd Phi; // dimension 
   Eigen::MatrixXd ArraysNeqn; // dimension 
   double *Arrays13;
-  double h;
+  double h,hold;
   double x;
   double /*t,*/told;
   double delsgn;

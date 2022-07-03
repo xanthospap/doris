@@ -14,8 +14,8 @@ int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout,
   const int ki = kold + 1;
   const int kip1 = ki + 1;
 
-  g[0] = 0e0;
-  rho[0] = 0e0;
+  g[0] = 1e0;
+  rho[0] = 1e0;
 
   // initialize w(*) for computing g(*)
   for (int i = 0; i < ki; i++)
@@ -28,8 +28,8 @@ int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout,
     const double psijm1 = psi(jm1);
     const double gamma = (hi + term) / psijm1;
     const double eta = hi / psijm1;
-    const int limit = kip1 - (j + 1);
-    for (int i = 0; i < limit; i++) {
+    const int limit = kip1 - j;
+    for (int i = 0; i < limit - 1; i++) {
       w[i] = gamma * w[i] - eta * w[i + 1];
     }
     g[j] = w[0];
@@ -41,11 +41,11 @@ int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout,
   ypout.setZero();
   yout.setZero();
   for (int j = 0; j < ki; j++) {
-    const int i = kip1 - (j + 1);
-    const double t2 = g[i - 1];
-    const double t3 = rho[i - 1];
-    yout += t2 * Phi.col(i - 1);
-    ypout += t3 * Phi.col(i - 1);
+    const int i = kip1 - j - 2;
+    const double t2 = g[i];
+    const double t3 = rho[i];
+    yout += t2 * Phi.col(i);
+    ypout += t3 * Phi.col(i);
   }
 
   yout = yy() + hi * yout;

@@ -93,7 +93,7 @@ int main() {
   y << 0e0, 1e0, 1e0;
   printf("- neqn=%3d relerr=%.2e abserr=%.2e iflag=%3d\n", neqn, relerr_ode,
          abserr_ode, Sg.flag());
-  for (int i = 1; i < 2; i++) {
+  for (int i = 1; i <= 13; i++) {
     double tout = 5e0 * i;
     Sg.de(t, tout, y, yy);
     printf(" %16.8e %16.8e %16.8e %16.8e %3d\n", t, yy(0), yy(1), yy(2),
