@@ -198,17 +198,17 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   Eigen::Matrix<double,3,1> acc;
   acc << xacc, yacc, zacc;
 
-  // Sum-up partial derivatives
+  // Sum-up partial derivatives, column-wise
   partials(0, 0) = daxdx_m0 + daxdx_m1 + daxdx_m2; // dax/dx
-  partials(0, 1) = daxdy_m0 + daxdy_m1 + daxdy_m2; // dax/dy
-  partials(0, 2) = daxdz_m0 + daxdz_m2;            // dax/dz
+  partials(1, 0) = daxdy_m0 + daxdy_m1 + daxdy_m2; // dax/dy
+  partials(2, 0) = daxdz_m0 + daxdz_m2;            // dax/dz
 
-  partials(1, 0) = partials(0, 1);      // day/dx
+  partials(0, 1) = partials(0, 1);      // day/dx
   partials(1, 1) = 1e0;                 // day/dy
-  partials(1, 2) = daydz_m0 + daydz_m2; // day/dz
+  partials(2, 1) = daydz_m0 + daydz_m2; // day/dz
 
-  partials(2, 0) = partials(0, 2);                 // daz/dx
-  partials(2, 1) = partials(1, 2);                 // daz/dy
+  partials(0, 2) = partials(0, 2);                 // daz/dx
+  partials(1, 2) = partials(1, 2);                 // daz/dy
   partials(2, 2) = dazdz_m0 + dazdz_m1 + dazdz_m2; // daz/dz
 
   // computation of day / dy from the fact that:

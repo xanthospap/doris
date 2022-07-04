@@ -7,6 +7,7 @@
 #include "sp3/sv_interpolate.hpp"
 #include <algorithm>
 #include <cmath>
+#include <geodesy/geoconst.hpp>
 
 int apply_iono_correction = 1;
 int new_arc_on_discontinuity = 1;
@@ -431,14 +432,14 @@ int main(int argc, char* argv[])
         }
 
         // compute mapping functions (need zenith distance first)
-        double north, east, up;
-        dso::core::car2top(xyz[0], xyz[1], xyz[2],
-                           dso::ellipsoid_traits<dso::ellipsoid::grs80>::a,
-                           dso::ellipsoid_traits<dso::ellipsoid::grs80>::f,
-                           bpos_xyz->x, bpos_xyz->y, bpos_xyz->z, north, east,
-                           up);
-        double distance, azimouth, zenith;
-        dso::top2daz(north, east, up, distance, azimouth, zenith);
+        // double north, east, up;
+        Eigen::Matrix<double, 3, 1> xyzv; xyzv << xyz[0], xyz[1], xyz[2];
+        Eigen::Matrix<double, 3, 1> bposc; bposc << bpos_xyz->x, bpos_xyz->y, bpos_xyz->z;
+        Eigen::Matrix<double, 3, 1> enu =
+          dso::car2top<dso::ellipsoid::grs80>(xyzv, bposc);
+        double azimouth, zenith, el;
+        dso::top2dae(enu, azimouth, el);
+        zenith = dso::DPI/2e0 - el;
 #ifdef dEBUG
         double elevation = std::atan2(up, std::sqrt(north * north + east * east));
         assert(zenith >= 0e0 && zenith <= M_PI / 2e0 && std::abs(dso::rad2deg(zenith - (M_PI / 2 - elevation) < 0.1e0)));

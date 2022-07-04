@@ -70,7 +70,7 @@ lib_src_files += glob.glob(r"src/atmosphere/*.cpp")
 lib_src_files += glob.glob(r"src/astrodynamics/*.cpp")
 lib_src_files += glob.glob(r"src/web/*.cpp")
 lib_src_files += glob.glob(r"src/iers/*.cpp")
-lib_src_files += glob.glob(r"src/ode/*.cpp")
+lib_src_files += glob.glob(r"src/integrators/*.cpp")
 
 ## Headers (for lib)
 hdr_src_files = glob.glob(r"src/*.hpp")

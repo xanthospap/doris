@@ -5,6 +5,7 @@
 #include "eigen3/Eigen/Eigen"
 #include <matvec/vector3d.hpp>
 #include <cassert>
+#include "integrators.hpp"
 
 constexpr const int Degree = 20;
 constexpr const int Order = 20;
@@ -41,25 +42,25 @@ int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
 }
 
 // Computes the variational equations
-void variational_equations(double t,
-                           // state and state transition matrix
-                           const double *yNphi,
-                           // state derivative and state transition matrix derivative
-                           double *yNphi_derivs,
-                           //
-                           void *pAux
-{
+void variational_equations(
+    [[maybe_unused]] double t,
+    // state and state transition matrix
+    const Eigen::VectorXd &yPhi,
+    // state derivative and state transition matrix derivative
+    Eigen::Ref<Eigen::VectorXd> yPhiP,
+    //
+    void *pAux) noexcept {
 
-  printf("--- Variational Equations ---\n");
-  assert(t==0);
-  
-  Eigen::Matrix<double, 3, 1> r; r << yNphi[0], yNphi[1], yNphi[2];
-  printf("Satellite position  : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
-  Eigen::Matrix<double, 3, 1> v; v << yNphi[3], yNphi[4], yNphi[5];
-  printf("Satellite velocity  : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
+  //printf("--- Variational Equations ---\n");
+  //assert(t == 0);
+
+  Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
+  //printf("Satellite position  : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
+  Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
+  //printf("Satellite velocity  : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
 
   // void pointer to AuxParameters
-  AuxParams *params = static_cast<AuxParams*>(pAux);
+  AuxParams *params = static_cast<AuxParams *>(pAux);
 
   // compute gravity-induced acceleration and gradient
   Eigen::Matrix<double, 3, 3> gpartials;
@@ -67,89 +68,43 @@ void variational_equations(double t,
       dso::grav_potential_accel(r, params->degree, params->order, *(params->V),
                                 *(params->W), *(params->hc), gpartials);
 
-  printf("Gravity Acceleration: %+15.6f %+15.6f %+15.6f\n", gacc(0), gacc(1), gacc(2));
-  printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0,0), gpartials(0,1), gpartials(0,2));
-  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1,0), gpartials(1,1), gpartials(1,2));
-  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(2,0), gpartials(2,1), gpartials(2,2));
-  
-  // state derivative (aka [v,a])
-  Eigen::Matrix<double, 6, 1> dy;
-  dy.block<3,1>(0,0) = v;
-  dy.block<3,1>(3,0) = gacc;
+  //printf("Gravity Acceleration: %+15.6f %+15.6f %+15.6f\n", gacc(0), gacc(1),
+  //       gacc(2));
+  //printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0, 0),
+  //       gpartials(0, 1), gpartials(0, 2));
+  //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1, 0),
+  //       gpartials(1, 1), gpartials(1, 2));
+  //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(2, 0),
+  //       gpartials(2, 1), gpartials(2, 2));
 
-  // derivative of state transition matrix
+  // State transition (skip first column which is the state vector)
+  Eigen::Matrix<double,6,6> Phi (yPhi.data()+6);
+
+  // derivative of state transition matrix, aka
+  // | v (3x3)   0 (3x3)     I (3x3)   |
+  // | a (3x1) da/dr (3x3) da/dv (3x3) |
+  // because dv/dr = 0 and
+  //         da/dr = I
   Eigen::Matrix<double,6,6> dfdy;
-  dfdy.block<3,3>(0,0) = Eigen::Matrix<double,3,3>::Zero();
-  dfdy.block<3,3>(0,3) = Eigen::Matrix<double,3,3>::Identity();
-  dfdy.block<3,3>(3,0) = gpartials;
-  dfdy.block<3,3>(3,3) = Eigen::Matrix<double,3,3>::Zero();
-  
-  dPhi = dfdy * Phi;
-  printf("Derivative of state transition matrix:\n");
-  for (int i=0;i<6;i++) {
-    for (int j=0;j<6;j++) {
-      printf("%+15.6f  ", dPhi(i,j));
-    }
-    printf("\n");
-  }
+  dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
+  dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
+  dfdy.block<3, 3>(3, 0) = gpartials;
+  dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
 
   // Derivative of combined state vector and state transition matrix
-}
+  // dPhi = dfdy * Phi;
+  Eigen::Matrix<double,6,7> yPhip;
+  yPhip.block<6,6>(0,1) = dfdy * Phi;
 
+  // state derivative (aka [v,a]), in one (first) column
+  yPhip.block<3,1>(0,0) = v;
+  yPhip.block<3,1>(3,0) = gacc;
 
-// Computes the variational equations
-void variational_equations(double t,
-                           // state
-                           const Eigen::Matrix<double, 6, 1> &y,
-                           // state transition matrix
-                           const Eigen::Matrix<double, 6, 6> &Phi,
-                           const AuxParams &params,
-                           // state derivative
-                           Eigen::Matrix<double, 6, 1> &dy,
-                           // state transition matrix derivative
-                           Eigen::Matrix<double, 6, 6> &dPhi) {
-  printf("--- Variational Equations ---\n");
-  assert(t==0);
+  // yPhiP = Eigen::VectorXd(yPhip.data());
+  yPhiP = Eigen::VectorXd(
+      Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
   
-  Eigen::Matrix<double, 3, 1> r = y.block<3,1>(0,0);
-  printf("Satellite position  : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
-  Eigen::Matrix<double, 3, 1> v = y.block<3,1>(3,0);
-  printf("Satellite velocity  : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
-
-  // compute gravity-induced acceleration and gradient
-  Eigen::Matrix<double, 3, 3> gpartials;
-  Eigen::Matrix<double, 3, 1> gacc =
-      dso::grav_potential_accel(r, params.degree, params.order, *(params.V),
-                                *(params.W), *(params.hc), gpartials);
-
-  // state derivative (aka [v,a])
-  dy.block<3,1>(0,0) = v;
-  dy.block<3,1>(3,0) = gacc;
-  
-  assert(r(0)==y(0) && r(1)==y(1) && r(2) == y(2));
-  printf("Gravity Acceleration: %+15.6f %+15.6f %+15.6f\n", gacc(0), gacc(1), gacc(2));
-  printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0,0), gpartials(0,1), gpartials(0,2));
-  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1,0), gpartials(1,1), gpartials(1,2));
-  printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(2,0), gpartials(2,1), gpartials(2,2));
-
-  // derivative of state transition matrix
-  Eigen::Matrix<double,6,6> dfdy;
-  dfdy.block<3,3>(0,0) = Eigen::Matrix<double,3,3>::Zero();
-  dfdy.block<3,3>(0,3) = Eigen::Matrix<double,3,3>::Identity();
-  dfdy.block<3,3>(3,0) = gpartials;
-  dfdy.block<3,3>(3,3) = Eigen::Matrix<double,3,3>::Zero();
-
-  dPhi = dfdy * Phi;
-  printf("Derivative of state transition matrix:\n");
-  for (int i=0;i<6;i++) {
-    for (int j=0;j<6;j++) {
-      printf("%+15.6f  ", dPhi(i,j));
-    }
-    printf("\n");
-  }
-
-  // Derivative of combined state vector and state transition matrix
-
+  return;
 }
 
 int main(int argc, char *argv[]) {
@@ -204,23 +159,44 @@ int main(int argc, char *argv[]) {
   for (int i=0;i<6;i++) printf("%+15.6f  ", y0(i));
   printf("\n");
 
-  Eigen::Matrix<double, 7, 6> yPhi1;
-  Eigen::Matrix<double, 6, 6> Phi = Eigen::Matrix<double, 6, 6>::Identity();
+  Eigen::Matrix<double, 6,7> yPhiM;
+  // first column is the state vector
+  yPhiM.block<6,1>(0,0) = y0;
+  yPhiM.block<6,6>(0,1) = Eigen::Matrix<double, 6, 6>::Identity();
   
-  yPhi1.block<1,6>(0,0) = y0; /* first row */
-  yPhi1.block<6,6>(1,0) = Phi;
-  for (int i=0; i<7; i++) {
-    printf("  [%2d-%2d] %+15.3f %+15.3f %+15.3f %+15.3f %+15.3f %+15.3f\n",
-    i*6, i*6+5, yPhi1(i,0), yPhi1(i,1), yPhi1(i,2), yPhi1(i,3), yPhi1(i,4), yPhi1(i,5));
-  }
+  // arrange matrix to one big vector
+  Eigen::Matrix<double, 6*7, 1> yPhi (yPhiM.data());
+  
+  // SetUp an integrator
+  const double relerr = 1.0e-13;                     // Relative and absolute
+  const double abserr = 1.0e-6;                      // accuracy requirement
+  const double t0 = 0e0;
+  const double t_end = 300.0; //86400.0;
+  const double step = 300.0;
 
-  // const auto yPhi2 = yPhi1;
-  Eigen::Matrix<double, 6, 6> dPhi;
-  Eigen::Matrix<double, 6, 1> dy;
-  printf("State: ");
-  for (int i=0;i<6;i++) printf("%+15.6f  ", y0(i));
-  printf("\n");
-  variational_equations(0e0,y0,Phi,params,dy,dPhi);
+  dso::SGOde Sg(variational_equations, /*neqn*/6*7, relerr, abserr, &params);
+
+  double t = t0;
+  Eigen::VectorXd sol(6*7);
+  while (t<t_end) {
+
+    // output time
+    double tout = t + step;
+
+    // integrate 
+    Sg.de(t, tout, yPhi, sol);
+
+    // print solution
+    Eigen::Matrix<double, 6, 7> Mat(sol.data());
+    printf("Solution at t=%10.5f\n", t);
+    for (int i=0; i<6; i++) {
+      for (int j=0; j<7; j++) {
+        printf("%20.10f ", Mat(i,j));
+      }
+      printf("\n");
+    }
+
+  }
 
   return 0;
 }
