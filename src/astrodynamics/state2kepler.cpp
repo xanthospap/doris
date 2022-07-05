@@ -55,6 +55,7 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
 Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
                                                 const dso::OrbitalElements &ele,
                                                 int &error) noexcept {
+  //printf(" -- Call to %s --\n", __func__);
   // mean anomaly M at time t
   const double a = ele.semimajor();
   const double M = ele.mean_anomaly() + std::sqrt(GM / (a * a * a)) * dt;
@@ -71,6 +72,8 @@ Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
   const double vmag = std::sqrt(GM * a) / rmag;
   Eigen::Matrix<double, 6, 1> Y;
   Y << a * (cE - e), a * f * sE, 0e0, -vmag * sE, vmag * f * cE, 0e0;
+  //printf("perifocal coordinates: r=[%+20.10f %+20.10f %20.10f]\n", Y(0),Y(1),Y(2));
+  //printf("                       v=[%+20.10f %+20.10f %20.10f]\n", Y(3),Y(4),Y(5));
 
   // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
   const double Omega = ele.Omega();
@@ -79,10 +82,16 @@ Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
   Eigen::Matrix3d R(Eigen::AngleAxisd(-Omega, Eigen::Vector3d::UnitZ()) *
                     Eigen::AngleAxisd(-i, Eigen::Vector3d::UnitX()) *
                     Eigen::AngleAxisd(-omega, Eigen::Vector3d::UnitZ()));
+  //printf("PQW = [%+20.10f %+20.10f %20.10f]\n", R(0,0),R(0,1),R(0,2));
+  //printf("      [%+20.10f %+20.10f %20.10f]\n", R(1,0),R(1,1),R(1,2));
+  //printf("      [%+20.10f %+20.10f %20.10f]\n", R(2,0),R(2,1),R(2,2));
+  //printf("xAngle %+10.5f yAngle %+10.5f zAngle %+10.5f\n", dso::rad2deg(Omega), dso::rad2deg(i), dso::rad2deg(omega));
 
   // rotate to get equatorial, aka geocentric/(quasi-)inertial
-  Y.block<3,1>(0,0) = R * Y.block<3,1>(0,0);
-  Y.block<3,1>(3,0) = R * Y.block<3,1>(3,0);
+  Y.block<3,1>(0,0) = R.transpose() * Y.block<3,1>(0,0);
+  Y.block<3,1>(3,0) = R.transpose() * Y.block<3,1>(3,0);
+  //printf("inertial coordinates: r=[%+20.10f %+20.10f %20.10f]\n", Y(0),Y(1),Y(2));
+  //printf("                      v=[%+20.10f %+20.10f %20.10f]\n", Y(3),Y(4),Y(5));
   return Y;
 }
 

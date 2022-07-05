@@ -51,13 +51,16 @@ void variational_equations(
     //
     void *pAux) noexcept {
 
-  //printf("--- Variational Equations ---\n");
+  static unsigned call_nr = 0;
+  // printf("--- Variational Equations --- (%u)\n", call_nr);
   //assert(t == 0);
 
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
-  //printf("Satellite position  : %+15.6f %+15.6f %+15.6f\n", r(0), r(1), r(2));
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
-  //printf("Satellite velocity  : %+15.6f %+15.6f %+15.6f\n", v(0), v(1), v(2));
+  printf("%u ", call_nr);
+  for (int i=0; i<3; i++) printf("%+20.10f ", r(i));
+  for (int i=0; i<3; i++) printf("%+20.10f ", v(i));
+  printf("\n");
 
   // void pointer to AuxParameters
   AuxParams *params = static_cast<AuxParams *>(pAux);
@@ -68,8 +71,8 @@ void variational_equations(
       dso::grav_potential_accel(r, params->degree, params->order, *(params->V),
                                 *(params->W), *(params->hc), gpartials);
 
-  //printf("Gravity Acceleration: %+15.6f %+15.6f %+15.6f\n", gacc(0), gacc(1),
-  //       gacc(2));
+  printf("%+15.10f %+15.10f %+15.10f\n", gacc(0), gacc(1),
+         gacc(2));
   //printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0, 0),
   //       gpartials(0, 1), gpartials(0, 2));
   //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1, 0),
@@ -79,6 +82,10 @@ void variational_equations(
 
   // State transition (skip first column which is the state vector)
   Eigen::Matrix<double,6,6> Phi (yPhi.data()+6);
+  for (int i=0; i<36; i++) {
+    printf("%20.15f ", Phi.data()[i]);
+  }
+  printf("\n");
 
   // derivative of state transition matrix, aka
   // | v (3x3)   0 (3x3)     I (3x3)   |
@@ -103,7 +110,8 @@ void variational_equations(
   // yPhiP = Eigen::VectorXd(yPhip.data());
   yPhiP = Eigen::VectorXd(
       Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
-  
+ 
+  ++call_nr; 
   return;
 }
 
@@ -155,8 +163,8 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR. Failed to transform elements to state vector\n");
     return 1;
   }
-  printf("State: ");
-  for (int i=0;i<6;i++) printf("%+15.6f  ", y0(i));
+  printf("State at t0 is: ");
+  for (int i=0;i<6;i++) printf("%+20.10f  ", y0(i));
   printf("\n");
 
   Eigen::Matrix<double, 6,7> yPhiM;
