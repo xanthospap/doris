@@ -9,6 +9,8 @@
 
 constexpr const int Degree = 20;
 constexpr const int Order = 20;
+constexpr const double GM = 398600.4415e+9;
+constexpr const double Re = 6378.137e3;
 
 struct AuxParams {
   dso::HarmonicCoeffs *hc;
@@ -57,22 +59,23 @@ void variational_equations(
 
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
-  printf("%u ", call_nr);
-  for (int i=0; i<3; i++) printf("%+20.10f ", r(i));
-  for (int i=0; i<3; i++) printf("%+20.10f ", v(i));
-  printf("\n");
+  //printf("%u ", call_nr);
+  //for (int i=0; i<3; i++) printf("%+20.10f ", r(i));
+  //for (int i=0; i<3; i++) printf("%+20.10f ", v(i));
+  //printf("\n");
 
   // void pointer to AuxParameters
   AuxParams *params = static_cast<AuxParams *>(pAux);
 
   // compute gravity-induced acceleration and gradient
   Eigen::Matrix<double, 3, 3> gpartials;
-  Eigen::Matrix<double, 3, 1> gacc =
-      dso::grav_potential_accel(r, params->degree, params->order, *(params->V),
-                                *(params->W), *(params->hc), gpartials);
+  // for consistency with Montenbrck, use
+  Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
+      r, params->degree, params->order, *(params->V),
+      *(params->W), *(params->hc), gpartials);
 
-  printf("%+15.10f %+15.10f %+15.10f\n", gacc(0), gacc(1),
-         gacc(2));
+  //printf("%+15.10f %+15.10f %+15.10f\n", gacc(0), gacc(1),
+  //       gacc(2));
   //printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0, 0),
   //       gpartials(0, 1), gpartials(0, 2));
   //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1, 0),
@@ -82,10 +85,10 @@ void variational_equations(
 
   // State transition (skip first column which is the state vector)
   Eigen::Matrix<double,6,6> Phi (yPhi.data()+6);
-  for (int i=0; i<36; i++) {
-    printf("%20.15f ", Phi.data()[i]);
-  }
-  printf("\n");
+  //for (int i=0; i<36; i++) {
+  //  printf("%20.15f ", Phi.data()[i]);
+  //}
+  //printf("\n");
 
   // derivative of state transition matrix, aka
   // | v (3x3)   0 (3x3)     I (3x3)   |
@@ -158,14 +161,14 @@ int main(int argc, char *argv[]) {
   ele.inclination() = dso::deg2rad(51e0);
 
   int error;
-  auto y0 = dso::elements2state(hc.GM(), 0e0, ele, error);
+  auto y0 = dso::elements2state(GM, 0e0, ele, error);
   if (error) {
     fprintf(stderr, "ERROR. Failed to transform elements to state vector\n");
     return 1;
   }
-  printf("State at t0 is: ");
-  for (int i=0;i<6;i++) printf("%+20.10f  ", y0(i));
-  printf("\n");
+  //printf("State at t0 is: ");
+  //for (int i=0;i<6;i++) printf("%+20.10f  ", y0(i));
+  //printf("\n");
 
   Eigen::Matrix<double, 6,7> yPhiM;
   // first column is the state vector
@@ -195,14 +198,9 @@ int main(int argc, char *argv[]) {
     Sg.de(t, tout, yPhi, sol);
 
     // print solution
-    Eigen::Matrix<double, 6, 7> Mat(sol.data());
-    printf("Solution at t=%10.5f\n", t);
-    for (int i=0; i<6; i++) {
-      for (int j=0; j<7; j++) {
-        printf("%20.10f ", Mat(i,j));
-      }
-      printf("\n");
-    }
+    printf("Solution at t=%.3f\n", t);
+    printf("%+15.6f %+15.6f %+15.6f %+15.6f %+15.6f %+15.6f\n",
+      sol(0),sol(1),sol(2),sol(3),sol(4),sol(5));
 
   }
 
