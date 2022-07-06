@@ -20,6 +20,7 @@ public:
   }
 
   int flag() const noexcept {return iflag;}
+  int &flag() noexcept {return iflag;}
 
   int de(double &t, double tout, const Eigen::VectorXd &y0,
          Eigen::VectorXd &yout) noexcept;

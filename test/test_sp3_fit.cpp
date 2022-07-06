@@ -6,6 +6,7 @@
 #include "geodesy/units.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "integrators.hpp"
+#include "datetime/datetime_write.hpp"
 
 using dso::sp3::SatelliteId;
 constexpr const int Degree = 20;
@@ -164,6 +165,7 @@ int main(int argc, char *argv[]) {
   // let's try reading the records; note that -1 denotes EOF
   int error = 0;
   std::size_t rec_count = 0;
+  char buf[64];
   do {
     
     // read nex record ...
@@ -190,14 +192,22 @@ int main(int argc, char *argv[]) {
         yPhi(index) = 1e0;
       }
 
-      // integrate
-      double t = t0.delta_sec(block.t).to_fractional_seconds();
+      // t = current_time - t0 [seconds]
+      double t = block.t.delta_sec(t0).to_fractional_seconds();
+      // tout = t + step [seconds]
       double tout = t + step.to_fractional_seconds();
+      
+      // integrate
+      Integrator.flag() = 1;
       Integrator.de(t, tout, yPhi, sol);
 
-      epoch = block.t; epoch.add_seconds(step);
-      printf("\n%15.6f %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f\n", 
-        epoch.as_mjd(), sol(0), sol(1), sol(2), sol(3), sol(4), sol(5));
+      // output epoch as datetime
+      epoch = block.t;
+      epoch.add_seconds( dso::milliseconds(static_cast<long>(tout*1e3)) );
+      dso::strftime_ymd_hmfs(epoch, buf);
+
+      printf("\n%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f\n", 
+        buf, sol(0), sol(1), sol(2), sol(3), sol(4), sol(5));
         
     }
     ++rec_count;
