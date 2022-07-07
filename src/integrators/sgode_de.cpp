@@ -5,7 +5,7 @@
 #endif
 
 constexpr const double umach = std::numeric_limits<double>::epsilon();
-constexpr const double twou = 2e0 * umach;
+// constexpr const double twou = 2e0 * umach;
 constexpr const double fouru = 4e0 * umach;
 
 int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,

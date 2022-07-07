@@ -134,6 +134,8 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       /* (n-m+4)! / (n-m)! for n=2,... */
       fac4 = dso::factorialRatio<double>(i - 2 + 4, i - 2);
       //(double)FTable.factorial(i - 2 + 4) / (double)FTable.factorial(i - 2);
+    } else {
+      fac2 = fac3 = fac4 = 0e0;
     }
 
     for (int j = 1; j <= std::min(i, order); j++) {

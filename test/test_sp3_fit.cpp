@@ -11,6 +11,7 @@
 using dso::sp3::SatelliteId;
 constexpr const int Degree = 20;
 constexpr const int Order = 20;
+const int Integrate = true;
 
 // to transfer parameters for Variational Equations
 struct AuxParams {
@@ -132,9 +133,9 @@ int main(int argc, char *argv[]) {
 
   // Handle the Sp3 file, prepare for parsing ...
   dso::Sp3c sp3(argv[1]);
-  #ifdef DEBUG
-  sp3.print_members();
-  #endif
+  //#ifdef DEBUG
+  //sp3.print_members();
+  //#endif
 
   SatelliteId sv;
   dso::Sp3DataBlock block;
@@ -150,17 +151,17 @@ int main(int argc, char *argv[]) {
   // Create Auxiliary parameters
   AuxParams params{&hc, &V, &W, degree, order};
   // SetUp an integrator
-  const double relerr = 1.0e-13; // Relative and absolute
-  const double abserr = 1.0e-6;  // accuracy requirement
-  dso::SGOde Integrator(VariationalEquations, /*neqn*/ 6 * 7, relerr, abserr,
+  const double relerr = 1.0e-9; // Relative and absolute
+  const double abserr = 1.0e-16;  // accuracy requirement
+  dso::SGOde Integrator(VariationalEquations, 6 * 7, relerr, abserr,
                         &params);
   Eigen::Matrix<double,6*7,1> yPhi; 
   Eigen::VectorXd sol(6*7);
   Eigen::VectorXd r0(6);
   // Time
   const auto t0 = sp3.start_epoch();
-  auto epoch = t0;
-  const auto step = sp3.interval();
+  auto epoch = t0; // current
+  const auto step = sp3.interval(); // dso::nanoseconds(1'000'000'000L * 5*60);
 
   // let's try reading the records; note that -1 denotes EOF
   int error = 0;
@@ -176,19 +177,19 @@ int main(int argc, char *argv[]) {
   
     // check the heath status
     bool position_ok = !block.flag.is_set(dso::Sp3Event::bad_abscent_position);
-    
+
     if (position_ok) {
-      yPhi = Eigen::Matrix<double,6*7,1>::Zero();
+      yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
 
       // accumulate state (m, m/sec)
-      r0 << block.state[0]*1e3, block.state[1]*1e3, block.state[2]*1e3,
-        block.state[4]*1e-2, block.state[5]*1e-2, block.state[6]*1e-2;
-      yPhi.block<6,1>(0,0) = r0;
-      
+      r0 << block.state[0] * 1e3, block.state[1] * 1e3, block.state[2] * 1e3,
+          block.state[4] * 1e-2, block.state[5] * 1e-2, block.state[6] * 1e-2;
+      yPhi.block<6, 1>(0, 0) = r0;
+
       // set the Phi part (aka, the state transition matrix) to I(6x6)
       int offset = 0;
-      for (int col=1; col<7; col++) {
-        int index = 6*col + offset++;
+      for (int col = 1; col < 7; col++) {
+        int index = 6 * col + offset++;
         yPhi(index) = 1e0;
       }
 
@@ -196,21 +197,33 @@ int main(int argc, char *argv[]) {
       double t = block.t.delta_sec(t0).to_fractional_seconds();
       // tout = t + step [seconds]
       double tout = t + step.to_fractional_seconds();
-      
-      // integrate
-      Integrator.flag() = 1;
-      Integrator.de(t, tout, yPhi, sol);
 
-      // output epoch as datetime
-      epoch = block.t;
-      epoch.add_seconds( dso::milliseconds(static_cast<long>(tout*1e3)) );
-      dso::strftime_ymd_hmfs(epoch, buf);
+      if (Integrate) {
+        // integrate
+        Integrator.flag() = 1;
+        Integrator.de(t, tout, yPhi, sol);
 
-      printf("\n%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f\n", 
-        buf, sol(0), sol(1), sol(2), sol(3), sol(4), sol(5));
-        
+        // output epoch as datetime
+        epoch = block.t;
+        epoch.add_seconds(dso::milliseconds(static_cast<long>(tout * 1e3)));
+        dso::strftime_ymd_hmfs(epoch, buf);
+
+        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %15.5f\n",
+               buf, sol(0), sol(1), sol(2), sol(3), sol(4), sol(5),
+               epoch.as_mjd());
+      } else {
+
+        epoch = block.t;
+        dso::strftime_ymd_hmfs(epoch, buf);
+        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %15.5f\n",
+               buf, r0(0), r0(1), r0(2), r0(3), r0(4), r0(5),
+               epoch.as_mjd());
+
+      }
     }
     ++rec_count;
+
+    if ( epoch.delta_sec(t0).to_fractional_seconds() > 60*60*12e0 ) break;
   
   } while (!error);
 

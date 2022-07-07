@@ -10,7 +10,7 @@
 constexpr const int Degree = 20;
 constexpr const int Order = 20;
 constexpr const double GM = 398600.4415e+9;
-constexpr const double Re = 6378.137e3;
+// constexpr const double Re = 6378.137e3;
 
 struct AuxParams {
   dso::HarmonicCoeffs *hc;
