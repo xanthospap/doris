@@ -11,11 +11,12 @@
 #include "sp3/sp3.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
+#include "planetpos.hpp"
 
 using dso::sp3::SatelliteId;
-constexpr const int Degree = 20;
-constexpr const int Order = 20;
-const int Integrate = false;
+constexpr const int Degree = 40;
+constexpr const int Order = 40;
+const int Integrate = true;
 
 // approximate number of data points in a bulletin B file (disregarding
 // preliminery values)
@@ -93,9 +94,10 @@ int getC04(const Datetime &t, char *bulletin_fn) {
 
 // to transfer parameters for Variational Equations
 struct AuxParams {
+  double mjd_tai;
+  double xp,yp,dut1;
   dso::HarmonicCoeffs *hc;
   dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
-  const Eigen::Matrix<double, 3, 3> *cel2ter;
   int degree, order;
 };
 
@@ -153,8 +155,63 @@ Eigen::Matrix<double, 3, 3> ter2cel(const dso::datetime<dso::nanoseconds> &tai,
   return t2c;
 }
 
+Eigen::Matrix<double, 3, 3> ter2cel(double mjd_tai,
+                                    double xp, double yp,
+                                    double dut1) noexcept {
+
+  mjd_tai -= dso::mjd0_jd;
+  const double mjd_tt = mjd_tai + 32.184e0;
+  const int leap_sec = dso::dat(dso::modified_julian_day(static_cast<int>(mjd_tt)));
+  const double mjd_utc = mjd_tai - static_cast<double>(leap_sec);
+  const double mjd_ut1 = mjd_utc + dut1 * 1e-3;
+
+  auto mat =
+      iers2010::sofa::c2t06a(dso::mjd0_jd, mjd_tt, dso::mjd0_jd, mjd_ut1,
+                             iers2010::DMAS2R * xp, iers2010::DMAS2R * yp);
+  
+  Eigen::Matrix<double, 3, 3> t2c;
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      t2c(j, i) = mat(i, j);
+  
+  return t2c;
+}
+
+void SunMoon(const Datetime &tt, Eigen::Matrix<double, 3, 1> &sun,
+             Eigen::Matrix<double, 3, 1> &moon) {
+  double vec[3];
+  dso::sun_vector_cspice(tt, vec);
+  sun(0, 0) = vec[0];
+  sun(1, 0) = vec[1];
+  sun(2, 0) = vec[2];
+
+  dso::moon_vector_cspice(tt, vec);
+  moon(0, 0) = vec[0];
+  moon(1, 0) = vec[1];
+  moon(2, 0) = vec[2];
+
+  return;
+}
+void SunMoon(double mjd_tt, Eigen::Matrix<double, 3, 1> &sun,
+             Eigen::Matrix<double, 3, 1> &moon) {
+  const double jd = mjd_tt + dso::mjd0_jd; // date as jd (TT)
+  double vec[3];
+  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, vec);
+  sun(0, 0) = vec[0];
+  sun(1, 0) = vec[1];
+  sun(2, 0) = vec[2];
+
+  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, vec);
+  moon(0, 0) = vec[0];
+  moon(1, 0) = vec[1];
+  moon(2, 0) = vec[2];
+
+  return;
+}
+
 void VariationalEquations(
-    [[maybe_unused]] double t,
+    double tsec,
     // state and state transition matrix
     const Eigen::VectorXd &yPhi,
     // state derivative and state transition matrix derivative
@@ -166,16 +223,30 @@ void VariationalEquations(
   // void pointer to AuxParameters
   AuxParams *params = static_cast<AuxParams *>(pAux);
 
-  // split position and velocity vectors
+  // current mjd
+  const double cmjd = params->mjd_tai + tsec / dso::sec_per_day;
+  Eigen::Matrix<double, 3, 3> t2c(ter2cel(cmjd, params->xp, params->yp, params->dut1));
+  Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
+
+  // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
 
   // compute gravity-induced acceleration and gradient
-  Eigen::Matrix<double, 3, 1> r_geo = *(params->cel2ter) * r;
+  Eigen::Matrix<double, 3, 1> r_geo = c2t * r;
   Eigen::Matrix<double, 3, 3> gpartials;
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params->degree, params->order, *(params->V), *(params->W),
       *(params->hc), gpartials);
+
+  // compute sun/moon induced acceleration
+  Eigen::Matrix<double, 3, 3> dummy;
+  Eigen::Matrix<double, 3, 1> rsun,rmoon;
+  SunMoon(cmjd, rsun, rmoon);
+  Eigen::Matrix<double, 3, 1> sacc = dso::point_mass_accel(params->hc->GM(), 
+  r, rsun, dummy);
+  Eigen::Matrix<double, 3, 1> macc = dso::point_mass_accel(params->hc->GM(), 
+  r, rmoon, dummy);
 
   // State transition (skip first column which is the state vector)
   Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
@@ -198,7 +269,9 @@ void VariationalEquations(
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc;
+  sacc = Eigen::Matrix<double, 3, 1>::Zero();
+  macc = Eigen::Matrix<double, 3, 1>::Zero();
+  yPhip.block<3, 1>(3, 0) = gacc + sacc + macc;;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
@@ -211,10 +284,10 @@ void VariationalEquations(
 int main(int argc, char *argv[]) {
 
   // handle gravity field
-  if (argc < 3 || argc > 5) {
+  if (argc != 7) {
     fprintf(stderr,
-            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE - optional] "
-            "[ORDER - optional]\n",
+            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] "
+            "[LSK]\n",
             argv[0]);
     return 1;
   }
@@ -224,8 +297,14 @@ int main(int argc, char *argv[]) {
   int order = Order;
   if (argc >= 4)
     degree = std::atoi(argv[3]);
-  if (argc == 5)
+  if (argc >= 5)
     order = std::atoi(argv[4]);
+
+  // to compute the planet's position via cspice, we need to load:
+  // 1. the planetary ephemeris (SPK) kernel
+  // 2. the leap-second (aka LSK) kernel
+  dso::cspice::load_if_unloaded_spk(argv[5]);
+  dso::cspice::load_if_unloaded_lsk(argv[6]);
 
   // Harmonic coefficients
   printf("* setting up harmonic coefficients ...\n");
@@ -277,7 +356,7 @@ int main(int argc, char *argv[]) {
   printf("\txp=%.15f yp=%.15f dut1=%.15f [mas], [msec]\n", xp, yp, dut1);
 
   // Create Auxiliary parameters
-  AuxParams params{&hc, &V, &W, nullptr, degree, order};
+  AuxParams params{0e0, 0e0, 0e0, 0e0, &hc, &V, &W, degree, order};
   // SetUp an integrator
   printf("* setting up integrator ...\n");
   const double relerr = 1.0e-9;  // Relative and absolute
@@ -312,8 +391,7 @@ int main(int argc, char *argv[]) {
 
       // transform geocentric state to inertial
       Eigen::Matrix<double, 3, 3> t2c(ter2cel(block.t, xp, yp, dut1));
-      Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
-      params.cel2ter = &c2t;
+      //Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
 
       // Vector containing state + variational equations
       yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
@@ -337,9 +415,12 @@ int main(int argc, char *argv[]) {
       }
 
       // t = current_time - t0 [seconds]
-      double t = block.t.delta_sec(t0).to_fractional_seconds();
+      // double t = block.t.delta_sec(t0).to_fractional_seconds();
       // tout = t + step [seconds]
-      double tout = t + step.to_fractional_seconds();
+      // double tout = t + step.to_fractional_seconds();
+      params.mjd_tai = block.t.as_mjd();
+      double tout = step.to_fractional_seconds();
+      double t = 0e0;
 
       if (Integrate) {
         // integrate
@@ -368,7 +449,7 @@ int main(int argc, char *argv[]) {
     if (epoch.delta_sec(t0).to_fractional_seconds() > 60 * 60 * 12e0)
       break;
 
-  } while (!error);
+  } while (!error && rec_count < 155);
 
   printf("Num of records read: %6lu\n", rec_count);
 
