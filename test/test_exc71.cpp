@@ -6,6 +6,7 @@
 #include <matvec/vector3d.hpp>
 #include <cassert>
 #include "integrators.hpp"
+#include "datetime/dtfund.hpp"
 
 constexpr const int Degree = 20;
 constexpr const int Order = 20;
@@ -13,6 +14,7 @@ constexpr const double GM = 398600.4415e+9;
 // constexpr const double Re = 6378.137e3;
 
 struct AuxParams {
+  double mjd;
   dso::HarmonicCoeffs *hc;
   dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
   int degree,order;
@@ -54,18 +56,16 @@ void variational_equations(
     void *pAux) noexcept {
 
   static unsigned call_nr = 0;
-  // printf("--- Variational Equations --- (%u)\n", call_nr);
-  //assert(t == 0);
+  
+  // void pointer to AuxParameters
+  AuxParams *params = static_cast<AuxParams *>(pAux);
+
+  // current mjd
+  const double cmjd = params->mjd + t / dso::sec_per_day;
+  printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.9f\n", t, cmjd);
 
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
-  //printf("%u ", call_nr);
-  //for (int i=0; i<3; i++) printf("%+20.10f ", r(i));
-  //for (int i=0; i<3; i++) printf("%+20.10f ", v(i));
-  //printf("\n");
-
-  // void pointer to AuxParameters
-  AuxParams *params = static_cast<AuxParams *>(pAux);
 
   // compute gravity-induced acceleration and gradient
   Eigen::Matrix<double, 3, 3> gpartials;
@@ -74,21 +74,8 @@ void variational_equations(
       r, params->degree, params->order, *(params->V),
       *(params->W), *(params->hc), gpartials);
 
-  //printf("%+15.10f %+15.10f %+15.10f\n", gacc(0), gacc(1),
-  //       gacc(2));
-  //printf("Gravity Gradient    : %+15.6f %+15.6f %+15.6f\n", gpartials(0, 0),
-  //       gpartials(0, 1), gpartials(0, 2));
-  //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(1, 0),
-  //       gpartials(1, 1), gpartials(1, 2));
-  //printf("                    : %+15.6f %+15.6f %+15.6f\n", gpartials(2, 0),
-  //       gpartials(2, 1), gpartials(2, 2));
-
   // State transition (skip first column which is the state vector)
   Eigen::Matrix<double,6,6> Phi (yPhi.data()+6);
-  //for (int i=0; i<36; i++) {
-  //  printf("%20.15f ", Phi.data()[i]);
-  //}
-  //printf("\n");
 
   // derivative of state transition matrix, aka
   // | v (3x3)   0 (3x3)     I (3x3)   |
@@ -166,9 +153,6 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR. Failed to transform elements to state vector\n");
     return 1;
   }
-  //printf("State at t0 is: ");
-  //for (int i=0;i<6;i++) printf("%+20.10f  ", y0(i));
-  //printf("\n");
 
   Eigen::Matrix<double, 6,7> yPhiM;
   // first column is the state vector
@@ -182,11 +166,12 @@ int main(int argc, char *argv[]) {
   const double relerr = 1.0e-13;                     // Relative and absolute
   const double abserr = 1.0e-6;                      // accuracy requirement
   const double t0 = 0e0;
-  const double t_end = 300.0; //86400.0;
-  const double step = 300.0;
+  const double t_end = 86400e0;
+  const double step = 300e0;
 
-  dso::SGOde Sg(variational_equations, /*neqn*/6*7, relerr, abserr, &params);
+  dso::SGOde Sg(variational_equations, 6*7, relerr, abserr, &params);
 
+  params.mjd = 51544.5e0;
   double t = t0;
   Eigen::VectorXd sol(6*7);
   while (t<t_end) {
@@ -195,13 +180,13 @@ int main(int argc, char *argv[]) {
     double tout = t + step;
 
     // integrate 
+    printf("* Integrating from %.6f to %.6f\n", t, tout);
     Sg.de(t, tout, yPhi, sol);
 
     // print solution
-    printf("Solution at t=%.3f\n", t);
-    printf("%+15.6f %+15.6f %+15.6f %+15.6f %+15.6f %+15.6f\n",
-      sol(0),sol(1),sol(2),sol(3),sol(4),sol(5));
-
+    printf("%15.6f %+15.6f %+15.6f %+15.6f %+15.6f %+15.6f %+15.6f\n",
+      t, sol(0),sol(1),sol(2),sol(3),sol(4),sol(5));
+    t = tout;
   }
 
   return 0;

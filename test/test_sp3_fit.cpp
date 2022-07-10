@@ -8,30 +8,85 @@
 #include "iers2010/iers2010.hpp"
 #include "iers_bulletin.hpp"
 #include "integrators.hpp"
+#include "planetpos.hpp"
 #include "sp3/sp3.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
-#include "planetpos.hpp"
 
 using dso::sp3::SatelliteId;
-constexpr const int Degree = 40;
-constexpr const int Order = 40;
+
 const int Integrate = true;
+const int include_third_body = true;
+// const int useVariationalEquations = false;
 
 // approximate number of data points in a bulletin B file (disregarding
 // preliminery values)
 constexpr const int BBSZ = 40;
 
+static unsigned call_nr = 0;
+
+// usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
+// to transfer parameters for Variational Equations
+struct AuxParams {
+  double mjd_tai;
+  double xp, yp, dut1;
+  dso::HarmonicCoeffs *hc;
+  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
+  int degree, order;
+};
+
+struct EopInfo {
+  // actual size of arrays
+  int sz;
+  // arrays of EOP values extracted from C04
+  double mjd[BBSZ], xpa[BBSZ], ypa[BBSZ], ut1a[BBSZ];
+};
+
+int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
+              int download = 1) noexcept {
+  if (download) {
+    // get the corresponding bulletin b file from IERS (download)
+    int error = dso::download_iers_bulletinb_for(t.mjd().as_underlying_type(),
+                                                 bulletinb_fn);
+    if (error) {
+      fprintf(stderr, "Failed to download Bulletin B file for date: %ld\n",
+              t.mjd().as_underlying_type());
+      return 1;
+    }
+  }
+
+  // parse the Bulletin B file (diregard preliminary values, only use final)
+  dso::IersBulletinB_Section1Block bbblocks[35];
+  dso::IersBulletinB bulb(bulletinb_fn);
+  int bbblocks_size = bulb.parse_section1(bbblocks, false);
+  if (bbblocks_size <= 0) {
+    fprintf(stderr, "Failed parsing Bulletin B file %s\n", bulletinb_fn);
+    return 2;
+  }
+
+  for (int i = 0; i < bbblocks_size; i++)
+    eopLUT->mjd[i] = static_cast<double>(bbblocks[i].mjd);
+  for (int i = 0; i < bbblocks_size; i++)
+    eopLUT->xpa[i] = bbblocks[i].x;
+  for (int i = 0; i < bbblocks_size; i++)
+    eopLUT->ypa[i] = bbblocks[i].y;
+  for (int i = 0; i < bbblocks_size; i++)
+    eopLUT->ut1a[i] = bbblocks[i].dut1;
+
+  eopLUT->sz = bbblocks_size;
+
+  return 0;
+}
+
 // xp, yp in milliarcsecond [mas] dut1 in millisecond [ms]
-int getEop(const Datetime &t, double &xp, double &yp, double &dut1,
-           const double *mjd, const double *xpa, const double *ypa,
-           const double *ut1a, int bbblocks_size) {
+int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
+           double &dut1) noexcept {
   // apply corrections; first use INTERP to interpolate x,y,ut1 values for
   // the given date (in [mas], [msec])
-  if (iers2010::interp_pole(mjd, xpa, ypa, ut1a, bbblocks_size, t.as_mjd(), xp,
-                            yp, dut1)) {
+  if (iers2010::interp_pole(eops->mjd, eops->xpa, eops->ypa, eops->ut1a,
+                            eops->sz, t.as_mjd(), xp, yp, dut1)) {
     fprintf(stderr, "ERROR. Failed call to interp_pole\n");
     return 1;
   }
@@ -56,52 +111,7 @@ int getEop(const Datetime &t, double &xp, double &yp, double &dut1,
   return 0;
 }
 
-int initEopLookup(const char *bulletin_fn, double *mjd, double *xpa,
-                  double *ypa, double *ut1a) {
-  // parse the Bulletin B file (diregard preliminary values, only use final)
-  dso::IersBulletinB_Section1Block bbblocks[35];
-  dso::IersBulletinB bulb(bulletin_fn);
-  int bbblocks_size = bulb.parse_section1(bbblocks, false);
-  if (bbblocks_size <= 0) {
-    fprintf(stderr, "Failed parsing Bulletin B file %s\n", bulletin_fn);
-    return 2;
-  }
-
-  for (int i = 0; i < bbblocks_size; i++)
-    mjd[i] = static_cast<double>(bbblocks[i].mjd);
-  for (int i = 0; i < bbblocks_size; i++)
-    xpa[i] = bbblocks[i].x;
-  for (int i = 0; i < bbblocks_size; i++)
-    ypa[i] = bbblocks[i].y;
-  for (int i = 0; i < bbblocks_size; i++)
-    ut1a[i] = bbblocks[i].dut1;
-
-  return bbblocks_size;
-}
-
-int getC04(const Datetime &t, char *bulletin_fn) {
-  // get the corresponding bulletin b file from IERS (download)
-  int error = dso::download_iers_bulletinb_for(t.mjd().as_underlying_type(),
-                                               bulletin_fn);
-  if (error) {
-    fprintf(stderr, "Failed to download Bulletin B file for date: %ld\n",
-            t.mjd().as_underlying_type());
-    return 1;
-  }
-
-  return 0;
-}
-
-// to transfer parameters for Variational Equations
-struct AuxParams {
-  double mjd_tai;
-  double xp,yp,dut1;
-  dso::HarmonicCoeffs *hc;
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
-  int degree, order;
-};
-
-// handle gravity filed
+// handle gravity field
 int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
   dso::Icgem gfc(gfn);
 
@@ -125,87 +135,42 @@ int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
   return 0;
 }
 
-Eigen::Matrix<double, 3, 3> ter2cel(const dso::datetime<dso::nanoseconds> &tai,
-                                    double xp, double yp,
-                                    double dut1) noexcept {
-  auto tt = tai;
-  tt.add_seconds(dso::nanoseconds(32'184'000'000));
-  const double mjd_tt = tt.as_mjd();
-
-  dso::nanoseconds leap_seconds(dso::dat(mjd_tt) * 1'000'000'000L);
-  auto utc = tai;
-  utc.remove_seconds(leap_seconds);
-
-  auto ut1 = utc;
-  dso::nanoseconds dut1_ns(
-      static_cast<long>(dut1 * 1e6)); // milliseconds to nanoseconds
-  ut1.add_seconds(dut1_ns);
-  double mjd_ut1 = ut1.as_mjd();
-
-  auto mat =
-      iers2010::sofa::c2t06a(dso::mjd0_jd, mjd_tt, dso::mjd0_jd, mjd_ut1,
-                             iers2010::DMAS2R * xp, iers2010::DMAS2R * yp);
-  // return Eigen::Matrix<double, 3, 3>(mat.data);
-  Eigen::Matrix<double, 3, 3> t2c;
-
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      t2c(j, i) = mat(i, j);
-  
-  return t2c;
-}
-
-Eigen::Matrix<double, 3, 3> ter2cel(double mjd_tai,
-                                    double xp, double yp,
+Eigen::Matrix<double, 3, 3> ter2cel(double mjd_tai, double xp, double yp,
                                     double dut1) noexcept {
 
   mjd_tai -= dso::mjd0_jd;
   const double mjd_tt = mjd_tai + 32.184e0;
-  const int leap_sec = dso::dat(dso::modified_julian_day(static_cast<int>(mjd_tt)));
+  const int leap_sec =
+      dso::dat(dso::modified_julian_day(static_cast<int>(mjd_tt)));
   const double mjd_utc = mjd_tai - static_cast<double>(leap_sec);
   const double mjd_ut1 = mjd_utc + dut1 * 1e-3;
 
   auto mat =
       iers2010::sofa::c2t06a(dso::mjd0_jd, mjd_tt, dso::mjd0_jd, mjd_ut1,
                              iers2010::DMAS2R * xp, iers2010::DMAS2R * yp);
-  
+
   Eigen::Matrix<double, 3, 3> t2c;
 
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       t2c(j, i) = mat(i, j);
-  
+
   return t2c;
 }
 
-void SunMoon(const Datetime &tt, Eigen::Matrix<double, 3, 1> &sun,
-             Eigen::Matrix<double, 3, 1> &moon) {
-  double vec[3];
-  dso::sun_vector_cspice(tt, vec);
-  sun(0, 0) = vec[0];
-  sun(1, 0) = vec[1];
-  sun(2, 0) = vec[2];
-
-  dso::moon_vector_cspice(tt, vec);
-  moon(0, 0) = vec[0];
-  moon(1, 0) = vec[1];
-  moon(2, 0) = vec[2];
-
-  return;
-}
 void SunMoon(double mjd_tt, Eigen::Matrix<double, 3, 1> &sun,
              Eigen::Matrix<double, 3, 1> &moon) {
   const double jd = mjd_tt + dso::mjd0_jd; // date as jd (TT)
   double vec[3];
   dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, vec);
-  sun(0, 0) = vec[0];
-  sun(1, 0) = vec[1];
-  sun(2, 0) = vec[2];
+  sun(0, 0) = vec[0] * 1e3;
+  sun(1, 0) = vec[1] * 1e3;
+  sun(2, 0) = vec[2] * 1e3;
 
   dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, vec);
-  moon(0, 0) = vec[0];
-  moon(1, 0) = vec[1];
-  moon(2, 0) = vec[2];
+  moon(0, 0) = vec[0] * 1e3;
+  moon(1, 0) = vec[1] * 1e3;
+  moon(2, 0) = vec[2] * 1e3;
 
   return;
 }
@@ -218,14 +183,17 @@ void VariationalEquations(
     Eigen::Ref<Eigen::VectorXd> yPhiP,
     //
     void *pAux) noexcept {
-  static unsigned call_nr = 0;
 
   // void pointer to AuxParameters
   AuxParams *params = static_cast<AuxParams *>(pAux);
 
   // current mjd
   const double cmjd = params->mjd_tai + tsec / dso::sec_per_day;
-  Eigen::Matrix<double, 3, 3> t2c(ter2cel(cmjd, params->xp, params->yp, params->dut1));
+  // printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.6f call # %u\n", tsec, cmjd, call_nr);
+  
+  // terretrial to celestial for epoch
+  Eigen::Matrix<double, 3, 3> t2c(
+      ter2cel(cmjd, params->xp, params->yp, params->dut1));
   Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
 
   // split position and velocity vectors (inertial)
@@ -240,13 +208,20 @@ void VariationalEquations(
       *(params->hc), gpartials);
 
   // compute sun/moon induced acceleration
-  Eigen::Matrix<double, 3, 3> dummy;
-  Eigen::Matrix<double, 3, 1> rsun,rmoon;
-  SunMoon(cmjd, rsun, rmoon);
-  Eigen::Matrix<double, 3, 1> sacc = dso::point_mass_accel(params->hc->GM(), 
-  r, rsun, dummy);
-  Eigen::Matrix<double, 3, 1> macc = dso::point_mass_accel(params->hc->GM(), 
-  r, rmoon, dummy);
+  Eigen::Matrix<double, 3, 3> tb_partials = Eigen::Matrix<double, 3, 3>::Zero();
+  Eigen::Matrix<double, 3, 1> sacc = Eigen::Matrix<double, 3, 1>::Zero();
+  Eigen::Matrix<double, 3, 1> macc = Eigen::Matrix<double, 3, 1>::Zero();
+  if (include_third_body) {
+    Eigen::Matrix<double, 3, 3> partials;
+    Eigen::Matrix<double, 3, 1> rsun, rmoon;
+    SunMoon(cmjd, rsun, rmoon);
+    sacc =
+        dso::point_mass_accel(params->hc->GM(), r, rsun, partials);
+    tb_partials = partials;
+    macc =
+        dso::point_mass_accel(params->hc->GM(), r, rmoon, partials);
+    tb_partials += partials;
+  }
 
   // State transition (skip first column which is the state vector)
   Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
@@ -259,7 +234,7 @@ void VariationalEquations(
   Eigen::Matrix<double, 6, 6> dfdy;
   dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
   dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  dfdy.block<3, 3>(3, 0) = gpartials;
+  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials;
   dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
 
   // Derivative of combined state vector and state transition matrix
@@ -269,9 +244,7 @@ void VariationalEquations(
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  sacc = Eigen::Matrix<double, 3, 1>::Zero();
-  macc = Eigen::Matrix<double, 3, 1>::Zero();
-  yPhip.block<3, 1>(3, 0) = gacc + sacc + macc;;
+  yPhip.block<3, 1>(3, 0) = gacc + sacc + macc;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
@@ -293,12 +266,8 @@ int main(int argc, char *argv[]) {
   }
 
   // parse degree and order of gravity field
-  int degree = Degree;
-  int order = Order;
-  if (argc >= 4)
-    degree = std::atoi(argv[3]);
-  if (argc >= 5)
-    order = std::atoi(argv[4]);
+  int degree = std::atoi(argv[3]); 
+  int order = std::atoi(argv[4]);
 
   // to compute the planet's position via cspice, we need to load:
   // 1. the planetary ephemeris (SPK) kernel
@@ -323,9 +292,6 @@ int main(int argc, char *argv[]) {
   // Handle the Sp3 file, prepare for parsing ...
   printf("* handling input sp3 file ...\n");
   dso::Sp3c sp3(argv[1]);
-  //#ifdef DEBUG
-  // sp3.print_members();
-  //#endif
 
   SatelliteId sv;
   dso::Sp3DataBlock block;
@@ -338,19 +304,19 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Handle EOPs
   printf("* downloading and parsing Bulletin B file ...\n");
   const auto t0 = sp3.start_epoch();
-  char bulletin_fn[256];
-  if (getC04(t0, bulletin_fn)) {
+  char bulletinb_fn[256];
+  EopInfo EopLookUpTables;
+  if (getMeEops(t0, bulletinb_fn, &EopLookUpTables)) {
+    fprintf(stderr, "Error. Failed to fetch EOPs data\n");
     return 3;
   }
-  printf("\t-> downloaded...\n");
-  double mjd[BBSZ], xpa[BBSZ], ypa[BBSZ], ut1a[BBSZ];
-  int bbblocks_size = initEopLookup(bulletin_fn, mjd, xpa, ypa, ut1a);
-  printf("\t-> lookup table set up...\n");
   double xp, yp, dut1;
-  if (getEop(t0, xp, yp, dut1, mjd, xpa, ypa, ut1a, bbblocks_size)) {
-    return 6;
+  if (getEop(t0, &EopLookUpTables, xp, yp, dut1)) {
+    fprintf(stderr, "Error. Failed to interpolate EOPs\n");
+    return 3;
   }
   printf("\t-> got eop data for date!\n");
   printf("\txp=%.15f yp=%.15f dut1=%.15f [mas], [msec]\n", xp, yp, dut1);
@@ -359,17 +325,17 @@ int main(int argc, char *argv[]) {
   AuxParams params{0e0, 0e0, 0e0, 0e0, &hc, &V, &W, degree, order};
   // SetUp an integrator
   printf("* setting up integrator ...\n");
-  const double relerr = 1.0e-9;  // Relative and absolute
-  const double abserr = 1.0e-16; // accuracy requirement
+  const double relerr = 1.0e-9  * 1e2;  // Relative and absolute
+  const double abserr = 1.0e-16 * 1e2;  // accuracy requirement
   dso::SGOde Integrator(VariationalEquations, 6 * 7, relerr, abserr, &params);
   Eigen::Matrix<double, 6 * 7, 1> yPhi;
   Eigen::VectorXd sol(6 * 7);
   Eigen::VectorXd r0_geo(6), r0_cel(6);
 
   // Time
-  // const auto t0 = sp3.start_epoch();
-  auto epoch = t0;                  // current
-  const auto step = sp3.interval(); // dso::nanoseconds(1'000'000'000L * 5*60);
+  // (remember) const auto t0 = sp3.start_epoch();
+  auto epoch = t0; // current
+  const auto step = sp3.interval();
 
   // let's try reading the records; note that -1 denotes EOF
   int error = 0;
@@ -378,7 +344,7 @@ int main(int argc, char *argv[]) {
   printf("* iterating ...\n");
   do {
 
-    // read nex record ...
+    // read next record ...
     if ((error = sp3.get_next_data_block(sv, block)) > 0) {
       printf("Something went wrong ....status = %3d\n", error);
       return 1;
@@ -388,23 +354,19 @@ int main(int argc, char *argv[]) {
     bool position_ok = !block.flag.is_set(dso::Sp3Event::bad_abscent_position);
 
     if (position_ok) {
-
-      // transform geocentric state to inertial
-      Eigen::Matrix<double, 3, 3> t2c(ter2cel(block.t, xp, yp, dut1));
-      //Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
-
-      // Vector containing state + variational equations
-      yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
-
+      
       // accumulate state (m, m/sec)
       r0_geo << block.state[0] * 1e3, block.state[1] * 1e3,
           block.state[2] * 1e3, block.state[4] * 1e-2, block.state[5] * 1e-2,
           block.state[6] * 1e-2;
+
+      // transform geocentric state to inertial
+      Eigen::Matrix<double, 3, 3> t2c(ter2cel(block.t.as_mjd(), xp, yp, dut1));
       r0_cel.block<3, 1>(0, 0) = t2c * r0_geo.block<3, 1>(0, 0);
       r0_cel.block<3, 1>(3, 0) = t2c * r0_geo.block<3, 1>(3, 0);
-      //printf("Geocentric:"); for (int i=0; i<6; i++) printf(" %+12.4f ", r0_geo(i));
-      //printf("\nInertial  :"); for (int i=0; i<6; i++) printf(" %+12.4f ", r0_cel(i));
 
+      // Vector containing state + variational equations
+      yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
       yPhi.block<6, 1>(0, 0) = r0_cel;
 
       // set the Phi part (aka, the state transition matrix) to I(6x6)
@@ -414,42 +376,59 @@ int main(int argc, char *argv[]) {
         yPhi(index) = 1e0;
       }
 
-      // t = current_time - t0 [seconds]
-      // double t = block.t.delta_sec(t0).to_fractional_seconds();
-      // tout = t + step [seconds]
-      // double tout = t + step.to_fractional_seconds();
       params.mjd_tai = block.t.as_mjd();
       double tout = step.to_fractional_seconds();
       double t = 0e0;
 
       if (Integrate) {
-        // integrate
+
+        dso::strftime_ymd_hmfs(block.t, buf);
+        // printf("> Reference epoch Mjd=%15.6f (aka %s)\n", block.t.as_mjd(), buf);
+        // printf("> Integration from %.6f to %.6f\n", t, tout);
+        
+        // integrate (in inertial RF)
         Integrator.flag() = 1;
         Integrator.de(t, tout, yPhi, sol);
+        if (std::abs(tout - t) > 5) {
+          fprintf(stderr,
+                  "Warning! Interpolation ended more than 5 secs away target: "
+                  "%.6f reached: %.6f !\n",
+                  tout, t);
+        }
+
+        // inertial to terrestrial for SP3 comparisson
+        r0_geo.block<3,1>(0,0) = t2c.transpose() * sol.block<3, 1>(0, 0);
+        r0_geo.block<3,1>(3,0) = t2c.transpose() * sol.block<3, 1>(3, 0);
 
         // output epoch as datetime
         epoch = block.t;
-        epoch.add_seconds(dso::milliseconds(static_cast<long>(tout * 1e3)));
+        // THIS IS WRONG! the integrator has reached point t and NOT 
+        // neccessarily tout
+        // epoch.add_seconds(dso::milliseconds(static_cast<long>(tout * 1e3)));
+        epoch.add_seconds( dso::nanoseconds(static_cast<long>(t * 1e9)) );
         dso::strftime_ymd_hmfs(epoch, buf);
 
-        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %15.5f\n",
-               buf, sol(0), sol(1), sol(2), sol(3), sol(4), sol(5),
-               epoch.as_mjd());
+        // print results in terestrial coordinates
+        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+               r0_geo(5), epoch.as_mjd());
       } else {
 
         epoch = block.t;
         dso::strftime_ymd_hmfs(epoch, buf);
-        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %15.5f\n",
-               buf, r0_cel(0), r0_cel(1), r0_cel(2), r0_cel(3), r0_cel(4),
-               r0_cel(5), epoch.as_mjd());
+
+        printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+               r0_geo(5), epoch.as_mjd());
       }
     }
     ++rec_count;
+    call_nr = 0;
 
-    if (epoch.delta_sec(t0).to_fractional_seconds() > 60 * 60 * 12e0)
+    if (epoch.delta_sec(t0).to_fractional_seconds() > 12*3600e0)
       break;
 
-  } while (!error && rec_count < 155);
+  } while (!error && rec_count < 1000);
 
   printf("Num of records read: %6lu\n", rec_count);
 

@@ -32,6 +32,9 @@ public:
   Eigen::Ref<Eigen::VectorXd> wt()    noexcept { return ArraysNeqn.col(0); }
   Eigen::Ref<Eigen::VectorXd> p()     noexcept { return ArraysNeqn.col(1); }
   Eigen::Ref<Eigen::VectorXd> yy()    noexcept { return ArraysNeqn.col(2); }
+  // !! Warning !! //
+  // Column 3 of ArraysNeqn should be 3, do not change this!
+  // see the bug in sgode_step.cpp ~line 330
   Eigen::Ref<Eigen::VectorXd> yp()    noexcept { return ArraysNeqn.col(3); }
   Eigen::Ref<Eigen::VectorXd> ypout() noexcept { return ArraysNeqn.col(4); }
   double &wt   (int i) noexcept { return ArraysNeqn(i,0); }
