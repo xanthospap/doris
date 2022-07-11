@@ -1,0 +1,160 @@
+\documentclass{beamer}
+
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+
+\usepackage[utf8]{inputenc}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\graphicspath{ {../figures/} }
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{soul} % for \st{...} aka strikethrough
+\usepackage{amsmath} % for math ...
+% \usepackage{gensymb} % degree and other symbols ...
+\usepackage{tikz} % drawing stuff ..
+\usepackage{enumitem}
+\usepackage{siunitx} %% SI Units
+\usetikzlibrary{tikzmark,shapes}
+
+\tikzset{upper node/.style={fill=red!40},
+  lower node/.style={ellipse,fill=red!20},
+  ul line/.style={thick,red!20},
+  upper/.code={\tikzset{upper node/.append style={#1}}},
+  lower/.code={\tikzset{lower node/.append style={#1}}},
+  line/.code={\tikzset{ul line/.append style={#1}}},
+}
+
+%% highlight with explanation beneath, see 
+%% https://tex.stackexchange.com/questions/458694/highlighting-part-of-equation-with-text-underneath
+\newcounter{HighLight}
+\newcommand{\highlightwu}[3][]{%
+  \stepcounter{HighLight}
+  \tikzset{#1}
+  \underset{\underset{\displaystyle\makebox[0pt]{\text{\tikzmarknode[lower node]{below-\theHighLight}{%
+    #3}}}}{\phantom{!}}}{\tikzmarknode[upper node]{above-\theHighLight}{#2}}
+    \tikz[overlay,remember picture]{\draw[ul line] (above-\theHighLight) --
+      (below-\theHighLight);}
+}
+%% highlight term
+\newcommand{\highlight}[2][]{%
+  \stepcounter{HighLight}
+  \tikzset{#1}
+  {\tikzmarknode[upper node]{above-\theHighLight}{\textbf #2}}
+}
+
+%% define a box ...
+\setbeamercolor{postit}{fg=black,bg=example text.fg!75!black!10!bg}
+
+%% some itemize styles
+\newcommand{\citem}{\item[\checkmark]}
+\newcommand{\bitem}{\item[\textbullet]}
+\newcommand{\ditem}{\item[\textendash]}
+\newcommand{\aitem}{\item[\textasteriskcentered]}
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+\title[]{PhD Status}
+\author{Xanthos}
+\institute{DSO \& IGN}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}\frametitle{So far ...}\framesubtitle{}
+  \textbf{What does the ``integrator'' do, it think ...}
+  \medskip
+
+  \begin{itemize}
+    \bitem We are processing data and we are currently at epoch $t_i$. We 
+    already have an estimate of the state at this epoch, $\bf{X}_{t_i}^-$ via 
+    filtering.
+    \bitem We use the observations at $t_i$ and compute a new state estimate
+    (at $t_i$), $\bf{X}_{t_i}^+$
+    \bitem We read in the next observation, which is at $t_{i+1}$. To process 
+    this observation we need the state at $t_{i+1}$, hence, \textbf{we must 
+    propagate the state from $t_i$ to $t_{i+1}$}. That is the job of the 
+    ``integrator''.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    \textbf{How does the ``integrator'' work}
+    \medskip 
+
+    The ``integrator'' will propage the state, by solving a 2\textsuperscript{nd} 
+    order ODE system, comprised of the \emph{State Transition} and the 
+    \emph{Variational Equations}.
+
+    \smallskip
+    That is an ``arithmetic'' solution, meaning that the ``integrator'' will 
+    compute the equations in many epochs between the interval $t_i$ to 
+    $t_{i+1}$
+
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    \textbf{What goes in the ``integrator''}
+    \medskip
+    
+    Pretty much everything apart from the filtering! E.g.
+    \begin{itemize}
+        \bitem Coordinate transformations (inertial/earth-fixed)
+        \bitem Time scales / EOPs
+        \bitem Planets position (DE)
+        \bitem State transition
+        \bitem Variational equations
+        \bitem Force model (for now gravity)
+        \bitem Partials/gradients (for now gravity)
+        \bitem ODE solution
+    \end{itemize}
+
+    \medskip
+    That is why it seems like a good test.
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+  \textbf{Idea for validation}
+  \medskip
+
+  \begin{itemize}
+    \bitem Replace the state estimate $\bf{X}_{t_i}^+$ (we would normally get from 
+  the filter), with the state recorded in the Sp3 file. That is, we assume 
+  we processed the data at $t_i$ and came with this estimate, pretty accurate!
+
+    \bitem Propagate the state to the next epoch in the sp3 file (normally $t_i + 60sec$
+
+    \bitem Check the ``integrator'' result against the sp3 value for $t_i + 60sec$
+
+    \bitem Set $t_{i+1}=t_i + 60$. Use the new state from sp3 at $t_i + 60sec$ as 
+  initial value to propagate state to $t_{i+1}+$
+
+    \bitem Loop ...
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}\frametitle{Conversation ...}\framesubtitle{}
+\centering
+    \includegraphics[width=\textwidth]{diffs}
+\end{frame}
+
+\begin{frame}\frametitle{Conversation ...}\framesubtitle{}
+\centering
+    \includegraphics[width=\textwidth]{foo3}
+\end{frame}
+
+\bibliography{doris}
+
+\end{document}

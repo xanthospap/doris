@@ -1,0 +1,178 @@
+\documentclass{beamer}
+
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+
+\usepackage[utf8]{inputenc}
+\usepackage{epstopdf}
+\usepackage{graphicx}
+\graphicspath{ {../figures/} }
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{soul} % for \st{...} aka strikethrough
+\usepackage{amsmath} % for math ...
+% \usepackage{gensymb} % degree and other symbols ...
+\usepackage{tikz} % drawing stuff ..
+\usepackage{enumitem}
+\usepackage{siunitx} %% SI Units
+\usetikzlibrary{tikzmark,shapes}
+
+\tikzset{upper node/.style={fill=red!40},
+  lower node/.style={ellipse,fill=red!20},
+  ul line/.style={thick,red!20},
+  upper/.code={\tikzset{upper node/.append style={#1}}},
+  lower/.code={\tikzset{lower node/.append style={#1}}},
+  line/.code={\tikzset{ul line/.append style={#1}}},
+}
+
+%% highlight with explanation beneath, see 
+%% https://tex.stackexchange.com/questions/458694/highlighting-part-of-equation-with-text-underneath
+\newcounter{HighLight}
+\newcommand{\highlightwu}[3][]{%
+  \stepcounter{HighLight}
+  \tikzset{#1}
+  \underset{\underset{\displaystyle\makebox[0pt]{\text{\tikzmarknode[lower node]{below-\theHighLight}{%
+    #3}}}}{\phantom{!}}}{\tikzmarknode[upper node]{above-\theHighLight}{#2}}
+    \tikz[overlay,remember picture]{\draw[ul line] (above-\theHighLight) --
+      (below-\theHighLight);}
+}
+%% highlight term
+\newcommand{\highlight}[2][]{%
+  \stepcounter{HighLight}
+  \tikzset{#1}
+  {\tikzmarknode[upper node]{above-\theHighLight}{\textbf #2}}
+}
+
+%% define a box ...
+\setbeamercolor{postit}{fg=black,bg=example text.fg!75!black!10!bg}
+
+%% some itemize styles
+\newcommand{\citem}{\item[\checkmark]}
+\newcommand{\bitem}{\item[\textbullet]}
+\newcommand{\ditem}{\item[\textendash]}
+\newcommand{\aitem}{\item[\textasteriskcentered]}
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+\title[]{PhD Status}
+\author{Xanthos}
+\institute{DSO \& IGN}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}\frametitle{So far ...}\framesubtitle{}
+    \begin{itemize}
+      \citem Last Meeting, November 2021
+    \end{itemize}
+
+    Since then, i have mainly been studying Orbit Determination!
+
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    \begin{itemize}
+        \bitem DORIS, technique-dependent part: mostly implemented, need to 
+        add details (e.g. time tagging).
+
+        \bitem Filtering: implemented on a basic level. Model \textbf{EFK}, 
+        still no square root filtering and process noise.
+
+        \bitem Orbit Determination: implemented a series of models of basic 
+        astrodynamics, force models and integrators.
+      \end{itemize}
+
+      \medskip
+
+      Hard to validate results apart from examples included in 
+      \cite{Montenbruck2000}.
+
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    Plan for the next 2-3(?) months:
+    \medskip
+    
+    Use real data to roughly estimate:
+    \begin{itemize}
+        \bitem Satellite state
+        \bitem Beacon position
+        \bitem Tropospheric delay
+    \end{itemize}
+
+    \medskip
+    Need to have a clue on the efficieny of Orbit models and integrators, aka 
+    need to validate!
+    
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    Idea for validation:
+    \medskip
+
+    Extract satellite state from sp3 files.
+    \textbf{Use epoch-wise state (as recorded in the sp3) as initial values to 
+    propagate state to the next record.}
+
+    \smallskip
+    Use a very simple model including some gravity potential model (e.g. JGM 
+    degree/order 20/20) and integrate state plus Variational Equations, that 
+    is solve the system of 2\textsuperscript{nd} order ODEs.
+
+    \smallskip
+    Don't really know what to expect accuracy-wise ...
+    
+\end{frame}
+
+\begin{frame}\frametitle{Currently ...}\framesubtitle{}
+    Idea for validation:
+    \medskip
+
+    Once we are happy with the results, incorporate models:
+    \begin{itemize}
+        \bitem Third-Body attraction (Moon/Sun)
+        \bitem Atmospheric drag
+        \bitem Solar Radiation Pressure (no macromodel, but including eclipses)
+        \bitem Tide effects (not fully implemented yet)
+        \bitem Time-varying gravity models
+    \end{itemize}
+
+    \medskip
+    Then, go back to read data!
+
+\end{frame}
+
+\begin{frame}\frametitle{Conversation ...}\framesubtitle{}
+    Need to have a title:\\
+    \medskip
+    should we look into (near) real-time data?
+\end{frame}
+
+\begin{frame}\frametitle{Deadline ...}\framesubtitle{}
+    Very heavy pressure!\\
+    \textbf{We should be over by December, that is 6 months!!!}\\
+    Should we set our own deadlines?
+    
+    \medskip
+    We should probably skip:
+    \begin{itemize}
+        \bitem SRP macromodels
+        \bitem attitude determination
+        \bitem ...
+    \end{itemize}
+\end{frame}
+
+\bibliography{doris}
+
+\end{document}

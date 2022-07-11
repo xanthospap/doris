@@ -359,8 +359,8 @@ int main(int argc, char *argv[]) {
   AuxParams params{0e0, 0e0, 0e0, 0e0, &hc, &V, &W, degree, order};
   // SetUp an integrator
   printf("* setting up integrator ...\n");
-  const double relerr = 1.0e-9  * 1e3;  // Relative and absolute
-  const double abserr = 1.0e-16 * 1e2;  // accuracy requirement
+  const double relerr = 1.0e-9  * 1e1;  // Relative and absolute
+  const double abserr = 1.0e-16 * 1e1;  // accuracy requirement
   dso::SGOde Integrator(VariationalEquations, 6 * 7, relerr, abserr, &params);
   Eigen::Matrix<double, 6 * 7, 1> yPhi;
   Eigen::VectorXd sol(6 * 7);
