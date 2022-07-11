@@ -10,6 +10,7 @@
 #include "integrators.hpp"
 #include "planetpos.hpp"
 #include "sp3/sp3.hpp"
+#include <cassert>
 #include <cstdio>
 #include <datetime/dtfund.hpp>
 
@@ -31,7 +32,7 @@ using Datetime = dso::datetime<dso::nanoseconds>;
 // to transfer parameters for Variational Equations
 struct AuxParams {
   double mjd_tai;
-  double xp, yp, dut1;
+  double xp, yp, dut1; // [mas], [mas], [millisec]
   dso::HarmonicCoeffs *hc;
   dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
   int degree, order;
@@ -47,7 +48,7 @@ struct EopInfo {
 dso::Mat3x3 RzMat(double angle) noexcept {
   const double s = std::sin(angle);
   const double c = std::cos(angle);
-  return dso::Mat3x3({c,s,0e0, -s,c,0e0, 0e0,0e0,1e0});
+  return dso::Mat3x3({c, s, 0e0, -s, c, 0e0, 0e0, 0e0, 1e0});
 }
 
 int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
@@ -86,7 +87,8 @@ int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
   return 0;
 }
 
-// xp, yp in milliarcsecond [mas] dut1 in millisecond [ms]
+// return xp, yp in milliarcsecond [mas]
+// and dut1 in millisecond [ms]
 int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
            double &dut1) noexcept {
   // apply corrections; first use INTERP to interpolate x,y,ut1 values for
@@ -96,21 +98,27 @@ int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
     fprintf(stderr, "ERROR. Failed call to interp_pole\n");
     return 1;
   }
+
   // account for variations in polar motion (Dx,Dy) ocean-tides; results in
-  // [μas]
+  // [μas] and [μsec]
   double dxp, dyp, dut2;
   if (iers2010::ortho_eop(t, dxp, dyp, dut2)) {
     fprintf(stderr, "ERROR. Failed call to ortho_eop!\n");
     return 4;
   }
+
+  // transform to [mas] [msec]
   xp += dxp * 1e-3;
   yp += dyp * 1e-3;
   dut1 += dut2 * 1e-3;
+
   // account for libration effects; results in [μas]
   if (iers2010::pmsdnut2(t, dxp, dyp)) {
     fprintf(stderr, "ERROR Failed call to pmsdnut2!\n");
     return 4;
   }
+
+  // transform to [mas]
   xp += dxp * 1e-3;
   yp += dyp * 1e-3;
 
@@ -152,17 +160,12 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
       dso::dat(dso::modified_julian_day(static_cast<int>(mjd_tai)));
   const double utcf = taif - static_cast<double>(leap_sec) / 86400e0;
   const double ut1f = utcf + (dut1 / 86400e0) * 1e-3;
-  const double ttf  = taif + (32.184e0/86400e0);
+  const double ttf = taif + (32.184e0 / 86400e0);
 
   // const double mjd_utc = mjd_days + utcf;
   const double mjd_ut1 = mjd_days + ut1f;
-  const double mjd_tt  = mjd_days + ttf;
+  const double mjd_tt = mjd_days + ttf;
 
-  /*
-  auto mat =
-      iers2010::sofa::c2t06a(dso::mjd0_jd, mjd_tt, dso::mjd0_jd, mjd_ut1,
-                             iers2010::DMAS2R * xp, iers2010::DMAS2R * yp);
-  */
   // Form the celestial-to-intermediate matrix for this TT.
   auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, mjd_tt);
   // Predict the Earth rotation angle for this UT1.
@@ -174,13 +177,15 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
       iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
   // Combine to form the celestial-to-terrestrial matrix.
   auto mat = iers2010::sofa::c2tcio(rc2i, era, rpom);
+  // note that the following will result in an Eigen matrix that is the
+  // transpose of mat (Eigen uses Column-Major and Mat3x3 Row-Major)
   Eigen::Matrix<double, 3, 3> t2c(mat.data);
-  
+
   /* ERA derivative */
   if (dt2c) {
     const dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
                          0e0, 0e0, 0e0, 0e0, 0e0});
-    mat = rpom * (S*RzMat(era)) * rc2i;
+    mat = rpom * (S * RzMat(era)) * rc2i;
     *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
 
@@ -206,11 +211,11 @@ void SunMoon(double mjd_tt, Eigen::Matrix<double, 3, 1> &sun,
 
 void VariationalEquations(
     double tsec,
-    // state and state transition matrix
+    // state and state transition matrix (inertial RF)
     const Eigen::VectorXd &yPhi,
-    // state derivative and state transition matrix derivative
+    // state derivative and state transition matrix derivative (inertial RF)
     Eigen::Ref<Eigen::VectorXd> yPhiP,
-    //
+    // auxiliary parametrs
     void *pAux) noexcept {
 
   // void pointer to AuxParameters
@@ -218,25 +223,26 @@ void VariationalEquations(
 
   // current mjd
   const double cmjd = params->mjd_tai + tsec / dso::sec_per_day;
-  // printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.6f call # %u\n", tsec, cmjd, call_nr);
-  
+  //printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.6f call # "
+  //       "%u\n",
+  //       tsec, cmjd, call_nr);
+
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> t2c(
       ter2cel(cmjd, params->xp, params->yp, params->dut1, nullptr));
-  // Eigen::Matrix<double, 3, 3> c2t = t2c.transpose();
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
 
   // compute gravity-induced acceleration and gradient
-  Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
   Eigen::Matrix<double, 3, 3> gpartials;
+  Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params->degree, params->order, *(params->V), *(params->W),
       *(params->hc), gpartials);
 
-  // fucking crap! gravity acceleration are in earth-fixed frame; need to
+  // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
   gacc = t2c * gacc;
   gpartials = t2c.transpose() * gpartials * t2c;
@@ -249,11 +255,9 @@ void VariationalEquations(
     Eigen::Matrix<double, 3, 3> partials;
     Eigen::Matrix<double, 3, 1> rsun, rmoon;
     SunMoon(cmjd, rsun, rmoon);
-    sacc =
-        dso::point_mass_accel(params->hc->GM(), r, rsun, partials);
+    sacc = dso::point_mass_accel(params->hc->GM(), r, rsun, partials);
     tb_partials = partials;
-    macc =
-        dso::point_mass_accel(params->hc->GM(), r, rmoon, partials);
+    macc = dso::point_mass_accel(params->hc->GM(), r, rmoon, partials);
     tb_partials += partials;
   }
 
@@ -300,7 +304,7 @@ int main(int argc, char *argv[]) {
   }
 
   // parse degree and order of gravity field
-  int degree = std::atoi(argv[3]); 
+  int degree = std::atoi(argv[3]);
   int order = std::atoi(argv[4]);
 
   // to compute the planet's position via cspice, we need to load:
@@ -327,6 +331,7 @@ int main(int argc, char *argv[]) {
   printf("* handling input sp3 file ...\n");
   dso::Sp3c sp3(argv[1]);
 
+  // a satellite instance, will hold the sp3 satellite
   SatelliteId sv;
   dso::Sp3DataBlock block;
 
@@ -338,7 +343,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Handle EOPs
+  // Handle EOPs:
+  // Download bulletin B for the date, parse file and store Look Up Tables
+  // in an EopInfo instance (for xp, yp, dut1)
   printf("* downloading and parsing Bulletin B file ...\n");
   const auto t0 = sp3.start_epoch();
   char bulletinb_fn[256];
@@ -347,6 +354,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Error. Failed to fetch EOPs data\n");
     return 3;
   }
+  // get EOPs for starting date of sp3
   double xp, yp, dut1;
   if (getEop(t0, &EopLookUpTables, xp, yp, dut1)) {
     fprintf(stderr, "Error. Failed to interpolate EOPs\n");
@@ -355,21 +363,26 @@ int main(int argc, char *argv[]) {
   printf("\t-> got eop data for date!\n");
   printf("\txp=%.15f yp=%.15f dut1=%.15f [mas], [msec]\n", xp, yp, dut1);
 
-  // Create Auxiliary parameters
-  AuxParams params{0e0, 0e0, 0e0, 0e0, &hc, &V, &W, degree, order};
+  // Create Auxiliary parameters. This will be passed-in the variational
+  // equations to compute derivs.
+  AuxParams params{
+      sp3.start_epoch().as_mjd(), xp, yp, dut1, &hc, &V, &W, degree, order};
+
   // SetUp an integrator
   printf("* setting up integrator ...\n");
-  const double relerr = 1.0e-9  * 1e1;  // Relative and absolute
-  const double abserr = 1.0e-16 * 1e1;  // accuracy requirement
+  const double relerr = 1.0e-9 * 1e1;  // Relative and absolute
+  const double abserr = 1.0e-16 * 1e1; // accuracy requirement
   dso::SGOde Integrator(VariationalEquations, 6 * 7, relerr, abserr, &params);
-  Eigen::Matrix<double, 6 * 7, 1> yPhi;
-  Eigen::VectorXd sol(6 * 7);
-  Eigen::VectorXd r0_geo(6), r0_cel(6);
+
+  // matrices ...
+  Eigen::Matrix<double, 6 * 7, 1> yPhi; // state + var. eq
+  Eigen::VectorXd sol(6 * 7);           // integrator solution
+  Eigen::VectorXd r0_geo(6), r0_cel(6); // state, earth-fixed and inertial
 
   // Time
   // (remember) const auto t0 = sp3.start_epoch();
-  auto epoch = t0; // current
-  const auto step = sp3.interval();
+  auto epoch = t0;                  // current
+  const auto step = sp3.interval(); // integration interval
 
   // let's try reading the records; note that -1 denotes EOF
   int error = 0;
@@ -388,59 +401,64 @@ int main(int argc, char *argv[]) {
     bool position_ok = !block.flag.is_set(dso::Sp3Event::bad_abscent_position);
 
     if (position_ok) {
-      
-      // accumulate state (m, m/sec)
+
+      // accumulate state (m, m/sec), earth-fixed
       r0_geo << block.state[0] * 1e3, block.state[1] * 1e3,
           block.state[2] * 1e3, block.state[4] * 1e-2, block.state[5] * 1e-2,
           block.state[6] * 1e-2;
 
-      // transform geocentric state to inertial
-      Eigen::Matrix<double, 3, 3> dt2c;
-      Eigen::Matrix<double, 3, 3> t2c(
-          ter2cel(block.t.as_mjd(), xp, yp, dut1, &dt2c));
-      r0_cel.block<3, 1>(0, 0) = t2c * r0_geo.block<3, 1>(0, 0);
-      r0_cel.block<3, 1>(3, 0) =
-          t2c * r0_geo.block<3, 1>(3, 0) + dt2c * r0_geo.block<3, 1>(0, 0);
-
-      // Vector containing state + variational equations
-      yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
-      yPhi.block<6, 1>(0, 0) = r0_cel;
-
-      // set the Phi part (aka, the state transition matrix) to I(6x6)
-      int offset = 0;
-      for (int col = 1; col < 7; col++) {
-        int index = 6 * col + offset++;
-        yPhi(index) = 1e0;
-      }
-
-      params.mjd_tai = block.t.as_mjd();
-      double tout = step.to_fractional_seconds();
-      double t = 0e0;
-
       if (Integrate) {
 
+        // Terrestrial to Celestial transformation matrix and derivative
+        Eigen::Matrix<double, 3, 3> dt2c;
+        Eigen::Matrix<double, 3, 3> t2c(ter2cel(block.t.as_mjd(), params.xp,
+                                                params.yp, params.dut1, &dt2c));
+
+        // transform geocentric state to inertial
+        r0_cel.block<3, 1>(0, 0) = t2c * r0_geo.block<3, 1>(0, 0);
+        r0_cel.block<3, 1>(3, 0) =
+            t2c * r0_geo.block<3, 1>(3, 0) + dt2c * r0_geo.block<3, 1>(0, 0);
+
+        // Vector containing state + variational equations
+        // Ref. Frame: inertial
+        yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
+        yPhi.block<6, 1>(0, 0) = r0_cel;
+        // set the Phi part (aka, the state transition matrix) to I(6x6)
+        {
+          Eigen::Matrix<double, 6, 6> def =
+              Eigen::Matrix<double, 6, 6>::Identity();
+          std::memcpy(yPhi.data() + 6, def.data(), sizeof(double) * 6 * 6);
+          assert((def == Eigen::Matrix<double, 6, 6>::Identity()));
+        }
+
+        params.mjd_tai = block.t.as_mjd();
+        double tout = step.to_fractional_seconds();
+        double t = 0e0;
+
         dso::strftime_ymd_hmfs(block.t, buf);
-        
-        // integrate (in inertial RF)
+
+        // integrate (in inertial RF), from 0 to step
+        // the "real" date (in mjd) inside the integrator is:
+        // params.mjd_tai + t / 86400
         Integrator.flag() = 1;
         Integrator.de(t, tout, yPhi, sol);
         if (std::abs(tout - t) > 5) {
           fprintf(stderr,
                   "Warning! Interpolation ended more than 5 secs away target: "
-                  "%.6f reached: %.6f !\n",
+                  "%.6f reached: %.6f\n",
                   tout, t);
         }
+        // solution vector stored in sol
+        // time is t seconds after initial t (which is 0), hence time
+        // reached is: block.t + t/86400
 
         // output epoch as datetime
         epoch = block.t;
-        // THIS IS WRONG! the integrator has reached point t and NOT 
-        // neccessarily tout
-        // epoch.add_seconds(dso::milliseconds(static_cast<long>(tout * 1e3)));
-        epoch.add_seconds( dso::nanoseconds(static_cast<long>(t * 1e9)) );
+        epoch.add_seconds(dso::nanoseconds(static_cast<long>(t * 1e9)));
         dso::strftime_ymd_hmfs(epoch, buf);
-        
-        // inertial to terrestrial for SP3 comparisson
-        t2c = ter2cel(epoch.as_mjd(), xp, yp, dut1, &dt2c);
+
+        // transform solution to terrestrial for SP3 comparisson
+        t2c = ter2cel(epoch.as_mjd(), params.xp, params.yp, params.dut1, &dt2c);
         r0_geo.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
         r0_geo.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                                    dt2c.transpose() * sol.block<3, 1>(0, 0);
@@ -449,7 +467,13 @@ int main(int argc, char *argv[]) {
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
                buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
                r0_geo(5), epoch.as_mjd());
+
       } else {
+
+        // Do not integrate, just report results for this epoch
+        // Ref. Frame: Earth-fixed (as in sp3 file)
+        // Time Scale: the one recorded in the sp3 file, probably TAI
+        // Units     : [m] and [m/sec]
 
         epoch = block.t;
         dso::strftime_ymd_hmfs(epoch, buf);
@@ -462,7 +486,7 @@ int main(int argc, char *argv[]) {
     ++rec_count;
     call_nr = 0;
 
-    if (epoch.delta_sec(t0).to_fractional_seconds() > 12*3600e0)
+    if (epoch.delta_sec(t0).to_fractional_seconds() > 12 * 3600e0)
       break;
 
   } while (!error && rec_count < 1000);

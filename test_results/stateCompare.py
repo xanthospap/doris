@@ -68,75 +68,87 @@ def dump2Table(dct1, dct2):
 
 dct1 = parse(sys.argv[1])
 dct2 = parse(sys.argv[2])
-# dump2Table(dct1, dct2)
+#dump2Table(dct1, dct2)
 
 diffs = makeDiffs(dct1,dct2) if len(dct2) > len(dct1) else makeDiffs(dct2,dct1)
 
-#book = sys.argv[2] + '.pdf'
-#with PdfPages(book) as pdf:
 t0 = datetime.datetime.max
 for t in dct1:
   if t < t0: t0 = t
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
-t = [ ti for ti in diffs ]
-for component in range(3):
-  for pv in range(2):
-      index = whichCol(component, pv)
-      axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index),s=1,color='black')
-      axs[component, pv].set_title(whichTitle(component, pv))
-plt.tight_layout()
-fig.suptitle('Sp3 - Integrator Diffs')
-plt.savefig('diffs.png', bbox_inches='tight')
-#pdf.savefig()
-plt.close()
+book = sys.argv[2] + '.pdf'
+start_sec = 0
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
-t = [ ti for ti in diffs ]
-dct1 = reduce(t, dct1)
-for component in range(3):
-  for pv in range(2):
-      index = whichCol(component, pv)
-      axs[component, pv].scatter(t,colAsArray(dct1,index), s=1,color='black')
-      axs[component, pv].set_title(whichTitle(component, pv))
-plt.tight_layout()
-fig.suptitle('Sp3 State')
-plt.savefig('dct1.png', bbox_inches='tight')
-#pdf.savefig()
-plt.close()
+with PdfPages(book) as pdf:
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
-t = [ ti for ti in diffs ]
-dct2 = reduce(t, dct2)
-for component in range(3):
-  for pv in range(2):
-      index = whichCol(component, pv)
-      axs[component, pv].scatter(t,colAsArray(dct2,index), s=1,color='black')
-      axs[component, pv].set_title(whichTitle(component, pv))
-plt.tight_layout()
-fig.suptitle('Integrator State')
-plt.savefig('dct2.png', bbox_inches='tight')
-#pdf.savefig()
-plt.close()
+    fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+    t = [ ti for ti in diffs ]
+    for component in range(3):
+      for pv in range(2):
+          index = whichCol(component, pv)
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index),s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv))
+          _, end = axs[component, pv].get_xlim()
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
-t = [ ti for ti in diffs ]
-for component in range(3):
-  for pv in range(2):
-      index = whichCol(component, pv)
-      axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index),s=1.2,color='black')
-      axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index),s=1,color='red')
-      axs[component, pv].set_title(whichTitle(component, pv))
-plt.tight_layout()
-fig.suptitle('Sp2 and Integrator State Overlay')
-plt.savefig('foo3.png', bbox_inches='tight')
-#pdf.savefig()
-plt.close()
+    plt.tight_layout()
+    fig.suptitle('Sp3 - Integrator Diffs')
+    #plt.savefig('diffs.png', bbox_inches='tight')
+    pdf.savefig()
+    plt.close()
 
-#  d = pdf.infodict()
-#  d['Title'] = '{}'.format(sys.argv[2])
-#  d['Author'] = 'xanthos'
-#  d['Subject'] = 'testing orbit integrator'
-#  d['Keywords'] = 'PdfPages multipage keywords author title subject'
-#  d['CreationDate'] = datetime.datetime(2022, 7, 10)
-#  d['ModDate'] = datetime.datetime.today()
+    fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+    t = [ ti for ti in diffs ]
+    dct1 = reduce(t, dct1)
+    for component in range(3):
+      for pv in range(2):
+          index = whichCol(component, pv)
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index), s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv))
+          _, end = axs[component, pv].get_xlim()
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+    plt.tight_layout()
+    fig.suptitle('Sp3 State')
+    #plt.savefig('dct1.png', bbox_inches='tight')
+    pdf.savefig()
+    plt.close()
+
+    fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+    t = [ ti for ti in diffs ]
+    dct2 = reduce(t, dct2)
+    for component in range(3):
+      for pv in range(2):
+          index = whichCol(component, pv)
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index), s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv))
+          _, end = axs[component, pv].get_xlim()
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+    plt.tight_layout()
+    fig.suptitle('Integrator State')
+    #plt.savefig('dct2.png', bbox_inches='tight')
+    pdf.savefig()
+    plt.close()
+
+    fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+    t = [ ti for ti in diffs ]
+    for component in range(3):
+      for pv in range(2):
+          index = whichCol(component, pv)
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index),s=1.2,color='black')
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index),s=1,color='red')
+          axs[component, pv].set_title(whichTitle(component, pv))
+          _, end = axs[component, pv].get_xlim()
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+    plt.tight_layout()
+    fig.suptitle('Sp2 and Integrator State Overlay')
+    # plt.savefig('foo3.png', bbox_inches='tight')
+    pdf.savefig()
+    plt.close()
+
+    d = pdf.infodict()
+    d['Title'] = '{}'.format(sys.argv[2])
+    d['Author'] = 'xanthos'
+    d['Subject'] = 'testing orbit integrator'
+    d['Keywords'] = 'PdfPages multipage keywords author title subject'
+    d['CreationDate'] = datetime.datetime(2022, 7, 10)
+    d['ModDate'] = datetime.datetime.today()
