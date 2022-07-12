@@ -144,8 +144,8 @@ grav_potential_accel(const Eigen::Matrix<double, 3, 1> &pos, int degree,
                      dso::Mat2D<MatrixStorageType::Trapezoid> &W,
                      const dso::HarmonicCoeffs &hc) noexcept {
   // validate the size of V and W
-  assert(V.rows() == degree + 2 && V.cols() == order + 2);
-  assert(W.rows() == degree + 2 && W.cols() == order + 2);
+  assert(V.rows() >= degree + 2 && V.cols() >= order + 2);
+  assert(W.rows() >= degree + 2 && W.cols() >= order + 2);
   // compute Langrange polynomials
   assert(!dso::lagrange_polynomials(pos, hc.Re(), degree + 1, order + 1, V, W));
   // return acceleration

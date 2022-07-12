@@ -235,58 +235,19 @@ void VariationalEquations(
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
 
-  // compute gravity-induced acceleration and gradient
-  Eigen::Matrix<double, 3, 3> gpartials;
+  // compute gravity-induced acceleration
   Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params->degree, params->order, *(params->V), *(params->W),
-      *(params->hc), gpartials);
+      *(params->hc));
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
   gacc = t2c * gacc;
-  gpartials = t2c.transpose() * gpartials * t2c;
-
-  // compute sun/moon induced acceleration
-  Eigen::Matrix<double, 3, 3> tb_partials = Eigen::Matrix<double, 3, 3>::Zero();
-  Eigen::Matrix<double, 3, 1> sacc = Eigen::Matrix<double, 3, 1>::Zero();
-  Eigen::Matrix<double, 3, 1> macc = Eigen::Matrix<double, 3, 1>::Zero();
-  if (include_third_body) {
-    Eigen::Matrix<double, 3, 3> partials;
-    Eigen::Matrix<double, 3, 1> rsun, rmoon;
-    SunMoon(cmjd, rsun, rmoon);
-    sacc = dso::point_mass_accel(params->hc->GM(), r, rsun, partials);
-    tb_partials = partials;
-    macc = dso::point_mass_accel(params->hc->GM(), r, rmoon, partials);
-    tb_partials += partials;
-  }
-
-  // State transition (skip first column which is the state vector)
-  Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
-
-  // derivative of state transition matrix, aka
-  // | v (3x3)   0 (3x3)     I (3x3)   |
-  // | a (3x1) da/dr (3x3) da/dv (3x3) |
-  // because dv/dr = 0 and
-  //         da/dr = I
-  Eigen::Matrix<double, 6, 6> dfdy;
-  dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
-  dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials;
-  dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
-
-  // Derivative of combined state vector and state transition matrix
-  // dPhi = dfdy * Phi;
-  Eigen::Matrix<double, 6, 7> yPhip;
-  yPhip.block<6, 6>(0, 1) = dfdy * Phi;
 
   // state derivative (aka [v,a]), in one (first) column
-  yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sacc + macc;
-
-  // matrix to vector (column-wise)
-  yPhiP = Eigen::VectorXd(
-      Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
+  yPhiP.block<3, 1>(0, 0) = v;
+  yPhiP.block<3, 1>(3, 0) = gacc;
 
   ++call_nr;
   return;
@@ -370,13 +331,13 @@ int main(int argc, char *argv[]) {
 
   // SetUp an integrator
   printf("* setting up integrator ...\n");
-  const double relerr = 1.0e-9 * 1e1;  // Relative and absolute
-  const double abserr = 1.0e-16 * 1e1; // accuracy requirement
-  dso::SGOde Integrator(VariationalEquations, 6 * 7, relerr, abserr, &params);
+  const double relerr = 1e-9 * 1e-3;  // Relative and absolute
+  const double abserr = 1e-16 * 1e7; // accuracy requirement
+  dso::SGOde Integrator(VariationalEquations, 6, relerr, abserr, &params);
 
   // matrices ...
-  Eigen::Matrix<double, 6 * 7, 1> yPhi; // state + var. eq
-  Eigen::VectorXd sol(6 * 7);           // integrator solution
+  Eigen::Matrix<double, 6, 1> yPhi; // state
+  Eigen::VectorXd sol(6);           // integrator solution
   Eigen::VectorXd r0_geo(6), r0_cel(6); // state, earth-fixed and inertial
 
   // Time
@@ -421,15 +382,8 @@ int main(int argc, char *argv[]) {
 
         // Vector containing state + variational equations
         // Ref. Frame: inertial
-        yPhi = Eigen::Matrix<double, 6 * 7, 1>::Zero();
-        yPhi.block<6, 1>(0, 0) = r0_cel;
-        // set the Phi part (aka, the state transition matrix) to I(6x6)
-        {
-          Eigen::Matrix<double, 6, 6> def =
-              Eigen::Matrix<double, 6, 6>::Identity();
-          std::memcpy(yPhi.data() + 6, def.data(), sizeof(double) * 6 * 6);
-          assert((def == Eigen::Matrix<double, 6, 6>::Identity()));
-        }
+        yPhi = Eigen::Matrix<double, 6, 1>::Zero();
+        yPhi = r0_cel;
 
         params.mjd_tai = block.t.as_mjd();
         double tout = step.to_fractional_seconds();

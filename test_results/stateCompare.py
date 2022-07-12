@@ -15,7 +15,10 @@ def parse(fn):
     with open(fn, 'r') as fin:
         for line in fin.readlines():
             l = line.split()
-            t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+            try:
+                t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+            except:
+                t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
             x,y,z,vx,vy,vz,mjd = [float(k) for k in l[2:]]
             dct[t] = [x,y,z,vx,vy,vz,mjd]
     return dct
@@ -27,7 +30,8 @@ def makeDiffs(dct1, dct2):
             print('## Warning! failed to find record for date: {:}'.format(t))
         else:
             vals2 = dct2[t]
-            assert(vals[-1] == vals2[-1])
+            if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
+            assert(abs(vals[-1] - vals2[-1]) < 1e-9)
             diffs = [ abs(x[0]-x[1]) for x in zip(vals,vals2)]
             dct[t] = diffs
     return dct
