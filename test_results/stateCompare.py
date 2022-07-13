@@ -36,15 +36,15 @@ def makeDiffs(dct1, dct2):
             dct[t] = diffs
     return dct
 
-def colAsArray(dct,col):
-    return [ vals[col] for _,vals in dct.items() ]
+def colAsArray(dct,col,fac=1e0):
+    return [ vals[col]*fac for _,vals in dct.items() ]
 
 def whichCol(component, posvel):
     return component + int(posvel==1)*3
 
-def whichTitle(component, posvel):
-    title = ' [m]'
-    if posvel == 1: title = ' Velocity [m/sec]'
+def whichTitle(component, posvel, fac=1e0):
+    title = ' [m] * {:.1e}'.format(fac)
+    if posvel == 1: title = ' Velocity [{:.1e} * m/sec]'.format(fac)
     return ['X','Y','Z'][component] + title
 
 def reduce(dates, dct):
@@ -89,9 +89,10 @@ with PdfPages(book) as pdf:
     t = [ ti for ti in diffs ]
     for component in range(3):
       for pv in range(2):
+          fac = 1e-3 if pv == 0 else 1e0
           index = whichCol(component, pv)
-          axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index),s=1,color='black')
-          axs[component, pv].set_title(whichTitle(component, pv))
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index,fac),s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv, fac))
           _, end = axs[component, pv].get_xlim()
           axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
 

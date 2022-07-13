@@ -16,7 +16,7 @@
 
 using dso::sp3::SatelliteId;
 
-const int Integrate = true;
+const int Integrate = false;
 const int include_third_body = false;
 // const int useVariationalEquations = false;
 
@@ -28,6 +28,14 @@ static unsigned call_nr = 0;
 
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
+
+Datetime datetimeFromMjd(double mjd1, double mjd2=0e0) {
+  double days;
+  double fraction = std::modf(mjd1+mjd2, &days);
+  const double fdays2sec = fraction * 86400e0;
+  const unsigned long nsec = static_cast<unsigned long>(fdays2sec * 1e9);
+  return Datetime(dso::modified_julian_day((int)days), dso::nanoseconds(nsec));
+}
 
 // to transfer parameters for Variational Equations
 struct AuxParams {
@@ -153,6 +161,10 @@ Eigen::Matrix<double, 3, 3>
 ter2cel(double mjd_tai, double xp, double yp, double dut1,
         Eigen::Matrix<double, 3, 3> *dt2c) noexcept {
 
+  xp = 0e0;
+  yp=0e0;
+  dut1=0e0;
+
   // keep small part, do computations with this
   double mjd_days;
   const double taif = std::modf(mjd_tai, &mjd_days);
@@ -165,6 +177,12 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
   // const double mjd_utc = mjd_days + utcf;
   const double mjd_ut1 = mjd_days + ut1f;
   const double mjd_tt = mjd_days + ttf;
+
+  // debug
+  // char buf[128];
+  // dso::strftime_ymd_hmfs(datetimeFromMjd(mjd_tt), buf);
+  // dso::strftime_ymd_hmfs(datetimeFromMjd(mjd_ut1), buf+64);
+  // printf("\tTerr. to cel. for    %s TT aka %s UT1 (mjd=%.10f)\n", buf, buf+64, mjd_tt);
 
   // Form the celestial-to-intermediate matrix for this TT.
   auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, mjd_tt);
@@ -189,6 +207,14 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
     *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
 
+
+  printf(">Ter2Cel_________________________________________\n");
+  printf("TT : MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_tt );
+  printf("UT1: MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_ut1);
+  printf("Xp : %.12f [rad] Yp: %.12f [rad] Dut1: %.6f [msec]\n", xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, dut1);
+  printf("Row 0: %.9f %.9f %.9f\n", t2c(0,0), t2c(0,1), t2c(0,2));
+  printf("Row 1: %.9f %.9f %.9f\n", t2c(1,0), t2c(1,1), t2c(1,2));
+  printf("Row 2: %.9f %.9f %.9f\n", t2c(2,0), t2c(2,1), t2c(2,2));
   return t2c;
 }
 
@@ -226,6 +252,11 @@ void VariationalEquations(
   //printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.6f call # "
   //       "%u\n",
   //       tsec, cmjd, call_nr);
+  assert(tsec >= 0e0 && tsec <= 75e0);
+  // char buf[128];
+  // dso::strftime_ymd_hmfs(datetimeFromMjd(cmjd), buf);
+  // dso::strftime_ymd_hmfs(datetimeFromMjd(params->mjd_tai), buf+64);
+  // printf("\tState Transition for %s TAI (t0 is %s, mjd=%.10f)\n", buf, buf+64, cmjd);
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> t2c(
@@ -331,8 +362,8 @@ int main(int argc, char *argv[]) {
 
   // SetUp an integrator
   printf("* setting up integrator ...\n");
-  const double relerr = 1e-9 * 1e-3;  // Relative and absolute
-  const double abserr = 1e-16 * 1e7; // accuracy requirement
+  const double relerr = 1e-13;  // Relative and absolute
+  const double abserr = 1e-6; // accuracy requirement
   dso::SGOde Integrator(VariationalEquations, 6, relerr, abserr, &params);
 
   // matrices ...
@@ -368,7 +399,9 @@ int main(int argc, char *argv[]) {
           block.state[2] * 1e3, block.state[4] * 1e-2, block.state[5] * 1e-2,
           block.state[6] * 1e-2;
 
-      if (Integrate) {
+        // dso::strftime_ymd_hmfs(block.t, buf);
+        // printf("> Integrating with starting date %s TAI (mjd=%.10f)\n", buf,
+        //        block.t.as_mjd());
 
         // Terrestrial to Celestial transformation matrix and derivative
         Eigen::Matrix<double, 3, 3> dt2c;
@@ -379,6 +412,8 @@ int main(int argc, char *argv[]) {
         r0_cel.block<3, 1>(0, 0) = t2c * r0_geo.block<3, 1>(0, 0);
         r0_cel.block<3, 1>(3, 0) =
             t2c * r0_geo.block<3, 1>(3, 0) + dt2c * r0_geo.block<3, 1>(0, 0);
+
+      if (Integrate) {
 
         // Vector containing state + variational equations
         // Ref. Frame: inertial
@@ -412,15 +447,19 @@ int main(int argc, char *argv[]) {
         dso::strftime_ymd_hmfs(epoch, buf);
 
         // transform solution to terrestrial for SP3 comparisson
-        t2c = ter2cel(epoch.as_mjd(), params.xp, params.yp, params.dut1, &dt2c);
-        r0_geo.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
-        r0_geo.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
-                                   dt2c.transpose() * sol.block<3, 1>(0, 0);
+        //t2c = ter2cel(epoch.as_mjd(), params.xp, params.yp, params.dut1, &dt2c);
+        //r0_geo.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
+        //r0_geo.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
+        //                           dt2c.transpose() * sol.block<3, 1>(0, 0);
 
-        // print results in terestrial coordinates
+        //// print results in terestrial coordinates
+        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+        //       buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+        //       r0_geo(5), epoch.as_mjd());
+        // print results in celestial coordinates
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
-               r0_geo(5), epoch.as_mjd());
+               buf, sol(0), sol(1), sol(2), sol(3), sol(4),
+               sol(5), epoch.as_mjd());
 
       } else {
 
@@ -432,9 +471,14 @@ int main(int argc, char *argv[]) {
         epoch = block.t;
         dso::strftime_ymd_hmfs(epoch, buf);
 
+        // print terrestrial satellite oordinates
+        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+        //       buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+        //       r0_geo(5), epoch.as_mjd());
+        // print celestial satellite oordinates
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
-               r0_geo(5), epoch.as_mjd());
+               buf, r0_cel(0), r0_cel(1), r0_cel(2), r0_cel(3), r0_cel(4),
+               r0_cel(5), epoch.as_mjd());
       }
     }
     ++rec_count;
