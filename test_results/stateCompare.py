@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-
+from matplotlib.ticker import MultipleLocator
 
 def t2sec(ts, t0):
     return [(t-t0).total_seconds() for t in ts]
@@ -43,8 +43,9 @@ def whichCol(component, posvel):
     return component + int(posvel==1)*3
 
 def whichTitle(component, posvel, fac=1e0):
-    title = ' [m] * {:.1e}'.format(fac)
-    if posvel == 1: title = ' Velocity [{:.1e} * m/sec]'.format(fac)
+    title = ' [{:}m]'.format('k' if fac==1e-3 else '')
+    if posvel == 1:
+        title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
     return ['X','Y','Z'][component] + title
 
 def reduce(dates, dct):
@@ -94,7 +95,8 @@ with PdfPages(book) as pdf:
           axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index,fac),s=1,color='black')
           axs[component, pv].set_title(whichTitle(component, pv, fac))
           _, end = axs[component, pv].get_xlim()
-          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+          axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
 
     plt.tight_layout()
     fig.suptitle('Sp3 - Integrator Diffs')
@@ -107,11 +109,13 @@ with PdfPages(book) as pdf:
     dct1 = reduce(t, dct1)
     for component in range(3):
       for pv in range(2):
+          fac = 1e-3 if pv == 0 else 1e0
           index = whichCol(component, pv)
-          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index), s=1,color='black')
-          axs[component, pv].set_title(whichTitle(component, pv))
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index,fac), s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv,fac))
           _, end = axs[component, pv].get_xlim()
-          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+          axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
     plt.tight_layout()
     fig.suptitle('Sp3 State')
     #plt.savefig('dct1.png', bbox_inches='tight')
@@ -123,11 +127,13 @@ with PdfPages(book) as pdf:
     dct2 = reduce(t, dct2)
     for component in range(3):
       for pv in range(2):
+          fac = 1e-3 if pv == 0 else 1e0
           index = whichCol(component, pv)
-          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index), s=1,color='black')
-          axs[component, pv].set_title(whichTitle(component, pv))
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index,fac), s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv, fac))
           _, end = axs[component, pv].get_xlim()
-          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+          axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
     plt.tight_layout()
     fig.suptitle('Integrator State')
     #plt.savefig('dct2.png', bbox_inches='tight')
@@ -138,14 +144,16 @@ with PdfPages(book) as pdf:
     t = [ ti for ti in diffs ]
     for component in range(3):
       for pv in range(2):
+          fac = 1e-3 if pv == 0 else 1e0
           index = whichCol(component, pv)
-          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index),s=1.2,color='black')
-          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index),s=1,color='red')
-          axs[component, pv].set_title(whichTitle(component, pv))
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct1,index,fac),s=1.2,color='black')
+          axs[component, pv].scatter(t2sec(t,t0),colAsArray(dct2,index,fac),s=1,color='red')
+          axs[component, pv].set_title(whichTitle(component, pv,fac))
           _, end = axs[component, pv].get_xlim()
-          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600))
+          axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
+          axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
     plt.tight_layout()
-    fig.suptitle('Sp2 and Integrator State Overlay')
+    fig.suptitle('Sp3 and Integrator State Overlay')
     # plt.savefig('foo3.png', bbox_inches='tight')
     pdf.savefig()
     plt.close()

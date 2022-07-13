@@ -16,9 +16,8 @@
 
 using dso::sp3::SatelliteId;
 
-const int Integrate = false;
+const int Integrate = true;
 const int include_third_body = false;
-// const int useVariationalEquations = false;
 
 // approximate number of data points in a bulletin B file (disregarding
 // preliminery values)
@@ -37,20 +36,20 @@ Datetime datetimeFromMjd(double mjd1, double mjd2=0e0) {
   return Datetime(dso::modified_julian_day((int)days), dso::nanoseconds(nsec));
 }
 
-// to transfer parameters for Variational Equations
-struct AuxParams {
-  double mjd_tai;
-  double xp, yp, dut1; // [mas], [mas], [millisec]
-  dso::HarmonicCoeffs *hc;
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
-  int degree, order;
-};
-
 struct EopInfo {
   // actual size of arrays
   int sz;
   // arrays of EOP values extracted from C04
   double mjd[BBSZ], xpa[BBSZ], ypa[BBSZ], ut1a[BBSZ];
+};
+
+// to transfer parameters for Variational Equations
+struct AuxParams {
+  double mjd_tai;
+  EopInfo *eopLookUpTables;
+  dso::HarmonicCoeffs *hc;
+  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
+  int degree, order;
 };
 
 dso::Mat3x3 RzMat(double angle) noexcept {
@@ -97,12 +96,12 @@ int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
 
 // return xp, yp in milliarcsecond [mas]
 // and dut1 in millisecond [ms]
-int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
+int getEop(double mjd_utc, const EopInfo *eops, double &xp, double &yp,
            double &dut1) noexcept {
   // apply corrections; first use INTERP to interpolate x,y,ut1 values for
   // the given date (in [mas], [msec])
   if (iers2010::interp_pole(eops->mjd, eops->xpa, eops->ypa, eops->ut1a,
-                            eops->sz, t.as_mjd(), xp, yp, dut1)) {
+                            eops->sz, mjd_utc, xp, yp, dut1)) {
     fprintf(stderr, "ERROR. Failed call to interp_pole\n");
     return 1;
   }
@@ -110,7 +109,7 @@ int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
   // account for variations in polar motion (Dx,Dy) ocean-tides; results in
   // [μas] and [μsec]
   double dxp, dyp, dut2;
-  if (iers2010::ortho_eop(t, dxp, dyp, dut2)) {
+  if (iers2010::ortho_eop(mjd_utc, dxp, dyp, dut2)) {
     fprintf(stderr, "ERROR. Failed call to ortho_eop!\n");
     return 4;
   }
@@ -121,7 +120,7 @@ int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
   dut1 += dut2 * 1e-3;
 
   // account for libration effects; results in [μas]
-  if (iers2010::pmsdnut2(t, dxp, dyp)) {
+  if (iers2010::pmsdnut2(mjd_utc, dxp, dyp)) {
     fprintf(stderr, "ERROR Failed call to pmsdnut2!\n");
     return 4;
   }
@@ -132,6 +131,12 @@ int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
 
   return 0;
 }
+
+int getEop(const Datetime &t, const EopInfo *eops, double &xp, double &yp,
+           double &dut1) noexcept {
+  return getEop(t.as_mjd(), eops, xp, yp, dut1);
+           }
+
 
 // handle gravity field
 int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
@@ -158,12 +163,8 @@ int gravity(const char *gfn, int degree, int order, dso::HarmonicCoeffs &hc) {
 }
 
 Eigen::Matrix<double, 3, 3>
-ter2cel(double mjd_tai, double xp, double yp, double dut1,
+ter2cel(double mjd_tai, const EopInfo *eopLUT,
         Eigen::Matrix<double, 3, 3> *dt2c) noexcept {
-
-  xp = 0e0;
-  yp=0e0;
-  dut1=0e0;
 
   // keep small part, do computations with this
   double mjd_days;
@@ -171,8 +172,15 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
   const int leap_sec =
       dso::dat(dso::modified_julian_day(static_cast<int>(mjd_tai)));
   const double utcf = taif - static_cast<double>(leap_sec) / 86400e0;
+
+  // we now have date in UTC, get EOP values
+  double xp,yp,dut1;
+  if (getEop(mjd_days+utcf, eopLUT, xp, yp, dut1)) {
+    fprintf(stderr, "ERROR. Failed getting EOP values");
+  }
+
   const double ut1f = utcf + (dut1 / 86400e0) * 1e-3;
-  const double ttf = taif + (32.184e0 / 86400e0);
+  const double ttf = taif  + (32184e-3 / 86400e0);
 
   // const double mjd_utc = mjd_days + utcf;
   const double mjd_ut1 = mjd_days + ut1f;
@@ -207,14 +215,16 @@ ter2cel(double mjd_tai, double xp, double yp, double dut1,
     *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
 
-
+  /*
   printf(">Ter2Cel_________________________________________\n");
   printf("TT : MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_tt );
-  printf("UT1: MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_ut1);
-  printf("Xp : %.12f [rad] Yp: %.12f [rad] Dut1: %.6f [msec]\n", xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, dut1);
+  printf("UT1: MJD=%.10f JD=%.10f\n", mjd_ut1, dso::mjd0_jd + mjd_ut1);
+  printf("Xp : %.15e [rad] Yp: %.15e [rad] Dut1: %.15e [msec], Leap seconds: %d\n", xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, dut1, leap_sec);
   printf("Row 0: %.9f %.9f %.9f\n", t2c(0,0), t2c(0,1), t2c(0,2));
   printf("Row 1: %.9f %.9f %.9f\n", t2c(1,0), t2c(1,1), t2c(1,2));
   printf("Row 2: %.9f %.9f %.9f\n", t2c(2,0), t2c(2,1), t2c(2,2));
+  */
+  
   return t2c;
 }
 
@@ -236,7 +246,7 @@ void SunMoon(double mjd_tt, Eigen::Matrix<double, 3, 1> &sun,
 }
 
 void VariationalEquations(
-    double tsec,
+    double tsec, // TAI
     // state and state transition matrix (inertial RF)
     const Eigen::VectorXd &yPhi,
     // state derivative and state transition matrix derivative (inertial RF)
@@ -247,12 +257,12 @@ void VariationalEquations(
   // void pointer to AuxParameters
   AuxParams *params = static_cast<AuxParams *>(pAux);
 
-  // current mjd
+  // current mjd, TAI
   const double cmjd = params->mjd_tai + tsec / dso::sec_per_day;
   //printf("\t> computing Variational Equations for t=%.6f, aka Mjd=%.6f call # "
   //       "%u\n",
   //       tsec, cmjd, call_nr);
-  assert(tsec >= 0e0 && tsec <= 75e0);
+  // assert(tsec >= 0e0 && tsec <= 75e0);
   // char buf[128];
   // dso::strftime_ymd_hmfs(datetimeFromMjd(cmjd), buf);
   // dso::strftime_ymd_hmfs(datetimeFromMjd(params->mjd_tai), buf+64);
@@ -260,7 +270,7 @@ void VariationalEquations(
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> t2c(
-      ter2cel(cmjd, params->xp, params->yp, params->dut1, nullptr));
+      ter2cel(cmjd, params->eopLookUpTables, nullptr));
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
@@ -346,19 +356,11 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Error. Failed to fetch EOPs data\n");
     return 3;
   }
-  // get EOPs for starting date of sp3
-  double xp, yp, dut1;
-  if (getEop(t0, &EopLookUpTables, xp, yp, dut1)) {
-    fprintf(stderr, "Error. Failed to interpolate EOPs\n");
-    return 3;
-  }
-  printf("\t-> got eop data for date!\n");
-  printf("\txp=%.15f yp=%.15f dut1=%.15f [mas], [msec]\n", xp, yp, dut1);
 
   // Create Auxiliary parameters. This will be passed-in the variational
   // equations to compute derivs.
   AuxParams params{
-      sp3.start_epoch().as_mjd(), xp, yp, dut1, &hc, &V, &W, degree, order};
+      sp3.start_epoch().as_mjd(), &EopLookUpTables, &hc, &V, &W, degree, order};
 
   // SetUp an integrator
   printf("* setting up integrator ...\n");
@@ -405,8 +407,8 @@ int main(int argc, char *argv[]) {
 
         // Terrestrial to Celestial transformation matrix and derivative
         Eigen::Matrix<double, 3, 3> dt2c;
-        Eigen::Matrix<double, 3, 3> t2c(ter2cel(block.t.as_mjd(), params.xp,
-                                                params.yp, params.dut1, &dt2c));
+        Eigen::Matrix<double, 3, 3> t2c(
+            ter2cel(block.t.as_mjd(), params.eopLookUpTables, &dt2c));
 
         // transform geocentric state to inertial
         r0_cel.block<3, 1>(0, 0) = t2c * r0_geo.block<3, 1>(0, 0);
@@ -415,16 +417,19 @@ int main(int argc, char *argv[]) {
 
       if (Integrate) {
 
-        // Vector containing state + variational equations
+        // Vector containing state
         // Ref. Frame: inertial
         yPhi = Eigen::Matrix<double, 6, 1>::Zero();
         yPhi = r0_cel;
 
+        // t0 for variational equations (TAI)
         params.mjd_tai = block.t.as_mjd();
-        double tout = step.to_fractional_seconds();
-        double t = 0e0;
 
-        dso::strftime_ymd_hmfs(block.t, buf);
+        // target t for variational equations; seconds after t0
+        double tout = step.to_fractional_seconds();
+
+        // seconds after t0 for integrator
+        double t = 0e0;
 
         // integrate (in inertial RF), from 0 to step
         // the "real" date (in mjd) inside the integrator is:
@@ -439,11 +444,11 @@ int main(int argc, char *argv[]) {
         }
         // solution vector stored in sol
         // time is t seconds after initial t (which is 0), hence time
-        // reached is: block.t + t/86400
+        // reached is: block.t(=params.mjd_tai) + t/86400
 
         // output epoch as datetime
         epoch = block.t;
-        epoch.add_seconds(dso::nanoseconds(static_cast<long>(t * 1e9)));
+        epoch.add_seconds(dso::nanoseconds(static_cast<unsigned long>(t * 1e9)));
         dso::strftime_ymd_hmfs(epoch, buf);
 
         // transform solution to terrestrial for SP3 comparisson
@@ -453,13 +458,14 @@ int main(int argc, char *argv[]) {
         //                           dt2c.transpose() * sol.block<3, 1>(0, 0);
 
         //// print results in terestrial coordinates
-        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-        //       buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
-        //       r0_geo(5), epoch.as_mjd());
-        // print results in celestial coordinates
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-               buf, sol(0), sol(1), sol(2), sol(3), sol(4),
-               sol(5), epoch.as_mjd());
+               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+               r0_geo(5), epoch.as_mjd());
+
+        // print results in celestial coordinates
+        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+        //       buf, sol(0), sol(1), sol(2), sol(3), sol(4),
+        //       sol(5), epoch.as_mjd());
 
       } else {
 
@@ -472,17 +478,17 @@ int main(int argc, char *argv[]) {
         dso::strftime_ymd_hmfs(epoch, buf);
 
         // print terrestrial satellite oordinates
-        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-        //       buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
-        //       r0_geo(5), epoch.as_mjd());
-        // print celestial satellite oordinates
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
-               buf, r0_cel(0), r0_cel(1), r0_cel(2), r0_cel(3), r0_cel(4),
-               r0_cel(5), epoch.as_mjd());
+               buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
+               r0_geo(5), epoch.as_mjd());
+
+        // print celestial satellite oordinates
+        //printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
+        //       buf, r0_cel(0), r0_cel(1), r0_cel(2), r0_cel(3), r0_cel(4),
+        //       r0_cel(5), epoch.as_mjd());
       }
-    }
     ++rec_count;
-    call_nr = 0;
+    }
 
     if (epoch.delta_sec(t0).to_fractional_seconds() > 12 * 3600e0)
       break;
