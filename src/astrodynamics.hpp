@@ -39,6 +39,8 @@ double vallado_shadow(const dso::Vector3 &r_sat,
 /// @ref Satellite
 double montebruck_shadow(const dso::Vector3 &r_sat,
                          const dso::Vector3 &r_sun) noexcept;
+double montebruck_shadow(const Eigen::Matrix<double,3,1> &r_sat,
+                         const Eigen::Matrix<double,3,1> &r_sun) noexcept;
 
 double bernese_shadow(const dso::Vector3 &r_sat,
                       const dso::Vector3 &r_sun) noexcept;

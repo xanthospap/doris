@@ -51,6 +51,14 @@ double utest::montebruck_shadow(const dso::Vector3 &r_sat,
                                                                        : 0e0);
 }
 
+double utest::montebruck_shadow(const Eigen::Matrix<double,3,1> &r_sat,
+                                const Eigen::Matrix<double,3,1> &r_sun) noexcept {
+  const auto unitvec_sun = r_sun.normalized(); // r_sun / r_sun.norm();
+  const double s = r_sat.dot(unitvec_sun); // r_sat.dot_product(unitvec_sun);
+  return ((s > 0e0 || (r_sat - s * unitvec_sun).norm() > iers2010::Re) ? 1e0
+                                                                       : 0e0);
+}
+
 double utest::bernese_shadow1(const dso::Vector3 &r_sat,
                              const dso::Vector3 &r_sun) noexcept {
     constexpr const double fac = 1e0 + dso::ellipsoid_traits<dso::ellipsoid::grs80>::f;
