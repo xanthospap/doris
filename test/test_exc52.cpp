@@ -73,31 +73,22 @@ ter2cel(double mjd_gsp, Eigen::Matrix<double, 3, 3> *dt2c) noexcept {
 
   /* ERA derivative */
   if (dt2c) {
-    const dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
+    dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
                          0e0, 0e0, 0e0, 0e0, 0e0});
-    mat = rpom * (S * RzMat(era)) * rc2i;
+    mat = rpom * rc2i * S.rotz(era);
     *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
-
-  /*
-  printf(">Ter2Cel_________________________________________\n");
-  printf("TT : MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_tt );
-  printf("UT1: MJD=%.10f JD=%.10f\n", mjd_ut1, dso::mjd0_jd + mjd_ut1);
-  printf("Xp : %.15e [rad] Yp: %.15e [rad] Dut1: %.15e [msec], Leap seconds:
-  %d\n", xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, dut1, leap_sec);
-  printf("Row 0: %.9f %.9f %.9f\n", t2c(0,0), t2c(0,1), t2c(0,2));
-  printf("Row 1: %.9f %.9f %.9f\n", t2c(1,0), t2c(1,1), t2c(1,2));
-  printf("Row 2: %.9f %.9f %.9f\n", t2c(2,0), t2c(2,1), t2c(2,2));
-  */
 
   return t2c;
 }
 
 int main() {
-  Datetime t1(dso::year(1999), dso::month(3), dso::day_of_month(4), dso::nanoseconds(0));
+  Datetime t1(dso::year(1999), dso::month(3), dso::day_of_month(4),
+              dso::nanoseconds(0));
 
   Eigen::Matrix<double,3,3> dt2c;
   auto t2c = ter2cel(t1.as_mjd(), &dt2c);
+
 
   printf("U Matrix:\n");
   for (int i=0; i<3; i++) {
