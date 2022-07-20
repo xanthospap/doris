@@ -58,24 +58,30 @@ ter2cel(double mjd_gsp, Eigen::Matrix<double, 3, 3> *dt2c) noexcept {
 
   // Form the celestial-to-intermediate matrix for this TT.
   auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, mjd_tt);
+  
   // Predict the Earth rotation angle for this UT1.
   const double era = iers2010::sofa::era00(dso::mjd0_jd, mjd_ut1);
+  
   // Estimate s'.
   const double sp = iers2010::sofa::sp00(dso::mjd0_jd, mjd_tt);
+  
   // Form the polar motion matrix.
   auto rpom =
       iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
+  
   // Combine to form the celestial-to-terrestrial matrix.
-  auto mat = iers2010::sofa::c2tcio(rc2i, era, rpom);
+  // auto mat = iers2010::sofa::c2tcio(rc2i, era, rpom);
+  auto mat = rpom * dso::Mat3x3::RotZ(era) * rc2i;
+  
   // note that the following will result in an Eigen matrix that is the
   // transpose of mat (Eigen uses Column-Major and Mat3x3 Row-Major)
   Eigen::Matrix<double, 3, 3> t2c(mat.data);
 
-  /* ERA derivative */
+  // ERA derivative
   if (dt2c) {
     dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
                          0e0, 0e0, 0e0, 0e0, 0e0});
-    mat = rpom * rc2i * S.rotz(era);
+    mat = rpom * (S * dso::Mat3x3::RotZ(era)) * rc2i;
     *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
 

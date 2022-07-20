@@ -17,16 +17,20 @@
 using dso::sp3::SatelliteId;
 
 const int Integrate = true;
+const int include_third_body = true;
+const int include_srp = false;
+
 // approximate number of data points in a bulletin B file (disregarding
 // preliminery values)
 constexpr const int BBSZ = 40;
 
-// count call to VE
+// count calls to VE
 static unsigned call_nr = 0;
 
 // Radiation pressure scale coefficient for H2C
+// see https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
 constexpr const double Cr_H2C = 0.88e0;
-constexpr const double Mass_H2C = 1677e0; // [kg] total mass of H2C, see https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+constexpr const double Mass_H2C = 1677e0; // [kg] total mass of H2C
 constexpr const double Area_H2C = 39.71e0; // [m^2]
 
 // usually using these datetimes ...
@@ -55,12 +59,6 @@ struct AuxParams {
   dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
   int degree, order;
 };
-
-dso::Mat3x3 RzMat(double angle) noexcept {
-  const double s = std::sin(angle);
-  const double c = std::cos(angle);
-  return dso::Mat3x3({c, s, 0e0, -s, c, 0e0, 0e0, 0e0, 1e0});
-}
 
 int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
               int download = 1) noexcept {
@@ -189,80 +187,69 @@ ter2cel(double mjd_tai, const EopInfo *eopLUT,
   const double mjd_ut1 = mjd_days + ut1f;
   const double mjd_tt = mjd_days + ttf;
 
-  // debug
-  // char buf[128];
-  // dso::strftime_ymd_hmfs(datetimeFromMjd(mjd_tt), buf);
-  // dso::strftime_ymd_hmfs(datetimeFromMjd(mjd_ut1), buf+64);
-  // printf("\tTerr. to cel. for    %s TT aka %s UT1 (mjd=%.10f)\n", buf,
-  // buf+64, mjd_tt);
-
   // Form the celestial-to-intermediate matrix for this TT.
   auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, mjd_tt);
-
+  
   // Predict the Earth rotation angle for this UT1.
   const double era = iers2010::sofa::era00(dso::mjd0_jd, mjd_ut1);
-
+  
   // Estimate s'.
   const double sp = iers2010::sofa::sp00(dso::mjd0_jd, mjd_tt);
-
+  
   // Form the polar motion matrix.
-  auto rpom = iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
-
-  // [ITRS] = W * R * Q [GCRS]
-  dso::Mat3x3 c2t = rpom * dso::Mat3x3::RotZ(era) * rc2i;
-
+  auto rpom =
+      iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
+  
+  // Combine to form the celestial-to-terrestrial matrix.
+  // auto mat = iers2010::sofa::c2tcio(rc2i, era, rpom);
+  auto mat = rpom * dso::Mat3x3::RotZ(era) * rc2i;
+  
   // note that the following will result in an Eigen matrix that is the
   // transpose of mat (Eigen uses Column-Major and Mat3x3 Row-Major)
-  Eigen::Matrix<double, 3, 3> t2c(c2t.data);
+  Eigen::Matrix<double, 3, 3> t2c(mat.data);
 
-  /* ERA derivative */
+  // ERA derivative
   if (dt2c) {
-    const dso::Mat3x3 S({0e0, -iers2010::OmegaEarth, 0e0, +iers2010::OmegaEarth,
+    const dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
                          0e0, 0e0, 0e0, 0e0, 0e0});
-    const dso::Mat3x3 dEra = dso::Mat3x3::RotZ(era) * S;
-    c2t = rpom * dEra * rc2i;
-    *dt2c = Eigen::Matrix<double, 3, 3>(c2t.data);
+    mat = rpom * (S * dso::Mat3x3::RotZ(era)) * rc2i;
+    *dt2c = Eigen::Matrix<double, 3, 3>(mat.data);
   }
-
-  /*
-  printf(">Ter2Cel_________________________________________\n");
-  printf("TT : MJD=%.10f JD=%.10f\n", mjd_tt, dso::mjd0_jd + mjd_tt );
-  printf("UT1: MJD=%.10f JD=%.10f\n", mjd_ut1, dso::mjd0_jd + mjd_ut1);
-  printf("Xp : %.15e [rad] Yp: %.15e [rad] Dut1: %.15e [msec], Leap seconds:
-  %d\n", xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, dut1, leap_sec);
-  printf("Row 0: %.9f %.9f %.9f\n", t2c(0,0), t2c(0,1), t2c(0,2));
-  printf("Row 1: %.9f %.9f %.9f\n", t2c(1,0), t2c(1,1), t2c(1,2));
-  printf("Row 2: %.9f %.9f %.9f\n", t2c(2,0), t2c(2,1), t2c(2,2));
-  */
 
   return t2c;
 }
 
-void SunMoon(double mjd_tt, double GM, const Eigen::Matrix<double, 3, 1> &rsat,
+void SunMoon(double mjd_tai, double GM, const Eigen::Matrix<double, 3, 1> &rsat,
              Eigen::Matrix<double, 3, 1> &sun_acc,
              Eigen::Matrix<double, 3, 1> &moon_acc,
              Eigen::Matrix<double, 3, 1> *sun_pos) noexcept {
 
-  const double jd = mjd_tt + dso::mjd0_jd; // date as jd (TT)
-  double vec[3];
-  Eigen::Matrix<double, 3, 1> rsun, rmoon;
+  // TAI to TT (MJD)
+  double mjd_days;
+  const double taif = std::modf(mjd_tai, &mjd_days);
+  const double ttf = taif + (32184e-3 / 86400e0);
+  const double mjd_tt = mjd_days + ttf;
 
-  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, vec);
-  rsun(0, 0) = vec[0] * 1e3;
-  rsun(1, 0) = vec[1] * 1e3;
-  rsun(2, 0) = vec[2] * 1e3;
+  const double jd = mjd_tt + dso::mjd0_jd; // date as JD (TT)
+  double rsun[3], rmoon[3], r[3]={rsat(0), rsat(1), rsat(2)};
 
-  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, vec);
-  rmoon(0, 0) = vec[0] * 1e3;
-  rmoon(1, 0) = vec[1] * 1e3;
-  rmoon(2, 0) = vec[2] * 1e3;
+  // position vector of sun/moon, in J2000, [km]
+  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, rsun);
+  dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, rmoon);
 
-  Eigen::Matrix<double, 3, 3> partials;
+  // Sun-induced acceleration [m/sec^2]
+  const auto sunAcc = dso::point_mass_accel(
+      dso::Vector3::ptr2vec(r), dso::Vector3::ptr2vec(rsun) * 1e3, GM);
+  sun_acc << sunAcc(0), sunAcc(1), sunAcc(2);
 
-  sun_acc = dso::point_mass_accel(GM, rsat, rsun, partials);
-  moon_acc = dso::point_mass_accel(GM, rsat, rmoon, partials);
+  // Moon-induced acceleration [m/sec^2]
+  const auto monAcc = dso::point_mass_accel(
+      dso::Vector3::ptr2vec(r), dso::Vector3::ptr2vec(rmoon) * 1e3, GM);
+  moon_acc << monAcc(0), monAcc(1), monAcc(2);
 
-  if (sun_pos) *sun_pos = rsun;
+  if (sun_pos) {
+    *sun_pos << rsun[0] * 1e3, rsun[1] * 1e3, rsun[2] * 1e3;
+  }
 
   return;
 }
@@ -300,9 +287,11 @@ void VariationalEquations(
   // have inertial acceleration!
   gacc = t2c * gacc;
 
-  // third body perturbations, Sun and Moon (need time in MJD TT)
+  // third body perturbations, Sun and Moon
   Eigen::Matrix<double, 3, 1> sun_acc, moon_acc, rsun;
-  SunMoon(cmjd + (32184e-3 / 86400e0), params->hc->GM(), r, sun_acc, moon_acc, &rsun);
+  SunMoon(cmjd, params->hc->GM(), r, sun_acc, moon_acc, &rsun);
+  sun_acc = static_cast<double>(include_third_body) * sun_acc;
+  moon_acc = static_cast<double>(include_third_body) * moon_acc;
 
   // SRP
   Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -311,15 +300,19 @@ void VariationalEquations(
   if (utest::montebruck_shadow(rV, sV)) {
     srp = dso::solar_radiation_acceleration(r, rsun, Area_H2C, Mass_H2C, Cr_H2C);
   }
+  srp = static_cast<double>(include_srp) * srp;
 
   // state derivative (aka [v,a]), in one (first) column
   yPhiP.block<3, 1>(0, 0) = v;
   yPhiP.block<3, 1>(3, 0) = gacc + sun_acc + moon_acc + srp;
 
   //printf("# Acceleration components:\n");
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n", gacc(0), sun_acc(0), moon_acc(0), srp(0));
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n", gacc(1), sun_acc(1), moon_acc(1), srp(1)); 
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n", gacc(2), sun_acc(2), moon_acc(2), srp(2));
+  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
+  //       gacc(0), sun_acc(0), moon_acc(0), srp(0));
+  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
+  //       gacc(1), sun_acc(1), moon_acc(1), srp(1));
+  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
+  //       gacc(2), sun_acc(2), moon_acc(2), srp(2));
 
   ++call_nr;
   return;
@@ -429,8 +422,8 @@ int main(int argc, char *argv[]) {
 
       // accumulate state (m, m/sec), earth-fixed
       r0_geo << block.state[0] * 1e3, block.state[1] * 1e3,
-          block.state[2] * 1e3, block.state[4] * 1e-2, block.state[5] * 1e-2,
-          block.state[6] * 1e-2;
+          block.state[2] * 1e3, block.state[4] * 1e-1, block.state[5] * 1e-1,
+          block.state[6] * 1e-1;
 
       // dso::strftime_ymd_hmfs(block.t, buf);
       // printf("> Integrating with starting date %s TAI (mjd=%.10f)\n", buf,
@@ -455,10 +448,6 @@ int main(int argc, char *argv[]) {
 
         // t0 for variational equations (TAI)
         params.mjd_tai = block.t.as_mjd();
-
-        // printf("> Starting integration at t0=%s TAI\n",
-        //        dso::strftime_ymd_hmfs(datetimeFromMjd(block.t.as_mjd()),
-        //        buf));
 
         // target t for variational equations; seconds after t0
         double tout = step.to_fractional_seconds();
@@ -494,8 +483,6 @@ int main(int argc, char *argv[]) {
                                    dt2c.transpose() * sol.block<3, 1>(0, 0);
 
         // print results in terestrial coordinates
-        // printf("> Ended integration at     t=%s TAI\n",
-        //       dso::strftime_ymd_hmfs(datetimeFromMjd(epoch.as_mjd()), buf));
         printf("%s %+15.4f %+15.4f %+15.4f %+15.7f %+15.7f %+15.7f %18.9f\n",
                buf, r0_geo(0), r0_geo(1), r0_geo(2), r0_geo(3), r0_geo(4),
                r0_geo(5), epoch.as_mjd());
