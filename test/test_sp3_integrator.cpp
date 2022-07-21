@@ -234,6 +234,10 @@ void SunMoon(double mjd_tai, double GM, const Eigen::Matrix<double, 3, 1> &rsat,
   Eigen::Matrix<double, 3, 1> rMon(rmon); // [km]
 
   // Sun-induced acceleration [m/sec^2]
+  double GMSun;
+  int n;
+  bodvrd_c( "SUN", "GM", 1, &n, &GMSun);
+  printf(">> Note: Suns GM=%.20e\n", GMSun);
   sun_acc = dso::point_mass_accel(GM, rsat, rSun * 1e3);
 
   // Moon-induced acceleration [m/sec^2]
