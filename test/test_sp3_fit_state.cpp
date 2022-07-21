@@ -289,7 +289,7 @@ void VariationalEquations(
 
   // third body perturbations, Sun and Moon
   Eigen::Matrix<double, 3, 1> sun_acc, moon_acc, rsun;
-  SunMoon(cmjd, params->hc->GM(), r, sun_acc, moon_acc, &rsun);
+  SunMoon(cmjd, /*params->hc->GM()*/iers2010::GMe, r, sun_acc, moon_acc, &rsun);
   sun_acc = static_cast<double>(include_third_body) * sun_acc;
   moon_acc = static_cast<double>(include_third_body) * moon_acc;
 
@@ -424,10 +424,6 @@ int main(int argc, char *argv[]) {
       r0_geo << block.state[0] * 1e3, block.state[1] * 1e3,
           block.state[2] * 1e3, block.state[4] * 1e-1, block.state[5] * 1e-1,
           block.state[6] * 1e-1;
-
-      // dso::strftime_ymd_hmfs(block.t, buf);
-      // printf("> Integrating with starting date %s TAI (mjd=%.10f)\n", buf,
-      //        block.t.as_mjd());
 
       // Terrestrial to Celestial transformation matrix and derivative
       Eigen::Matrix<double, 3, 3> dt2c;

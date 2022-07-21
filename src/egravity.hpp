@@ -33,6 +33,10 @@ point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
     const Eigen::Matrix<double, 3, 1>& robj,
     Eigen::Matrix<double, 3, 3>& partials) noexcept;
 
+Eigen::Matrix<double, 3, 1>
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
+    const Eigen::Matrix<double, 3, 1>& robj) noexcept;
+
 #ifdef DEBUG
 int lagrange_polynomials(
     double x, double y, double z, double R, int l, int k,
