@@ -33,6 +33,9 @@ constexpr const double Cr_H2C = 0.88e0;
 constexpr const double Mass_H2C = 1677e0; // [kg] total mass of H2C
 constexpr const double Area_H2C = 39.71e0; // [m^2]
 
+// Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
+double GMSun, GMMoon;
+
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
@@ -211,7 +214,7 @@ ter2cel(double mjd_tai, const EopInfo *eopLUT,
   return t2c;
 }
 
-void SunMoon(double mjd_tai, double GM, const Eigen::Matrix<double, 3, 1> &rsat,
+void SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
              Eigen::Matrix<double, 3, 1> &sun_acc,
              Eigen::Matrix<double, 3, 1> &moon_acc,
              Eigen::Matrix<double, 3, 1> &sun_pos,
@@ -233,15 +236,12 @@ void SunMoon(double mjd_tai, double GM, const Eigen::Matrix<double, 3, 1> &rsat,
   Eigen::Matrix<double, 3, 1> rSun(rsun); // [km]
   Eigen::Matrix<double, 3, 1> rMon(rmon); // [km]
 
-  // Sun-induced acceleration [m/sec^2]
-  double GMSun;
-  int n;
-  bodvrd_c( "SUN", "GM", 1, &n, &GMSun);
-  printf(">> Note: Suns GM=%.20e\n", GMSun);
-  sun_acc = dso::point_mass_accel(GM, rsat, rSun * 1e3);
+  // Sun-induced acceleration [km/sec^2]
+  sun_acc = dso::point_mass_accel(GMSun, rsat * 1e-3, rSun);
+  sun_acc = sun_acc * 1e-3; // [m/sec^2]
 
   // Moon-induced acceleration [m/sec^2]
-  moon_acc = dso::point_mass_accel(GM, rsat, rMon * 1e3, mon_partials);
+  moon_acc = dso::point_mass_accel(GMMoon * 1e9, rsat, rMon * 1e3, mon_partials);
 
   // Sun position in [m]
   sun_pos = rSun * 1e3;
@@ -289,7 +289,7 @@ void VariationalEquations(
   Eigen::Matrix<double, 3, 1> sun_acc;
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
-  SunMoon(cmjd, /*params->hc->GM()*/ iers2010::GMe, r, sun_acc, mon_acc, rsun,
+  SunMoon(cmjd, r, sun_acc, mon_acc, rsun,
           tb_partials);
   if (!include_third_body) {
     sun_acc = Eigen::Matrix<double, 3, 1>::Zero();
@@ -350,9 +350,9 @@ void VariationalEquations(
 int main(int argc, char *argv[]) {
 
   // handle gravity field
-  if (argc < 7 || argc > 8) {
+  if (argc < 8 || argc > 9) {
     fprintf(stderr,
-            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] [INTEGRATION INTERVAL IN SEC - optional-]"
+            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] [LSK] [PCK] [INTEGRATION INTERVAL IN SEC - optional-]"
             "[LSK]\n",
             argv[0]);
     return 1;
@@ -365,8 +365,13 @@ int main(int argc, char *argv[]) {
   // to compute the planet's position via cspice, we need to load:
   // 1. the planetary ephemeris (SPK) kernel
   // 2. the leap-second (aka LSK) kernel
+  // 3. the planetary constants kernel (PCK)
   dso::cspice::load_if_unloaded_spk(argv[5]);
   dso::cspice::load_if_unloaded_lsk(argv[6]);
+  // well, actually we do not need to load the kernel; just get the values we 
+  // want!
+  // dso::cspice::load_if_unloaded_pck(argv[7]);
+  dso::getSunMoonGM(argv[7], GMSun, GMMoon); // [km^3 / sec^2]
 
   // Harmonic coefficients
   printf("* setting up harmonic coefficients ...\n");

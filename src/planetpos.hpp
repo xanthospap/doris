@@ -29,6 +29,10 @@ namespace cspice {
   /// @brief Load a given binary/SPK cspice kernel if not already loaded.
   /// @see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/kernel.html#Kernel%20Types
   int load_if_unloaded_spk(const char *spk_kernel) noexcept;
+  
+  /// @brief Load a given binary/PCK cspice kernel if not already loaded.
+  /// @see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/kernel.html#Kernel%20Types
+  int load_if_unloaded_pck(const char *pck_kernel) noexcept;
 
   /// @brief Compute Ephemeris Time from TT passed as Julian Date via cspice
   /// @note The function expects that:
@@ -65,6 +69,20 @@ namespace cspice {
     return 0;
   }
 }// spice
+
+/// @brief Get the Sun's and Moon's standard gravitational parameter (μ) off
+///        from a CSPICE/NAIF PCK Kernel
+/// @param[in] pck_kernel A PCK kernel filename. If the kernel is already
+///         loaded, we will get the values without reloading it. If the
+///         filename is NULL, then we will try retrieving the constants
+///         assuming a PCK kernel is already loaded.
+/// @param[out] GMSun Sun's gravitational constant according to the kernel in
+///         [km^3 / sec^2]
+/// @param[out] GMMoon Moon's gravitational constant according to the kernel in
+///         [km^3 / sec^2]
+/// @return Anything other than zero denotes an error.
+int getSunMoonGM(const char *pck_kernel, double &GMSun,
+                 double &GMMoon) noexcept;
 
 /// @brief Sun's geocentric position using a low precision analytical series
 /// @param[in] tt_jdc Terestrial time as Modified Julian cent. since J2000
