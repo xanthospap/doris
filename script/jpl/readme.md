@@ -40,7 +40,7 @@ relevant constants. These are:
 
 * (SPK) Ephemerides for planets ([spk data](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/))
 
-* (PCK) Planetary constants kernels ([pck data]()), and
+* (PCK) Planetary constants kernels ([pck data](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/)), and
 
 * (LSK) Current leapseconds kernel ([lsk data](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/))
 

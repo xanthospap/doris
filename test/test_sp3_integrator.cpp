@@ -17,7 +17,7 @@
 using dso::sp3::SatelliteId;
 
 const int Integrate = true;
-const int include_third_body = true;
+const int include_third_body = false;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
@@ -241,7 +241,8 @@ void SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
   sun_acc = sun_acc * 1e-3; // [m/sec^2]
 
   // Moon-induced acceleration [m/sec^2]
-  moon_acc = dso::point_mass_accel(GMMoon * 1e9, rsat, rMon * 1e3, mon_partials);
+  moon_acc =
+      dso::point_mass_accel(GMMoon * 1e9, rsat, rMon * 1e3, mon_partials);
 
   // Sun position in [m]
   sun_pos = rSun * 1e3;
@@ -352,7 +353,8 @@ int main(int argc, char *argv[]) {
   // handle gravity field
   if (argc < 8 || argc > 9) {
     fprintf(stderr,
-            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] [LSK] [PCK] [INTEGRATION INTERVAL IN SEC - optional-]"
+            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] "
+            "[LSK] [PCK] [INTEGRATION INTERVAL IN SEC - optional-]"
             "[LSK]\n",
             argv[0]);
     return 1;
@@ -481,7 +483,9 @@ int main(int argc, char *argv[]) {
         yPhi.block<6,1>(0,0) = r0_cel;
         {
           int k = 6;
-          for (int col=1; col<7; col++) for (int row=0; row<6; row++) yPhi(k++) = (col-1==row) ? 1e0 : 0e0;
+          for (int col = 1; col < 7; col++)
+            for (int row = 0; row < 6; row++)
+              yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
         }
 
         // t0 for variational equations (TAI)
