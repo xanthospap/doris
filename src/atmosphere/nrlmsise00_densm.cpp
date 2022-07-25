@@ -10,7 +10,7 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
   constexpr const int dim = 10;
   double xs[dim], ys[dim], y2out[dim], work[dim];
 
-  double densm = 0e0;
+  double densm = d0;
   if (alt <= zn2[0]) {
     // STRATOSPHERE/MESOSPHERE TEMPERATURE
     double z = std::max(alt, zn2[mn2 - 1]);

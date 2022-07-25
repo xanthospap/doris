@@ -7,7 +7,8 @@ double dso::nrlmsise00::splini(const double *__restrict__ xa,
                                double x) noexcept {
 
   int klo = 0, khi = 1;
-  double xx, a, a2, b, b2, h, yi;
+  double xx, a, a2, b, b2, h;
+  double yi=0e0;
 
   do {
     xx = x;

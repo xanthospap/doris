@@ -6,7 +6,7 @@ using namespace dso::nrlmsise00;
 double dso::nrlmsise00::dnet(double &dd, double dm, double zhm, double xmm,
                              double xm) noexcept {
   const double a = zhm / (xmm - xm);
-  double dnet;
+  double dnet = 0e0;
 
   if (dm <= 0e0 || dd <= 0e0) {
     if (std::abs(dd) < nearzero && std::abs(dm) < nearzero)
