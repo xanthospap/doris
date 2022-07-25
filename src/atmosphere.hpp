@@ -2,6 +2,7 @@
 #define __DSO_DORIS_ATMOSPHERE_MODELS_HPP__
 
 #include <cstdint>
+#include "atmosphere/nrlmsise00.hpp"
 
 namespace dso {
 
@@ -23,7 +24,7 @@ namespace exponential {
   double density(double sat_altitude_km) noexcept;
 }// namespace exponential
 
-namespace nrlmsise00 {
+// namespace nrlmsise00 {
 /// @brief NRLMSISE-00 Model, 2001
 /// The NRLMSIS-00 empirical atmosphere model was developed by Mike
 /// Picone, Alan Hedin, and Doug Drob based on the MSISE90 model.
@@ -152,12 +153,12 @@ namespace nrlmsise00 {
 /// 21 - all NLB var
 /// 22 - all TN3 var
 /// 23 - turbo scale height var
-void gtd7(
+/*void gtd7(
     const int *switches, int doy, double fsec, double glat,
     double glon, double lst, double f107, double f107A, double alt,
     double magnetic_index, const double *magnetic_array, 
-    double *outd, double *outt) noexcept;
-} // namespace nrlmsise00
+    double *outd, double *outt) noexcept;*/
+//} // namespace nrlmsise00
 
 namespace msis86 {
   /// @brief MSIS-86/cira 1986 neutral thermosphere model

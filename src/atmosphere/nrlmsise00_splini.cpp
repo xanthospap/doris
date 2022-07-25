@@ -8,7 +8,7 @@ double dso::nrlmsise00::splini(const double *__restrict__ xa,
 
   int klo = 0, khi = 1;
   double xx, a, a2, b, b2, h;
-  double yi=0e0;
+  double yi = 0e0;
 
   do {
     xx = x;

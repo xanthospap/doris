@@ -1,6 +1,6 @@
 #include "nrlmsise00.hpp"
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 
 using namespace dso::nrlmsise00;
 

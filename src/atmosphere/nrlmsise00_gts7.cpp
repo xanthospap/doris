@@ -4,7 +4,8 @@
 
 using namespace dso::nrlmsise00;
 
-int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept {
+int dso::Nrlmsise00::gts7(const InParams *in, int mass,
+                          OutParams *out) noexcept {
   static double altlast = -999e0;
   static InParams lastIn;
 
@@ -12,13 +13,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
   if (in->is_equal(lastIn))
     input_changed = true;
 
-  const double yrd = in->doy;
+  // const double yrd = in->doy;
   const double za = pdl[1][15];
   zn1[0] = za;
   std::memset(out->d, 0, sizeof(double) * 9);
 
   // TINF variations not important below za or zn1(1)
-  double tinf;
+  double tinf = 0e0;
   if (in->alt > zn1[0]) {
     if (input_changed || altlast <= zn1[0]) {
       tinf = ptm[0] * pt[0] * (1e0 + in->sw.sw[15] * globe7(in, pt));
@@ -29,7 +30,6 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
   out->t[0] = tinf;
 
   // gradient variations not important below zn1(5)
-  double xg0;
   if (in->alt > zn1[4]) {
     if (input_changed || altlast <= zn1[4]) {
       xg0 = ptm[3] * ps[0] * (1e0 + in->sw.sw[18] * globe7(in, ps));
@@ -39,7 +39,6 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
   }
 
   // calculate these temperatures only if input changed
-  double tlb;
   if (input_changed || in->alt < 300e0) {
     tlb = ptm[1] * (1e0 + in->sw.sw[16] * globe7(in, pd[3])) * pd[3][0];
   }
@@ -65,10 +64,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
               tn1[4] * tn1[4] / std::pow(ptm[4] * ptl[3][0], 2);
   }
 
-  const double z0 = zn1[3];
-  const double t0 = tn1[3];
-  const double tr12 = 1e0;
+  [[maybe_unused]] const double z0 = zn1[3];
+  [[maybe_unused]] const double t0 = tn1[3];
+  [[maybe_unused]] const double tr12 = 1e0;
 
+  int j = 0;
   if (mass) {
 
     // N2 variation factor at Zlb
@@ -83,37 +83,38 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
     const double xmm = pdm[2][4];
     const double z = in->alt;
 
-    int j;
+    int i;
     bool goto_100 = false;
-    for (j = 0; j < 11; j++) {
-      if (mt[j] == mass) {
+    for (i = 0; i < 11; i++) {
+      if (mt[i] == mass) {
+        j = i++;
         goto_100 = true;
         break;
       }
     }
 
+    double tz = 0, zhm28 = 0, b28 = 0;
+    double db01, db04, db14, db16, db28, db32, db40;
     if (goto_100) {
-      if (z < latl[5] || mass == 28 || mass == 48) {
+      if (z < altl[5] || mass == 28 || mass == 48) {
         //
         //  **** N2 DENSITY ****
         //
         // diffusive density at zlb
-        const double db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
+        db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
         // diffusive density at alt
         out->d[2] =
             densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s);
-        const double dd = out->d[2];
+        dd = out->d[2];
         // turbopause
         const double zh28 = pdm[2][2] * zhf;
-        const double zhm28 = pdm[2][3] * pdl[1][5];
-        const double xdm = 28e0 - xmm;
+        zhm28 = pdm[2][3] * pdl[1][5];
+        const double xmd = 28e0 - xmm;
         // mixed density at Zlb
-        const double b28 =
-            densu(zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s);
+        b28 = densu(zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s);
         if (z <= altl[2] && std::abs(in->sw.sw[14]) > 0e0) {
           // mixed density at alt
-          const double dm28 =
-              densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s);
+          dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s);
           // net density at alt
           out->d[2] = dnet(out->d[2], dm28, zhm28, xmm, 28e0);
         }
@@ -124,12 +125,12 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
         // **** HE DENSITY ****
         // BP: --
         // Density variation factor at Zlb
-        const double g4 = in->sw.sw[20] * glob7(in, pd[0]);
+        const double g4 = in->sw.sw[20] * globe7(in, pd[0]);
         // diffusive density at zlb
-        const double db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
+        db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
         out->d[0] =
             densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s);
-        const double dd = out->d[0];
+        dd = out->d[0];
         if (z <= altl[0] && std::abs(in->sw.sw[14]) > 0e0) {
           // turbopause
           const double zh04 = pdm[0][2];
@@ -155,13 +156,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
         //
         // BP: --
         // Density variation factor at Zlb
-        const double d16 = in->sw.sw[20] * globe7(in, pd[2]);
+        const double g16 = in->sw.sw[20] * globe7(in, pd[2]);
         // diffusion density at Zlb
-        const double db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
+        db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
         // diffusive density at alt
         out->d[1] =
             densu(z, db16, tinf, tlb, 16e0, alpha[1], out->t[1], ptm[5], s);
-        const double dd = out->d[1];
+        dd = out->d[1];
         if (z <= altl[1] && std::abs(in->sw.sw[14]) > 0) {
           // corrected pdm(31) to pdm(3,2) 12/2/85
           // turbopause
@@ -202,7 +203,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
         // BP: 200
         const double g32 = in->sw.sw[20] * globe7(in, pd[4]);
         // diffusive density at Zlb
-        const double db32 = pdm[3][0] * std::exp(g32) * pd[4][0];
+        db32 = pdm[3][0] * std::exp(g32) * pd[4][0];
         // diffusive density at alt
         out->d[3] =
             densu(z, db32, tinf, tlb, 32e0, alpha[3], out->t[1], ptm[5], s);
@@ -215,12 +216,15 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
           if (z <= altl[3]) {
             // turbopause
             const double zh32 = pdm[3][2];
-            // mixed density at alt
+            // mixed density at Zlb
             const double b32 = densu(zh32, db32, tinf, tlb, 32e0 - xmm,
                                      alpha[3] - 1e0, out->t[1], ptm[5], s);
+            // mixed density at alt
+            const double dm32 =
+                densu(z, b32, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
             const double zhm32 = zhm28;
             // net density at alt
-            out->d[3] = dnet(out->d[3], dm32, zhm32, xmm, d_32);
+            out->d[3] = dnet(out->d[3], dm32, zhm32, xmm, 32e0);
             // correction to specified mixing ration at ground
             const double rl = std::log(b28 * pdm[3][1] / b32);
             const double hc32 = pdm[3][5] * pdl[1][7];
@@ -249,11 +253,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
       // BP: 300
       const double g40 = in->sw.sw[20] * globe7(in, pd[5]);
       // diffusive density at Zlb
-      const double db40 = pdm[4][0] * std::exp(g40) * pd[5][0];
+      db40 = pdm[4][0] * std::exp(g40) * pd[5][0];
       // diffusive density at alt
       out->d[4] =
           densu(z, db40, tinf, tlb, 40e0, alpha[4], out->t[1], ptm[5], s);
-      const double dd = d[4];
+      dd = out->d[4];
       if (z <= altl[4] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh40 = pdm[4][2];
@@ -282,11 +286,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
       // BP: 400
       const double g1 = in->sw.sw[20] * globe7(in, pd[6]);
       // diffusive density at zlb
-      const double db01 = pdm[5][0] * std::exp(g1) * pd[6][0];
+      db01 = pdm[5][0] * std::exp(g1) * pd[6][0];
       // diffusive density at alt
       out->d[6] =
           densu(z, db01, tinf, tlb, 1e0, alpha[6], out->t[1], ptm[5], s);
-      const double dd = out->d[6];
+      dd = out->d[6];
       if (z <= altl[6] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh01 = pdm[5][2];
@@ -322,11 +326,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
       // BP: 500
       const double g14 = in->sw.sw[20] * globe7(in, pd[7]);
       // diffusive density at Zlb
-      const double db14 = pdm[6][0] * std::exp(g14) * pd[7][0];
+      db14 = pdm[6][0] * std::exp(g14) * pd[7][0];
       // diffusive density at alt
       out->d[7] =
           densu(z, db14, tinf, tlb, 14e0, alpha[7], out->t[1], ptm[5], s);
-      const double dd = d[7];
+      dd = out->d[7];
       if (z <= altl[7] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh14 = pdm[6][2];
@@ -362,8 +366,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
       const double g16h = in->sw.sw[20] * globe7(in, pd[8]);
       const double db16h = pdm[7][0] * std::exp(g16h) * pd[8][0];
       const double tho = pdm[7][9] * pdl[0][6];
-      const double dd =
-          densu(z, db16h, tho, tho, 16e0, alpha[8], t2, ptm[5], s);
+      dd = densu(z, db16h, tho, tho, 16e0, alpha[8], out->t[1], ptm[5], s);
       const double zsht = pdm[7][5];
       const double zmho = pdm[7][4];
       const double zsho = scalh(zmho, 16e0, tho);
@@ -375,17 +378,17 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
             1.66e-24 * (4e0 * out->d[0] + 16e0 * out->d[1] + 28e0 * out->d[2] +
                         32e0 * out->d[3] + 40e0 * out->d[4] + out->d[6] +
                         14e0 * out->d[7]);
-        const double db48 =
+        [[maybe_unused]] const double db48 =
             1.66e-24 * (4e0 * db04 + 16e0 * db16 + 28e0 * db28 + 32e0 * db32 +
                         40e0 * db40 + db01 + 14e0 * db14);
       }
     }
   } // if mass
 
-  double ddum;
+  [[maybe_unused]] double ddum;
   if (j != 5) {
     // BP: 700
-    z = std::abs(in->alt);
+    const double z = std::abs(in->alt);
     ddum = densu(z, 1e0, tinf, tlb, 0e0, 0e0, out->t[1], ptm[5], s);
   }
 
@@ -393,7 +396,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass, OutParams *out) noexcept
     for (int i = 0; i < 9; i++) {
       out->d[i] *= 1e6;
     }
-    d[5] /= 1e3
+    out->d[5] /= 1e3;
   }
   altlast = in->alt;
 

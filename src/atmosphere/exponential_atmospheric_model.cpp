@@ -48,7 +48,7 @@ const int table_sz = sizeof(AtmTable) / sizeof(AtmLayer);
 
 double
 dso::air_density_models::exponential::density(double sat_altitude_km) noexcept {
-  assert(sat_altitude_km>0e0);
+  assert(sat_altitude_km > 0e0);
 
   // compute altitude, found by subtracting the Earth’s radius from the
   // satellite’s radius

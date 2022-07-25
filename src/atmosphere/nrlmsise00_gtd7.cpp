@@ -1,6 +1,7 @@
 #include "nrlmsise00.hpp"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 
 using namespace dso::nrlmsise00;
 
@@ -14,12 +15,12 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   double *__restrict__ d = out->d;
   double *__restrict__ t = out->t;
   double *__restrict__ ds = outc.d;
-  double *__restrict__ ts = outc.t;
+  // double *__restrict__ ts = outc.t;
 
   // test for changed input
   static InParams inLast;
   bool input_changed = false;
-  if (*in != inLast) {
+  if (!(in->is_equal(inLast))) {
     inLast = *in;
     input_changed = true;
   }
@@ -28,7 +29,7 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   double xlat = in->glat;
   if (std::abs(in->sw.sw[1]) < 0)
     xlat = 45e0;
-  const double re = glatf(xlat, gsurf);
+  re = glatf(xlat, gsurf);
 
   const double xmm = pdm[2][4];
 
@@ -40,12 +41,11 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     mss = 28;
   // Only calculate thermosphere if input parameters changed
   // or altitude above ZN2(1) in mesosphere
-  if (input_changed || in->alt > zn2[0] || altlast > zn2[0] ||
-      mss != mssl) {
+  if (input_changed || in->alt > zn2[0] || altlast > zn2[0] || mss != mssl) {
     InParams inc(*in);
     inc.alt = altt;
-    gts7(inc, outc, mss);
-    double dm28m = dm28;
+    gts7(&inc, mss, &outc);
+    dm28m = dm28;
     if (in->meters())
       dm28m = dm28 * 1e6;
     mssl = mss;
@@ -63,17 +63,13 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   if (input_changed || altlast >= zn2[0]) {
     tgn2[0] = tgn1[1];
     tn2[0] = tn1[4];
-    tn2[1] = pma[0][0] * pavgm[0] /
-             (1e0 - in->sw(19) * glob7s(in->fdoy(), in->glon, pma[0]));
-    tn2[2] = pma[1][0] * pavgm[1] /
-             (1e0 - in->sw(19) * glob7s(in->fdoy(), in->glon, pma[1]));
-    tn2[3] =
-        pma[2][0] * pavgm[2] /
-        (1e0 - in->sw(19) * in->sw(21) * glob7s(in->fdoy(), in->glon, pma[2]));
-    tgn2[1] =
-        pavgm[8] * pma[9][0] *
-        (1e0 + in->sw(19) * in->sw(21) * glob7s(in->fdoy(), in->glon, pma[9])) *
-        tn2[3] * tn2[3] / std::pow(pma[2][0] * pavgm[2], 2e0);
+    tn2[1] = pma[0][0] * pavgm[0] / (1e0 - in->sw(19) * glob7s(in, pma[0]));
+    tn2[2] = pma[1][0] * pavgm[1] / (1e0 - in->sw(19) * glob7s(in, pma[1]));
+    tn2[3] = pma[2][0] * pavgm[2] /
+             (1e0 - in->sw(19) * in->sw(21) * glob7s(in, pma[2]));
+    tgn2[1] = pavgm[8] * pma[9][0] *
+              (1e0 + in->sw(19) * in->sw(21) * glob7s(in, pma[9])) * tn2[3] *
+              tn2[3] / std::pow(pma[2][0] * pavgm[2], 2e0);
   }
 
   // LOWER STRATOSPHERE AND TROPOSPHERE [below ZN3(1)]
@@ -83,21 +79,16 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   if (in->alt < zn3[0]) {
     if (input_changed || altlast >= zn3[0]) {
       tgn3[0] = tgn2[1];
-      tn3[1] = pma[3][0] * pavgm[3] /
-               (1e0 - in->sw(21) * glob7s(in->fdoy(), in->glong, pma[3]));
-      tn3[2] = pma[4][0] * pavgm[4] /
-               (1e0 - in->sw(21) * glob7s(in->fdoy(), in->glong, pma[4]));
-      tn3[3] = pma[5][0] * pavgm[5] /
-               (1e0 - in->sw(21) * glob7s(in->fdoy(), in->glong, pma[5]));
-      tn3[4] = pma[6][0] * pavgm[6] /
-               (1e0 - in->sw(21) * glob7s(in->fdoy(), in->glong, pma[6]));
-      tgn3[1] = pma[7][0] * pavgm[7] *
-                (1e0 + in->sw(21) * glob7s(in->fdoy(), in->glong, pma[7])) *
+      tn3[1] = pma[3][0] * pavgm[3] / (1e0 - in->sw(21) * glob7s(in, pma[3]));
+      tn3[2] = pma[4][0] * pavgm[4] / (1e0 - in->sw(21) * glob7s(in, pma[4]));
+      tn3[3] = pma[5][0] * pavgm[5] / (1e0 - in->sw(21) * glob7s(in, pma[5]));
+      tn3[4] = pma[6][0] * pavgm[6] / (1e0 - in->sw(21) * glob7s(in, pma[6]));
+      tgn3[1] = pma[7][0] * pavgm[7] * (1e0 + in->sw(21) * glob7s(in, pma[7])) *
                 tn3[4] * tn3[4] / std::pow(pma[6][0] * pavgm[6], 2e0);
     }
   }
 
-  double dd, dmr;
+  double dmr, tz;
   if (mass == 0) {
     dd = densm(in->alt, 1e0, 0e0, tz);
     t[1] = tz;

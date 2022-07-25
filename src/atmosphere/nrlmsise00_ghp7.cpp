@@ -5,7 +5,7 @@ using namespace dso::nrlmsise00;
 // if anything other than zero is returned, error!
 int dso::Nrlmsise00::ghp7(const InParams *in, OutParams *out,
                           double press) noexcept {
-  
+
   constexpr const double bm = 1.3806e-19;
   const bool imr = in->sw.isw[0]; // to meters
 

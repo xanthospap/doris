@@ -28,7 +28,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
   densu = tz;
 
   int mn;
-  double z1,tt1,zgdif,x;
+  double z1, tt1, zgdif, x;
   if (alt < za) {
     // CALCULATE TEMPERATURE BELOW ZA
     // Temperature gradient at ZA from Bates profile
@@ -59,7 +59,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
     // calculate spline coefficients
 #ifdef DEBUG
-    assert(mn<=5);
+    assert(mn <= 5);
 #endif
     dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
     x = zg / zgdif;

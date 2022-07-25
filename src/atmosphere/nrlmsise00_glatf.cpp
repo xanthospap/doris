@@ -1,5 +1,5 @@
-#include "nrlmsise00.hpp"
 #include "geodesy/units.hpp"
+#include "nrlmsise00.hpp"
 
 using namespace dso::nrlmsise00;
 

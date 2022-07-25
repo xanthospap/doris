@@ -76,38 +76,39 @@ constexpr const int mn1 = 5;
 constexpr const int mn2 = 4;
 constexpr const int mn3 = 5;
 
-//const double zn1[] = {120e0, 110e0, 100e0, 90e0, 72.e0};
-//const double zn2[] = {72.5e0, 55e0, 45e0, 32.e0};
-//const double zn3[] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
-//const double mt[] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
-//const double altl[] = {200e0, 300e0, 160e0, 250e0, 240e0, 450e0, 320e0, 450e0};
-//const double alpha[] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0, 0e0, 0e0};
+// const double zn1[] = {120e0, 110e0, 100e0, 90e0, 72.e0};
+// const double zn2[] = {72.5e0, 55e0, 45e0, 32.e0};
+// const double zn3[] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
+// const double mt[] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
+// const double altl[] = {200e0, 300e0, 160e0, 250e0, 240e0, 450e0, 320e0,
+// 450e0}; const double alpha[] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0,
+// 0e0, 0e0};
 
 /* PARMB */
-//static double gsurf;
-//static double re;
+// static double gsurf;
+// static double re;
 //
 ///* GTS3C */
-//static double dd;
+// static double dd;
 //
 ///* DMIX */
-//static double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
+// static double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
 //
 ///* MESO7 */
-//static double tn1[5];
-//static double tn2[4];
-//static double tn3[5];
-//static double tgn1[2];
-//static double tgn2[2];
-//static double tgn3[2];
+// static double tn1[5];
+// static double tn2[4];
+// static double tn3[5];
+// static double tgn1[2];
+// static double tgn2[2];
+// static double tgn3[2];
 //
 ///* LPOLY */
-//static double dfa;
-//static double plg[4][9];
-//static double ctloc, stloc;
-//static double c2tloc, s2tloc;
-//static double s3tloc, c3tloc;
-//static double apdf, apt[4];
+// static double dfa;
+// static double plg[4][9];
+// static double ctloc, stloc;
+// static double c2tloc, s2tloc;
+// static double s3tloc, c3tloc;
+// static double apdf, apt[4];
 
 } // namespace dso::nrlmsise00
 

@@ -4,90 +4,96 @@
 #include <cassert>
 #include <cstdio>
 
-using dso::air_density_models::nrlmsise00::gtd7;
 #define DPRECISION 1e-12
 #define TPRECISION 1e-9
 #define TOTALD_PRECISION 1e-15
 
-struct auxin {
-  double doy;
-  int year;
-  double sec;
-  double alt;
-  double lat;
-  double lon;
-  double lst;
-  double f107;
-  double f107A;
-  double ap;
-};
+//struct auxin {
+//  double doy;
+//  int year;
+//  double sec;
+//  double alt;
+//  double lat;
+//  double lon;
+//  double lst;
+//  double f107;
+//  double f107A;
+//  double ap;
+//};
 
-struct auxout {
-  double d[10];
-  double t[2];
-};
+//struct auxout {
+//  double d[10];
+//  double t[2];
+//};
 
 TEST_CASE("MSIS00 Comparisson of results based on C implementation.\nSee "
           "https://ccmc.gsfc.nasa.gov/pub/modelweb/atmospheric/msis/nrlmsise00/"
           "nrlmsis00_c_version/nrlmsise-00_test.c") {
   // input values
-  double apha[7];
+  [[maybe_unused]]double apha[7];
   for (int i = 0; i < 7; i++)
     apha[i] = 100;
 
-  int switches[24];
+  double switches[24];
   switches[0] = 0;
   for (int i = 1; i < 24; i++)
     switches[i] = 1;
 
-  auxin input[17];
-  auxout out[17];
+  dso::nrlmsise00::InParams input[17];
+  dso::nrlmsise00::OutParams out[17];
 
   for (int i = 0; i < 17; i++) {
     input[i].doy = 172;
     input[i].year = 0; // without effect
-    input[i].sec = 29000;
-    input[i].alt = 400;
-    input[i].lat = 60;
-    input[i].lon = -70;
-    input[i].lst = 16;
-    input[i].f107A = 150;
-    input[i].f107 = 150;
-    input[i].ap = 4; // magnetic_index
+    input[i].sec = 29000e0;
+    input[i].alt = 400e0;
+    input[i].glat = 60e0;
+    input[i].glon = -70e0;
+    input[i].lst = 16e0;
+    input[i].f107A = 150e0;
+    input[i].f107 = 150e0;
+    input[i].ap = 4e0; // magnetic_index
   }
 
   input[1].doy = 81;
-  input[2].sec = 75000;
-  input[2].alt = 1000;
-  input[3].alt = 100;
-  input[10].alt = 0;
-  input[11].alt = 10;
-  input[12].alt = 30;
-  input[13].alt = 50;
-  input[14].alt = 70;
-  input[16].alt = 100;
-  input[4].lat = 0;
-  input[5].lon = 0;
-  input[6].lst = 4;
-  input[7].f107A = 70;
-  input[8].f107 = 180;
-  input[9].ap = 40;
+  input[2].sec = 75000e0;
+  input[2].alt = 1000e0;
+  input[3].alt = 100e0;
+  input[10].alt = 0e0;
+  input[11].alt = 10e0;
+  input[12].alt = 30e0;
+  input[13].alt = 50e0;
+  input[14].alt = 70e0;
+  input[16].alt = 100e0;
+  input[4].glat = 0e0;
+  input[5].glon = 0e0;
+  input[6].lst = 4e0;
+  input[7].f107A = 70e0;
+  input[8].f107 = 180e0;
+  input[9].ap = 40e0;
   // input[15].ap_a = &aph;
   // input[16].ap_a = &aph;
 
+  dso::Nrlmsise00 Msise;
+  int mass = 48;
+
   // evaluate 0 to 14
   for (int i = 0; i < 15; i++) {
-    gtd7(switches, input[i].doy, input[i].sec, input[i].lat, input[i].lon,
+    /*gtd7(switches, input[i].doy, input[i].sec, input[i].lat, input[i].lon,
          input[i].lst, input[i].f107, input[i].f107A, input[i].alt, input[i].ap,
-         apha, out[i].d, out[i].t);
+         apha, out[i].d, out[i].t);*/
+    input[i].sw.tselec(switches);
+    Msise.gtd7(&input[i], mass, &out[i]);
   }
 
   // evaluate 15 and 16
   switches[9] = -1;
   for (int i = 15; i < 17; i++) {
-    gtd7(switches, input[i].doy, input[i].sec, input[i].lat, input[i].lon,
+    /*gtd7(switches, input[i].doy, input[i].sec, input[i].lat, input[i].lon,
          input[i].lst, input[i].f107, input[i].f107A, input[i].alt, input[i].ap,
-         apha, out[i].d, out[i].t);
+         apha, out[i].d, out[i].t);*/
+    input[i].sw.tselec(switches);
+    Msise.gtd7(&input[i], mass, &out[i]);
   }
 
   SUBCASE("MSIS00 Comparisson of results based on C implementation #0") {

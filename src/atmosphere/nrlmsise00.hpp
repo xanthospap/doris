@@ -82,13 +82,13 @@ struct InParams {
   double f107;  /* daily F10.7 flux for previous day */
   double ap;    /* magnetic index(daily) */
   bool meters_{false};
-  nrlmsise00::ApArray ap_a; /* see above */
+  nrlmsise00::ApArray aparr; /* see above */
   nrlmsise00::switches sw;
 
   bool meters() const noexcept { return meters_; }
   double fdoy() const noexcept { return (double)doy + sec / 86400e0; }
 
-  bool is_equal(const InParams &p, double limit=nearzero) const noexcept {
+  bool is_equal(const InParams &p, double limit = nearzero) const noexcept {
     return (year == p.year && doy == p.doy && std::abs(sec - p.sec) < limit &&
             std::abs(alt - p.alt) < limit && std::abs(glat - p.glat) < limit &&
             std::abs(glon - p.glon) < limit && std::abs(lst - p.lst) < limit &&
@@ -107,16 +107,16 @@ struct OutParams {
 double ccor2(double alt, double r, double h1, double zh, double h2) noexcept;
 double ccor(double alt, double r, double h1, double zh) noexcept;
 double dnet(double &dd, double dm, double zhm, double xmm, double xm) noexcept;
-double g0(double a, const double *p) noexcept {
+inline double g0(double a, const double *p) noexcept {
   return (a - 4e0 +
           (p[25] - 1e0) * (a - 4e0 +
                            (std::exp(-std::abs(p[24]) * (a - 4e0)) - 1e0) /
                                std::abs(p[24])));
 }
-double sumex(double ex) noexcept {
+inline double sumex(double ex) noexcept {
   return 1e0 + (1e0 - std::pow(ex, 19e0)) / (1e0 - ex) * std::pow(ex, 0.5e0);
 }
-double sg0(double ex, const double *p, const double *ap) noexcept {
+inline double sg0(double ex, const double *p, const double *ap) noexcept {
   return (g0(ap[1], p) + (g0(ap[2], p) * ex + g0(ap[3], p) * ex * ex +
                           g0(ap[4], p) * std::pow(ex, 3e0) +
                           (g0(ap[5], p) * std::pow(ex, 4e0) +
@@ -127,28 +127,30 @@ double sg0(double ex, const double *p, const double *ap) noexcept {
 } // namespace nrlmsise00
 
 struct Nrlmsise00 {
+  Nrlmsise00() noexcept;
   /* STATIC */
   /* POWER7 */
-static const double pt[150];
-static const double pd[9][150];
-static const double ps[150];
-static const double pdl[2][25];
-static const double ptl[4][100];
-static const double pma[10][100];
-static const double sam[100];
+  double pt[150];
+  double pd[9][150];
+  double ps[150];
+  const double pdl[2][25];
+  double ptl[4][100];
+  double pma[10][100];
+  // const double sam[100]; -> just a function
 
-/* LOWER7 */
-static const double ptm[10];
-static const double pdm[8][10];
-static const double pavgm[10];
+  /* LOWER7 */
+  static const double ptm[10];
+  static const double pdm[8][10];
+  static const double pavgm[10];
 
-/* PARMB */
+  /* PARMB */
   double gsurf;
   double re;
   /* GTS3C */
   double dd;
   /* DMIX */
-  double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
+  // double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
+  double dm28, tlb, xg0, dm28m;
   /* MESO7 */
   double tn1[5];
   double tn2[4];
@@ -172,6 +174,13 @@ static const double pavgm[10];
                           240e0, 450e0, 320e0, 450e0};
   const double alpha[9] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0, 0e0, 0e0};
 
+  constexpr double sam(int i) const noexcept {
+#ifdef DEBUG
+    assert(i >= 0 && i < 100);
+#endif
+    return (i < 50);
+  }
+
   double densm(double alt, double d0, double xm, double &tz) const noexcept;
   double densu(double alt, double dlb, double t1, double t2, double xm,
                double xalpha, double &tz, double zlb, double s2) noexcept;
@@ -192,6 +201,7 @@ static const double pavgm[10];
            double press) noexcept;
   int gts7(const nrlmsise00::InParams *in, int mass,
            nrlmsise00::OutParams *out) noexcept;
+  double globe7(const nrlmsise00::InParams *in, double *p) noexcept;
 }; // Nrlmsise00
 
 } // namespace dso
