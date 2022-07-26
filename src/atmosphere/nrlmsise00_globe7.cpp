@@ -1,5 +1,6 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
+#include <cstdio> // only for debuging
 
 using namespace dso::nrlmsise00;
 
@@ -15,7 +16,9 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   constexpr const double hr = 0.2618e0;
   constexpr const double sr = 7.2722e-5;
 
-  static double xl = 1000e0;
+  // last latitude (so we don't re-compute legendre polynomials)
+  static double xl = 1000e0; 
+  // last used tloc/lst (so we don't recompute trig numbers)
   static double tll = 1000e0;
   static double sw9 = 1e0;
   static double dayl = -1e0;
@@ -26,10 +29,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   static double cd14, cd18, cd32, cd39;
 
   double t[14] = {0e0};
-  if (in->sw.sw[8] > 0e0)
-    sw9 = 1e0;
-  if (in->sw.sw[8] < 0e0)
-    sw9 = -1e0;
+  sw9 = 1e0 * (in->sw.sw[8] < 0e0)*-1e0;
 
   if (std::abs(xl - in->glat) > nearzero) {
     // calculate legendre polynomials
@@ -63,7 +63,16 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     plg[3][4] = 105e0 * s2 * s * c;
     plg[3][5] = (9e0 * c * plg[3][4] - 7e0 * plg[3][3]) / 2e0;
     plg[3][6] = (11e0 * c * plg[3][5] - 8e0 * plg[3][4]) / 3e0;
+
+    // set last used latitude ...
     xl = in->glat;
+
+    for (int m = 0; m < 4; m++) {
+      for (int n = m; n < 7; n++) {
+        printf(" %12.5e", plg[m][n]);
+      }
+      printf("\n");
+    }
   }
 
   const double tloc = in->lst;
@@ -76,6 +85,8 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
       c2tloc = std::cos(2e0 * hr * tloc);
       s3tloc = std::sin(3e0 * hr * tloc);
       c3tloc = std::cos(3e0 * hr * tloc);
+      printf("basic trigs: %.15e %.15e\n", stloc, ctloc);
+      // update last used tloc
       tll = tloc;
     }
   }

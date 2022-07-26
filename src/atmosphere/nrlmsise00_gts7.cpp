@@ -1,19 +1,21 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 #include <cstring>
+#include <cstdio> // only for debuging
 
 using namespace dso::nrlmsise00;
 
 int dso::Nrlmsise00::gts7(const InParams *in, int mass,
                           OutParams *out) noexcept {
+  
+  // last call with this altitude
   static double altlast = -999e0;
-  static InParams lastIn;
 
-  bool input_changed = false;
-  if (in->is_equal(lastIn))
-    input_changed = true;
+  // input always changed from previous call ....
+  constexpr const bool input_changed = false;
 
-  // const double yrd = in->doy;
+  printf("gts7 called ...\n");
+
   const double za = pdl[1][15];
   zn1[0] = za;
   std::memset(out->d, 0, sizeof(double) * 9);
@@ -28,6 +30,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
     tinf = ptm[0] * pt[0];
   }
   out->t[0] = tinf;
+  printf("t(1) = %+.15e\n", out->t[0]);
 
   // gradient variations not important below zn1(5)
   if (in->alt > zn1[4]) {

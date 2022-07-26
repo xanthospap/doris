@@ -2,12 +2,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <cstdio> // just for debuging
 
 using namespace dso::nrlmsise00;
 
 int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
                           OutParams *out) noexcept {
-  static int mssl = -999;
   static double altlast = 99999e0;
   constexpr const double zmix = 62.5e0;
 
@@ -15,21 +15,17 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   double *__restrict__ d = out->d;
   double *__restrict__ t = out->t;
   double *__restrict__ ds = outc.d;
-  // double *__restrict__ ts = outc.t;
 
-  // test for changed input
-  static InParams inLast;
-  bool input_changed = false;
-  if (!(in->is_equal(inLast))) {
-    inLast = *in;
-    input_changed = true;
-  }
+  // test for changed input; fuck that, assert input changed, why give the same
+  // input ?
+  constexpr const bool input_changed = true;
 
   // latitude variation of gravity (none for SW(2)=0)
   double xlat = in->glat;
   if (std::abs(in->sw.sw[1]) < 0)
     xlat = 45e0;
   re = glatf(xlat, gsurf);
+  printf("call to glatf: re=%+.15e, gsurf=%+.15e\n",re,gsurf);
 
   const double xmm = pdm[2][4];
 
@@ -39,21 +35,23 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   // Only calculate N2 in thermosphere if alt in mixed region
   if (in->alt < zmix && mass > 0)
     mss = 28;
-  // Only calculate thermosphere if input parameters changed
-  // or altitude above ZN2(1) in mesosphere
-  if (input_changed || in->alt > zn2[0] || altlast > zn2[0] || mss != mssl) {
+  // Only calculate thermosphere if input parameters changed (but they always 
+  // have in this C++ version ...) or altitude above ZN2(1) in mesosphere
+  {
     InParams inc(*in);
     inc.alt = altt;
     gts7(&inc, mss, &outc);
     dm28m = dm28;
     if (in->meters())
       dm28m = dm28 * 1e6;
-    mssl = mss;
     t[0] = outc.t[0];
     t[1] = outc.t[1];
-    if (in->alt >= zn2[0])
+    printf("updating t: %.15e %.15e\n", t[0],t[1]);
+    if (in->alt >= zn2[0]) {
+      printf("returning after first call to gts7\n");
       std::memcpy(d, outc.d, sizeof(double) * 9);
-    return 0;
+      return 0;
+    }
   }
 
   // LOWER MESOSPHERE/UPPER STRATOSPHERE [between ZN3(1) and ZN2(1)]
