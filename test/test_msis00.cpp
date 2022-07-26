@@ -12,11 +12,6 @@ int main() {
   for (int i = 0; i < 7; i++)
     aph.a[i] = 100;
 
-  double switches[25];
-  for (int i = 1; i < 25; i++)
-    switches[i] = 1;
-  switches[8] = -1;
-
   dso::nrlmsise00::InParams input[17];
   dso::nrlmsise00::OutParams out[17];
 
@@ -58,15 +53,13 @@ int main() {
 
   // evaluate 0 to 14
   for (int i = 0; i < 15; i++) {
-    input[i].sw.tselec(switches);
+    input[i].set_switches_on();
     Msise.gtd7(&input[i], mass, &out[i]);
     return 0;
   }
 
   // evaluate 15 and 16
-  switches[9] = -1;
   for (int i = 15; i < 17; i++) {
-    input[i].sw.tselec(switches);
     Msise.gtd7(&input[i], mass, &out[i]);
   }
 

@@ -4,12 +4,17 @@
 
 using namespace dso::nrlmsise00;
 
-// TODO
-// should be using doy here or fractional doy ? See line ~12
-
 double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
   // calculate G(L) function
+
+  printf("glob7 called\n");
+  for (int i=0; i<25; i++) printf("sw(%2i)=%5.3f ", i+1, in->sw.sw[i]);
+  printf("\n");
+
+  // switches ...
+  // const dso::nrlmsise00::switches::sint_type *__restrict__ sw = in->sw.isw;
+  const double *__restrict__ sw = in->sw.sw;
 
   // upper thermosphere parameters
   constexpr const int nsw = 14;
@@ -29,7 +34,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   static double cd14, cd18, cd32, cd39;
 
   double t[14] = {0e0};
-  sw9 = 1e0 * (in->sw.sw[8] < 0e0)*-1e0;
+  sw9 = 1e0 * (sw[8] < 0e0)*-1e0;
 
   if (std::abs(xl - in->glat) > nearzero) {
     // calculate legendre polynomials
@@ -77,8 +82,8 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
   const double tloc = in->lst;
   if (std::abs(tll - tloc) > nearzero) {
-    if (std::abs(in->sw.sw[6]) > 0e0 || std::abs(in->sw.sw[7]) > 0e0 ||
-        std::abs(in->sw.sw[13])) {
+    if (std::abs(sw[6]) > 0e0 || std::abs(sw[7]) > 0e0 ||
+        std::abs(sw[13])) {
       stloc = std::sin(hr * tloc);
       ctloc = std::cos(hr * tloc);
       s2tloc = std::sin(2e0 * hr * tloc);
@@ -92,16 +97,19 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   }
 
   const double day = in->doy;
-  if (std::abs(day - dayl) > nearzero || std::abs(p[13] - p14) > nearzero)
+  const bool doy_changed = std::abs(day - dayl) > nearzero;
+  if (doy_changed || std::abs(p[13] - p14) > nearzero)
     cd14 = std::cos(dr * (day - p[13]));
-  if (std::abs(day - dayl) > nearzero || std::abs(p[17] - p18) > nearzero)
+  if (doy_changed || std::abs(p[17] - p18) > nearzero)
     cd18 = std::cos(2e0 * dr * (day - p[17]));
-  if (std::abs(day - dayl) > nearzero || std::abs(p[31] - p32) > nearzero)
+  if (doy_changed || std::abs(p[31] - p32) > nearzero)
     cd32 = std::cos(dr * (day - p[31]));
-  if (std::abs(day - dayl) > nearzero || std::abs(p[38] - p39) > nearzero)
+  if (doy_changed || std::abs(p[38] - p39) > nearzero)
     cd39 = std::cos(2e0 * dr * (day - p[38]));
+  
+  // update last doy used ...
   dayl = day;
-
+  
   p14 = p[13];
   p18 = p[17];
   p32 = p[31];
@@ -138,7 +146,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
                   stloc);
   }
   // semidiurnal
-  if (std::abs(in->sw.sw[7]) > 0e0) {
+  if (std::abs(sw[7]) > 0e0) {
     const double t81 =
         (p[23] * plg[2][3] + p[35] * plg[2][5]) * cd14 * in->sw.swc[4];
     const double t82 =
@@ -147,7 +155,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
                  (p[8] * plg[2][2] + p[42] * plg[2][4] + t82) * s2tloc);
   }
   // terdiurnal
-  if (std::abs(in->sw.sw[13]) > 0e0) {
+  if (std::abs(sw[13]) > 0e0) {
     t[13] = f2 * ((p[39] * plg[3][3] + (p[93] * plg[3][4] + p[46] * plg[3][6]) *
                                            cd14 * in->sw.swc[4]) *
                       s3tloc +
@@ -163,7 +171,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     if (p44 < 0e0)
       p44 = 1e-5;
     apdf = apd + (p45 - 1e0) * (apd + (std::exp(-p44 * apd) - 1e0) / p44);
-    if (std::abs(in->sw.sw[8]) > nearzero) {
+    if (std::abs(sw[8]) > nearzero) {
       t[8] = apdf *
              (p[32] + p[45] * plg[0][2] + p[34] * plg[0][4] +
               (p[100] * plg[0][1] + p[101] * plg[0][3] + p[102] * plg[0][5]) *
@@ -182,7 +190,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     // APT(2)=SG2(EXP1)
     // APT(3)=SG0(EXP2)
     // APT(4)=SG2(EXP2)
-    if (std::abs(in->sw.sw[8]) > 0) {
+    if (std::abs(sw[8]) > 0) {
       t[8] = apt[0] *
              (p[50] + p[96] * plg[0][2] + p[54] * plg[0][4] +
               (p[125] * plg[0][1] + p[126] * plg[0][3] + p[127] * plg[0][5]) *
@@ -191,19 +199,22 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
                   in->sw.swc[6] * std::cos(hr * (tloc - p[131])));
     }
   }
-  if (std::abs(in->sw.sw[9]) > 0e0 && in->glon > -1000e0) {
 
+  if (std::abs(sw[9]) > 0e0 && in->glon > -1000e0) {
     // longitudinal
-    if (std::abs(in->sw.sw[10]) > 0e0) {
-      t[8] = apt[0] *
-             (p[50] + p[96] * plg[0][2] + p[54] * plg[0][4] +
-              (p[125] * plg[0][1] + p[126] * plg[0][3] + p[127] * plg[0][5]) *
-                  cd14 * in->sw.swc[4] +
-              (p[128] * plg[1][1] + p[129] * plg[1][3] + p[130] * plg[1][5]) *
-                  in->sw.swc[6] * std::cos(hr * (tloc - p[131])));
+    if (std::abs(sw[10]) > 0e0) {
+      t[10] = (1e0+p[80]*dfa*in->sw.swc[0]) *
+        ((p[64]*plg[1][2]+p[65]*plg[1][4]+p[66]*plg[1][6] +
+        p[103]*plg[1][1]+p[104]*plg[1][3]+p[105]*plg[1][5] +
+        in->sw.swc[4]*(p[109]*plg[1][1]+p[110]*plg[1][3]+p[111]*plg[1][5]) *
+        cd14)*std::cos(dso::deg2rad(in->glon)) +
+        (p[90]*plg[1][2]+p[91]*plg[1][4]+p[92]*plg[1][6] + 
+        p[106]*plg[1][1]+p[107]*plg[1][3]+p[108]*plg[1][5] +
+        in->sw.swc[4]*(p[112]*plg[1][1]+p[113]*plg[1][3]+p[114]*plg[1][5]) *
+        cd14)*std::sin(dso::deg2rad(in->glon)));
     }
     // UT and mixed UT, longitude
-    if (std::abs(in->sw.sw[11]) > nearzero) {
+    if (std::abs(sw[11]) > nearzero) {
       t[11] = (1e0 + p[95] * plg[0][1]) * (1e0 + p[81] * dfa * in->sw.swc[0]) *
               (1e0 + p[119] * plg[0][1] * in->sw.swc[4] * cd14) *
               ((p[68] * plg[0][1] + p[69] * plg[0][3] + p[70] * plg[0][5]) *
@@ -214,7 +225,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
                (1e0 + p[137] * dfa * in->sw.swc[0]);
     }
     // UT, longitude magnetic activity
-    if (std::abs(in->sw.sw[12]) > nearzero) {
+    if (std::abs(sw[12]) > nearzero) {
       if (std::abs(sw9 + 1e0) > nearzero) {
         t[12] =
             apdf * in->sw.swc[10] * (1e0 + p[120] * plg[0][1]) *
@@ -242,6 +253,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   }
 
   // PARMS NOT USED: 83, 90,100,140-150
+  for (int i=0; i<nsw; i++) printf("t(%2i)=%25.14e\n", i+1, t[i]);
 
   double tix = p[30];
   for (int i = 0; i < nsw; i++)
