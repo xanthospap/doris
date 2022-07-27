@@ -14,7 +14,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
   double xs[dim], ys[dim], y2out[dim], work[dim];
 
   double densu = 1e0;
-  printf("called densu ...\n");
+  //printf("called densu ...\n");
 
   // joining altitude of Bates and spline
   const double za = zn1[0];

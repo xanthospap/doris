@@ -52,17 +52,24 @@ int main() {
   int mass = 48;
 
   // evaluate 0 to 14
-  for (int i = 0; i < 15; i++) {
+  for (int i = 14; i < 15; i++) {
     input[i].set_switches_on();
     Msise.gtd7(&input[i], mass, &out[i]);
+    printf("TestCase %d\n", i+1);
+    for (int k=0; k<9; k++) printf("d(%d)=%20.15e ", k+1, out[i].d[k]);
+    printf("\n");
+    printf("t(%d)=%20.15e ", 0, out[i].t[0]);
+    printf("t(%d)=%20.15e\n", 1, out[i].t[1]);
+    return 0;
   }
 
   // evaluate 15 and 16
   for (int i = 15; i < 17; i++) {
+    input[i].switch_on(8);
     Msise.gtd7(&input[i], mass, &out[i]);
   }
 
-  /* output type 2 */
+  /* output type 2
   int j;
   for (int i = 0; i < 3; i++) {
     printf("\n");
@@ -129,5 +136,5 @@ int main() {
       printf("   %1.3e", out[i * 5 + j].d[5]);
     printf("\n");
   }
-  printf("\n");
+  printf("\n");*/
 }

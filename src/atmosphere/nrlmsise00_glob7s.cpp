@@ -1,15 +1,20 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
+#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
 // TODO
 // should be using doy here or fractional doy ? See line ~12
 
-double dso::Nrlmsise00::glob7s(const InParams *in, double *p) noexcept {
+double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   double t[14] = {0e0};
   double glong = in->glon;
   double fdoy = in->doy;
+
+  double *__restrict__ p = pp;
+
+  printf("called glob7s ...\n");
 
   // VERSION OF GLOBE FOR LOWER ATMOSPHERE 10/26/99
   constexpr const double pset = 2e0;
@@ -45,7 +50,7 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *p) noexcept {
   t[0] = p[21] * dfa;
   // time independent
   t[1] = p[1] * plg[0][2] + p[2] * plg[0][4] + p[22] * plg[0][6] +
-         p[26] * plg[0][1] + p[14] * plg[0][3] + p[60] * plg[0][5];
+         p[26] * plg[0][1] + p[14] * plg[0][3] + p[59] * plg[0][5];
   // symmetrical annual
   t[2] = (p[18] + p[47] * plg[0][2] + p[29] * plg[0][4]) * cd32;
   // symmetrical semi-annual
@@ -99,8 +104,10 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *p) noexcept {
   }
 
   double tt = 0e0;
-  for (int i = 0; i < 14; i++)
+  for (int i = 0; i < 14; i++) {
+    //printf("t(%2d) = %25.12f\n", i+1, t[i]);
     tt += std::abs(in->sw.isw[i]) * t[i];
+  }
 
   return tt;
 }

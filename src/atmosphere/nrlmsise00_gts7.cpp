@@ -114,7 +114,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
     double tz = 0, zhm28 = 0, b28 = 0;
     double db01, db04, db14, db16, db28, db32, db40;
     if (goto_100) {
-      printf("Computing N2 density\n");
+      printf("Computing N2 density d(3)\n");
       if (z < altl[5] || mass == 28 || mass == 48) {
         //
         //  **** N2 DENSITY ****
@@ -149,7 +149,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       printf("\n");
 
       if (j==1 || j == 3 || j == 4 || j == 9) {
-        printf("Computing HE density\n");
+        printf("Computing HE density d(1)\n");
         //
         // **** HE DENSITY ****
         // BP: --
@@ -190,7 +190,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         //
         // BP: --
         // Density variation factor at Zlb
-        printf("Computing O density\n");
+        printf("Computing O density d(2)\n");
         const double g16 = in->sw.sw[20] * globe7(in, pd[1]);
         // diffusion density at Zlb
         db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
@@ -363,7 +363,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
 
       //
       // **** ATOMIC NITROGEN DENSITY ****
-      printf("Computing Ni density\n");
+      printf("Computing Ni density d(8)\n");
       //
       // BP: 500
       const double g14 = in->sw.sw[20] * globe7(in, pd[7]);
@@ -449,6 +449,9 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
     out->d[5] /= 1e3;
   }
   altlast = in->alt;
+  
+  //for (int i=0; i<9; i++)
+  //printf("d(%i) = %25.11e\n", i+1, out->d[i]);
 
   return 0;
 }

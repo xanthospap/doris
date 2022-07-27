@@ -66,7 +66,11 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     tgn2[0] = tgn1[1];
     tn2[0] = tn1[4];
     tn2[1] = pma[0][0] * pavgm[0] / (1e0 - in->sw(19) * glob7s(in, pma[0]));
-    tn2[2] = pma[1][0] * pavgm[1] / (1e0 - in->sw(19) * glob7s(in, pma[1]));
+    //printf("tn22=%25.12f from %25.12f %25.12f\n", tn2[1], pma[0][0], pavgm[0]);
+    //const double xan = glob7s(in, pma[1]);
+    tn2[2] =
+        pma[1][0] * pavgm[1] / (1e0 - in->sw(19) * glob7s(in, pma[1]));
+    //printf("tn23=%25.12f from %25.12f %25.12f %25.12f\n", tn2[2], pma[1][0], pavgm[1],xan);
     tn2[3] = pma[2][0] * pavgm[2] /
              (1e0 - in->sw(19) * in->sw(21) * glob7s(in, pma[2]));
     tgn2[1] = pavgm[8] * pma[9][0] *
@@ -102,8 +106,11 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     double dz28 = ds[2];
     // N2 DENSITY
     dmr = ds[2] / dm28m - 1e0;
+    //printf("densm args: %25.12f, %25.12f %25.12f %25.12f\n", in->alt, dm28m, xmm, tz); 
     d[2] = densm(in->alt, dm28m, xmm, tz);
+    //printf("d(3)=%35.15f\n", d[2]);
     d[2] *= (1e0 + dmr * dmc);
+    //printf("d(3)=%35.15f\n", d[2]);
     // HE DENSITY
     d[1] = 0e0;
     if (mass == 4 || mass == 48) {

@@ -21,16 +21,34 @@ struct switches {
   double sw[dim] = {0e0};
   double swc[dim] = {0e0};
 
-  void set_null() noexcept {
-    std::memset(isw, 0, sizeof(int8_t) * dim);
-    std::memset(sw, 0, sizeof(double) * dim);
-    std::memset(swc, 0, sizeof(double)*dim);
+  void set_null(int index=-1) noexcept {
+    if (index<0) {
+      std::memset(isw, 0, sizeof(int8_t) * dim);
+      std::memset(sw, 0, sizeof(double) * dim);
+      std::memset(swc, 0, sizeof(double) * dim);
+    } else {
+#ifdef DEBUG
+assert(index<dim);
+#endif
+      isw[index] = 0;
+      sw[index]  = 0e0;
+      swc[index] = 0e0;
+    }
   }
 
-  void set_on() noexcept {
+  void set_on(int index=-1) noexcept {
+    if (index<0) {
     for (int i=0; i<dim; i++) isw[i] = 1;
     for (int i=0; i<dim; i++) sw[i] = 1e0;
     for (int i=0; i<dim; i++) swc[i] = 1e0;
+    } else {
+      #ifdef DEBUG
+      assert(index<dim);
+      #endif
+      isw[index] = 1;
+      sw[index]  = 1e0;
+      swc[index] = 1e0;
+    }
   }
 
   void tselec(const double *sv) noexcept {
@@ -106,6 +124,9 @@ struct InParams {
   }
   void set_switches_on() noexcept {
     sw.set_on();
+  }
+  void switch_on(int index) noexcept {
+    sw.set_on(index);
   }
 
   bool is_equal(const InParams &p, double limit = nearzero) const noexcept {
