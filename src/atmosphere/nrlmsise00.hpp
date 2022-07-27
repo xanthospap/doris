@@ -17,7 +17,7 @@ struct switches {
   static constexpr const int dim = 25;
   typedef int8_t sint_type;
 
-  sint_type isw[dim] = {0 /*, [0 ... dim - 1] = 1*/}; // aka the sav
+  sint_type isw[dim] = {0}; // aka the sav
   double sw[dim] = {0e0};
   double swc[dim] = {0e0};
 

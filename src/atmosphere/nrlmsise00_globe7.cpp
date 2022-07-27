@@ -8,7 +8,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
   // calculate G(L) function
 
-  //printf("glob7 called\n");
+  printf("called glob7 ...\n");
   //for (int i=0; i<25; i++) printf("sw(%2i)=%5.3f ", i+1, in->sw.sw[i]);
   //printf("\n");
 

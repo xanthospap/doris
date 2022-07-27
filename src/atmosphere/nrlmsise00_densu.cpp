@@ -1,6 +1,7 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
 #include <cassert>
+#include <cstdio> // only for debugging
 
 using namespace dso::nrlmsise00;
 
@@ -13,6 +14,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
   double xs[dim], ys[dim], y2out[dim], work[dim];
 
   double densu = 1e0;
+  printf("called densu ...\n");
 
   // joining altitude of Bates and spline
   const double za = zn1[0];
@@ -23,8 +25,10 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
   // Bates temperature
   const double tt = t1 - (t1 - t2) * std::exp(-s2 * zg2);
+  printf("t1=%20.15e t2=%20.15e s2=%20.15e zg2=%20.15e\n", t1,t2,s2,zg2);
   const double ta = tt;
   tz = tt;
+  printf("setting tz=%+25.15e\n", tz);
   densu = tz;
 
   int mn;
@@ -67,6 +71,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
     // temperature at altitude
     tz = 1e0 / y;
+    printf("setting tz=%+25.15e\n", tz);
     densu = tz;
   } // if (alt < za)
 
