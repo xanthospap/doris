@@ -8,7 +8,7 @@ using namespace dso::nrlmsise00;
 /// New lower thermo polynomial 10/30/89
 double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
                               double xm, double xalph, double &tz, double zlb,
-                              double s2) noexcept {
+                              double s2, const double *zn1) noexcept {
   constexpr const int dim = 5;
   double xs[dim], ys[dim], y2out[dim], work[dim];
 

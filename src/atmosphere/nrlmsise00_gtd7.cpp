@@ -11,6 +11,8 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   static double altlast = 99999e0;
   constexpr const double zmix = 62.5e0;
 
+  printf("Called gtd7 ...\n");
+
   OutParams outc;
   double *__restrict__ d = out->d;
   double *__restrict__ t = out->t;

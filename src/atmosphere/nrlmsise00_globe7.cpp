@@ -8,9 +8,9 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
   // calculate G(L) function
 
-  printf("glob7 called\n");
-  for (int i=0; i<25; i++) printf("sw(%2i)=%5.3f ", i+1, in->sw.sw[i]);
-  printf("\n");
+  //printf("glob7 called\n");
+  //for (int i=0; i<25; i++) printf("sw(%2i)=%5.3f ", i+1, in->sw.sw[i]);
+  //printf("\n");
 
   // switches ...
   // const dso::nrlmsise00::switches::sint_type *__restrict__ sw = in->sw.isw;
@@ -72,12 +72,12 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     // set last used latitude ...
     xl = in->glat;
 
-    for (int m = 0; m < 4; m++) {
-      for (int n = m; n < 7; n++) {
-        printf(" %12.5e", plg[m][n]);
-      }
-      printf("\n");
-    }
+    //for (int m = 0; m < 4; m++) {
+    //  for (int n = m; n < 7; n++) {
+    //    printf(" %12.5e", plg[m][n]);
+    //  }
+    //  printf("\n");
+    //}
   }
 
   const double tloc = in->lst;
@@ -90,7 +90,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
       c2tloc = std::cos(2e0 * hr * tloc);
       s3tloc = std::sin(3e0 * hr * tloc);
       c3tloc = std::cos(3e0 * hr * tloc);
-      printf("basic trigs: %.15e %.15e\n", stloc, ctloc);
+      //printf("basic trigs: %.15e %.15e\n", stloc, ctloc);
       // update last used tloc
       tll = tloc;
     }
@@ -253,7 +253,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   }
 
   // PARMS NOT USED: 83, 90,100,140-150
-  for (int i=0; i<nsw; i++) printf("t(%2i)=%25.14e\n", i+1, t[i]);
+  //for (int i=0; i<nsw; i++) printf("t(%2i)=%25.14e\n", i+1, t[i]);
 
   double tix = p[30];
   for (int i = 0; i < nsw; i++)

@@ -5,6 +5,11 @@
 
 using namespace dso::nrlmsise00;
 
+const double altl[8] = {200e0, 300e0, 160e0, 250e0,
+                          240e0, 450e0, 320e0, 450e0};
+const double alpha[9] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0, 0e0, 0e0};
+const int mt[11] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
+
 int dso::Nrlmsise00::gts7(const InParams *in, int mass,
                           OutParams *out) noexcept {
   
@@ -13,6 +18,8 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
 
   // input always changed from previous call ....
   constexpr const bool input_changed = false;
+  
+  double zn1[5] = {120e0, 110e0, 100e0, 90e0, 72.e0};
 
   printf("gts7 called ...\n");
 
@@ -86,12 +93,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
     const double xmm = pdm[2][4];
     const double z = in->alt;
 
-    int i;
     bool goto_100 = false;
+    int i;
     for (i = 0; i < 11; i++) {
       if (mt[i] == mass) {
-        j = i++;
+        j = i+1;
         goto_100 = true;
+        printf("j=%i\n", j);
         break;
       }
     }
@@ -99,6 +107,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
     double tz = 0, zhm28 = 0, b28 = 0;
     double db01, db04, db14, db16, db28, db32, db40;
     if (goto_100) {
+      printf("Computing N2 density\n");
       if (z < altl[5] || mass == 28 || mass == 48) {
         //
         //  **** N2 DENSITY ****
@@ -107,23 +116,24 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
         // diffusive density at alt
         out->d[2] =
-            densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s);
+            densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s, zn1);
         dd = out->d[2];
         // turbopause
         const double zh28 = pdm[2][2] * zhf;
         zhm28 = pdm[2][3] * pdl[1][5];
         const double xmd = 28e0 - xmm;
         // mixed density at Zlb
-        b28 = densu(zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s);
+        b28 = densu(zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s, zn1);
         if (z <= altl[2] && std::abs(in->sw.sw[14]) > 0e0) {
           // mixed density at alt
-          dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s);
+          dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s, zn1);
           // net density at alt
           out->d[2] = dnet(out->d[2], dm28, zhm28, xmm, 28e0);
         }
       }
 
-      if (j == 3 || j == 4 || j == 9) {
+      if (j==1 || j == 3 || j == 4 || j == 9) {
+        printf("Computing HE density\n");
         //
         // **** HE DENSITY ****
         // BP: --
@@ -132,17 +142,17 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // diffusive density at zlb
         db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
         out->d[0] =
-            densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s);
+            densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s, zn1);
         dd = out->d[0];
         if (z <= altl[0] && std::abs(in->sw.sw[14]) > 0e0) {
           // turbopause
           const double zh04 = pdm[0][2];
           // mixed density at Zlb
           const double b04 = densu(zh04, db04, tinf, tlb, 4e0 - xmm,
-                                   alpha[0] - 1e0, out->t[1], ptm[5], s);
+                                   alpha[0] - 1e0, out->t[1], ptm[5], s, zn1);
           // mixed density at alt
           const double dm04 =
-              densu(z, b04, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+              densu(z, b04, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
           const double zhm04 = zhm28;
           // net density at alt
           out->d[0] = dnet(out->d[0], dm04, zhm04, xmm, 4e0);
@@ -159,12 +169,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         //
         // BP: --
         // Density variation factor at Zlb
+        printf("Computing O density\n");
         const double g16 = in->sw.sw[20] * globe7(in, pd[2]);
         // diffusion density at Zlb
         db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
         // diffusive density at alt
         out->d[1] =
-            densu(z, db16, tinf, tlb, 16e0, alpha[1], out->t[1], ptm[5], s);
+            densu(z, db16, tinf, tlb, 16e0, alpha[1], out->t[1], ptm[5], s, zn1);
         dd = out->d[1];
         if (z <= altl[1] && std::abs(in->sw.sw[14]) > 0) {
           // corrected pdm(31) to pdm(3,2) 12/2/85
@@ -172,10 +183,10 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
           const double zh16 = pdm[1][2];
           // mixed density at Zlb
           const double b16 = densu(zh16, db16, tinf, tlb, 16e0 - xmm,
-                                   alpha[1] - 1e0, out->t[1], ptm[5], s);
+                                   alpha[1] - 1e0, out->t[1], ptm[5], s, zn1);
           // mixed density at alt
           const double dm16 =
-              densu(z, b16, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+              densu(z, b16, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
           const double zhm16 = zhm28;
           // net density at alt
           out->d[1] = dnet(out->d[1], dm16, zhm16, xmm, 16e0);
@@ -198,18 +209,19 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         }
       }
 
-      if (j == 3 || j == 4 || j == 6 || j == 9) {
+      if (j==1 || j == 3 || j == 4 || j == 6 || j == 9) {
 
         //
         //  **** O2 DENSITY ****
         //
+        printf("Computing O2 density\n");
         // BP: 200
         const double g32 = in->sw.sw[20] * globe7(in, pd[4]);
         // diffusive density at Zlb
         db32 = pdm[3][0] * std::exp(g32) * pd[4][0];
         // diffusive density at alt
         out->d[3] =
-            densu(z, db32, tinf, tlb, 32e0, alpha[3], out->t[1], ptm[5], s);
+            densu(z, db32, tinf, tlb, 32e0, alpha[3], out->t[1], ptm[5], s, zn1);
         if (mass == 49) {
           dd += 2e0 * out->d[3];
         } else {
@@ -221,10 +233,10 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
             const double zh32 = pdm[3][2];
             // mixed density at Zlb
             const double b32 = densu(zh32, db32, tinf, tlb, 32e0 - xmm,
-                                     alpha[3] - 1e0, out->t[1], ptm[5], s);
+                                     alpha[3] - 1e0, out->t[1], ptm[5], s, zn1);
             // mixed density at alt
             const double dm32 =
-                densu(z, b32, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+                densu(z, b32, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
             const double zhm32 = zhm28;
             // net density at alt
             out->d[3] = dnet(out->d[3], dm32, zhm32, xmm, 32e0);
@@ -248,28 +260,29 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       }
     }
 
-    if (j == 3 || j == 4 || j == 6 || j == 9 || j == 7) {
+    if (j==1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7) {
 
       //
       // **** AR DENSITY ****
       //
+      printf("Computing AR density\n");
       // BP: 300
       const double g40 = in->sw.sw[20] * globe7(in, pd[5]);
       // diffusive density at Zlb
       db40 = pdm[4][0] * std::exp(g40) * pd[5][0];
       // diffusive density at alt
       out->d[4] =
-          densu(z, db40, tinf, tlb, 40e0, alpha[4], out->t[1], ptm[5], s);
+          densu(z, db40, tinf, tlb, 40e0, alpha[4], out->t[1], ptm[5], s, zn1);
       dd = out->d[4];
       if (z <= altl[4] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh40 = pdm[4][2];
         // mixed density at Zlb
         const double b40 = densu(zh40, db40, tinf, tlb, 40e0 - xmm,
-                                 alpha[4] - 1e0, out->t[1], ptm[5], s);
+                                 alpha[4] - 1e0, out->t[1], ptm[5], s, zn1);
         // mixed density at alt
         const double dm40 =
-            densu(z, b40, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+            densu(z, b40, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
         const double zhm40 = zhm28;
         // net density at alt
         out->d[4] = dnet(out->d[4], dm40, zhm40, xmm, 40e0);
@@ -282,9 +295,10 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       }
     }
 
-    if (j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8) {
+    if (j==1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8) {
       //
       // **** HYDROGEN DENSITY ****
+      printf("Computing Hy density\n");
       //
       // BP: 400
       const double g1 = in->sw.sw[20] * globe7(in, pd[6]);
@@ -292,17 +306,17 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       db01 = pdm[5][0] * std::exp(g1) * pd[6][0];
       // diffusive density at alt
       out->d[6] =
-          densu(z, db01, tinf, tlb, 1e0, alpha[6], out->t[1], ptm[5], s);
+          densu(z, db01, tinf, tlb, 1e0, alpha[6], out->t[1], ptm[5], s, zn1);
       dd = out->d[6];
       if (z <= altl[6] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh01 = pdm[5][2];
         // mixed density at Zlb
         const double b01 = densu(zh01, db01, tinf, tlb, 1e0 - xmm,
-                                 alpha[6] - 1e0, out->t[1], ptm[5], s);
+                                 alpha[6] - 1e0, out->t[1], ptm[5], s, zn1);
         // mixed density at alt
         const double dm01 =
-            densu(z, b01, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+            densu(z, b01, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
         const double zhm01 = zhm28;
         // net density at alt
         out->d[6] = dnet(out->d[6], dm01, zhm01, xmm, 1e0);
@@ -321,10 +335,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       }
     }
 
-    if (j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8) {
+    if (j==1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8) {
 
       //
       // **** ATOMIC NITROGEN DENSITY ****
+      printf("Computing Ni density\n");
       //
       // BP: 500
       const double g14 = in->sw.sw[20] * globe7(in, pd[7]);
@@ -332,17 +347,17 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       db14 = pdm[6][0] * std::exp(g14) * pd[7][0];
       // diffusive density at alt
       out->d[7] =
-          densu(z, db14, tinf, tlb, 14e0, alpha[7], out->t[1], ptm[5], s);
+          densu(z, db14, tinf, tlb, 14e0, alpha[7], out->t[1], ptm[5], s, zn1);
       dd = out->d[7];
       if (z <= altl[7] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
         const double zh14 = pdm[6][2];
         // mixed density at Zlb
         const double b14 = densu(zh14, db14, tinf, tlb, 14e0 - xmm,
-                                 alpha[7] - 1e0, out->t[1], ptm[5], s);
+                                 alpha[7] - 1e0, out->t[1], ptm[5], s, zn1);
         // mixed density at alt
         const double dm14 =
-            densu(z, b14, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s);
+            densu(z, b14, tinf, tlb, xmm, 0e0, out->t[1], ptm[5], s, zn1);
         const double zhm14 = zhm28;
         // net density at alt
         out->d[7] = dnet(out->d[7], dm14, zhm14, xmm, 14e0);
@@ -359,17 +374,18 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         out->d[7] *= ccor(z, rc14, hcc14, zcc14);
       }
     }
-    if (j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8 || j == 10 ||
+    if (j==1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8 || j == 10 ||
         j == 11) {
 
       //
       // **** Anomalous OXYGEN DENSITY ****
       //
       // BP: 600
+      printf("Computing AO density\n");
       const double g16h = in->sw.sw[20] * globe7(in, pd[8]);
       const double db16h = pdm[7][0] * std::exp(g16h) * pd[8][0];
       const double tho = pdm[7][9] * pdl[0][6];
-      dd = densu(z, db16h, tho, tho, 16e0, alpha[8], out->t[1], ptm[5], s);
+      dd = densu(z, db16h, tho, tho, 16e0, alpha[8], out->t[1], ptm[5], s, zn1);
       const double zsht = pdm[7][5];
       const double zmho = pdm[7][4];
       const double zsho = scalh(zmho, 16e0, tho);
@@ -392,7 +408,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   if (j != 5) {
     // BP: 700
     const double z = std::abs(in->alt);
-    ddum = densu(z, 1e0, tinf, tlb, 0e0, 0e0, out->t[1], ptm[5], s);
+    ddum = densu(z, 1e0, tinf, tlb, 0e0, 0e0, out->t[1], ptm[5], s, zn1);
   }
 
   if (in->meters()) {

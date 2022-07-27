@@ -186,13 +186,9 @@ struct Nrlmsise00 {
   double s3tloc, c3tloc;
   double apdf, apt[4];
   // VAR
-  double zn1[5] = {120e0, 110e0, 100e0, 90e0, 72.e0};
-  const double zn2[4] = {72.5e0, 55e0, 45e0, 32e0};
-  const double zn3[5] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
-  const int mt[11] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
-  const double altl[8] = {200e0, 300e0, 160e0, 250e0,
-                          240e0, 450e0, 320e0, 450e0};
-  const double alpha[9] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0, 0e0, 0e0};
+const double zn2[4] = {72.5e0, 55e0, 45e0, 32e0};
+const double zn3[5] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
+
 
   constexpr double sam(int i) const noexcept {
 #ifdef DEBUG
@@ -203,7 +199,7 @@ struct Nrlmsise00 {
 
   double densm(double alt, double d0, double xm, double &tz) const noexcept;
   double densu(double alt, double dlb, double t1, double t2, double xm,
-               double xalpha, double &tz, double zlb, double s2) noexcept;
+               double xalpha, double &tz, double zlb, double s2, const double *zn1) noexcept;
   double zeta(double zz, double zl) const noexcept {
     return (zz - zl) * (re + zl) / (re + zz);
   }
