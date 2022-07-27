@@ -71,7 +71,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
     // temperature at altitude
     tz = 1e0 / y;
-    printf("setting tz=%+25.15e\n", tz);
+    //printf("setting tz=%+25.15e\n", tz);
     densu = tz;
   } // if (alt < za)
 
