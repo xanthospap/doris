@@ -25,10 +25,10 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
   // Bates temperature
   const double tt = t1 - (t1 - t2) * std::exp(-s2 * zg2);
-  printf("t1=%20.15e t2=%20.15e s2=%20.15e zg2=%20.15e\n", t1,t2,s2,zg2);
+  //printf("t1=%20.15e t2=%20.15e s2=%20.15e zg2=%20.15e\n", t1,t2,s2,zg2);
   const double ta = tt;
   tz = tt;
-  printf("setting tz=%+25.15e\n", tz);
+  //printf("setting tz=%+25.15e\n", tz);
   densu = tz;
 
   int mn;
