@@ -27,7 +27,7 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   if (std::abs(in->sw.sw[1]) < 0)
     xlat = 45e0;
   re = glatf(xlat, gsurf);
-  printf("call to glatf: re=%+.15e, gsurf=%+.15e\n",re,gsurf);
+  //printf("call to glatf: re=%+.15e, gsurf=%+.15e\n",re,gsurf);
 
   const double xmm = pdm[2][4];
 
@@ -48,10 +48,12 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
       dm28m = dm28 * 1e6;
     t[0] = outc.t[0];
     t[1] = outc.t[1];
-    printf("updating t: %.15e %.15e\n", t[0],t[1]);
+    //printf("updating t: %.15e %.15e\n", t[0],t[1]);
     if (in->alt >= zn2[0]) {
-      printf("returning after first call to gts7\n");
       std::memcpy(d, outc.d, sizeof(double) * 9);
+      for (int i=0; i<9; i++) printf(" %20.15e", d[i]);
+      printf("\n");
+      printf("returning after first call to gts7\n");
       return 0;
     }
   }

@@ -7,8 +7,12 @@ using namespace dso::nrlmsise00;
 
 const double altl[8] = {200e0, 300e0, 160e0, 250e0,
                           240e0, 450e0, 320e0, 450e0};
-const double alpha[9] = {-0.3e0, 0e0, 0e0, 0e0, 0.1e0, 0e0, -0.3e0, 0e0, 0e0};
+const double alpha[9] = {-0.380e0, 0e0, 0e0, 
+0e0, 0.170e0, 0e0, 
+-0.380e0, 0e0, 0e0};
 const int mt[11] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
+double zn1[5] = {120e0, 110e0, 100e0, 90e0, 72.5e0};
+
 
 int dso::Nrlmsise00::gts7(const InParams *in, int mass,
                           OutParams *out) noexcept {
@@ -19,8 +23,6 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   // input always changed from previous call ....
   constexpr const bool input_changed = true;
   
-  double zn1[5] = {120e0, 110e0, 100e0, 90e0, 72.e0};
-
   printf("gts7 called ...\n");
 
   const double za = pdl[1][15];
@@ -87,7 +89,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   if (mass) {
 
     // N2 variation factor at Zlb
-    const double g28 = in->sw.sw[20] * globe7(in, pd[3]);
+    const double g28 = in->sw.sw[20] * globe7(in, pd[2]);
 
     // variation of turbopause height
     const double zhf =
@@ -118,24 +120,33 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         //  **** N2 DENSITY ****
         //
         // diffusive density at zlb
+        // printf("db28: %25.15f %25.15f %25.15f\n", pdm[2][0], g28, pd[2][0]);
         db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
         // diffusive density at alt
+        //printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f\n", 
+        //z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s);
         out->d[2] =
             densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s, zn1);
+        printf("N2 density=%25.15f", out->d[2]);
         dd = out->d[2];
         // turbopause
         const double zh28 = pdm[2][2] * zhf;
         zhm28 = pdm[2][3] * pdl[1][5];
         const double xmd = 28e0 - xmm;
         // mixed density at Zlb
+        //printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f\n", 
+        //zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s);
         b28 = densu(zh28, db28, tinf, tlb, xmd, alpha[2] - 1e0, tz, ptm[5], s, zn1);
+        //printf("b28=%25.15f\n", b28);
         if (z <= altl[2] && std::abs(in->sw.sw[14]) > 0e0) {
           // mixed density at alt
           dm28 = densu(z, b28, tinf, tlb, xmm, alpha[2], tz, ptm[5], s, zn1);
           // net density at alt
           out->d[2] = dnet(out->d[2], dm28, zhm28, xmm, 28e0);
+          printf(" new %25.15f", out->d[2]);
         }
       }
+      printf("\n");
 
       if (j==1 || j == 3 || j == 4 || j == 9) {
         printf("Computing HE density\n");
@@ -146,8 +157,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         const double g4 = in->sw.sw[20] * globe7(in, pd[0]);
         // diffusive density at zlb
         db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
+        //printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f\n", 
+        //z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s);
         out->d[0] =
             densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s, zn1);
+        printf("HE density=%25.15f", out->d[0]);
         dd = out->d[0];
         if (z <= altl[0] && std::abs(in->sw.sw[14]) > 0e0) {
           // turbopause
@@ -167,7 +181,9 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
           const double hc04 = pdm[0][5] * pdl[1][1];
           // net density corrected at alt
           out->d[0] *= ccor(z, rl, hc04, zc04);
+          printf(" new %25.15f", out->d[0]);
         }
+        printf("\n");
 
         //
         // **** O DENSITY ****
@@ -175,12 +191,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // BP: --
         // Density variation factor at Zlb
         printf("Computing O density\n");
-        const double g16 = in->sw.sw[20] * globe7(in, pd[2]);
+        const double g16 = in->sw.sw[20] * globe7(in, pd[1]);
         // diffusion density at Zlb
         db16 = pdm[1][0] * std::exp(g16) * pd[1][0];
         // diffusive density at alt
         out->d[1] =
             densu(z, db16, tinf, tlb, 16e0, alpha[1], out->t[1], ptm[5], s, zn1);
+        printf(" O density=%25.15f", out->d[1]);
         dd = out->d[1];
         if (z <= altl[1] && std::abs(in->sw.sw[14]) > 0) {
           // corrected pdm(31) to pdm(3,2) 12/2/85
@@ -204,14 +221,16 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
           const double hc16 = pdm[1][5] * pdl[1][3];
           const double zc16 = pdm[1][4] * pdl[1][2];
           const double hc216 = pdm[1][5] * pdl[1][4];
-          out->d[2] *= ccor2(z, rl, hc16, zc16, hc216);
+          out->d[1] *= ccor2(z, rl, hc16, zc16, hc216);
           // chemistry correction
           const double hcc16 = pdm[1][7] * pdl[1][13];
           const double zcc16 = pdm[1][6] * pdl[1][12];
           const double rc16 = pdm[1][3] * pdl[1][14];
           // net density corrected at alt
-          out->d[2] *= ccor(z, rc16, hcc16, zcc16);
+          out->d[1] *= ccor(z, rc16, hcc16, zcc16);
+          printf(" new %25.15f", out->d[1]);
         }
+        printf("\n");
       }
 
       if (j==1 || j == 3 || j == 4 || j == 6 || j == 9) {
@@ -353,6 +372,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
       // diffusive density at alt
       out->d[7] =
           densu(z, db14, tinf, tlb, 14e0, alpha[7], out->t[1], ptm[5], s, zn1);
+      printf("Ni: %25.12f", out->d[7]);
       dd = out->d[7];
       if (z <= altl[7] && std::abs(in->sw.sw[14]) > 0e0) {
         // turbopause
@@ -366,18 +386,24 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         const double zhm14 = zhm28;
         // net density at alt
         out->d[7] = dnet(out->d[7], dm14, zhm14, xmm, 14e0);
+        printf(" new %25.12f", out->d[7]);
         // correction to specified mixing ratio at ground
+        //printf("rl: %25.15f %25.15f %25.15f %25.15f\n",b28, pdm[6][1], pdl[0][2],b14);
         const double rl = std::log(b28 * pdm[6][1] * std::abs(pdl[0][2]) / b14);
         const double hc14 = pdm[6][5] * pdl[0][1];
         const double zc14 = pdm[6][4] * pdl[0][0];
+        //printf("Calling ccor: %25.15f %25.15f %25.15f %25.15f\n", z, rl, hc14, zc14);
         out->d[7] *= ccor(z, rl, hc14, zc14);
+        printf(" new %25.12f", out->d[7]);
         // chemistry correction
         const double hcc14 = pdm[6][7] * pdl[0][4];
         const double zcc14 = pdm[6][6] * pdl[0][3];
         const double rc14 = pdm[6][3] * pdl[0][5];
         // net density corrected at alt
         out->d[7] *= ccor(z, rc14, hcc14, zcc14);
+        printf(" new %25.12f", out->d[7]);
       }
+      printf("\n");
     }
     if (j==1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8 || j == 10 ||
         j == 11) {

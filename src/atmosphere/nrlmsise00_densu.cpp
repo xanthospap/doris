@@ -49,6 +49,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
     // geopotential difference from Z1
     const double zg = zeta(z, z1);
     zgdif = zeta(z2, z1);
+    //printf("zeta(%25.15f %25.15f)=%25.15f\n", z2,z1,zgdif);
 
     // setup spline nodes
     for (int k = 0; k < mn; k++)
@@ -67,6 +68,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 #endif
     dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
     x = zg / zgdif;
+    //printf("x=%25.15f / %25.15f\n", zg, zgdif);
     const double y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
 
     // temperature at altitude
@@ -85,6 +87,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
     // density at altitude
     const double densa = dlb * std::pow(t2 / tt, 1e0 + xalph + gammo) * expl;
+    //printf("setting densa=%+25.15e\n", densa);
     densu = densa;
 
     if (alt < za) {
@@ -100,6 +103,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
       // density at altitude
       densu = densu * std::pow(tt1 / tz, 1e0 + xalph) * std::exp(-expl);
+      //printf("setting densu=%+25.15e\n", densu);
     } // if (alt<za)
   }   // if (std::abs(xm) > nearzero)
 

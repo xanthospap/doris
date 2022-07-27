@@ -55,7 +55,6 @@ int main() {
   for (int i = 0; i < 15; i++) {
     input[i].set_switches_on();
     Msise.gtd7(&input[i], mass, &out[i]);
-    return 0;
   }
 
   // evaluate 15 and 16

@@ -186,7 +186,7 @@ struct Nrlmsise00 {
   double s3tloc, c3tloc;
   double apdf, apt[4];
   // VAR
-const double zn2[4] = {72.5e0, 55e0, 45e0, 32e0};
+const double zn2[4] = {72.5e0, 55e0, 45e0, 32.5e0};
 const double zn3[5] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
 
 
