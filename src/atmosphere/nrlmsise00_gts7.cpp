@@ -31,7 +31,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   double tinf = 0e0;
   if (in->alt > zn1[0]) {
     if (input_changed || altlast <= zn1[0]) {
-      printf("* calling globe7 from (1)");
+      //printf("* calling globe7 from (1)");
       tinf = ptm[0] * pt[0] * (1e0 + in->sw.sw[15] * globe7(in, pt));
     }
   } else {
@@ -43,7 +43,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   // gradient variations not important below zn1(5)
   if (in->alt > zn1[4]) {
     if (input_changed || altlast <= zn1[4]) {
-      printf("* calling globe7 from (2)");
+      //printf("* calling globe7 from (2)");
       xg0 = ptm[3] * ps[0] * (1e0 + in->sw.sw[18] * globe7(in, ps));
     }
   } else {
@@ -51,11 +51,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   }
 
   // calculate these temperatures only if input changed
-  printf("-> checks : %1d and %10.2f\n", input_changed, in->alt);
+  //printf("-> checks : %1d and %10.2f\n", input_changed, in->alt);
   if (input_changed || in->alt < 300e0) {
-    printf("* calling globe7 from (3)");
+    //printf("* calling globe7 from (3)");
     tlb = ptm[1] * (1e0 + in->sw.sw[16] * globe7(in, pd[3])) * pd[3][0];
-    printf("Computed tlb=%+25.14e\n", tlb);
+    //printf("Computed tlb=%+25.14e\n", tlb);
   }
   const double s = xg0 / (tinf - tlb);
 
