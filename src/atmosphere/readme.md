@@ -30,3 +30,50 @@ FORTRAN distribution. Source code is in `unit_tests/test_msise00.cpp`; the
 program should **NOT** fail.
 
 ### Input Data
+
+Input data can be:
+  
+  * ap - magnetic index(daily), triggered when the input switch sw[8]=-1; the
+    function(s) will expect relevant indexes in the `nrlmsise00::ApArray` 
+    instance of the `dso::nrlmsise00::InParameters` used to request results. 
+    I don't really know wtf this is.
+
+  * F107A - 81 day average of F10.7 flux (centered on day), and
+
+  * F107 - DAILY F10.7 FLUX FOR PREVIOUS DAY
+
+The last two are passed in via the relevant variables in the 
+`dso::nrlmsise00::InParameters`. F107 and F107A values used to generate the 
+model correspond to the 10.7 cm radio flux at the actual distance of the Earth
+from the Sun rather than the radio flux at 1 AU.
+
+### Usage
+
+For the most part, we will want to use:
+  
+  * an `dso::nrlmsise00::InParameters` instance, with all switches set to 1. 
+    This is by default performed by the constructor of the class.
+
+  * If the densities are requested in m<sup>3</sup> and kg/m<sup>3</sup> 
+    (usually the case), call `dso::nrlmsise00::InParameters::meters_on()` on 
+    the instance.
+  
+  * an `dso::nrlmsise00::OutParameters` to hold results.
+
+  * Call the function `dso::Nrlmsise00::gtd7d()` on an already constructed 
+    `dso::Nrlmsise00` (defualt constructed) instance.
+
+Note that `UT`, `Local Time`, and `Longitude` are used independently in the
+model and are not of equal importance for every situation. For the most 
+physically realistic calculation these three variables should be consistent 
+(STL=SEC/3600+GLONG/15). The Equation of Time departures from the above 
+formulafor apparent local time can be included if available but are of minor 
+importance.
+
+### See also
+
+  * https://github.com/graziano-giuliani/Meteostuff/tree/master/NRLMSIS_F90
+  
+  * https://github.com/alesmorse/nrlmsise-00
+
+  * https://www.brodo.de/space/nrlmsise/
