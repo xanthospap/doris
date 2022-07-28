@@ -1,6 +1,7 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 #include <cstring>
+#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
@@ -135,11 +136,14 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // **** HE DENSITY ****
         // BP: --
         // Density variation factor at Zlb
+        printf("computing HE Density d(1)");
         const double g4 = in->sw.sw[20] * globe7(in, pd[0]);
         // diffusive density at zlb
         db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
+        printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f\n", z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s);
         out->d[0] =
             densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s, zn1);
+        printf("HE density=%35.15f", out->d[0]);
         dd = out->d[0];
         if (z <= altl[0] && std::abs(in->sw.sw[14]) > 0e0) {
           // turbopause
@@ -159,7 +163,9 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
           const double hc04 = pdm[0][5] * pdl[1][1];
           // net density corrected at alt
           out->d[0] *= ccor(z, rl, hc04, zc04);
+          printf(" new %35.15f", out->d[0]);
         }
+        printf("\n");
 
         //
         // **** O DENSITY ****

@@ -125,3 +125,14 @@ for tsource in tests_sources:
   if tsource not in ignore_test_list:
     ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
     env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+
+## Unit Tests (only build if user selected)
+if ARGUMENTS.get('make-check', 0):
+    print('Note: Building Unit Tests ...')
+    tests_sources = glob.glob(r"unit_test/*.cpp")
+    if root_dir not in env['RPATH']: env.Append(RPATH=root_dir)
+    for tsource in tests_sources:
+        pth = os.path.dirname(tsource)
+        bsn = os.path.basename(tsource)
+        ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')

@@ -21,6 +21,14 @@ struct switches {
   double sw[dim] = {0e0};
   double swc[dim] = {0e0};
 
+  void set_switch(int index, int val) noexcept {
+    #ifdef DEBUG
+    assert(index >= 0 && index < dim);
+    #endif
+    sw[index] = val % 2;
+    swc[index] = (val==1 || val==2) ? 1e0 : 0e0;
+  }
+
   void set_null(int index=-1) noexcept {
     if (index<0) {
       std::memset(isw, 0, sizeof(int8_t) * dim);
@@ -38,9 +46,9 @@ assert(index<dim);
 
   void set_on(int index=-1) noexcept {
     if (index<0) {
-    for (int i=0; i<dim; i++) isw[i] = 1;
-    for (int i=0; i<dim; i++) sw[i] = 1e0;
-    for (int i=0; i<dim; i++) swc[i] = 1e0;
+      for (int i=0; i<dim; i++) isw[i] = 1;
+      for (int i=0; i<dim; i++) sw[i] = 1e0;
+      for (int i=0; i<dim; i++) swc[i] = 1e0;
     } else {
       #ifdef DEBUG
       assert(index<dim);
@@ -48,19 +56,6 @@ assert(index<dim);
       isw[index] = 1;
       sw[index]  = 1e0;
       swc[index] = 1e0;
-    }
-  }
-
-  void tselec(const double *sv) noexcept {
-    for (int i = 0; i < dim; i++) {
-      isw[i] = (int)sv[i];
-      sw[i] = std::fmod(sv[i], 2e0);
-      if (std::abs(sv[i] - 1e0) < nearzero ||
-          std::abs(sv[i] - 2e0) < nearzero) {
-        swc[i] = 1e0;
-      } else {
-        swc[i] = 0e0;
-      }
     }
   }
 
@@ -119,14 +114,18 @@ struct InParams {
 
   bool meters() const noexcept { return meters_; }
   double fdoy() const noexcept { return (double)doy + sec / 86400e0; }
-  void nullify_switches() noexcept {
+  void set_switches_off() noexcept {
     sw.set_null();
   }
   void set_switches_on() noexcept {
     sw.set_on();
   }
-  void switch_on(int index) noexcept {
-    sw.set_on(index);
+  void set_switch(int index, double val) noexcept {
+    sw.set_switch(index, val);
+  }
+
+  void set_ap_array(const double *ap_array) noexcept {
+    std::memcpy(this->aparr.a, ap_array, sizeof(double)*7);
   }
 
   bool is_equal(const InParams &p, double limit = nearzero) const noexcept {

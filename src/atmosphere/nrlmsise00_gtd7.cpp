@@ -1,6 +1,7 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
 #include <cstring>
+#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
@@ -45,6 +46,7 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     t[1] = outc.t[1];
     if (in->alt >= zn2[0]) {
       std::memcpy(d, outc.d, sizeof(double) * 9);
+      printf("returning after first call to gts\n");
       return 0;
     }
   }
