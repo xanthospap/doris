@@ -1,7 +1,8 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
+#ifdef dEBUG
 #include <cassert>
-#include <cstdio>
+#endif
 
 using namespace dso::nrlmsise00;
 
@@ -23,18 +24,16 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
     double zg = zeta(z, z1);
     double zgdif = zeta(z2, z1);
 
-    // setup spline nodes
+// setup spline nodes
+#ifdef DEBUG
     assert(mn < 10);
+#endif
     for (int k = 0; k < mn; k++) {
       xs[k] = zeta(zn2[k], z1) / zgdif;
-      //printf("xs(%d) = %25.9f ", k+1, xs[k]);
     }
-   // printf("\n");
     for (int k = 0; k < mn; k++) {
       ys[k] = 1e0 / tn2[k];
-      //printf("ys(%d) = %25.9f ", k + 1, ys[k]);
     }
-    //printf("\n");
     double yd1 = -tgn2[0] / (t1 * t1) * zgdif;
     double yd2 =
         -tgn2[1] / (t2 * t2) * zgdif * std::pow((re + z2) / (re + z1), 2e0);
@@ -42,13 +41,11 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
     // calculate spline coefficients
     dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
     double x = zg / zgdif;
-    //printf("x = %35.15f / %35.15f\n", zg, zgdif);
     double y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
-    //printf("y = %35.15f, mn=%d\n", y, mn);
 
     // temperature at altitude
     tz = 1e0 / y;
-    //printf("densm, tz=%30.12f\n", tz);
+
     if (std::abs(xm) > nearzero) {
       // CALCULATE STRATOSPHERE/MESOSPHERE DENSITY
       const double glb = gsurf / std::pow(1e0 + z1 / re, 2e0);

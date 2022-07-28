@@ -1,26 +1,7 @@
 #include "nrlmsise00.hpp"
-/* -------------------------------------------------------------------- */
-/* ---------  N R L M S I S E - 0 0    M O D E L    2 0 0 1  ---------- */
-/* -------------------------------------------------------------------- */
 
-/* This file is part of the NRLMSISE-00  C source code package - release
- * 20041227
- *
- * The NRLMSISE-00 model was developed by Mike Picone, Alan Hedin, and
- * Doug Drob. They also wrote a NRLMSISE-00 distribution package in
- * FORTRAN which is available at
- * http://uap-www.nrl.navy.mil/models_web/msis/msis_home.htm
- *
- * Dominik Brodowski implemented and maintains this C version. You can
- * reach him at mail@brodo.de. See the file "DOCUMENTATION" for details,
- * and check http://www.brodo.de/english/pub/nrlmsise/index.html for
- * updated releases of this package.
- */
 
-/* ------------------------------------------------------------------- */
-/* ------------------------ BLOCK DATA GTD7BK ------------------------ */
-/* ------------------------------------------------------------------- */
-
+// Constructor; initialize member arrays
 dso::Nrlmsise00::Nrlmsise00() noexcept
     :
 
@@ -710,11 +691,13 @@ dso::Nrlmsise00::Nrlmsise00() noexcept
           0.00000E+00, 0.00000E+00, 0.00000E+00, 0.00000E+00, 0.00000E+00}*/
       {};
 
-/* LOWER BOUNDARY */
+// LOWER BOUNDARY
+// static array initialization
 const double dso::Nrlmsise00::ptm[10] = {
     1.04130E+03, 3.86000E+02, 1.95000E+02, 1.66728E+01,  2.13000E+02,
     1.20000E+02, 2.40000E+02, 1.87000E+02, -2.00000E+00, 0.00000E+00};
 
+// static array initialization
 const double dso::Nrlmsise00::pdm[8][10] = {
     {2.45600E+07, 6.71072E-06, 1.00000E+02, 0.00000E+00, 1.10000E+02,
      1.00000E+01, 0.00000E+00, 0.00000E+00, 0.00000E+00, 0.00000E+00},
@@ -743,7 +726,8 @@ const double dso::Nrlmsise00::pdm[8][10] = {
     {1.00000E+06, 1.00000E+00, 1.05000E+02, -8.00000E+00, 5.50000E+02,
      7.60000E+01, 9.00000E+01, 2.00000E+00, 0.00000E+00, 4.00000E+03}};
 
-/* MIDDLE ATMOSPHERE AVERAGES */
+// MIDDLE ATMOSPHERE AVERAGES
+// static array initialization
 const double dso::Nrlmsise00::pavgm[10] = {
     2.61000E+02, 2.64000E+02, 2.29000E+02,  2.17000E+02, 2.17000E+02,
     2.23000E+02, 2.86760E+02, -2.93940E+00, 2.50000E+00, 0.00000E+00};

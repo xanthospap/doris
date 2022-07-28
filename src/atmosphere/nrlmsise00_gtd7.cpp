@@ -1,8 +1,6 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
-#include <cmath>
 #include <cstring>
-#include <cstdio> // just for debuging
 
 using namespace dso::nrlmsise00;
 
@@ -10,8 +8,6 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
                           OutParams *out) noexcept {
   static double altlast = 99999e0;
   constexpr const double zmix = 62.5e0;
-
-  printf("Called gtd7 ...\n");
 
   OutParams outc;
   double *__restrict__ d = out->d;
@@ -27,7 +23,6 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   if (std::abs(in->sw.sw[1]) < 0)
     xlat = 45e0;
   re = glatf(xlat, gsurf);
-  //printf("call to glatf: re=%+.15e, gsurf=%+.15e\n",re,gsurf);
 
   const double xmm = pdm[2][4];
 
@@ -48,12 +43,8 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
       dm28m = dm28 * 1e6;
     t[0] = outc.t[0];
     t[1] = outc.t[1];
-    //printf("updating t: %.15e %.15e\n", t[0],t[1]);
     if (in->alt >= zn2[0]) {
       std::memcpy(d, outc.d, sizeof(double) * 9);
-      for (int i=0; i<9; i++) printf(" %20.15e", d[i]);
-      printf("\n");
-      printf("returning after first call to gts7\n");
       return 0;
     }
   }
@@ -66,11 +57,8 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     tgn2[0] = tgn1[1];
     tn2[0] = tn1[4];
     tn2[1] = pma[0][0] * pavgm[0] / (1e0 - in->sw(19) * glob7s(in, pma[0]));
-    //printf("tn22=%25.12f from %25.12f %25.12f\n", tn2[1], pma[0][0], pavgm[0]);
-    //const double xan = glob7s(in, pma[1]);
     tn2[2] =
         pma[1][0] * pavgm[1] / (1e0 - in->sw(19) * glob7s(in, pma[1]));
-    //printf("tn23=%25.12f from %25.12f %25.12f %25.12f\n", tn2[2], pma[1][0], pavgm[1],xan);
     tn2[3] = pma[2][0] * pavgm[2] /
              (1e0 - in->sw(19) * in->sw(21) * glob7s(in, pma[2]));
     tgn2[1] = pavgm[8] * pma[9][0] *
@@ -106,11 +94,8 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     double dz28 = ds[2];
     // N2 DENSITY
     dmr = ds[2] / dm28m - 1e0;
-    //printf("densm args: %25.12f, %25.12f %25.12f %25.12f\n", in->alt, dm28m, xmm, tz); 
     d[2] = densm(in->alt, dm28m, xmm, tz);
-    //printf("d(3)=%35.15f\n", d[2]);
     d[2] *= (1e0 + dmr * dmc);
-    //printf("d(3)=%35.15f\n", d[2]);
     // HE DENSITY
     d[1] = 0e0;
     if (mass == 4 || mass == 48) {
@@ -147,6 +132,8 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     t[1] = tz;
   }
 
+  // last used altitude
   altlast = in->alt;
+
   return 0;
 }

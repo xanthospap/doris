@@ -1,16 +1,11 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
-#include <cstdio> // only for debuging
 
 using namespace dso::nrlmsise00;
 
 double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
   // calculate G(L) function
-
-  printf("called glob7 ...\n");
-  //for (int i=0; i<25; i++) printf("sw(%2i)=%5.3f ", i+1, in->sw.sw[i]);
-  //printf("\n");
 
   // switches ...
   // const dso::nrlmsise00::switches::sint_type *__restrict__ sw = in->sw.isw;
@@ -22,7 +17,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   constexpr const double sr = 7.2722e-5;
 
   // last latitude (so we don't re-compute legendre polynomials)
-  static double xl = 1000e0; 
+  static double xl = 1000e0;
   // last used tloc/lst (so we don't recompute trig numbers)
   static double tll = 1000e0;
   static double sw9 = 1e0;
@@ -34,7 +29,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   static double cd14, cd18, cd32, cd39;
 
   double t[14] = {0e0};
-  sw9 = 1e0 * (sw[8] < 0e0)*-1e0;
+  sw9 = 1e0 * (sw[8] < 0e0) * -1e0;
 
   if (std::abs(xl - in->glat) > nearzero) {
     // calculate legendre polynomials
@@ -71,26 +66,18 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
 
     // set last used latitude ...
     xl = in->glat;
-
-    //for (int m = 0; m < 4; m++) {
-    //  for (int n = m; n < 7; n++) {
-    //    printf(" %12.5e", plg[m][n]);
-    //  }
-    //  printf("\n");
-    //}
   }
 
   const double tloc = in->lst;
   if (std::abs(tll - tloc) > nearzero) {
-    if (std::abs(sw[6]) > 0e0 || std::abs(sw[7]) > 0e0 ||
-        std::abs(sw[13])) {
+    if (std::abs(sw[6]) > 0e0 || std::abs(sw[7]) > 0e0 || std::abs(sw[13])) {
       stloc = std::sin(hr * tloc);
       ctloc = std::cos(hr * tloc);
       s2tloc = std::sin(2e0 * hr * tloc);
       c2tloc = std::cos(2e0 * hr * tloc);
       s3tloc = std::sin(3e0 * hr * tloc);
       c3tloc = std::cos(3e0 * hr * tloc);
-      //printf("basic trigs: %.15e %.15e\n", stloc, ctloc);
+
       // update last used tloc
       tll = tloc;
     }
@@ -106,10 +93,10 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     cd32 = std::cos(dr * (day - p[31]));
   if (doy_changed || std::abs(p[38] - p39) > nearzero)
     cd39 = std::cos(2e0 * dr * (day - p[38]));
-  
+
   // update last doy used ...
   dayl = day;
-  
+
   p14 = p[13];
   p18 = p[17];
   p32 = p[31];
@@ -124,17 +111,23 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
       1e0 + (p[47] * dfa + p[19] * df + p[20] * df * df) * in->sw.swc[0];
   const double f2 =
       1e0 + (p[49] * dfa + p[19] * df + p[20] * df * df) * in->sw.swc[0];
+
   // time independent
   t[1] = (p[1] * plg[0][2] + p[2] * plg[0][4] + p[22] * plg[0][6]) +
          (p[14] * plg[0][2]) * dfa * in->sw.swc[0] + p[26] * plg[0][1];
+
   // symmetric annual
   t[2] = p[18] * cd32;
+
   // symmetric semiannual
   t[3] = (p[15] + p[16] * plg[0][2]) * cd18;
+
   // asymmetric annual
   t[4] = f1 * (p[9] * plg[0][1] + p[10] * plg[0][3]) * cd14;
+
   // asymmetric semiannual
   t[5] = p[37] * plg[0][1] * cd39;
+
   // diurnal
   if (std::abs(in->sw.sw[6]) > 0e0) {
     const double t71 = (p[11] * plg[1][2]) * cd14 * in->sw.swc[4];
@@ -145,6 +138,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
               (p[6] * plg[1][1] + p[7] * plg[1][3] + p[28] * plg[1][5] + t72) *
                   stloc);
   }
+
   // semidiurnal
   if (std::abs(sw[7]) > 0e0) {
     const double t81 =
@@ -154,6 +148,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     t[7] = f2 * ((p[5] * plg[2][2] + p[41] * plg[2][4] + t81) * c2tloc +
                  (p[8] * plg[2][2] + p[42] * plg[2][4] + t82) * s2tloc);
   }
+
   // terdiurnal
   if (std::abs(sw[13]) > 0e0) {
     t[13] = f2 * ((p[39] * plg[3][3] + (p[93] * plg[3][4] + p[46] * plg[3][6]) *
@@ -163,6 +158,7 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
                                            cd14 * in->sw.swc[4]) *
                       c3tloc);
   }
+
   // magnetic activity based on daily ap
   if (std::abs(sw9 + 1e0) > nearzero) {
     const double apd = in->ap - 4e0;
@@ -203,15 +199,20 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   if (std::abs(sw[9]) > 0e0 && in->glon > -1000e0) {
     // longitudinal
     if (std::abs(sw[10]) > 0e0) {
-      t[10] = (1e0+p[80]*dfa*in->sw.swc[0]) *
-        ((p[64]*plg[1][2]+p[65]*plg[1][4]+p[66]*plg[1][6] +
-        p[103]*plg[1][1]+p[104]*plg[1][3]+p[105]*plg[1][5] +
-        in->sw.swc[4]*(p[109]*plg[1][1]+p[110]*plg[1][3]+p[111]*plg[1][5]) *
-        cd14)*std::cos(dso::deg2rad(in->glon)) +
-        (p[90]*plg[1][2]+p[91]*plg[1][4]+p[92]*plg[1][6] + 
-        p[106]*plg[1][1]+p[107]*plg[1][3]+p[108]*plg[1][5] +
-        in->sw.swc[4]*(p[112]*plg[1][1]+p[113]*plg[1][3]+p[114]*plg[1][5]) *
-        cd14)*std::sin(dso::deg2rad(in->glon)));
+      t[10] =
+          (1e0 + p[80] * dfa * in->sw.swc[0]) *
+          ((p[64] * plg[1][2] + p[65] * plg[1][4] + p[66] * plg[1][6] +
+            p[103] * plg[1][1] + p[104] * plg[1][3] + p[105] * plg[1][5] +
+            in->sw.swc[4] *
+                (p[109] * plg[1][1] + p[110] * plg[1][3] + p[111] * plg[1][5]) *
+                cd14) *
+               std::cos(dso::deg2rad(in->glon)) +
+           (p[90] * plg[1][2] + p[91] * plg[1][4] + p[92] * plg[1][6] +
+            p[106] * plg[1][1] + p[107] * plg[1][3] + p[108] * plg[1][5] +
+            in->sw.swc[4] *
+                (p[112] * plg[1][1] + p[113] * plg[1][3] + p[114] * plg[1][5]) *
+                cd14) *
+               std::sin(dso::deg2rad(in->glon)));
     }
     // UT and mixed UT, longitude
     if (std::abs(sw[11]) > nearzero) {
@@ -253,10 +254,10 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   }
 
   // PARMS NOT USED: 83, 90,100,140-150
-  //for (int i=0; i<nsw; i++) printf("t(%2i)=%25.14e\n", i+1, t[i]);
 
   double tix = p[30];
   for (int i = 0; i < nsw; i++)
     tix += std::abs(in->sw.sw[i]) * t[i];
+
   return tix;
 }

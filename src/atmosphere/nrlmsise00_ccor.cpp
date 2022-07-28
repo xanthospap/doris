@@ -1,5 +1,4 @@
 #include "nrlmsise00.hpp"
-#include <cmath>
 
 /// @brief chemistry/dissociation correction for msis model
 /// @param[in] alt Altitude
