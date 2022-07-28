@@ -1,6 +1,5 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
-#include <cstdio>
 #ifdef DEBUG
 #include <cassert>
 #endif
@@ -14,8 +13,6 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
                               double s2, const double *zn1) noexcept {
   constexpr const int dim = 5;
   double xs[dim], ys[dim], y2out[dim], work[dim];
-
-  printf("called densu ...\n");
 
   double densu = 1e0;
 
@@ -31,7 +28,6 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
   const double ta = tt;
   tz = tt;
   densu = tz;
-  printf("setting tz=%25.15e\n", tz);
 
   int mn;
   double z1, tt1, zgdif, x;
@@ -55,14 +51,10 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
     // setup spline nodes
     for (int k = 0; k < mn; k++) {
       xs[k] = zeta(zn1[k], z1) / zgdif;
-      printf("%25.9f ", xs[k]);
     }
-    printf("\n");
     for (int k = 0; k < mn; k++){
       ys[k] = 1e0 / tn1[k];
-      printf("%25.9f ", ys[k]);
     }
-    printf("\n");
 
     // end node derivatives
     const double yd1 = -tgn1[0] / (tt1 * tt1) * zgdif;
@@ -76,12 +68,10 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
     dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
     x = zg / zgdif;
     const double y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
-    printf("x=%30.15f y=%30.15f\n", x, y);
 
     // temperature at altitude
     tz = 1e0 / y;
     densu = tz;
-    printf("setting tz=%25.15e\n",densu);
   } // if (alt < za)
 
   if (std::abs(xm) > nearzero) {
@@ -95,7 +85,6 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
     // density at altitude
     const double densa = dlb * std::pow(t2 / tt, 1e0 + xalph + gammo) * expl;
     densu = densa;
-    printf("setting densa=%25.15e\n", densu);
 
     if (alt < za) {
       // CALCULATE DENSITY BELOW ZA
@@ -110,7 +99,6 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 
       // density at altitude
       densu = densu * std::pow(tt1 / tz, 1e0 + xalph) * std::exp(-expl);
-      printf("setting densu=%25.15e\n", densu);
     } // if (alt<za)
   }   // if (std::abs(xm) > nearzero)
 

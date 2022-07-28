@@ -1,7 +1,6 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 #include <cstring>
-#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
@@ -54,25 +53,19 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   // density above 300 km
   if (in->alt >= 300e0) {
     tn1[1] = ptm[6] * ptl[0][0];
-    printf("tn1(2)=%25.10f * %25.10f\n", ptm[6], ptl[0][0]);
     tn1[2] = ptm[2] * ptl[1][0];
     tn1[3] = ptm[7] * ptl[2][0];
     tn1[4] = ptm[4] * ptl[3][0];
-    printf("tn1-> %25.9f %25.9f %25.9f %25.9f\n", tn1[1], tn1[2], tn1[3], tn1[4]);
     tgn1[1] = ptm[8] * pma[8][0] * tn1[4] * tn1[4] /
               std::pow(ptm[4] * ptl[3][0], 2e0);
   } else if (input_changed || altlast >= 300e0) {
-    double xan = glob7s(in, ptl[0]);
     tn1[1] =
-        ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * /*glob7s(in, ptl[0])*/xan);
-    printf("tn1(2)=%25.10f * %25.10f / (1e0 - %.5f * %25.10f)\n", ptm[6], ptl[0][0],
-           in->sw.sw[17],xan);
+        ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[0]));
     tn1[2] =
         ptm[2] * ptl[1][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[1]));
     tn1[3] = ptm[7] * ptl[2][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[2]));
     tn1[4] = ptm[4] * ptl[3][0] /
              (1e0 - in->sw.sw[17] * in->sw.sw[19] * glob7s(in, ptl[3]));
-    printf("tn1-> %25.9f %25.9f %25.9f %25.9f\n", tn1[1], tn1[2], tn1[3], tn1[4]);
     tgn1[1] = ptm[8] * pma[8][0] *
               (1e0 + in->sw.sw[17] * in->sw.sw[19] * glob7s(in, pma[8])) *
               tn1[4] * tn1[4] / std::pow(ptm[4] * ptl[3][0], 2);
@@ -121,13 +114,8 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // diffusive density at zlb
         db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
         // diffusive density at alt
-        printf("temp=%25.15f\n", out->t[1]);
-        printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f "
-               "%15.8f %15.8f\n",
-               z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s);
         out->d[2] = densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5],
                           s, zn1);
-        printf("temp=%25.15f\n", out->t[1]);
         dd = out->d[2];
         // turbopause
         const double zh28 = pdm[2][2] * zhf;
@@ -149,14 +137,11 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // **** HE DENSITY ****
         // BP: --
         // Density variation factor at Zlb
-        printf("computing HE Density d(1)");
         const double g4 = in->sw.sw[20] * globe7(in, pd[0]);
         // diffusive density at zlb
         db04 = pdm[0][0] * std::exp(g4) * pd[0][0];
-        printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f\n", z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s);
         out->d[0] =
             densu(z, db04, tinf, tlb, 4e0, alpha[0], out->t[1], ptm[5], s, zn1);
-        printf("HE density=%35.15f", out->d[0]);
         dd = out->d[0];
         if (z <= altl[0] && std::abs(in->sw.sw[14]) > 0e0) {
           // turbopause
@@ -176,9 +161,7 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
           const double hc04 = pdm[0][5] * pdl[1][1];
           // net density corrected at alt
           out->d[0] *= ccor(z, rl, hc04, zc04);
-          printf(" new %35.15f", out->d[0]);
         }
-        printf("\n");
 
         //
         // **** O DENSITY ****

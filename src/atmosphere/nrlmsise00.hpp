@@ -15,9 +15,7 @@ namespace nrlmsise00 {
 
 struct switches {
   static constexpr const int dim = 25;
-  //typedef int8_t sint_type;
 
-  // sint_type isw[dim] = {0}; // aka the sav
   double sw[dim] = {0e0};
   double swc[dim] = {0e0};
 
@@ -59,10 +57,7 @@ assert(index<dim);
     }
   }
 
-  bool operator==(const switches &other) const noexcept {
-    //for (int i = 0; i < dim; i++)
-    //  if (isw[i] != other.isw[i])
-    //    return false;
+  /*bool operator==(const switches &other) const noexcept {
     for (int i = 0; i < dim; i++)
       if (sw[i] != other.sw[i])
         return false;
@@ -74,7 +69,7 @@ assert(index<dim);
 
   bool operator!=(const switches &other) const noexcept {
     return !(this->operator==(other));
-  }
+  }*/
 
 };
 
@@ -122,14 +117,14 @@ struct InParams {
     std::memcpy(this->aparr.a, ap_array, sizeof(double)*7);
   }
 
-  bool is_equal(const InParams &p, double limit = nearzero) const noexcept {
+  /*bool is_equal(const InParams &p, double limit = nearzero) const noexcept {
     return (year == p.year && doy == p.doy && std::abs(sec - p.sec) < limit &&
             std::abs(alt - p.alt) < limit && std::abs(glat - p.glat) < limit &&
             std::abs(glon - p.glon) < limit && std::abs(lst - p.lst) < limit &&
             std::abs(f107A - p.f107A) < limit &&
             std::abs(f107 - p.f107) < limit && std::abs(ap - p.ap) < limit &&
             sw == p.sw);
-  }
+  }*/
 
 }; // InParams
 
@@ -162,8 +157,6 @@ inline double sg0(double ex, const double *p, const double *ap) noexcept {
 
 struct Nrlmsise00 {
   Nrlmsise00() noexcept;
-  /* STATIC */
-  /* POWER7 */
   double pt[150];
   double pd[9][150];
   double ps[150];
@@ -172,34 +165,27 @@ struct Nrlmsise00 {
   double pma[10][100];
   // const double sam[100]; -> just a function
 
-  /* LOWER7 */
   static const double ptm[10];
   static const double pdm[8][10];
   static const double pavgm[10];
 
-  /* PARMB */
   double gsurf;
   double re;
-  /* GTS3C */
   double dd;
-  /* DMIX */
   // double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
   double dm28, tlb, xg0, dm28m;
-  /* MESO7 */
   double tn1[5];
   double tn2[4];
   double tn3[5];
   double tgn1[2];
   double tgn2[2];
   double tgn3[2];
-  /* LPOLY */
   double dfa;
   double plg[4][9];
   double ctloc, stloc;
   double c2tloc, s2tloc;
   double s3tloc, c3tloc;
   double apdf, apt[4];
-  // VAR
 const double zn2[4] = {72.5e0, 55e0, 45e0, 32.5e0};
 const double zn3[5] = {32.5e0, 20e0, 15e0, 10e0, 0e0};
 
