@@ -54,17 +54,25 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
   // density above 300 km
   if (in->alt >= 300e0) {
     tn1[1] = ptm[6] * ptl[0][0];
+    printf("tn1(2)=%25.10f * %25.10f\n", ptm[6], ptl[0][0]);
     tn1[2] = ptm[2] * ptl[1][0];
     tn1[3] = ptm[7] * ptl[2][0];
     tn1[4] = ptm[4] * ptl[3][0];
+    printf("tn1-> %25.9f %25.9f %25.9f %25.9f\n", tn1[1], tn1[2], tn1[3], tn1[4]);
     tgn1[1] = ptm[8] * pma[8][0] * tn1[4] * tn1[4] /
               std::pow(ptm[4] * ptl[3][0], 2e0);
   } else if (input_changed || altlast >= 300e0) {
-    tn1[1] = ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[0]));
-    tn1[2] = ptm[2] * ptl[1][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[1]));
+    double xan = glob7s(in, ptl[0]);
+    tn1[1] =
+        ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * /*glob7s(in, ptl[0])*/xan);
+    printf("tn1(2)=%25.10f * %25.10f / (1e0 - %.5f * %25.10f)\n", ptm[6], ptl[0][0],
+           in->sw.sw[17],xan);
+    tn1[2] =
+        ptm[2] * ptl[1][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[1]));
     tn1[3] = ptm[7] * ptl[2][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[2]));
     tn1[4] = ptm[4] * ptl[3][0] /
              (1e0 - in->sw.sw[17] * in->sw.sw[19] * glob7s(in, ptl[3]));
+    printf("tn1-> %25.9f %25.9f %25.9f %25.9f\n", tn1[1], tn1[2], tn1[3], tn1[4]);
     tgn1[1] = ptm[8] * pma[8][0] *
               (1e0 + in->sw.sw[17] * in->sw.sw[19] * glob7s(in, pma[8])) *
               tn1[4] * tn1[4] / std::pow(ptm[4] * ptl[3][0], 2);
@@ -113,8 +121,13 @@ int dso::Nrlmsise00::gts7(const InParams *in, int mass,
         // diffusive density at zlb
         db28 = pdm[2][0] * std::exp(g28) * pd[2][0];
         // diffusive density at alt
+        printf("temp=%25.15f\n", out->t[1]);
+        printf("densu args: %15.8f %25.8f %15.8f %15.8f %15.8f %15.8f %15.8f "
+               "%15.8f %15.8f\n",
+               z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5], s);
         out->d[2] = densu(z, db28, tinf, tlb, 28e0, alpha[2], out->t[1], ptm[5],
                           s, zn1);
+        printf("temp=%25.15f\n", out->t[1]);
         dd = out->d[2];
         // turbopause
         const double zh28 = pdm[2][2] * zhf;
