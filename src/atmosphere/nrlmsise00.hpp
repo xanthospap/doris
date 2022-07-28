@@ -15,9 +15,9 @@ namespace nrlmsise00 {
 
 struct switches {
   static constexpr const int dim = 25;
-  typedef int8_t sint_type;
+  //typedef int8_t sint_type;
 
-  sint_type isw[dim] = {0}; // aka the sav
+  // sint_type isw[dim] = {0}; // aka the sav
   double sw[dim] = {0e0};
   double swc[dim] = {0e0};
 
@@ -31,14 +31,14 @@ struct switches {
 
   void set_null(int index=-1) noexcept {
     if (index<0) {
-      std::memset(isw, 0, sizeof(int8_t) * dim);
+      //std::memset(isw, 0, sizeof(int8_t) * dim);
       std::memset(sw, 0, sizeof(double) * dim);
       std::memset(swc, 0, sizeof(double) * dim);
     } else {
 #ifdef DEBUG
 assert(index<dim);
 #endif
-      isw[index] = 0;
+      //isw[index] = 0;
       sw[index]  = 0e0;
       swc[index] = 0e0;
     }
@@ -46,23 +46,23 @@ assert(index<dim);
 
   void set_on(int index=-1) noexcept {
     if (index<0) {
-      for (int i=0; i<dim; i++) isw[i] = 1;
+      //for (int i=0; i<dim; i++) isw[i] = 1;
       for (int i=0; i<dim; i++) sw[i] = 1e0;
       for (int i=0; i<dim; i++) swc[i] = 1e0;
     } else {
       #ifdef DEBUG
       assert(index<dim);
       #endif
-      isw[index] = 1;
+      //isw[index] = 1;
       sw[index]  = 1e0;
       swc[index] = 1e0;
     }
   }
 
   bool operator==(const switches &other) const noexcept {
-    for (int i = 0; i < dim; i++)
-      if (isw[i] != other.isw[i])
-        return false;
+    //for (int i = 0; i < dim; i++)
+    //  if (isw[i] != other.isw[i])
+    //    return false;
     for (int i = 0; i < dim; i++)
       if (sw[i] != other.sw[i])
         return false;
@@ -76,12 +76,6 @@ assert(index<dim);
     return !(this->operator==(other));
   }
 
-  int8_t operator()(int i) const noexcept {
-#ifdef DEBUG
-    assert(i < dim);
-#endif
-    return isw[i];
-  }
 };
 
 struct ApArray {

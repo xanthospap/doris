@@ -1,6 +1,5 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
-#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
@@ -9,8 +8,6 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   double t[14] = {0e0};
   const double glong = in->glon;
   const double doy = in->doy;
-
-  printf("called glob7s ...\n");
 
   double *__restrict__ p = pp;
 
@@ -65,8 +62,11 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   // asymmetric semi-annual
   t[5] = (p[37] * plg[0][1]) * cd39;
 
+  double absw[switches::dim];
+  for (int i=0;i<switches::dim; i++) absw[i] = std::abs(in->sw.sw[i]);
+
   // diurnal
-  if (std::abs(in->sw.sw[6]) > 0) {
+  if (absw[6] > 0) {
     const double t71 = p[11] * plg[1][2] * cd14 * in->sw.swc[4];
     const double t72 = p[12] * plg[1][2] * cd14 * in->sw.swc[4];
     t[6] = ((p[3] * plg[1][1] + p[4] * plg[1][3] + t71) * ctloc +
@@ -74,7 +74,7 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   }
   
   // semidiurnal
-  if (std::abs(in->sw.sw[7]) > 0) {
+  if (absw[7] > 0) {
     const double t81 =
         (p[23] * plg[2][3] + p[35] * plg[2][5]) * cd14 * in->sw.swc[4];
     const double t82 =
@@ -84,12 +84,12 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   }
   
   // terdiurnal
-  if (std::abs(in->sw.sw[13]) > 0) {
+  if (absw[13] > 0) {
     t[13] = p[39] * plg[3][3] * s3tloc + p[40] * plg[3][3] * c3tloc;
   }
   
   // magnetic activity
-  if (std::abs(in->sw.sw[8]) > 0) {
+  if (absw[8] > 0) {
     //printf("sw(9)=%.3f\n",in->sw(8));
     if (in->sw.sw[8] > 0)
       t[8] = apdf * (p[32] + p[45] * plg[0][2] * in->sw.swc[1]);
@@ -98,7 +98,7 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   }
   
   // longitudinal
-  if (std::abs(in->sw.sw[9]) > 0 && std::abs(in->sw.isw[10]) > 0 &&
+  if (absw[9] > 0 && absw[10] > 0 &&
       glong > -1e3) {
     t[10] = (1e0 +
              plg[0][1] *
@@ -116,8 +116,7 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
 
   double tt = 0e0;
   for (int i = 0; i < 14; i++) {
-    tt += std::abs(in->sw.sw[i]) * t[i];
-    printf("t(%2d) = %25.12f\n", i+1, t[i]);
+    tt += absw[i] * t[i];
   }
 
   return tt;

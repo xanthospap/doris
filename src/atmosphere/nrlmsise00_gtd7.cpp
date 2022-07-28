@@ -1,7 +1,6 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
 #include <cstring>
-#include <cstdio>
 
 using namespace dso::nrlmsise00;
 
@@ -46,7 +45,6 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
     t[1] = outc.t[1];
     if (in->alt >= zn2[0]) {
       std::memcpy(d, outc.d, sizeof(double) * 9);
-      printf("returning after first call to gts\n");
       return 0;
     }
   }
@@ -55,16 +53,18 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   // Temperature at nodes and gradients at end nodes
   // Inverse temperature a linear function of spherical harmonics
   // Only calculate nodes if input changed
+  const double sw19 = in->sw.sw[19];
+  const double sw21 = in->sw.sw[21];
   if (input_changed || altlast >= zn2[0]) {
     tgn2[0] = tgn1[1];
     tn2[0] = tn1[4];
-    tn2[1] = pma[0][0] * pavgm[0] / (1e0 - in->sw(19) * glob7s(in, pma[0]));
+    tn2[1] = pma[0][0] * pavgm[0] / (1e0 - sw19 * glob7s(in, pma[0]));
     tn2[2] =
-        pma[1][0] * pavgm[1] / (1e0 - in->sw(19) * glob7s(in, pma[1]));
+        pma[1][0] * pavgm[1] / (1e0 - sw19 * glob7s(in, pma[1]));
     tn2[3] = pma[2][0] * pavgm[2] /
-             (1e0 - in->sw(19) * in->sw(21) * glob7s(in, pma[2]));
+             (1e0 - sw19 * sw21 * glob7s(in, pma[2]));
     tgn2[1] = pavgm[8] * pma[9][0] *
-              (1e0 + in->sw(19) * in->sw(21) * glob7s(in, pma[9])) * tn2[3] *
+              (1e0 + sw19 * sw21 * glob7s(in, pma[9])) * tn2[3] *
               tn2[3] / std::pow(pma[2][0] * pavgm[2], 2e0);
   }
 
@@ -75,11 +75,11 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   if (in->alt < zn3[0]) {
     if (input_changed || altlast >= zn3[0]) {
       tgn3[0] = tgn2[1];
-      tn3[1] = pma[3][0] * pavgm[3] / (1e0 - in->sw(21) * glob7s(in, pma[3]));
-      tn3[2] = pma[4][0] * pavgm[4] / (1e0 - in->sw(21) * glob7s(in, pma[4]));
-      tn3[3] = pma[5][0] * pavgm[5] / (1e0 - in->sw(21) * glob7s(in, pma[5]));
-      tn3[4] = pma[6][0] * pavgm[6] / (1e0 - in->sw(21) * glob7s(in, pma[6]));
-      tgn3[1] = pma[7][0] * pavgm[7] * (1e0 + in->sw(21) * glob7s(in, pma[7])) *
+      tn3[1] = pma[3][0] * pavgm[3] / (1e0 - sw21 * glob7s(in, pma[3]));
+      tn3[2] = pma[4][0] * pavgm[4] / (1e0 - sw21 * glob7s(in, pma[4]));
+      tn3[3] = pma[5][0] * pavgm[5] / (1e0 - sw21 * glob7s(in, pma[5]));
+      tn3[4] = pma[6][0] * pavgm[6] / (1e0 - sw21 * glob7s(in, pma[6]));
+      tgn3[1] = pma[7][0] * pavgm[7] * (1e0 +sw21 * glob7s(in, pma[7])) *
                 tn3[4] * tn3[4] / std::pow(pma[6][0] * pavgm[6], 2e0);
     }
   }

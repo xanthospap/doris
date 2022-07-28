@@ -7,7 +7,6 @@ int dso::Nrlmsise00::ghp7(const InParams *in, OutParams *out,
                           double press) noexcept {
 
   constexpr const double bm = 1.3806e-19;
-  const bool imr = in->sw.isw[0]; // to meters
 
   double pl = std::log10(press);
 
@@ -49,6 +48,7 @@ int dso::Nrlmsise00::ghp7(const InParams *in, OutParams *out,
 
   constexpr const int ltest = 12;
   constexpr const double test = 0.00043e0;
+  const bool imr = in->meters();
   int l = 0;
   do {
     ++l;
