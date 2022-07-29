@@ -92,3 +92,5 @@ importance.
   * https://github.com/alesmorse/nrlmsise-00
 
   * https://www.brodo.de/space/nrlmsise/
+
+  * https://github.com/lcx366/ATMOS
