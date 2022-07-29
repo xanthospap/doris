@@ -7,9 +7,9 @@
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double twou = 2e0 * umach;
 constexpr const double fouru = 4e0 * umach;
-constexpr const double two[] = {2e0,    4e0,    8e0,   16e0,  32e0,
+/* constexpr const double two[] = {2e0,    4e0,    8e0,   16e0,  32e0,
                                 64e0,   128e0,  256e0, 512e0, 1024e0,
-                                2048e0, 4096e0, 8192e0};
+                                2048e0, 4096e0, 8192e0}; */
 constexpr const double gstr[] = {
     5e-1,      0.0833e0,  0.0417e0,  0.0264e0,  0.0188e0,  0.0143e0, 0.0114e0,
     0.00936e0, 0.00789e0, 0.00679e0, 0.00592e0, 0.00524e0, 0.00468e0};
