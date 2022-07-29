@@ -1,4 +1,4 @@
-#include "celestrack.hpp"
+#include "celestrak.hpp"
 #include <charconv>
 #include <cstdio>
 #include <cstring>
@@ -23,7 +23,7 @@ constexpr const char header[] =
 // F10.7_OBS_LAST81 -> 29
 // F10.7_ADJ_CENTER81 -> 30
 
-int dso::utils::celestrack::details::resolve_csv_line_records(const char *line,
+int dso::utils::celestrak::details::resolve_csv_line_records(const char *line,
                                                      double *data) noexcept {
   const auto sz = std::strlen(line);
   const char *c = line;
@@ -85,7 +85,7 @@ int dso::utils::celestrack::details::resolve_csv_line_records(const char *line,
   return 0;
 }
 
-int dso::utils::celestrack::details::resolve_csv_line_date(
+int dso::utils::celestrak::details::resolve_csv_line_date(
     const char *line, dso::modified_julian_day &mjd) noexcept {
   // date format: 2017-01-10
   int year, month, day;
@@ -111,9 +111,9 @@ int dso::utils::celestrack::details::resolve_csv_line_date(
   return 0;
 }
 
-int dso::utils::celestrack::details::parse_csv_for_date(
+int dso::utils::celestrak::details::parse_csv_for_date(
     dso::modified_julian_day mjd, const char *fncsv,
-    dso::utils::celestrack::details::CelestTrackSWFlux &flux_data) noexcept {
+    dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
 
   // open the csv file
   std::ifstream fin(fncsv);

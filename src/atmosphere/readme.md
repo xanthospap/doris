@@ -53,11 +53,14 @@ Input data can be retrived from the following sources:
 
   * [CelesTrack](https://celestrak.org/SpaceData/) Parsing of CSV files 
    containing flux data from this repository is supported, via the 
-   `dso::get_CelesTrack_flux_data` function. First, users need to download 
+   `dso::get_CelesTrak_flux_data` function. First, users need to download 
    the respective CSV file, and the the function can be used to parse it and 
    return the relevant quantities. See also: 
-   `dso::utils::celestrack::details::CelestTrackSWFlux` which is a class 
-   meant to hold flux data from this resource.
+   `dso::utils::celestrak::details::CelestTrakSWFlux` which is a class 
+   meant to hold flux data from this resource. The file 
+   [test_getCsvFlux](https://github.com/xanthospap/doris/blob/main/test/test_getCsvFlux.cpp) 
+   is a usage example. Users can download the CSV data file using the 
+   `fetch_celestrak_space_weather_data_csv.py` script.
 
 ### Usage
 

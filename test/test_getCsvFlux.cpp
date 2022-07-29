@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
   dso::datetime<dso::seconds> tt(dso::year(2022), dso::month(1),
                                  dso::day_of_month(1), dso::seconds());
 
-  dso::utils::celestrack::details::CelestTrackSWFlux flux_data;
+  dso::utils::celestrak::details::CelestTrakSWFlux flux_data;
   if (int error; (error=dso::get_CelesTrack_flux_data(tt, argv[1], flux_data))) {
     fprintf(stderr, "ERROR. Failed with error code: %d\n", error);
     return error;
