@@ -47,6 +47,18 @@ The last two are passed in via the relevant variables in the
 model correspond to the 10.7 cm radio flux at the actual distance of the Earth
 from the Sun rather than the radio flux at 1 AU.
 
+Input data can be retrived from the following sources:
+
+  * [NWRA](https://spawx.nwra.com/spawx/env_latest.html)
+
+  * [CelesTrack](https://celestrak.org/SpaceData/) Parsing of CSV files 
+   containing flux data from this repository is supported, via the 
+   `dso::get_CelesTrack_flux_data` function. First, users need to download 
+   the respective CSV file, and the the function can be used to parse it and 
+   return the relevant quantities. See also: 
+   `dso::utils::celestrack::details::CelestTrackSWFlux` which is a class 
+   meant to hold flux data from this resource.
+
 ### Usage
 
 For the most part, we will want to use:
