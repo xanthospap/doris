@@ -119,13 +119,14 @@ env.Alias(target='install', source=env.InstallVersionedLib(dir=os.path.join(pref
 
 ## Tests ...
 ignore_test_list = [] if GetOption('ignore_tests') is None else GetOption('ignore_tests').split(',')
-print('Note: Ignore Test list: {:}'.format(ignore_test_list))
-tests_sources = glob.glob(r"test/*.cpp")
-env.Append(RPATH=root_dir)
-for tsource in tests_sources:
-  if tsource not in ignore_test_list:
-    ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
-    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+if ignore_test_list != ['all']:
+  print('Note: Ignore Test list: {:}'.format(ignore_test_list))
+  tests_sources = glob.glob(r"test/*.cpp")
+  env.Append(RPATH=root_dir)
+  for tsource in tests_sources:
+    if tsource not in ignore_test_list:
+      ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
+      env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
 
 ## Unit Tests (only build if user selected)
 if ARGUMENTS.get('make-check', 0):

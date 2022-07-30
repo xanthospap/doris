@@ -6,20 +6,20 @@
 
 namespace dso {
 
-int get_CelesTrack_flux_data(
-    const dso::modified_julian_day mjd, const char *fncsv,
-    dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
-  return dso::utils::celestrak::details::parse_csv_for_date(mjd, fncsv,
-                                                             flux_data);
-}
-
-template <typename T>
-int get_CelesTrack_flux_data(
-    const dso::datetime<T> &t, const char *fncsv,
-    dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
-  return dso::utils::celestrak::details::parse_csv_for_date(t.as_mjd(), fncsv,
-                                                             flux_data);
-}
+//int get_CelesTrack_flux_data(
+//    const dso::modified_julian_day mjd, const char *fncsv,
+//    dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
+//  return dso::utils::celestrak::details::parse_csv_for_date(mjd, fncsv,
+//                                                             flux_data);
+//}
+//
+//template <typename T>
+//int get_CelesTrack_flux_data(
+//    const dso::datetime<T> &t, const char *fncsv,
+//    dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
+//  return dso::utils::celestrak::details::parse_csv_for_date(t.as_mjd(), fncsv,
+//                                                             flux_data);
+//}
 
 } // namespace dso
 

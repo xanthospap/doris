@@ -162,7 +162,6 @@ struct Nrlmsise00 {
   double c2tloc, s2tloc;
   double s3tloc, c3tloc;
   double apdf;
-  // double dm04, dm16, dm28, dm32, dm40, dm01, dm14;
 
   Nrlmsise00() noexcept;
   
