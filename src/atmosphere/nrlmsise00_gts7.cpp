@@ -2,7 +2,7 @@
 #include "nrlmsise00.hpp"
 #include <cstring>
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 const double altl[8] = {200e0, 300e0, 160e0, 250e0, 240e0, 450e0, 320e0, 450e0};
 const double alpha[9] = {-0.380e0, 0e0,      0e0, 0e0, 0.170e0,
@@ -10,8 +10,8 @@ const double alpha[9] = {-0.380e0, 0e0,      0e0, 0e0, 0.170e0,
 const int mt[11] = {48, 0, 4, 16, 28, 32, 40, 1, 49, 14, 17};
 double zn1[5] = {120e0, 110e0, 100e0, 90e0, 72.5e0};
 
-int dso::Nrlmsise00::gts7(const InParams *in, int mass,
-                          OutParams *out) noexcept {
+int dso::Nrlmsise00::gts7(const InParamsCore *in,
+                          dso::nrlmsise00::OutParams *out, int mass) noexcept {
 
   // last call with this altitude
   static double altlast = -999e0;

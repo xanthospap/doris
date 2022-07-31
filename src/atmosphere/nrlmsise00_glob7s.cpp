@@ -1,19 +1,20 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
-double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
+double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
   
   double t[14] = {0e0};
   const double glong = in->glon;
   const double doy = in->doy;
 
+  // only access pp through here, let compiler know
   double *__restrict__ p = pp;
 
   // VERSION OF GLOBE FOR LOWER ATMOSPHERE 10/26/99
   constexpr const double pset = 2e0;
-  static double doyl = -1e0; // last doy used
+  static int last_doy = -1e0; // last doy used
   static double p32 = -1e3;
   static double p18 = -1e3;
   static double p14 = -1e3;
@@ -26,18 +27,19 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   if (std::abs(p[99]) < nearzero)
     p[99] = pset;
 
-  const bool dmdl_gt0 = std::abs(doy - doyl) > nearzero;
-  if (dmdl_gt0 || std::abs(p32 - p[31]) > nearzero)
+  // did day of year change?
+  const bool doy_changed = (int)in->doy - last_doy != 0;
+  if (doy_changed || std::abs(p32 - p[31]) > nearzero)
     cd32 = std::cos(dr * (doy - p[31]));
-  if (dmdl_gt0 || std::abs(p18 - p[17]) > nearzero)
+  if (doy_changed || std::abs(p18 - p[17]) > nearzero)
     cd18 = std::cos(2e0 * dr * (doy - p[17]));
-  if (dmdl_gt0 || std::abs(p14 - p[13]) > nearzero)
+  if (doy_changed || std::abs(p14 - p[13]) > nearzero)
     cd14 = std::cos(dr * (doy - p[13]));
-  if (dmdl_gt0 || std::abs(p39 - p[38]) > nearzero)
+  if (doy_changed || std::abs(p39 - p[38]) > nearzero)
     cd39 = std::cos(2e0 * dr * (doy - p[38]));
 
   // update last used doy
-  doyl = doy;
+  last_doy = doy;
 
   p32 = p[31];
   p18 = p[17];
@@ -62,8 +64,8 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   // asymmetric semi-annual
   t[5] = (p[37] * plg[0][1]) * cd39;
 
-  double absw[switches::dim];
-  for (int i=0;i<switches::dim; i++) absw[i] = std::abs(in->sw.sw[i]);
+  double absw[Switches::dim];
+  for (int i=0;i<Switches::dim; i++) absw[i] = std::abs(in->sw.sw[i]);
 
   // diurnal
   if (absw[6] > 0) {
@@ -90,7 +92,6 @@ double dso::Nrlmsise00::glob7s(const InParams *in, double *pp) noexcept {
   
   // magnetic activity
   if (absw[8] > 0) {
-    //printf("sw(9)=%.3f\n",in->sw(8));
     if (in->sw.sw[8] > 0)
       t[8] = apdf * (p[32] + p[45] * plg[0][2] * in->sw.swc[1]);
     if (in->sw.sw[8] < 0)

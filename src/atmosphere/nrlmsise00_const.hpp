@@ -1,7 +1,7 @@
 #ifndef __DSO_CVERS_NRLMSISE00_CONST_HPP__
 #define __DSO_CVERS_NRLMSISE00_CONST_HPP__
 
-namespace dso::nrlmsise00 {
+namespace dso::nrlmsise00::detail {
 
 // Constants (taken from physics_constants.f90)
 

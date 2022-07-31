@@ -49,55 +49,55 @@ int main() {
   DPRECISION[5] = 1e-12;
   constexpr const double TPRECISION = 1e-6;
 
-  dso::nrlmsise00::ApArray aph;
+  dso::nrlmsise00::detail::ApArray aph;
   for (int i = 0; i < 7; i++)
     aph.a[i] = 100;
 
-  dso::nrlmsise00::InParams input[17];
+  dso::nrlmsise00::InParams<dso::nrlmsise00::detail::FluxDataFeedType::NONE> input[17];
   dso::nrlmsise00::OutParams out[17];
 
   for (int i = 0; i < 17; i++) {
-    input[i].doy = 172;     // day of year
-    input[i].year = 0;      // without effect
-    input[i].sec = 29000e0; // ut
-    input[i].alt = 400e0;
-    input[i].glat = 60e0;
-    input[i].glon = -70e0;
-    input[i].lst = 16e0;
-    input[i].f107A = 150e0;
-    input[i].f107 = 150e0;
-    input[i].ap = 4e0; // magnetic_index
+    input[i].params.doy = 172;     // day of year
+    input[i].params.year = 0;      // without effect
+    input[i].params.sec = 29000e0; // ut
+    input[i].params.alt = 400e0;
+    input[i].params.glat = 60e0;
+    input[i].params.glon = -70e0;
+    input[i].params.lst = 16e0;
+    input[i].params.f107A = 150e0;
+    input[i].params.f107 = 150e0;
+    input[i].params.ap = 4e0; // magnetic_index
   }
 
-  input[1].doy = 81;
-  input[2].sec = 75000e0;
-  input[2].alt = 1000e0;
-  input[3].alt = 100e0;
-  input[10].alt = 0e0;
-  input[11].alt = 10e0;
-  input[12].alt = 30e0;
-  input[13].alt = 50e0;
-  input[14].alt = 70e0;
-  input[16].alt = 100e0;
-  input[4].glat = 0e0;
-  input[5].glon = 0e0;
-  input[6].lst = 4e0;
-  input[7].f107A = 70e0;
-  input[8].f107 = 180e0;
-  input[9].ap = 40e0;
+  input[1].params.doy = 81;
+  input[2].params.sec = 75000e0;
+  input[2].params.alt = 1000e0;
+  input[3].params.alt = 100e0;
+  input[10].params.alt = 0e0;
+  input[11].params.alt = 10e0;
+  input[12].params.alt = 30e0;
+  input[13].params.alt = 50e0;
+  input[14].params.alt = 70e0;
+  input[16].params.alt = 100e0;
+  input[4].params.glat = 0e0;
+  input[5].params.glon = 0e0;
+  input[6].params.lst = 4e0;
+  input[7].params.f107A = 70e0;
+  input[8].params.f107 = 180e0;
+  input[9].params.ap = 40e0;
 
   dso::Nrlmsise00 Msise;
   int mass = 48;
 
   for (int i = 0; i < 17; i++) {
-    input[i].set_switches_on();
+    input[i].params.set_switches_on();
 
     if (i >= 15) {
-      input[i].set_switch(8,-1);
-      input[i].set_ap_array(aph.a);
+      input[i].params.set_switch(8,-1);
+      input[i].params.set_ap_array(aph.a);
     }
 
-    Msise.gtd7(&input[i], mass, &out[i]);
+    Msise.gtd7(&input[i].params, &out[i], mass);
 
     // ref results (FORTRAN)
     const dso::nrlmsise00::OutParams *ref = fortran + i;

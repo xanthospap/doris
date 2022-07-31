@@ -132,7 +132,8 @@ if ignore_test_list != ['all']:
 if ARGUMENTS.get('make-check', 0):
     print('Note: Building Unit Tests ...')
     tests_sources = glob.glob(r"unit_test/*.cpp")
-    if root_dir not in env['RPATH']: env.Append(RPATH=root_dir)
+    if 'RPATH' not in env or root_dir not in env['RPATH']:
+      env.Append(RPATH=root_dir)
     for tsource in tests_sources:
         pth = os.path.dirname(tsource)
         bsn = os.path.basename(tsource)

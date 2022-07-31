@@ -1,10 +1,10 @@
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
-int dso::Nrlmsise00::gtd7d(const InParams *in, int mass,
-                           OutParams *out) noexcept {
-  gtd7(in, mass, out);
+int dso::Nrlmsise00::gtd7d(const InParamsCore *in,
+                           dso::nrlmsise00::OutParams *out, int mass) noexcept {
+  gtd7(in, out, mass);
 
   double *__restrict__ d = out->d;
 

@@ -4,7 +4,7 @@
 #include <cassert>
 #endif
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 /// @brief  Calculate Temperature and Density Profiles for MSIS models
 /// New lower thermo polynomial 10/30/89
@@ -65,9 +65,9 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
 #ifdef DEBUG
     assert(mn <= 5);
 #endif
-    dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
+    dso::nrlmsise00::detail::spline(xs, ys, mn, yd1, yd2, y2out, work);
     x = zg / zgdif;
-    const double y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
+    const double y = dso::nrlmsise00::detail::splint(xs, ys, y2out, mn, x);
 
     // temperature at altitude
     tz = 1e0 / y;
@@ -92,7 +92,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
       const double gamm = xm * glb * zgdif / r100gas;
 
       // integrate spline temperatures
-      double yi = dso::nrlmsise00::splini(xs, ys, y2out, mn, x);
+      double yi = dso::nrlmsise00::detail::splini(xs, ys, y2out, mn, x);
       expl = gamm * yi;
       if (expl > 50e0 || tz <= 0e0)
         expl = 50e0;

@@ -1,14 +1,16 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
-double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
+double dso::Nrlmsise00::globe7(const InParamsCore *in, double *pp) noexcept {
 
   // calculate G(L) function
 
+  // only access pp through here, let compiler know
+  double *__restrict__ p = pp;
+
   // switches ...
-  // const dso::nrlmsise00::switches::sint_type *__restrict__ sw = in->sw.isw;
   const double *__restrict__ sw = in->sw.sw;
 
   // upper thermosphere parameters
@@ -21,7 +23,8 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
   // last used tloc/lst (so we don't recompute trig numbers)
   static double tll = 1000e0;
   static double sw9 = 1e0;
-  static double dayl = -1e0;
+  // last doy used 
+  static int last_doy = -1;
   static double p14 = -1e3;
   static double p18 = -1e3;
   static double p32 = -1e3;
@@ -83,19 +86,18 @@ double dso::Nrlmsise00::globe7(const InParams *in, double *p) noexcept {
     }
   }
 
-  const double day = in->doy;
-  const bool doy_changed = std::abs(day - dayl) > nearzero;
+  const bool doy_changed = last_doy - (int)in->doy != 0;
   if (doy_changed || std::abs(p[13] - p14) > nearzero)
-    cd14 = std::cos(dr * (day - p[13]));
+    cd14 = std::cos(dr * (in->doy - p[13]));
   if (doy_changed || std::abs(p[17] - p18) > nearzero)
-    cd18 = std::cos(2e0 * dr * (day - p[17]));
+    cd18 = std::cos(2e0 * dr * (in->doy - p[17]));
   if (doy_changed || std::abs(p[31] - p32) > nearzero)
-    cd32 = std::cos(dr * (day - p[31]));
+    cd32 = std::cos(dr * (in->doy - p[31]));
   if (doy_changed || std::abs(p[38] - p39) > nearzero)
-    cd39 = std::cos(2e0 * dr * (day - p[38]));
+    cd39 = std::cos(2e0 * dr * (in->doy - p[38]));
 
   // update last doy used ...
-  dayl = day;
+  last_doy = in->doy;
 
   p14 = p[13];
   p18 = p[17];

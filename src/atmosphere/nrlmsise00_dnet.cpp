@@ -1,9 +1,9 @@
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 /// @brief Turbopause correction for msis models
-double dso::nrlmsise00::dnet(double &dd, double dm, double zhm, double xmm,
+double dso::nrlmsise00::detail::dnet(double &dd, double dm, double zhm, double xmm,
                              double xm) noexcept {
   const double a = zhm / (xmm - xm);
   double dnet = 0e0;

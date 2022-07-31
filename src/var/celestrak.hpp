@@ -20,7 +20,7 @@ struct CelestTrakSWFlux {
       f107AdjC81{MissingSwData};        ///< F10.7_ADJ_CENTER81 -> 30
   double ApDailyAverage{MissingSwData}; ///< Arithmetic average of the 8 Ap
                                         ///< indices for the day. -> 21
-  double ApIndexes[8];                  ///< 3-hour Ap indexes -> [13-20]
+  int ApIndexes[8];                     ///< 3-hour Ap indexes -> [13-20]
   char flag[5] = {'\0'};                ///< Flux Qualifier
 };
 
@@ -44,24 +44,29 @@ int resolve_csv_line_records(const char *line,
 int resolve_csv_line_date(const char *line,
                           dso::modified_julian_day &mjd) noexcept;
 
-/// @brief Parse a SW CSV file and return Flux info for three days, the middle
-///        one being mjd.
+/// @brief Parse a SW CSV file and return Flux info for a given number of days,
+///        centered around given date.
 /// The function will parse a (what is expected to be) SW CSV file and return
-/// three individual CelestTrakSWFlux instances, for
-/// * mjd - 1
-/// * mjd, and
+/// individual CelestTrakSWFlux instances, for
+/// * mjd - days_before
+/// * mjd - (days_before - 1)
+/// * mjd - (days_before - ...)
+/// * mjd
 /// * mjd + 1
-/// aka three days, centered at given mjd.
+/// * mjd + ...
+/// * mjd + days_after
 /// SW CSV file(s), can be downloaded from CelesTrak, see
 /// https://celestrak.org/SpaceData/
 /// @param[in] mjd Center MJD for requested Flux data
 /// @param[in] fncsv The filename of the SW SCV data file
-/// @param[out] flux_data An array of (at least) 3 CelestTrakSWFlux instances;
+/// @param[out] flux_data An array of CelestTrakSWFlux instances;
 ///             at output they hold respective data for the dates:
-///             [mjd-1, mjd, mjd+1]
-/// @return Anything other than 0 denotes an error. In this case, the resulting
-///         flux_data may be erronuous!
+///             [mjd-days_before, ... , mjd-1, mjd, mjd+1, mjd+days_after]
+///             It must be of size (at least) : days_before + 1 + days_after
+/// @return Anything other than 0 denotes an error. In this case, the 
+///         resulting flux_data may be erronuous!
 int parse_csv_for_date(dso::modified_julian_day mjd, const char *fncsv,
-                       CelestTrakSWFlux *flux_data) noexcept;
+                       CelestTrakSWFlux *flux_data, int days_before = 4,
+                       int days_after = 0) noexcept;
 } // namespace dso::utils::celestrak::details
 #endif

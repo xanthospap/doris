@@ -1,9 +1,10 @@
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 // if anything other than zero is returned, error!
-int dso::Nrlmsise00::ghp7(const InParams *in, OutParams *out,
+int dso::Nrlmsise00::ghp7(const InParamsCore *in,
+                          dso::nrlmsise00::OutParams *out,
                           double press) noexcept {
 
   constexpr const double bm = 1.3806e-19;
@@ -52,7 +53,7 @@ int dso::Nrlmsise00::ghp7(const InParams *in, OutParams *out,
   int l = 0;
   do {
     ++l;
-    gtd7(in, 48, out);
+    gtd7(in, out, 48);
     const double xn = out->d[0] + out->d[1] + out->d[2] + out->d[3] +
                       out->d[4] + out->d[6] + out->d[7];
     double p = bm * xn * out->t[1];

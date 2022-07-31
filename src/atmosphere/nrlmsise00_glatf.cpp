@@ -1,7 +1,7 @@
 #include "geodesy/units.hpp"
 #include "nrlmsise00.hpp"
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 /// @brief calculate latitude variable gravity (gv) and effective radius (reff)
 double dso::Nrlmsise00::glatf(double lat, double &gv) const noexcept {

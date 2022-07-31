@@ -2,14 +2,14 @@
 #include <algorithm>
 #include <cstring>
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
-int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
-                          OutParams *out) noexcept {
+int dso::Nrlmsise00::gtd7(const InParamsCore *in,
+                          dso::nrlmsise00::OutParams *out, int mass) noexcept {
   static double altlast = 99999e0;
   constexpr const double zmix = 62.5e0;
 
-  OutParams outc;
+  dso::nrlmsise00::OutParams outc;
   double *__restrict__ d = out->d;
   double *__restrict__ t = out->t;
   double *__restrict__ ds = outc.d;
@@ -35,9 +35,9 @@ int dso::Nrlmsise00::gtd7(const InParams *in, int mass,
   // Only calculate thermosphere if input parameters changed (but they always 
   // have in this C++ version ...) or altitude above ZN2(1) in mesosphere
   {
-    InParams inc(*in);
+    InParamsCore inc(*in);
     inc.alt = altt;
-    gts7(&inc, mss, &outc);
+    gts7(&inc, &outc, mss);
     dm28m = dm28;
     if (in->meters())
       dm28m = dm28 * 1e6;

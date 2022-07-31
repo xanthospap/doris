@@ -4,7 +4,7 @@
 #include <cassert>
 #endif
 
-using namespace dso::nrlmsise00;
+using namespace dso::nrlmsise00::detail;
 
 /// @brief Calculate Temperature and Density Profiles for lower atmos.
 double dso::Nrlmsise00::densm(double alt, double d0, double xm,
@@ -39,9 +39,9 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
         -tgn2[1] / (t2 * t2) * zgdif * std::pow((re + z2) / (re + z1), 2e0);
 
     // calculate spline coefficients
-    dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
+    dso::nrlmsise00::detail::spline(xs, ys, mn, yd1, yd2, y2out, work);
     double x = zg / zgdif;
-    double y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
+    double y = dso::nrlmsise00::detail::splint(xs, ys, y2out, mn, x);
 
     // temperature at altitude
     tz = 1e0 / y;
@@ -52,7 +52,7 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
       const double gamm = xm * glb * zgdif / r100gas;
 
       // integrate temperature profile
-      const double yi = dso::nrlmsise00::splini(xs, ys, y2out, mn, x);
+      const double yi = dso::nrlmsise00::detail::splini(xs, ys, y2out, mn, x);
       const double expl = (gamm * yi > 50e0) ? (50e0) : (gamm * yi);
 
       // density at altitude
@@ -79,9 +79,9 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
       yd2 = -tgn3[1] / (t2 * t2) * zgdif * std::pow((re + z2) / (re + z1), 2e0);
 
       // calculate spline coefficients
-      dso::nrlmsise00::spline(xs, ys, mn, yd1, yd2, y2out, work);
+      dso::nrlmsise00::detail::spline(xs, ys, mn, yd1, yd2, y2out, work);
       x = zg / zgdif;
-      y = dso::nrlmsise00::splint(xs, ys, y2out, mn, x);
+      y = dso::nrlmsise00::detail::splint(xs, ys, y2out, mn, x);
 
       // temperature at altitude
       tz = 1e0 / y;
@@ -91,7 +91,7 @@ double dso::Nrlmsise00::densm(double alt, double d0, double xm,
         const double gamm = xm * glb * zgdif / r100gas;
 
         // integrate temperature profile
-        const double yi = dso::nrlmsise00::splini(xs, ys, y2out, mn, x);
+        const double yi = dso::nrlmsise00::detail::splini(xs, ys, y2out, mn, x);
         const double expl = (gamm * yi > 50e0) ? (50e0) : (gamm * yi);
 
         // density at altitude

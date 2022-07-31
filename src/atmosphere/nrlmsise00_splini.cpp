@@ -1,7 +1,7 @@
 #include "nrlmsise00.hpp"
 #include <algorithm>
 
-double dso::nrlmsise00::splini(const double *__restrict__ xa,
+double dso::nrlmsise00::detail::splini(const double *__restrict__ xa,
                                const double *__restrict__ ya,
                                double *__restrict__ y2a, int n,
                                double x) noexcept {

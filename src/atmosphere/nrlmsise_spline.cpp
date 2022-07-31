@@ -1,7 +1,7 @@
 #include "nrlmsise00.hpp"
 
 /// @brief Calculate 2nd derivatives of cubic spline interp function
-void dso::nrlmsise00::spline(const double *__restrict__ x,
+void dso::nrlmsise00::detail::spline(const double *__restrict__ x,
                              const double *__restrict__ y, int n, double yp1,
                              double ypn, double *__restrict__ y2,
                              double *work /*size >= n */) noexcept {
