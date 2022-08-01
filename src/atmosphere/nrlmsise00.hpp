@@ -175,7 +175,7 @@ struct InParamsCore {
   int year;     // year, currently ignored
   int doy;      // day of year
   double sec;   // seconds in day (UT)
-  double alt;   // altitude in kilometers
+  double alt;   // altitude in kilometers [km]
   double glat;  // geodetic latitude [degrees]
   double glon;  // geodetic longitude  [degrees]
   double lst;   // local apparent solar time (hours), see note

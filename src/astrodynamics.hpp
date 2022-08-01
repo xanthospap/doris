@@ -273,8 +273,17 @@ int state2kepler_montenbruck(const double *state, double *kepler_ele,
 /// including wind variations. However, such data are usually not available.
 /// [1] Fundamentals of Astrodynamics and Applications, A. Vallado,
 ///     Chapter 8.6.2
+///     OBSOLETE ------------------------------------------------------------
+/*
 Vector3 drag_accel(const Vector3 &r, const Vector3 &v, double Area, double mass,
                    double CD, double atmdens) noexcept;
+*/
+Eigen::Matrix<double, 3, 1>
+drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
+                const Eigen::Matrix<double, 3, 1> &vsat,
+                const Eigen::Matrix<double, 3, 1> &rbpn,
+                double Area, double CD,
+                double Mass, double atmdens) noexcept;
 
 /// @brief Acceleration due to Solar Radiation Pressure
 /// This is a simplified model, as described in Montenbruck et al, 2000

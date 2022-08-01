@@ -1,4 +1,5 @@
 #include "astrodynamics.hpp"
+#include "atmosphere.hpp"
 #include "datetime/datetime_write.hpp"
 #include "egravity.hpp"
 #include "eigen3/Eigen/Eigen"
@@ -18,6 +19,7 @@ using dso::sp3::SatelliteId;
 
 const int Integrate = false;
 const int include_third_body = true;
+const int include_drag = false;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
@@ -32,6 +34,7 @@ static unsigned call_nr = 0;
 constexpr const double Cr_H2C = 0.88e0;
 constexpr const double Mass_H2C = 1677e0; // [kg] total mass of H2C
 constexpr const double Area_H2C = 39.71e0; // [m^2]
+constexpr const double CD = 2.25e0; // drag coefficient in range [1.5 - 3]
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -53,6 +56,10 @@ struct AuxParams {
   dso::HarmonicCoeffs *hc;
   dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
   int degree, order;
+  // drag
+  dso::Nrlmsise00 *msise;
+  dso::nrlmsise00::InParams<
+      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *msise_in;
 };
 
 int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
@@ -196,7 +203,6 @@ ter2cel(double mjd_tai, const EopInfo *eopLUT,
       iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
   
   // Combine to form the celestial-to-terrestrial matrix.
-  // auto mat = iers2010::sofa::c2tcio(rc2i, era, rpom);
   auto mat = rpom * dso::Mat3x3::RotZ(era) * rc2i;
   
   // note that the following will result in an Eigen matrix that is the
@@ -250,6 +256,41 @@ void SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
   return;
 }
 
+void setNrlmsise00Params(
+    double mjd_ut, const Eigen::Matrix<double, 3, 1> r_ecef, int &newmjd,
+    double &secday,
+    dso::nrlmsise00::InParams<
+        dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>
+        *msise_in) noexcept {
+
+  // time data
+  double dmjd;
+  secday = std::modf(mjd_ut, &dmjd);
+  secday *= 86400e0;
+  dso::modified_julian_day mjd((long)dmjd);
+  const auto ydoy = mjd.to_ydoy();
+  msise_in->params_.year = ydoy.__year.as_underlying_type();
+  msise_in->params_.doy = ydoy.__doy.as_underlying_type();
+  msise_in->params_.sec = secday;
+  newmjd = mjd.as_underlying_type();
+
+  // spatial data -- note, could use a constant earth radius instead of N --
+  auto r_ell = dso::car2ell<dso::ellipsoid::grs80>(r_ecef);
+  const double glong = dso::rad2deg(r_ell(0)); // [degrees]
+  const double glat = dso::rad2deg(r_ell(1));  // [degrees]
+  const double alt =
+      (r_ell(2) - dso::car2ell<dso::ellipsoid::grs80>::N(r_ell(1))) *
+      1e-3; // [km]
+  msise_in->params_.glon = glong;
+  msise_in->params_.glat = glat;
+  msise_in->params_.alt  = alt;
+
+  // STL=SEC/3600+GLONG/15
+  msise_in->params_.stl = secday/3600e0 + glong/15e0
+
+  return;
+}
+
 void VariationalEquations(
     double tsec, // TAI
     // state and state transition matrix (inertial RF)
@@ -298,6 +339,36 @@ void VariationalEquations(
     tb_partials = Eigen::Matrix<double, 3, 3>::Zero();
   }
 
+  // Drag
+  // set input parameters (time and spatial)
+  int msise_mjd;
+  double msise_secday;
+  setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday, params->msise_in);
+  // update flux data
+  if (params->msise_in->update_params(msise_mjd, msise_secday)) {
+    fprintf("ERROR. Failed to update flux/Ap data from drag!\n");
+  }
+  // get density (kg/m^3)
+  double density;
+  {
+  dso::OutParams out;
+  params->msise->gtd7d(params->msise_in->params_, &out);
+  density = out.d[5];
+  }
+  // we also need to true-to-date matrix (for relavite velocity)
+  Eigen::Matrix<double,3,3> r_tof;
+  {
+  double mjd_days;
+  const double taif = std::modf(cmjd, &mjd_days);
+  const double ttf = taif + (32184e-3 / 86400e0);
+  const double mjd_tt = mjd_days + ttf;
+  const auto rnpb = iers2010::iau::pnm06a(dso::mjd0_jd, mjd_tt);
+  Eigen::Matrix<double,3,3> r_toft(rnpb.data);
+  r_tof = r_toft.transpose();
+  }
+  const auto drag = dso::drag_accel(r,v,r_tof,Area_H2C,CD,Mass_H2C,density);
+
+
   // SRP
   Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
   if (include_srp) {
@@ -330,7 +401,7 @@ void VariationalEquations(
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + srp;
+  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + srp + drag;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
@@ -351,11 +422,10 @@ void VariationalEquations(
 int main(int argc, char *argv[]) {
 
   // handle gravity field
-  if (argc < 8 || argc > 9) {
+  if (argc < 9 || argc > 10) {
     fprintf(stderr,
             "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] "
-            "[LSK] [PCK] [INTEGRATION INTERVAL IN SEC - optional-]"
-            "[LSK]\n",
+            "[LSK] [PCK] [SW CSV] [INTEGRATION INTERVAL IN SEC - optional-]\n",
             argv[0]);
     return 1;
   }
@@ -417,10 +487,34 @@ int main(int argc, char *argv[]) {
     return 3;
   }
 
+  // Atmospheric Drag
+  // 1. Create an NRLMSISE00 instance to be called within the VE
+  dso::Nrlmsise00 Msise;
+  // 2. Create an instance for NRLMSISE00 data feed; create it once so it
+  //    handles all IO and fetching keeping dates, so that we don't have to
+  //    do it for each call
+  dso::nrlmsise00::InParams<
+      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>
+      MsiseParams(argv[8], sp3.start_epoch().mjd(), 0e0);
+  // set
+  // 1. all switches on (default)
+  // 2. output in meters
+  // 3. use hourly ap
+  MsiseParams.params_.set_switches_on();
+  MsiseParams.params_.meters_on();
+  MsiseParams.params_.use_aparray();
+
   // Create Auxiliary parameters. This will be passed-in the variational
   // equations to compute derivs.
-  AuxParams params{
-      sp3.start_epoch().as_mjd(), &EopLookUpTables, &hc, &V, &W, degree, order};
+  AuxParams params{sp3.start_epoch().as_mjd(),
+                   &EopLookUpTables,
+                   &hc,
+                   &V,
+                   &W,
+                   degree,
+                   order,
+                   &Msise,
+                   &MsiseParams};
 
   // SetUp an integrator
   printf("* setting up integrator ...\n");
