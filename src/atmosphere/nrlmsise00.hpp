@@ -138,6 +138,18 @@ struct Switches {
 /// dso::NrlMsise00Input class.
 struct ApArray {
   double a[7];
+  ApArray& operator=(const ApArray& other) noexcept {
+    if (this != &other) {
+      std::memcpy(a, other.a, sizeof(double) * 7);
+    }
+    return *this;
+  }
+  ApArray& operator=(const double *other) noexcept {
+    if (this->a != other) {
+      std::memcpy(a, other, sizeof(double) * 7);
+    }
+    return *this;
+  }
 }; // dso::nrlmsise00::ApArray
 
 /// @brief A class to hold input parameters for NRLMSISE00.
@@ -200,10 +212,15 @@ struct InParamsCore {
   ///            Switches::set_switch
   void set_switch(int index, double val) noexcept { sw.set_switch(index, val); }
 
-  /// Set the Ap index array values using an input array
+  /// @brief Set the Ap index array values using an input array
   /// @param[in] ap_array Should hold 7 double values, as ordered in ApArray
   void set_ap_array(const double *ap_array) noexcept {
-    std::memcpy(this->aparr.a, ap_array, sizeof(double) * 7);
+    aparr = ap_array;
+  }
+
+  /// @brief Set the Ap index array values using an ApArray
+  void set_ap_array(const ApArray &ap_array) noexcept {
+    aparr = ap_array;
   }
 
   /// @brief

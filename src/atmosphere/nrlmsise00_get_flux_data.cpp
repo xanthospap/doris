@@ -182,6 +182,7 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::update(
 
   int error = 0;
   dso::modified_julian_day new_mjd(dso::ydoy2mjd(in.year, in.doy));
+  new_mjd += dso::modified_julian_day((int)(in.sec / 86400e0));
 
   if (new_mjd == mjd_) {
     // date not changed. let's see if the 3-hour interval changed
@@ -206,8 +207,10 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::update(
       error = dso::utils::celestrak::details::parse_csv_for_date(
           new_mjd, fncsv_, flux_data_, fpos, 3, 0);
     }
-    if (!error)
+    if (!error) {
+      mjd_ = new_mjd;
       error = init(in);
+    }
   }
 
   return error;
