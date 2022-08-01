@@ -126,16 +126,16 @@ struct Switches {
 
 /// @brief Holds Ap indexes for NRLMSISE model. These are:
 /// (0) DAILY AP
-/// (1) 3 HR AP INDEX FOR CURRENT TIME 
-/// (2) 3 HR AP INDEX FOR 3 HRS BEFORE CURRENT TIME 
+/// (1) 3 HR AP INDEX FOR CURRENT TIME
+/// (2) 3 HR AP INDEX FOR 3 HRS BEFORE CURRENT TIME
 /// (3) 3 HR AP INDEX FOR 6 HRS BEFORE CURRENT TIME
-/// (4) 3 HR AP INDEX FOR 9 HRS BEFORE CURRENT TIME 
-/// (5) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 12 TO 33 HRS PRIOR 
+/// (4) 3 HR AP INDEX FOR 9 HRS BEFORE CURRENT TIME
+/// (5) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 12 TO 33 HRS PRIOR
 ///     TO CURRENT TIME
-/// (6) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 36 TO 57 HRS PRIOR TO CURRENT 
-///     TIME struct 
-/// This struct is supposed to be a member of the more general 
-/// dso::NrlMsise00Input class. 
+/// (6) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 36 TO 57 HRS PRIOR TO CURRENT
+///     TIME struct
+/// This struct is supposed to be a member of the more general
+/// dso::NrlMsise00Input class.
 struct ApArray {
   double a[7];
 }; // dso::nrlmsise00::ApArray
@@ -156,22 +156,22 @@ struct ApArray {
 ///       for apparent local time can be included if available but
 ///       are of minor importance.
 /// @note F107 and F107A values used to generate the model correspond
-///       to the 10.7 cm radio flux at the actual distance of the Earth from 
+///       to the 10.7 cm radio flux at the actual distance of the Earth from
 ///       the Sun rather than the radio flux at 1 AU.
 struct InParamsCore {
   nrlmsise00::detail::Switches sw;
-  int year;  // year, currently ignored 
-  int doy;      // day of year 
-  double sec;   // seconds in day (UT) 
-  double alt;   // altitude in kilometers 
+  int year;     // year, currently ignored
+  int doy;      // day of year
+  double sec;   // seconds in day (UT)
+  double alt;   // altitude in kilometers
   double glat;  // geodetic latitude [degrees]
   double glon;  // geodetic longitude  [degrees]
   double lst;   // local apparent solar time (hours), see note
-  double f107A; // 81 day average of F10.7 flux (centered on doy) 
-  double f107;  // daily F10.7 flux for previous day 
-  double ap;    // magnetic index(daily) 
+  double f107A; // 81 day average of F10.7 flux (centered on doy)
+  double f107;  // daily F10.7 flux for previous day
+  double ap;    // magnetic index(daily)
   nrlmsise00::detail::ApArray aparr; // ap index array
-  bool meters_{false}; // request result in m^3 and kg/m^3
+  bool meters_{false};               // request result in m^3 and kg/m^3
 
   InParamsCore() noexcept {};
   InParamsCore(dso::modified_julian_day mjd, double secday) noexcept;
@@ -184,7 +184,7 @@ struct InParamsCore {
 
   /// @brief Check if result in m^3 and kg/m^3 is requested
   void meters_on() noexcept { meters_ = true; }
-  
+
   /// @brief Compute and return the fractional doy
   double fdoy() const noexcept { return (double)doy + sec / 86400e0; }
 
@@ -212,10 +212,10 @@ struct InParamsCore {
 
 /// @brief The Nrlmsise00DataFeed class is meant to be a data provider for the
 ///         InParamsCore class.
-/// It is meant to act as an "intermidiate" between the InParamsCore class and 
-/// a ClesTrak, Space Weather CSV file. It will parse the file, and extract 
-/// flux and Ap information depending on given dates. It is helpful usually in 
-/// the case of POD, where we need to have very dense and forward-in-time data 
+/// It is meant to act as an "intermidiate" between the InParamsCore class and
+/// a ClesTrak, Space Weather CSV file. It will parse the file, and extract
+/// flux and Ap information depending on given dates. It is helpful usually in
+/// the case of POD, where we need to have very dense and forward-in-time data
 /// values for computing drag force.
 struct Nrlmsise00DataFeed {
   ///< ClesTrak, Space Weather CSV file
@@ -227,6 +227,8 @@ struct Nrlmsise00DataFeed {
   ///< date is always flux_data_[3] (one prior is flux_data_[2], two days prior
   /// is flux_data_[1], etc).
   dso::utils::celestrak::details::CelestTrakSWFlux flux_data_[4];
+  ///< last position in file for which data were retrieved
+  std::ifstream::pos_type fpos;
 
   /// @brief Constructor from ClesTrak, Space Weather CSV file
   Nrlmsise00DataFeed(const char *fncsv, InParamsCore &p);
@@ -236,46 +238,46 @@ struct Nrlmsise00DataFeed {
 
   /// @brief Update flux/Ap records of InParamsCore, using its date/time data
   /// To update the flux/Ap data in an InParamsCore instance, set the target
-  /// data (aka year and doy) and time (via sec), and pass it in to this 
+  /// data (aka year and doy) and time (via sec), and pass it in to this
   /// function.
   int update(InParamsCore &p) noexcept;
 };
 
-/// @brief Enumeration to hold the type of data feed for NRLMSISE00 input 
+/// @brief Enumeration to hold the type of data feed for NRLMSISE00 input
 ///        parameters.
 enum class FluxDataFeedType : char {
   NONE,     ///< Manual data feed, user is responsible
   ST_CSV_SW ///< Automatic data feed using a ClesTrak, Space Weather CSV file
 };
 
-}// detail
+} // namespace detail
 
 /// @brief A class to hold NRLMSISE00 input parameters and the way they are
 ///        retrieved/updated
-template<detail::FluxDataFeedType T> struct InParams {};
+template <detail::FluxDataFeedType T> struct InParams {};
 
-/// @brief Specialization; no data feed, user is responsible for retrieving and 
+/// @brief Specialization; no data feed, user is responsible for retrieving and
 ///        updating flux/Ap records
-template<> struct InParams<detail::FluxDataFeedType::NONE> {detail::InParamsCore params;};
+template <> struct InParams<detail::FluxDataFeedType::NONE> {
+  detail::InParamsCore params_;
+};
 
 /// @brief Specialization; flux/Ap data are handled by an
 /// detail::Nrlmsise00DataFeed instance, which is responsible for retrieving
 /// and updating data, base on a CSV file
-template<> struct InParams<detail::FluxDataFeedType::ST_CSV_SW> { 
+template <> struct InParams<detail::FluxDataFeedType::ST_CSV_SW> {
   detail::InParamsCore params_;
   detail::Nrlmsise00DataFeed feed_;
 
-  InParams(const char *csv, dso::modified_julian_day mjd, double secday) :
-  params_(mjd, secday), feed_(csv, params_)
-  {}
+  InParams(const char *csv, dso::modified_julian_day mjd, double secday)
+      : params_(mjd, secday), feed_(csv, params_) {}
 
-  /// @brief Update datetime parameters for call to NRLMSISE. year, doy, sec, 
-  ///        are set and flux/Ap data are extracted from the CSV file. 
+  /// @brief Update datetime parameters for call to NRLMSISE. year, doy, sec,
+  ///        are set and flux/Ap data are extracted from the CSV file.
   int update_params(int mjd, double secday) noexcept {
     const dso::datetime<dso::milliseconds> t(
-        mjd,
-        dso::milliseconds(
-            static_cast<dso::milliseconds::underlying_type>(secday * 1e3)));
+        mjd, dso::milliseconds(static_cast<dso::milliseconds::underlying_type>(
+                 secday * 1e3)));
     const auto ydoy = t.as_ydoy();
     params_.year = ydoy.__year.as_underlying_type();
     params_.doy = ydoy.__doy.as_underlying_type();
@@ -297,7 +299,7 @@ class Nrlmsise00 {
   static const double ptm[10];
   static const double pdm[8][10];
   static const double pavgm[10];
-  
+
   // two dim arrays
   double pma[10][100];
   double pd[9][150];
@@ -351,21 +353,21 @@ class Nrlmsise00 {
   double glatf(double lat, double &gv) const noexcept;
 
   double glob7s(const nrlmsise00::detail::InParamsCore *in, double *p) noexcept;
-  
-  int ghp7(const nrlmsise00::detail::InParamsCore *in, nrlmsise00::OutParams *out,
-           double press) noexcept;
-  
+
+  int ghp7(const nrlmsise00::detail::InParamsCore *in,
+           nrlmsise00::OutParams *out, double press) noexcept;
+
   int gts7(const nrlmsise00::detail::InParamsCore *in,
-           nrlmsise00::OutParams *out, int mass=48) noexcept;
-  
+           nrlmsise00::OutParams *out, int mass = 48) noexcept;
+
   double globe7(const nrlmsise00::detail::InParamsCore *in, double *p) noexcept;
 
 public:
   Nrlmsise00() noexcept;
-  
+
   /// @brief Neutral Atmosphere Empirical Model from the surface to lower
   /// exosphere.
-  /// 
+  ///
   /// @param[in] in Includes:
   ///   * doy day of year
   ///   * sec seconds in day
@@ -378,7 +380,7 @@ public:
   ///   * ap magnetic index array
   ///   * d density array
   ///   * t temperature array
-  /// 
+  ///
   /// The output variables are:
   ///  - out.d[0]: HE number density(cm-3)
   ///  - out.d[1]: O  number density(cm-3)
@@ -391,23 +393,22 @@ public:
   ///  - out.d[8]: Anomalous oxygen number density(cm-3)
   ///  - out.t[0]: exospheric temperature
   ///  - out.t[1]: temperature at alt
-  /// 
+  ///
   /// @note d[5] is the sum of the mass densities of the
   ///        species labeled by indices 0-4 and 6-7 in output variable d.
   ///        This includes He, O, N2, O2, Ar, H, and N but does NOT include
   ///        anomalous oxygen (species index 8).
   int gtd7(const nrlmsise00::detail::InParamsCore *in,
-           nrlmsise00::OutParams *out, int mass=48) noexcept;
-  
-  /// @brief Neutral Atmosphere Empirical Model from the surface to lower 
+           nrlmsise00::OutParams *out, int mass = 48) noexcept;
+
+  /// @brief Neutral Atmosphere Empirical Model from the surface to lower
   /// exosphere, including the anomalous oxygen contribution.
-  /// 
+  ///
   ///  This subroutine provides Effective Total Mass Density for output
   ///  d[5] which includes contributions from "anomalous oxygen" which can
   ///  affect satellite drag above 500 km.
-  int gtd7d(const nrlmsise00::detail::InParamsCore *in, 
-            nrlmsise00::OutParams *out, int mass=48) noexcept;
-  
+  int gtd7d(const nrlmsise00::detail::InParamsCore *in,
+            nrlmsise00::OutParams *out, int mass = 48) noexcept;
 
 }; // Nrlmsise00
 

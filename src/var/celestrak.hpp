@@ -2,6 +2,7 @@
 #define __DSO__CELESTRACK_VAR_DATA_UTILS_HPP__
 
 #include "datetime/dtcalendar.hpp"
+#include <fstream> // for pos_type
 
 namespace dso::utils::celestrak::details {
 
@@ -63,10 +64,21 @@ int resolve_csv_line_date(const char *line,
 ///             at output they hold respective data for the dates:
 ///             [mjd-days_before, ... , mjd-1, mjd, mjd+1, mjd+days_after]
 ///             It must be of size (at least) : days_before + 1 + days_after
+/// @param[out] fpos Position of tellg() on the input file, after retrieving
+///             the last line. This can be later used to easily get the next
+///             record, for the next day
+/// @param[in] days_before Number of days to be collected, before mjd
+/// @param[in] days_after Number of days to be collected, after mjd
 /// @return Anything other than 0 denotes an error. In this case, the 
 ///         resulting flux_data may be erronuous!
 int parse_csv_for_date(dso::modified_julian_day mjd, const char *fncsv,
-                       CelestTrakSWFlux *flux_data, int days_before = 4,
+                       CelestTrakSWFlux *flux_data,
+                       std::ifstream::pos_type &fpos, int days_before = 4,
                        int days_after = 0) noexcept;
+
+int get_next(dso::modified_julian_day mjd, const char *fncsv,
+             CelestTrakSWFlux *flux_data, int flux_data_sz,
+             std::ifstream::pos_type &fpos) noexcept;
+
 } // namespace dso::utils::celestrak::details
 #endif

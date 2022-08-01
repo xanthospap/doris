@@ -103,19 +103,19 @@ int dso::utils::celestrak::details::resolve_csv_line_records(
     return 15;
 
   // column F10.7_OBS_CENTER81
-  pec = std::from_chars(++c, last, flux_data.f107ObsC81);
+  pec = std::from_chars(c, last, flux_data.f107ObsC81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 16;
 
   // column F10.7_OBS_LAST81
-  pec = std::from_chars(++c, last, flux_data.f107ObsL81);
+  pec = std::from_chars(c, last, flux_data.f107ObsL81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 17;
 
   // column F10.7_ADJ_CENTER81
-  pec = std::from_chars(++c, last, flux_data.f107AdjC81);
+  pec = std::from_chars(c, last, flux_data.f107AdjC81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 18;
@@ -155,10 +155,50 @@ int dso::utils::celestrak::details::resolve_csv_line_date(
   return 0;
 }
 
+int dso::utils::celestrak::details::get_next(
+    dso::modified_julian_day mjd, const char *fncsv,
+    CelestTrakSWFlux *flux_data, int flux_data_sz,
+    std::ifstream::pos_type &fpos) noexcept {
+  // try getting the data for the given mjd; store it in new_flux
+  // fpos set to new, latest position in file
+  dso::utils::celestrak::details::CelestTrakSWFlux new_flux;
+  if (parse_csv_for_date(mjd, fncsv, &new_flux, fpos, 0, 0)) {
+    return 1;
+  }
+
+  CelestTrakSWFlux *__restrict__ fp = flux_data;
+  auto fsz = sizeof(CelestTrakSWFlux);
+
+  // left-shit elements in array
+  for (int i = 1; i < flux_data_sz; i++) {
+    std::memcpy(fp - 1 + i, fp + i, fsz);
+  }
+
+  // store the retrieved data in the rightmost element
+  std::memcpy(fp + flux_data_sz - 1, &new_flux, fsz);
+
+#ifdef DEBUG
+  for (int i=0; i<flux_data_sz-1; i++) {
+    assert(flux_data[i].mjd_ + dso::modified_julian_day(1) ==
+           flux_data[i + 1].mjd_);
+  }
+#endif
+
+  // all done
+  return 0;
+}
+
 int dso::utils::celestrak::details::parse_csv_for_date(
     dso::modified_julian_day mjd, const char *fncsv,
     dso::utils::celestrak::details::CelestTrakSWFlux *flux_data,
+    std::ifstream::pos_type &fpos,
     int days_before, int days_after) noexcept {
+
+  // set the fpos at the start of the file and save the variable in fpos2
+  const auto fpos2 = fpos;
+  // !only set this to anything other than 0, if the dates are resolved
+  // successefully!
+  fpos = 0;
 
   // open the csv file
   std::ifstream fin(fncsv);
@@ -167,21 +207,27 @@ int dso::utils::celestrak::details::parse_csv_for_date(
             fncsv);
     return fn_error;
   }
+  char line[MAX_SW_CHARS];
 
   // set mjd's
   dso::modified_julian_day start_mjd(mjd.as_underlying_type() - days_before);
   dso::modified_julian_day end_mjd(mjd.as_underlying_type() + days_after);
 
-  // read first line; should match the expected header
-  char line[MAX_SW_CHARS];
-  const auto hsz = std::strlen(header);
-  if (!fin.getline(line, MAX_SW_CHARS)) {
-    return fn_error;
-    // may include whitespace chars ... no std::strcmp
-  } else if (std::strncmp(line, header, hsz)) {
-    fprintf(stderr, "ERROR@%s: Failed to match header line in SW csv file %s\n",
-            __func__, fncsv);
-    return fn_error;
+  // ok, re-set fpos to where it was, ang go there
+  fin.seekg(fpos2);
+  if (!fpos2) {
+    // we are reading from the top! read first line; should match the expected
+    // header
+    const auto hsz = std::strlen(header);
+    if (!fin.getline(line, MAX_SW_CHARS)) {
+      return fn_error;
+      // may include whitespace chars ... no std::strcmp
+    } else if (std::strncmp(line, header, hsz)) {
+      fprintf(stderr,
+              "ERROR@%s: Failed to match header line in SW csv file %s\n",
+              __func__, fncsv);
+      return fn_error;
+    }
   }
 
   dso::modified_julian_day cmjd;
@@ -194,8 +240,14 @@ int dso::utils::celestrak::details::parse_csv_for_date(
             line);
     return parse_error;
   }
-  if (cmjd > start_mjd)
+  if (cmjd > start_mjd) {
+    // wait! don't give up! if fpos was somethin other than 0, maybe it was
+    // erronuous, and the date exists in the file but is before fpos. try the 
+    // function once more, with an fpos=0
+    if (fpos2)
+      return parse_csv_for_date(mjd,fncsv,flux_data,fpos,days_before,days_after);
     return target_prior;
+  }
 
   // keep on parsing/reading lines, untill we reach start_mjd or EOF
   int error = 0;
@@ -236,6 +288,9 @@ int dso::utils::celestrak::details::parse_csv_for_date(
     }
     ++cdi;
   }
+
+  // set fpos
+  fpos = fin.tellg();
 
   return 0;
 }
