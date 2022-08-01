@@ -281,7 +281,7 @@ Vector3 drag_accel(const Vector3 &r, const Vector3 &v, double Area, double mass,
 Eigen::Matrix<double, 3, 1>
 drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
                 const Eigen::Matrix<double, 3, 1> &vsat,
-                const Eigen::Matrix<double, 3, 1> &rbpn,
+                const Eigen::Matrix<double, 3, 3> &rbpn,
                 double Area, double CD,
                 double Mass, double atmdens) noexcept;
 

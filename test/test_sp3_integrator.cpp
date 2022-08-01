@@ -4,6 +4,7 @@
 #include "egravity.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "geodesy/units.hpp"
+#include "geodesy/geodesy.hpp"
 #include "icgemio.hpp"
 #include "iers2010/iau.hpp"
 #include "iers2010/iers2010.hpp"
@@ -17,9 +18,9 @@
 
 using dso::sp3::SatelliteId;
 
-const int Integrate = false;
+const int Integrate = true;
 const int include_third_body = true;
-const int include_drag = false;
+const int include_drag = true;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
@@ -279,14 +280,14 @@ void setNrlmsise00Params(
   const double glong = dso::rad2deg(r_ell(0)); // [degrees]
   const double glat = dso::rad2deg(r_ell(1));  // [degrees]
   const double alt =
-      (r_ell(2) - dso::car2ell<dso::ellipsoid::grs80>::N(r_ell(1))) *
+      (r_ell(2) - dso::N<dso::ellipsoid::grs80>(r_ell(1))) *
       1e-3; // [km]
   msise_in->params_.glon = glong;
   msise_in->params_.glat = glat;
   msise_in->params_.alt  = alt;
 
   // STL=SEC/3600+GLONG/15
-  msise_in->params_.stl = secday/3600e0 + glong/15e0
+  msise_in->params_.lst = secday/3600e0 + glong/15e0;
 
   return;
 }
@@ -341,33 +342,37 @@ void VariationalEquations(
 
   // Drag
   // set input parameters (time and spatial)
-  int msise_mjd;
-  double msise_secday;
-  setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday, params->msise_in);
-  // update flux data
-  if (params->msise_in->update_params(msise_mjd, msise_secday)) {
-    fprintf("ERROR. Failed to update flux/Ap data from drag!\n");
+  Eigen::Matrix<double, 3, 1> drag_acc = Eigen::Matrix<double, 3, 1>::Zero();
+  if (include_drag) {
+    int msise_mjd;
+    double msise_secday;
+    setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday, params->msise_in);
+    // update flux data
+    if (params->msise_in->update_params(msise_mjd, msise_secday)) {
+      fprintf(stderr, "ERROR. Failed to update flux/Ap data from drag!\n");
+    }
+    // get density (kg/m^3)
+    double density;
+    {
+      dso::nrlmsise00::OutParams out;
+      params->msise->gtd7d(&params->msise_in->params_, &out);
+      density = out.d[5];
+    }
+    // we also need to true-to-date matrix (for relavite velocity)
+    Eigen::Matrix<double, 3, 3> r_tof;
+    {
+      double mjd_days;
+      const double taif = std::modf(cmjd, &mjd_days);
+      const double ttf = taif + (32184e-3 / 86400e0);
+      const double mjd_tt = mjd_days + ttf;
+      const auto rnpb = iers2010::sofa::pnm06a(dso::mjd0_jd, mjd_tt);
+      Eigen::Matrix<double, 3, 3> r_toft(rnpb.data);
+      r_tof = r_toft.transpose();
+    }
+    const auto drag =
+        dso::drag_accel(r, v, r_tof, Area_H2C, CD, Mass_H2C, density);
+    drag_acc = drag;
   }
-  // get density (kg/m^3)
-  double density;
-  {
-  dso::OutParams out;
-  params->msise->gtd7d(params->msise_in->params_, &out);
-  density = out.d[5];
-  }
-  // we also need to true-to-date matrix (for relavite velocity)
-  Eigen::Matrix<double,3,3> r_tof;
-  {
-  double mjd_days;
-  const double taif = std::modf(cmjd, &mjd_days);
-  const double ttf = taif + (32184e-3 / 86400e0);
-  const double mjd_tt = mjd_days + ttf;
-  const auto rnpb = iers2010::iau::pnm06a(dso::mjd0_jd, mjd_tt);
-  Eigen::Matrix<double,3,3> r_toft(rnpb.data);
-  r_tof = r_toft.transpose();
-  }
-  const auto drag = dso::drag_accel(r,v,r_tof,Area_H2C,CD,Mass_H2C,density);
-
 
   // SRP
   Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -401,7 +406,7 @@ void VariationalEquations(
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + srp + drag;
+  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + srp + drag_acc;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(

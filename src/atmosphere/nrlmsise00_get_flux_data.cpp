@@ -39,7 +39,7 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
 //#endif
 
   // flux data for this (most recent) day
-  const dso::utils::celestrak::details::CelestTrakSWFlux *cur = flux_data_ + 3;
+  dso::utils::celestrak::details::CelestTrakSWFlux *cur = flux_data_ + 3;
 //#ifdef DEBUG
 //  const dso::utils::celestrak::details::CelestTrakSWFlux *today = flux_data_ + 3;
 //#endif
@@ -71,7 +71,6 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
     index = 7;
   }
   in.aparr.a[2] = cur->ApIndexes[index];
-  //printf("\t 3-hr index =%3d\n", cur->ApIndexes[index]);
 
   // (4) 3 HR AP INDEX FOR 6 HRS BEFORE CURRENT TIME
   --index;
@@ -80,7 +79,6 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
     index = 7;
   }
   in.aparr.a[3] = cur->ApIndexes[index];
-  //printf("\t 6-hr index =%3d\n", cur->ApIndexes[index]);
 
   // (5) 3 HR AP INDEX FOR 9 HRS BEFORE CURRENT TIME
   --index;
@@ -89,23 +87,16 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
     index = 7;
   }
   in.aparr.a[4] = cur->ApIndexes[index];
-  //printf("\t 9-hr index =%3d\n", cur->ApIndexes[index]);
 
   // (6) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 12 TO 33 HRS PRIOR
   // TO CURRENT TIME
+  // note that this is a whole day, aka 8 discrete 3-hour values, which
+  // means that start/stop indices will be the same (we are going to consider
+  // the interval [start_index, stop_index)), differing by one daya.
   int stop_index = index;
+  int start_index = stop_index;
   auto stop_doy = cur;
-//#ifdef DEBUG
-//  printf("> Aps for -33 to -12 hours ...\n");
-//  printf("\tCurrent hour index = %d\n", ihours(in.sec) % 3);
-//#endif
-  // now, 33 hours is 24 + 9
-  int start_index = ihours(in.sec) / 3 - 3 + 1;
-  const dso::utils::celestrak::details::CelestTrakSWFlux *start_doy = flux_data_ + 3 - 1;
-  if (start_index < 0) {
-    --start_doy;
-    start_index += 7;
-  }
+  dso::utils::celestrak::details::CelestTrakSWFlux *start_doy = stop_doy - 1;
 #ifdef DEBUG
   //printf("\tWill start at %ld days before and index %d\n", start_doy - today, start_index);
   //printf("\tWill stop at %ld days before and index %d\n", stop_doy - today, stop_index);
@@ -130,22 +121,15 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   }
   in.aparr.a[5] = sum_ap / num_ap;
 #ifdef DEBUG
-//  printf("\nAdded %d number of Ap indexes\n", num_ap);
   assert(num_ap==8);
 #endif
 
   // (7) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 36 TO 57 HRS PRIOR
   // TO CURRENT TIME
-  // 57 hours = 48 + 9
-  // 36 hours = where we last stoped (above)
+  // again, considering [start_index, stop_index) and taking 8 values ...
   stop_index = start_index;
   stop_doy = start_doy;
-  start_index = ihours(in.sec) / 3 - 3 + 1;
-  start_doy = flux_data_ + 3 - 2; // before previous day
-  if (start_index < 0) {
-    --start_doy;
-    start_index += 7;
-  }
+  start_doy = stop_doy - 1;
 #ifdef DEBUG
   //printf("\tWill start at %ld days before and index %d\n", start_doy - today, start_index);
   //printf("\tWill stop at %ld days before and index %d\n", stop_doy - today, stop_index);

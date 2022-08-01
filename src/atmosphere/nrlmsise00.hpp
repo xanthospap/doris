@@ -138,6 +138,7 @@ struct Switches {
 /// dso::NrlMsise00Input class.
 struct ApArray {
   double a[7];
+  // since we are declaring an assignment operator, we need to have all ...
   ApArray& operator=(const ApArray& other) noexcept {
     if (this != &other) {
       std::memcpy(a, other.a, sizeof(double) * 7);
@@ -150,6 +151,9 @@ struct ApArray {
     }
     return *this;
   }
+  ApArray() noexcept = default;
+  ApArray(const ApArray&) noexcept = default;
+  ~ApArray() = default;
 }; // dso::nrlmsise00::ApArray
 
 /// @brief A class to hold input parameters for NRLMSISE00.

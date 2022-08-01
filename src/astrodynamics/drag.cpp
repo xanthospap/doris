@@ -18,7 +18,7 @@
 Eigen::Matrix<double, 3, 1>
 dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
                 const Eigen::Matrix<double, 3, 1> &vsat,
-                const Eigen::Matrix<double, 3, 1> &rbpn, double Area, double CD,
+                const Eigen::Matrix<double, 3, 3> &rbpn, double Area, double CD,
                 double Mass, double atmdens) noexcept {
   // earth angular velocity vector [rad/sec]
   constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
