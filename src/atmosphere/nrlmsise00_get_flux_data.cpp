@@ -1,13 +1,15 @@
 #include "nrlmsise00.hpp"
 #include <datetime/dtfund.hpp>
 #include <stdexcept>
+#include <cstring>
 #ifdef DEBUG
 #include <cstdio>
 #endif
 
 dso::nrlmsise00::detail::Nrlmsise00DataFeed::Nrlmsise00DataFeed(
     const char *fncsv, dso::nrlmsise00::detail::InParamsCore &in)
-    : fncsv_(fncsv) {
+    {
+      std::strcpy(fncsv_,fncsv);
 
   const dso::datetime<dso::milliseconds> t(dso::datetime<dso::milliseconds>(
       dso::year(in.year), dso::day_of_year(in.doy), dso::milliseconds(0)));

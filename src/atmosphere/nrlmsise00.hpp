@@ -192,8 +192,11 @@ struct InParamsCore {
 
 #ifdef DEBUG
   void dump_params() const {
-    printf("year:%d doy:%d sec:%.3f alt:%.3f lat:%.3f lon:%.3f lst:%.3f f107A:%.3f f107:%.3f ap:%.3f", year, doy, sec, alt, glat, glon, lst, f107A, f107, ap);
-    for (int i=0; i<7; i++) printf(" ap[%d]:%.1f", i, aparr.a[i]);
+    printf("year:%d doy:%d sec:%.3f alt:%.3f lat:%.3f lon:%.3f lst:%.3f "
+           "f107A:%.3f f107:%.3f ap:%.3f",
+           year, doy, sec, alt, glat, glon, lst, f107A, f107, ap);
+    for (int i = 0; i < 7; i++)
+      printf(" ap[%d]:%.1f", i, aparr.a[i]);
     printf("\n");
   }
 #endif
@@ -249,7 +252,7 @@ struct InParamsCore {
 /// values for computing drag force.
 struct Nrlmsise00DataFeed {
   ///< ClesTrak, Space Weather CSV file
-  const char *fncsv_;
+  char fncsv_[256];
   ///< Current hour index [0-8), 3-hour intervals
   int chi;
   dso::modified_julian_day mjd_;
@@ -262,6 +265,14 @@ struct Nrlmsise00DataFeed {
 
   /// @brief Constructor from ClesTrak, Space Weather CSV file
   Nrlmsise00DataFeed(const char *fncsv, InParamsCore &p);
+
+  // --- rule of fucking five --
+  // @brief Copy constructor
+  Nrlmsise00DataFeed(const Nrlmsise00DataFeed&) = delete;
+  Nrlmsise00DataFeed(Nrlmsise00DataFeed&&) = delete;
+  Nrlmsise00DataFeed& operator=(const Nrlmsise00DataFeed&) = delete;
+  Nrlmsise00DataFeed& operator=(Nrlmsise00DataFeed&&) = delete;
+  ~Nrlmsise00DataFeed() noexcept {};
 
   /// @brief Initialize -- do not use, is used automatically --
   int init(InParamsCore &p) noexcept;

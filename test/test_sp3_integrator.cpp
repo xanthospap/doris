@@ -21,7 +21,7 @@ using dso::sp3::SatelliteId;
 
 const int Integrate = true;
 const int include_third_body = true;
-const int include_drag = true;
+const int include_drag = false;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
