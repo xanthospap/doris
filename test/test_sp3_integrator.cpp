@@ -14,13 +14,14 @@
 #include "sp3/sp3.hpp"
 #include <cassert>
 #include <cstdio>
-#include <datetime/dtfund.hpp>
+#include <charconv>
+#include "yaml-cpp/yaml.h"
 
 using dso::sp3::SatelliteId;
 
 const int Integrate = true;
 const int include_third_body = true;
-const int include_drag = true;
+const int include_drag = false;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
@@ -424,36 +425,75 @@ void VariationalEquations(
   return;
 }
 
+YAML::Node get_yaml_node(const YAML::Node *root, const char *key) {
+  try {
+  return root->operator[](std::string(key));
+  } catch (...) {
+    fprintf(stderr, "Failed finding node %s\n", key);
+    std::exit(99);
+  }
+}
+const char *get_yaml_value_depth2(const YAML::Node *root, const char *key1,
+                                  const char *key2, char *buf) {
+  const YAML::Node node = get_yaml_node(root, key1);
+  try {
+  std::string result = node[std::string(key2)].as<std::string>();
+  std::strcpy(buf, result.c_str());
+  } catch (...) {
+    fprintf(stderr, "Failed finding key %s::%s\n", key1, key2);
+    std::exit(98);
+  }
+  return buf;
+}
+const char *get_yaml_value_depth3(const YAML::Node *root, const char *key1,
+                                  const char *key2, const char *key3, 
+                                  char *buf) {
+  const YAML::Node node = get_yaml_node(root, key1);
+  return get_yaml_value_depth2(&node, key2, key3, buf);
+}
+
+
 int main(int argc, char *argv[]) {
 
-  // handle gravity field
-  if (argc < 9 || argc > 10) {
-    fprintf(stderr,
-            "Usage: %s <SP3 FILE> <GRAVITY MODEL FILE> [DEGREE] [ORDER] [SPK] "
-            "[LSK] [PCK] [SW CSV] [INTEGRATION INTERVAL IN SEC - optional-]\n",
-            argv[0]);
+  if (argc != 2 && argc!=3) {
+    fprintf(stderr, "Usage %s <YAML CONFIG> [INTEGRATION INTERVAL in sec]\n", argv[0]);
     return 1;
   }
-
-  // parse degree and order of gravity field
-  int degree = std::atoi(argv[3]);
-  int order = std::atoi(argv[4]);
-
+  const YAML::Node config = YAML::LoadFile(argv[1]);
+  char buf[256];
+  
   // to compute the planet's position via cspice, we need to load:
   // 1. the planetary ephemeris (SPK) kernel
   // 2. the leap-second (aka LSK) kernel
   // 3. the planetary constants kernel (PCK)
-  dso::cspice::load_if_unloaded_spk(argv[5]);
-  dso::cspice::load_if_unloaded_lsk(argv[6]);
-  // well, actually we do not need to load the kernel; just get the values we 
+  dso::cspice::load_if_unloaded_spk(
+      get_yaml_value_depth2(&config, "naif-kernels", "spk", buf));
+  dso::cspice::load_if_unloaded_lsk(
+      get_yaml_value_depth2(&config, "naif-kernels", "lsk", buf));
+  // well, actually we do not need to load the kernel; just get the values we
   // want!
   // dso::cspice::load_if_unloaded_pck(argv[7]);
-  dso::getSunMoonGM(argv[7], GMSun, GMMoon); // [km^3 / sec^2]
+  get_yaml_value_depth2(&config, "naif-kernels", "pck", buf);
+  dso::getSunMoonGM(buf, GMSun, GMMoon); // [km^3 / sec^2]
+
+  // parse degree and order of gravity field
+  int degree = -1, order = -1;
+  get_yaml_value_depth2(&config, "gravity", "degree", buf);
+  auto res = std::from_chars(buf, buf+255, degree);
+  get_yaml_value_depth2(&config, "gravity", "order", buf);
+  res = std::from_chars(buf, buf + 255, order);
+  if (degree < 0 || order < 0 || order > degree) {
+    fprintf(
+        stderr,
+        "ERROR. Failed to parse or erronuous values for degree/order: %d/%d\n",
+        degree, order);
+    return 1;
+  }
 
   // Harmonic coefficients
   printf("* setting up harmonic coefficients ...\n");
   dso::HarmonicCoeffs hc(degree);
-  if (gravity(argv[2], degree, order, hc)) {
+  if (gravity(get_yaml_value_depth2(&config, "gravity", "model", buf), degree, order, hc)) {
     fprintf(stderr,
             "ERROR. Failed to compute harmonic coefficients. Aborting ...\n");
     return 1;
@@ -466,7 +506,7 @@ int main(int argc, char *argv[]) {
 
   // Handle the Sp3 file, prepare for parsing ...
   printf("* handling input sp3 file ...\n");
-  dso::Sp3c sp3(argv[1]);
+  dso::Sp3c sp3(get_yaml_value_depth2(&config, "data", "sp3", buf));
 
   // a satellite instance, will hold the sp3 satellite
   SatelliteId sv;
@@ -498,9 +538,10 @@ int main(int argc, char *argv[]) {
   // 2. Create an instance for NRLMSISE00 data feed; create it once so it
   //    handles all IO and fetching keeping dates, so that we don't have to
   //    do it for each call
+  get_yaml_value_depth3(&config, "force-model", "atmospheric-drag", "atmo-data-csv", buf);
   dso::nrlmsise00::InParams<
       dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>
-      MsiseParams(argv[8], sp3.start_epoch().mjd(), 0e0);
+      MsiseParams(buf, sp3.start_epoch().mjd(), 0e0);
   // set
   // 1. all switches on (default)
   // 2. output in meters
@@ -537,14 +578,13 @@ int main(int argc, char *argv[]) {
   // (remember) const auto t0 = sp3.start_epoch();
   auto epoch = t0;                  // current
   auto step = sp3.interval(); // integration interval
-  if (argc == 8) {
-      step = dso::nanoseconds(std::atoi(argv[7]) * 1'000'000'000L);
+  if (argc == 3) {
+      step = dso::nanoseconds(std::atoi(argv[2]) * 1'000'000'000L);
   }
 
   // let's try reading the records; note that -1 denotes EOF
   int error = 0;
   std::size_t rec_count = 0;
-  char buf[64];
   printf("* iterating ...\n");
   do {
 
@@ -663,6 +703,5 @@ int main(int argc, char *argv[]) {
   } while (!error && rec_count < 1000);
 
   printf("Num of records read: %6lu\n", rec_count);
-
   return (error == -1);
 }

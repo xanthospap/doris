@@ -1,0 +1,19 @@
+---
+data:
+  doris-rinex: data/Saral/srlrx21002.001
+  sp3: data/Saral/ssasrl20.b20362.e21004.D__.sp3.001
+
+naif-kernels:
+  spk: data/jpl/de405.bsp
+  pck: data/jpl/gm_de431.tpc
+  lsk: data/jpl/naif0012.tls
+
+gravity:
+  model: data/gfc/GOCO02s.gfc
+  degree: 20
+  order: 20
+
+force-model:
+  atmospheric-drag:
+    drag-model: nrlmsise00
+    atmo-data-csv: data/SW-All.csv

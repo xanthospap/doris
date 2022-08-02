@@ -58,6 +58,13 @@ AddOption('--ignore-tests',
           metavar='IGNORE_TEST_FILES',
           dest='ignore_tests',
           help='Comma-seperated list of test source files to ignore when building')
+AddOption('--include-tests',
+          nargs=1,
+          type='string',
+          action='store',
+          metavar='INCLUDE_TEST_FILES',
+          dest='include_tests',
+          help='Comma-seperated list of test source files to ignore when building')
 
 ## Source files (for lib)
 lib_src_files = glob.glob(r"src/*.cpp")
@@ -118,15 +125,23 @@ env.Alias(target='install', source=env.Install(dir=os.path.join(prefix, 'include
 env.Alias(target='install', source=env.InstallVersionedLib(dir=os.path.join(prefix, 'lib'), source=vlib))
 
 ## Tests ...
+test_sources = glob.glob(r"test/*.cpp")
 ignore_test_list = [] if GetOption('ignore_tests') is None else GetOption('ignore_tests').split(',')
-if ignore_test_list != ['all']:
-  print('Note: Ignore Test list: {:}'.format(ignore_test_list))
-  tests_sources = glob.glob(r"test/*.cpp")
-  env.Append(RPATH=root_dir)
-  for tsource in tests_sources:
-    if tsource not in ignore_test_list:
-      ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
-      env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+if len(ignore_test_list):
+    for testscr in ignore_test_list:
+        if os.path.isfile(ignore_test_list):
+            if testscr in test_sources: test_sources.remove(testscr)
+include_test_list = [] if GetOption('include_tests') is None else GetOption('include_tests').split(',')
+if len(include_test_list):
+    test_sources = []
+    for testscr in include_test_list:
+        if os.path.isfile(testscr):
+            test_sources.append(testscr)
+
+env.Append(RPATH=root_dir)
+for tsource in test_sources:
+    ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
+    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
 
 ## Unit Tests (only build if user selected)
 if ARGUMENTS.get('make-check', 0):
