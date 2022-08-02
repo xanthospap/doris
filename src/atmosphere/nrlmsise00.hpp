@@ -9,6 +9,7 @@
 #include <cstring>
 #ifdef DEBUG
 #include <cassert>
+#include <cstdio>
 #endif
 
 namespace dso {
@@ -188,6 +189,14 @@ struct InParamsCore {
   double ap;    // magnetic index(daily)
   nrlmsise00::detail::ApArray aparr; // ap index array
   bool meters_{false};               // request result in m^3 and kg/m^3
+
+#ifdef DEBUG
+  void dump_params() const {
+    printf("year:%d doy:%d sec:%.3f alt:%.3f lat:%.3f lon:%.3f lst:%.3f f107A:%.3f f107:%.3f ap:%.3f", year, doy, sec, alt, glat, glon, lst, f107A, f107, ap);
+    for (int i=0; i<7; i++) printf(" ap[%d]:%.1f", i, aparr.a[i]);
+    printf("\n");
+  }
+#endif
 
   InParamsCore() noexcept {};
   InParamsCore(dso::modified_julian_day mjd, double secday) noexcept;

@@ -21,7 +21,7 @@ using dso::sp3::SatelliteId;
 
 const int Integrate = true;
 const int include_third_body = true;
-const int include_drag = false;
+const int include_drag = true;
 const int include_srp = false;
 
 // approximate number of data points in a bulletin B file (disregarding
@@ -280,9 +280,7 @@ void setNrlmsise00Params(
   auto r_ell = dso::car2ell<dso::ellipsoid::grs80>(r_ecef);
   const double glong = dso::rad2deg(r_ell(0)); // [degrees]
   const double glat = dso::rad2deg(r_ell(1));  // [degrees]
-  const double alt =
-      (r_ell(2) - dso::N<dso::ellipsoid::grs80>(r_ell(1))) *
-      1e-3; // [km]
+  const double alt = r_ell(2)*1e-3; // [km]
   msise_in->params_.glon = glong;
   msise_in->params_.glat = glat;
   msise_in->params_.alt  = alt;
@@ -348,16 +346,20 @@ void VariationalEquations(
     int msise_mjd;
     double msise_secday;
     setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday, params->msise_in);
+    //printf("\tparams set for setNrlmsise00Params ...\n");
     // update flux data
     if (params->msise_in->update_params(msise_mjd, msise_secday)) {
       fprintf(stderr, "ERROR. Failed to update flux/Ap data from drag!\n");
     }
+    //printf("\tparams updated in hunter ...\n");
     // get density (kg/m^3)
     double density;
     {
       dso::nrlmsise00::OutParams out;
+      //params->msise_in->params_.dump_params();
       params->msise->gtd7d(&params->msise_in->params_, &out);
       density = out.d[5];
+      //printf("\tdensity value is: %+.15e\n", out.d[5]);
     }
     // we also need to true-to-date matrix (for relavite velocity)
     Eigen::Matrix<double, 3, 3> r_tof;
@@ -373,6 +375,7 @@ void VariationalEquations(
     const auto drag =
         dso::drag_accel(r, v, r_tof, Area_H2C, CD, Mass_H2C, density);
     drag_acc = drag;
+    //printf("\tdrag computed, done!\n");
   }
 
   // SRP
@@ -412,14 +415,12 @@ void VariationalEquations(
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
       Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
-
-  //printf("# Acceleration components:\n");
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
-  //       gacc(0), sun_acc(0), moon_acc(0), srp(0));
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
-  //       gacc(1), sun_acc(1), moon_acc(1), srp(1));
-  //printf("\t# Grav: %+.9f Sun: %+.9f Moon: %+.9f SRP: %+.9f [m/sec^2]\n",
-  //       gacc(2), sun_acc(2), moon_acc(2), srp(2));
+  
+  //printf("Accelerations: \n");
+  //printf("Gravity     Sun          Moon         srp          drag\n");
+  //for (int i=0; i<3; i++) {
+  //  printf("%+12.9f %+12.9f %+12.9f %+12.9f %+12.9f\n", gacc(i), sun_acc(i), mon_acc(i), srp(i), drag_acc(i));
+  //}
 
   ++call_nr;
   return;
@@ -433,6 +434,7 @@ YAML::Node get_yaml_node(const YAML::Node *root, const char *key) {
     std::exit(99);
   }
 }
+
 const char *get_yaml_value_depth2(const YAML::Node *root, const char *key1,
                                   const char *key2, char *buf) {
   const YAML::Node node = get_yaml_node(root, key1);
@@ -445,6 +447,7 @@ const char *get_yaml_value_depth2(const YAML::Node *root, const char *key1,
   }
   return buf;
 }
+
 const char *get_yaml_value_depth3(const YAML::Node *root, const char *key1,
                                   const char *key2, const char *key3, 
                                   char *buf) {
