@@ -4,6 +4,10 @@
 #include <charconv>
 #include <cstdio>
 
+// get the l1, l2 and f indexes off from a RINEX file (instance)
+int get_rinex_indexes(const ids::DorisObsRinex &rnx, int &l1, int &l2,
+                      int &f) noexcept;
+
 int main(int argc, char *argv[]) {
   // check input
   if (argc != 2) {
@@ -47,6 +51,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // get the (RINEX) indexes for the observables we want
+  int l1i,l2i,fi;
+  if (get_rinex_indexes(rnx, l1i, l2i, fi)) return 1;
+
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
   // get an iterator to the RINEXs data blocks
@@ -57,6 +65,31 @@ int main(int argc, char *argv[]) {
   while (!(error = it.next())) {
     // the current time ...
     auto tnow = it.cheader.m_epoch;
+  }
+
+  return 0;
+}
+
+int get_rinex_indexes(const ids::DorisObsRinex &rnx, int &l1_idx, int &l2_idx,
+                      int &f_idx) noexcept {
+  l1_idx = rnx.get_observation_code_index(
+      ids::ObservationCode{ids::ObservationType::phase, 1});
+
+  // index of the 400MHz phase measurement (need for iono-free reduction)
+  l2_idx = rnx.get_observation_code_index(
+      ids::ObservationCode{ids::ObservationType::phase, 2});
+
+  // index of the F measurement (relative frequency offset)
+  f_idx = rnx.get_observation_code_index(
+      ids::ObservationCode{ids::ObservationType::frequency_offset});
+
+  if (f_idx < 0 || l1_idx < 0 || l2_idx < 0) {
+    fprintf(stderr,
+            "[ERROR] Failed to find requested Observation Types in RINEX\'s "
+            "observation "
+            "types vector! (traceback: %s)\n",
+            __func__);
+    return 1;
   }
 
   return 0;
