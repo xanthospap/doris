@@ -1,3 +1,4 @@
+#include "doris_system_info.hpp"
 #include "doris_utils.hpp"
 #include "sinex/sinex.hpp"
 #include <cstring>
@@ -55,9 +56,54 @@ int extrapolate_coordinates(
 }
 
 int ids::extrapolate_sinex_coordinates(
+    const char *snxfn, const std::vector<ids::BeaconStation> &beacons,
+    const dso::datetime<dso::microseconds> &t,
+    std::vector<ids::BeaconCoordinates> &result_array,
+    bool missing_site_is_error) noexcept {
+  // allocate and fill the list of site id's
+  int num_sites = beacons.size();
+  char **sites = new char *[num_sites];
+  for (int i = 0; i < num_sites; i++) {
+    sites[i] = new char[5];
+    std::memset(sites[i], 0, 5);
+    std::strncpy(sites[i], beacons[i].m_station_id, 4);
+  }
+
+  // check that the result_array has enough memmory to hold results
+  // also, clear it up
+  if (result_array.capacity() < beacons.size()) {
+    result_array.resize(beacons.size());
+  }
+  result_array.clear();
+
+  // call the core function to extrapolate the coordinates
+  int sites_found;
+  int error = ids::extrapolate_sinex_coordinates(
+      snxfn, sites, num_sites, t, result_array.data(), sites_found,
+      missing_site_is_error);
+
+  // successeful or not, we do not need the sites array anymore
+  // deallocate memory
+  for (int i = 0; i < num_sites; i++)
+    delete[] sites[i];
+  delete[] sites;
+
+  // resize the output vector so we don't use garbage values
+  result_array.resize(sites_found);
+
+  // all done
+  return error;
+}
+
+int ids::extrapolate_sinex_coordinates(
     const char *snx_fn, char **station_ids, int num_stations,
-    const dso::datetime<dso::microseconds> &t, ids::BeaconCoordinates *result_array) noexcept {
-  
+    const dso::datetime<dso::microseconds> &t,
+    ids::BeaconCoordinates *result_array, int &result_size,
+    bool missing_site_is_error) noexcept {
+
+  // clear result size
+  result_size = 0;
+
   // initialize the sinex instance
   dso::Sinex snx(snx_fn);
 
@@ -98,13 +144,14 @@ int ids::extrapolate_sinex_coordinates(
               "[ERROR] Failed to extrapolate coordinates for site %s from "
               "SINEX %s (traceback: %s)\n",
               sid, snx.filename().c_str(), __func__);
-      return 1;
+      if (missing_site_is_error)
+        return 1;
     }
-    std::memcpy(result_array[i].id, sid, 4);
-    result_array[i].x = pos[0];
-    result_array[i].y = pos[1];
-    result_array[i].z = pos[2];
-    // printf("%s %20.5f %20.5f %20.5f\n", sid, pos[0], pos[1], pos[2]);
+    std::memcpy(result_array[result_size].id, sid, 4);
+    result_array[result_size].x = pos[0];
+    result_array[result_size].y = pos[1];
+    result_array[result_size].z = pos[2];
+    ++result_size;
   }
 
   return 0;

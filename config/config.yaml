@@ -3,6 +3,9 @@ data:
   doris-rinex: data/Saral/srlrx21002.001
   sp3: data/Saral/ssasrl20.b20362.e21004.D__.sp3.001
 
+reference-frame:
+  station-coordinates: data/dpod2014_053.snx
+
 naif-kernels:
   spk: data/jpl/de405.bsp
   pck: data/jpl/gm_de431.tpc

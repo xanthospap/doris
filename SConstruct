@@ -69,6 +69,7 @@ AddOption('--include-tests',
 ## Source files (for lib)
 lib_src_files = glob.glob(r"src/*.cpp")
 lib_src_files += glob.glob(r"src/doris/*.cpp")
+lib_src_files += glob.glob(r"src/ids/*.cpp")
 lib_src_files += glob.glob(r"src/rinex/*.cpp")
 lib_src_files += glob.glob(r"src/planets/*.cpp")
 lib_src_files += glob.glob(r"src/gravity/*.cpp")
@@ -129,7 +130,9 @@ test_sources = glob.glob(r"test/*.cpp")
 ignore_test_list = [] if GetOption('ignore_tests') is None else GetOption('ignore_tests').split(',')
 if len(ignore_test_list):
     for testscr in ignore_test_list:
-        if os.path.isfile(ignore_test_list):
+        if testscr == "all":
+            test_sources = [] 
+        elif os.path.isfile(testscr):
             if testscr in test_sources: test_sources.remove(testscr)
 include_test_list = [] if GetOption('include_tests') is None else GetOption('include_tests').split(',')
 if len(include_test_list):
@@ -153,4 +156,4 @@ if ARGUMENTS.get('make-check', 0):
         pth = os.path.dirname(tsource)
         bsn = os.path.basename(tsource)
         ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
-        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
