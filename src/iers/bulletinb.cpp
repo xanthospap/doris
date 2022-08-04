@@ -69,16 +69,16 @@ int reach_section1(std::ifstream &fin, bool &has_dUt1UtcR) noexcept {
   // '1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY'
   int dummy_it = 0, max_dummy_it = 10;
   fin.getline(line, MAX_LINE_CHARS);
-  while ((std::strncmp(nws(line),
-              "1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY", 48) &&
-          std::strncmp(
-              nws(line),
-              "1 - DAILY FINAL VALUES OF  x, y, UT1-UTC, dX, dY", 49) &&
-          std::strncmp(
-              nws(line),
-              "1 - DAILY SMOOTHED VALUES OF  x, y, UT1-UTC, UT1R-UTC, dX, dY",
-              62)) &&
-         (dummy_it++ < max_dummy_it)) {
+  while (
+      (std::strncmp(nws(line),
+                    "1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY", 48) &&
+       std::strncmp(nws(line),
+                    "1 - DAILY FINAL VALUES OF  x, y, UT1-UTC, dX, dY", 49) &&
+       std::strncmp(
+           nws(line),
+           "1 - DAILY SMOOTHED VALUES OF  x, y, UT1-UTC, UT1R-UTC, dX, dY",
+           62)) &&
+      (dummy_it++ < max_dummy_it)) {
     fin.getline(line, MAX_LINE_CHARS);
   }
   if (dummy_it >= max_dummy_it)
@@ -112,10 +112,10 @@ int reach_section1(std::ifstream &fin, bool &has_dUt1UtcR) noexcept {
           102)) {
     has_dUt1UtcR = false;
   } else if (!std::strncmp(
-          c,
-          "DATE     MJD       x       y      UT1-UTC      dX     dY   "
-          "  x err    y err   UT1 err  X err  Y err",
-          100)) {
+                 c,
+                 "DATE     MJD       x       y      UT1-UTC      dX     dY   "
+                 "  x err    y err   UT1 err  X err  Y err",
+                 100)) {
     has_dUt1UtcR = false;
   } else if (!std::strncmp(
                  c,
@@ -124,9 +124,10 @@ int reach_section1(std::ifstream &fin, bool &has_dUt1UtcR) noexcept {
                  108)) {
     has_dUt1UtcR = true;
   } else {
-    #ifdef DEBUG
-    fprintf(stderr, "ERROR. Failed matching line [%s] (traceback: %s)\n", c, __func__);
-    #endif
+#ifdef DEBUG
+    fprintf(stderr, "[ERROR] Failed matching line [%s] (traceback: %s)\n", c,
+            __func__);
+#endif
     return 10;
   }
 
@@ -269,7 +270,7 @@ int dso::IersBulletinB::get_section1_at(int imjd,
     return 1;
   }
 
-  int days_in_bulletin = (include_preliminary)? 80 : 40;
+  int days_in_bulletin = (include_preliminary) ? 80 : 40;
 
   // int imjd = static_cast<int>(std::floor(t.as_mjd()));
   char line[MAX_LINE_CHARS];

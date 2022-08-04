@@ -1,5 +1,5 @@
-#include "doris_rinex.hpp"
 #include "datetime/datetime_read.hpp"
+#include "doris_rinex.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -27,7 +27,9 @@ int count_length_reverse(const char *str, int from) noexcept {
 ///
 int ids::DorisObsRinex::read_header() noexcept {
 #ifdef DEBUG
-  if (errno) fprintf(stderr, "[WRNNG] Going into function %s witth an errno = %d !\n", __func__, errno);
+  if (errno)
+    fprintf(stderr, "[WRNNG] Going into function %s witth an errno = %d !\n",
+            __func__, errno);
 #endif
   if (!m_stream.is_open() || !m_stream.good())
     return -1;
@@ -63,7 +65,7 @@ int ids::DorisObsRinex::read_header() noexcept {
         return 30;
       std::memcpy(m_satellite_name, line, tmp_sz);
       m_satellite_name[tmp_sz] = '\0';
-    
+
     } else if (!std::strncmp(line + 60, "COSPAR NUMBER", 13)) {
       // COSPAR NUMBER; get m_cospar_number (err. code 40)
       tmp_sz = count_length_reverse(line, 59);
@@ -71,16 +73,16 @@ int ids::DorisObsRinex::read_header() noexcept {
         return 40;
       std::memcpy(m_cospar_number, line, tmp_sz);
       m_cospar_number[tmp_sz] = '\0';
-    
+
     } else if (!std::strncmp(line + 60, "MARKER TYPE", 11)) {
       // MARKER TYPE; check that the field is "SPACEBORNE" (err. code 50)
       if (std::strncmp(line, "SPACEBORNE", 10))
         return 50;
-    
+
     } else if (!std::strncmp(line + 60, "OBSERVER / AGENCY", 17)) {
       // OBSERVER / AGENCY; currently ingored .... (err. code 60)
       ;
-    
+
     } else if (!std::strncmp(line + 60, "REC # / TYPE / VERS", 19)) {
       // REC # / TYPE / VERS; get m_rec_chain, m_rec_type and m_rec_version
       // (err. code 70)
@@ -99,7 +101,7 @@ int ids::DorisObsRinex::read_header() noexcept {
         return 73;
       std::memcpy(m_rec_version, line + 40, tmp_sz);
       m_rec_version[tmp_sz] = '\0';
-    
+
     } else if (!std::strncmp(line + 60, "ANT # / TYPE", 12)) {
       // ANT # / TYPE; get and validate m_antenna_number and m_antenna_type
       // (err. code 80)
@@ -116,7 +118,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       if (std::strcmp(m_antenna_number, "DORIS") ||
           std::strcmp(m_antenna_type, "STAREC"))
         return 84;
-    
+
     } else if (!std::strncmp(line + 60, "APPROX POSITION XYZ", 19)) {
       errno = 0;
       // APPROX POSITION XYZ; get m_approx_position (err. code 90)
@@ -129,7 +131,7 @@ int ids::DorisObsRinex::read_header() noexcept {
         }
         start += 14;
       }
-    
+
     } else if (!std::strncmp(line + 60, "CENTER OF MASS: XYZ", 19)) {
       errno = 0;
       // CENTER OF MASS: XYZ; get m_center_mass (err. code 100)
@@ -142,7 +144,7 @@ int ids::DorisObsRinex::read_header() noexcept {
         }
         start += 14;
       }
-    
+
     } else if (!std::strncmp(line + 60, "SYS / # / OBS TYPES", 19)) {
       errno = 0;
       // SYS / # / OBS TYPES; get/fill m_obs_codes (err. code 110)
@@ -175,7 +177,7 @@ int ids::DorisObsRinex::read_header() noexcept {
           return 114;
         }
       }
-    
+
     } else if (!std::strncmp(line + 60, "TIME OF FIRST OBS", 17)) {
       // TIME OF FIRST OBS; get m_time_of_first_obs and validate time system
       // (err. code 120)
@@ -186,11 +188,11 @@ int ids::DorisObsRinex::read_header() noexcept {
       } catch (std::exception &e) {
         return 122;
       }
-   
+
     } else if (!std::strncmp(line + 60, "SYS / DCBS APPLIED", 18)) {
       // SYS / DCBS APPLIED; not yet handled! (err. code 130)
       return 130;
-   
+
     } else if (!std::strncmp(line + 60, "SYS / SCALE FACTOR", 18)) {
       errno = 0;
       // SYS / SCALE FACTOR; get/fill m_obs_scale_factors
@@ -244,7 +246,7 @@ int ids::DorisObsRinex::read_header() noexcept {
           return 146;
         }
       }
-    
+
     } else if (!std::strncmp(line + 60, "L2 / L1 DATE OFFSET", 19)) {
       errno = 0;
       // L2 / L1 DATE OFFSET; get m_l12_date_offset (err. code 150)
@@ -255,24 +257,27 @@ int ids::DorisObsRinex::read_header() noexcept {
         errno = 0;
         return 152;
       }
-    
+
     } else if (!std::strncmp(line + 60, "# OF STATIONS", 13)) {
       errno = 0;
       // # OF STATIONS; reserve size for m_stations (err. code 160)
       num_stations = std::strtol(line, &end, 10);
       if (!num_stations || (errno || end == line))
         return 161;
-      printf(">> Num stations: %d, capacity: %d\n", num_stations, (int)m_stations.capacity());
-      if ((int)m_stations.capacity()<num_stations) m_stations.reserve(num_stations);
-      printf(">> Num stations: %d, capacity: %d\n", num_stations, (int)m_stations.capacity());
-    
+      printf(">> Num stations: %d, capacity: %d\n", num_stations,
+             (int)m_stations.capacity());
+      if ((int)m_stations.capacity() < num_stations)
+        m_stations.reserve(num_stations);
+      printf(">> Num stations: %d, capacity: %d\n", num_stations,
+             (int)m_stations.capacity());
+
     } else if (!std::strncmp(line + 60, "STATION REFERENCE", 17)) {
       // STATION REFERENCE; fill m_stations (err. code 170)
       m_stations.emplace_back(ids::BeaconStation{});
       if (m_stations[m_stations.size() - 1].set_from_rinex_line(line)) {
         return 171;
       }
-    
+
     } else if (!std::strncmp(line + 60, "# TIME REF STATIONS", 19)) {
       errno = 0;
       // # TIME REF STATIONS; reserve size for m_ref_stations (err. code 180)
@@ -281,8 +286,9 @@ int ids::DorisObsRinex::read_header() noexcept {
         errno = 0;
         return 181;
       }
-      if ((int)m_ref_stations.capacity()<num_ref_stations) m_ref_stations.reserve(num_ref_stations);
-    
+      if ((int)m_ref_stations.capacity() < num_ref_stations)
+        m_ref_stations.reserve(num_ref_stations);
+
     } else if (!std::strncmp(line + 60, "TIME REF STATION", 16)) {
       errno = 0;
       // TIME REF STATION; collect time reference station. make sure reference
@@ -309,7 +315,7 @@ int ids::DorisObsRinex::read_header() noexcept {
           it == m_stations.cend())
         return 193;
       m_ref_stations.emplace_back(refsta);
-    
+
     } else if (!std::strncmp(line + 60, "TIME REF STAT DATE",
                              18)) { // Code: 200
       // TIME REF STAT DATE; get m_time_ref_stat (err. code 200)
@@ -319,13 +325,26 @@ int ids::DorisObsRinex::read_header() noexcept {
         return 201;
       }
     
+    } else if (!std::strncmp(line + 60, "RCV CLOCK OFFS APPL",
+                             19)) { // Code: 210
+
+      int rcv_clock_offs_appl_int = -99;
+      rcv_clock_offs_appl_int = std::strtol(line, &end, 10);
+      if ((errno || end == line) ||
+          (rcv_clock_offs_appl_int < 0 || rcv_clock_offs_appl_int > 1)) {
+        errno = 0;
+        return 210;
+      }
+      rcv_clock_offs_appl = rcv_clock_offs_appl_int;
+
     } else if (!std::strncmp(line + 60, "END OF HEADER", 13)) {
       // END OF HEADER; all done! break
       m_end_of_head = m_stream.tellg();
       break;
-    
+
     } else {
-      printf("[DEBUG] Ignoring header line [%s] (traceback: %s)\n", line, __func__);
+      printf("[DEBUG] Ignoring header line [%s] (traceback: %s)\n", line,
+             __func__);
     }
   }
 

@@ -1,6 +1,41 @@
 \chapter{DORIS RINEX}
 \label{ch:doris-rinex}
 
+\section{General Format  Description}
+The DORIS RINEX format consists of one ASCII file containing both space based 
+and meteorological data collected at DORIS stations and relayed by satellites.
+
+DORIS RINEX format bears close resemblance\footnote{The format specifications are 
+actually close to identical.} to the GNSS RINEX Version 3 (\cite{RINEX305}).
+Data files consist of a header section and a data section. The first contains 
+global information for the entire file, while the latter contains the actual 
+observations and a date tag, keeping strict chronological order.
+
+DORIS is basically running on its own proper time which is constantly linked 
+to \gls{tai}. Time tags are given in instrument time, clock offsets are given 
+between instrument time and \gls{tai}.
+
+Observation types recorded in the DORIS RINEX files are the given in table
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c c c|}
+\hline
+Descriptor & Observation Type & Units \\
+\hline
+\texttt{L} & carrier phase observation & cycles \\
+\texttt{C} & pseudo-range observation & \si{\metre}\\
+\texttt{W} & power level received at each frequency & \si{\dBm} \\
+\texttt{F} & relative frequency offset of the receiver’s oscillator $\frac{f-f_0}{f_0}$ & $10^{-11}$ \\
+\texttt{P} & ground pressure at the station & 100 \si{\pascal} (\si{\milli\bar}) \\
+\texttt{T} & ground temperature at the station & \si{\degreeCelsius} \\
+\texttt{H} & ground humidity at the station & \si{\percent} \\
+\hline
+\end{tabular}
+\caption{DORIS RINEX observation types}
+\label{table:doris-rinex-observation-types}
+\end{table}
+
 \section{Receiver Clock Offsets}
 
 DORIS RINEX contain a ``receiver clock offset'' \(\tau_{r_{offset}}\) (as an 

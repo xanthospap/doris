@@ -3,6 +3,7 @@
 
 #include "doris_system_info.hpp"
 #include "datetime/dtcalendar.hpp"
+#include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
 
@@ -30,13 +31,14 @@ struct TimeReferenceStation {
 /// files.
 /// @see RINEX DORIS 3.0 (Issue 1.7)
 struct RinexDataRecordHeader {
-  /// reference data record epoch
+  ///< Reference date record epoch (note that this time tag refers to the L1
+  /// sampling, for L2 you have to apply the 'L2 / L1 DATE OFFSET')
   dso::datetime<dso::nanoseconds> m_epoch;
-  /// Receiver clock offset in seconds (optional)
+  ///< Receiver clock offset in seconds (optional)
   double m_clock_offset{RECEIVER_CLOCK_OFFSET_MISSING};
   ///< Number of stations observed in current epoch
   int_fast16_t m_num_stations;
-  /// Epoch flag
+  ///< Epoch flag
   int_fast8_t m_flag,
       ///< Receiver clock offset flag, 1 if extrapolated, 0 otherwise
       m_clock_flag;
@@ -133,8 +135,13 @@ dso::datetime<dso::nanoseconds> m_time_of_first_obs;
 /// 00h 00mn 00s.
 dso::datetime<dso::nanoseconds> m_time_ref_stat;
 /// Constant shift between the date of the 400MHz phase measurement and the
-/// date of the 2GHz phase measurement in microseconds
+/// date of the 2GHz phase measurement in microseconds. Positive if the 
+/// measurement of phase 400 MHz is performed after the measurement of phase 
+/// 2 GHz
 double m_l12_date_offset;
+/// Epoch, code, and phase are corrected by applying the realtime-derived 
+/// receiver clock offset: 1=yes, 0=no; default: 0=no
+bool rcv_clock_offs_appl{false};
 /// List of stations/beacons recorded in file
 std::vector<BeaconStation> m_stations;
 /// List of time-reference stations in file (also included in m_stations)
@@ -222,6 +229,20 @@ public:
 
   int print_metadata() const noexcept;
 
+  /// @brief Check if receiver clock offsets are applied
+  bool receiver_clock_offsets_applied() const noexcept {
+    return rcv_clock_offs_appl;
+  }
+
+  /// @brief Get the 'L2 / L1 DATE OFFSET' in nanoseconds
+  dso::nanoseconds l21_date_offset() const noexcept {
+    // note that the value extracted from the RINEX file is in microsecond
+    // transform it to nanoseconds (integer)
+    const double offset_nanoseconds = m_l12_date_offset * 1e3;
+    return dso::nanoseconds(
+        static_cast<dso::nanoseconds::underlying_type>(offset_nanoseconds));
+  }
+
 #ifdef DEBUG
   void read();
 #endif
@@ -232,21 +253,51 @@ int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
                                        double sigma_vx = 1e-3,
                                        double sigma_z = 1e1) noexcept;
 
+/// @brief An iterator to a DorisObsRinex data.
+/// Allows easily iterating of the data block in the RINEX file.
 struct RinexDataBlockIterator {
   using value_type = RinexDataRecordHeader;
   using pointer = value_type *;
   using reference = value_type &;
 
+  ///< Current header
   RinexDataRecordHeader cheader;
+  ///< Obsrvations in block
   std::vector<BeaconObservations> cblock;
+  ///< pointer to the RINEX file
   DorisObsRinex *rnx;
 
+  /// @brief Constructor
   RinexDataBlockIterator(DorisObsRinex *drnx) noexcept : rnx(drnx) {
     cblock.reserve(5);
   };
 
+  /// @brief Get next data block
   int next() noexcept;
 
+  /// @brief Get the L1-reference epoch for the observations, corrected for 
+  /// receiver clock offset
+  dso::datetime<dso::nanoseconds> corrected_l1_epoch() const noexcept {
+    dso::datetime<dso::nanoseconds> t = cheader.m_epoch;
+    if (!rnx->receiver_clock_offsets_applied()) [[likely]] {
+      // clock offset in nanoseconds (from seconds)
+      const double clock_offset =
+          static_cast<double>(cheader.m_clock_offset !=
+                              RECEIVER_CLOCK_OFFSET_MISSING) *
+          cheader.m_clock_offset;
+      dso::nanoseconds noff(
+          static_cast<dso::nanoseconds::underlying_type>(clock_offset * 1e9));
+      t.add_seconds(noff);
+    }
+    return t;
+  }
+  /// @brief Get the L1-reference epoch for the observations, corrected for 
+  /// receiver clock offset
+  /// @param[out] tl2 Reference epoch for the L2 observation, corrected for:
+  ///                 1. receiver clock offset, and
+  ///                 2. L2/L1 date offset
+  dso::datetime<dso::nanoseconds>
+  corrected_l1_epoch(dso::datetime<dso::nanoseconds> &tl2) const noexcept;
 }; // BlockIterator
 
 } // namespace ids

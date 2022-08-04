@@ -4,9 +4,36 @@
 #include <charconv>
 #include <cstdio>
 
+// approximate number of data points in a bulletin B file (disregarding
+// preliminery values)
+constexpr const int BBSZ = 40;
+// Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
+double GMSun, GMMoon;
+// usually using these datetimes ...
+using Datetime = dso::datetime<dso::nanoseconds>;
+struct EopInfo {
+  // actual size of arrays
+  int sz;
+  // arrays of EOP values extracted from C04
+  double mjd[BBSZ], xpa[BBSZ], ypa[BBSZ], ut1a[BBSZ];
+};
+// to transfer parameters for Variational Equations
+struct AuxParams {
+  double mjd_tai;
+  EopInfo *eopLookUpTables;
+  dso::HarmonicCoeffs *hc;
+  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
+  int degree, order;
+};
+
 // get the l1, l2 and f indexes off from a RINEX file (instance)
 int get_rinex_indexes(const ids::DorisObsRinex &rnx, int &l1, int &l2,
                       int &f) noexcept;
+// get EOPs from a given bulletin-b file for given date. This will fill-up
+// the passed-in EopInfo instance (so we can later query it)
+int getMeEops(const Datetime &t, char *bulletinb_fn, EopInfo *eopLUT,
+              int download = 1) noexcept;
+
 
 int main(int argc, char *argv[]) {
   // check input
@@ -63,8 +90,10 @@ int main(int argc, char *argv[]) {
   int error = 0;
   // for every new data block in the RINEX file ...
   while (!(error = it.next())) {
-    // the current time ...
-    auto tnow = it.cheader.m_epoch;
+    // the current reference time for the L1 observation
+    auto tl1 = it.corrected_l1_epoch();
+    
+    // integrate orbit to current time (TAI) TODO
   }
 
   return 0;

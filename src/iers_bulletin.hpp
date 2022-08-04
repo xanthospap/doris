@@ -7,11 +7,24 @@
 
 namespace dso {
 
+/// Bulletin-B/C04 contain up to one month of final data (aka before the
+/// day of publication) and up to one month of prelimenery (prediction) data
+/// after the publication date. We can use these values as max sizes when 
+/// parsing data from these files.
+
 namespace bulletin_details {
 constexpr const double BULLETIN_MISSING_VALUE = 999.999e0;
 constexpr const int FILE_IS_AHEAD = std::numeric_limits<int>::min();
 constexpr const int FILE_IS_PRIOR = std::numeric_limits<int>::min() + 1;
-}// bulletin_details
+} // namespace bulletin_details
+
+template<int N>
+struct EopLookUpTable {
+  ///< actual size of arrays (<= N)
+  int sz;
+  ///< arrays of EOP values extracted from C04
+  double mjd[N], xpa[N], ypa[N], ut1a[N];
+};// EopLookUpTable
 
 struct IersBulletinB_Section1Block {
   long mjd;
@@ -36,22 +49,19 @@ public:
   ~IersBulletinB() noexcept;
 
   /// @brief Return true if the file has UT1R-UTC values
-  bool has_dUt1UtcR_info() const noexcept { return this->has_dUt1UtcR;}
+  bool has_dUt1UtcR_info() const noexcept { return this->has_dUt1UtcR; }
 
   /// @brief Parse an IERS Bulletin B (aka IersBulletinB isntance) Section 1
   /// records
   /// @param[out] block An array of IersBulletinB_Section1Block where the
-  /// parsed
-  ///            Section 1 record lines are stored at (must be large enoubh
-  ///            to hold as many blocks as needed). The function will return
-  ///            the number of blocks filled within the array.
+  ///             parsed Section 1 record lines are stored at (must be large 
+  ///             enough to hold as many blocks as needed). The function will 
+  ///             return the number of blocks filled within the array.
   /// @param[in]  include_preliminary Signals if preliminary values are to
-  /// be
-  ///            collected or not.
+  ///             be collected or not.
   /// @return An integer; if < 0 an error has ocured. If >=0 the number of
-  /// lines
-  ///            parsed; hence, the number of blocks filled in the input
-  ///            block array.
+  ///         lines parsed; hence, the number of blocks filled in the input
+  ///         block array.
   int parse_section1(IersBulletinB_Section1Block *block,
                      bool include_preliminary = true) noexcept;
 
@@ -88,7 +98,8 @@ public:
 
 }; // IersBulletinB
 
-int download_iers_bulletinb_for(long mjd, char *downloaded_fn=nullptr, const char *dir=nullptr) noexcept;
+int download_iers_bulletinb_for(long mjd, char *downloaded_fn = nullptr,
+                                const char *dir = nullptr) noexcept;
 
 } // namespace dso
 

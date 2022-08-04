@@ -1,7 +1,7 @@
 #include "doris_rinex.hpp"
 #include "datetime/datetime_read.hpp"
-#include <cctype>
 #include <algorithm>
+#include <cctype>
 #include <stdexcept>
 #ifdef DEBUG
 #include "datetime/datetime_write.hpp"
@@ -18,11 +18,14 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
   m_obs_scale_factors.reserve(10);
   m_stations.reserve(60);
   m_ref_stations.reserve(7);
-  
+
   // read the header ..
   int status = read_header();
   if (status) {
-    fprintf(stderr, "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: %s)\n", fn, status, __func__);
+    fprintf(stderr,
+            "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: "
+            "%s)\n",
+            fn, status, __func__);
     throw std::runtime_error("[ERROR] Cannot read RINEX header");
   }
 
@@ -30,10 +33,12 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
 }
 
 ids::DorisObsRinex::~DorisObsRinex() noexcept = default;
-  
-int ids::DorisObsRinex::get_observation_code_index(ids::ObservationCode tp) const noexcept {
+
+int ids::DorisObsRinex::get_observation_code_index(
+    ids::ObservationCode tp) const noexcept {
   auto it = std::find(m_obs_codes.begin(), m_obs_codes.end(), tp);
-  if (it == m_obs_codes.end()) return -1;
+  if (it == m_obs_codes.end())
+    return -1;
   return std::distance(m_obs_codes.begin(), it);
 }
 
@@ -76,8 +81,11 @@ void ids::DorisObsRinex::read() {
       return;
     }
     hdr.apply_clock_offset();
-    std::cout << "Read Epoch : "<<dso::strftime_ymd_hms(hdr.m_epoch) ;
-    std::cout << " diff in seconds: " << hdr.m_epoch.delta_sec(last_epoch).as_underlying_type()/1000000000L << "\n";
+    std::cout << "Read Epoch : " << dso::strftime_ymd_hms(hdr.m_epoch);
+    std::cout << " diff in seconds: "
+              << hdr.m_epoch.delta_sec(last_epoch).as_underlying_type() /
+                     1000000000L
+              << "\n";
     last_epoch = hdr.m_epoch;
     // std::cout << "\nResolved line: \"" << line << "\"";
     // std::cout << "\n\t" << hdr.m_clock_offset << ", " << hdr.m_num_stations
@@ -94,18 +102,20 @@ void ids::DorisObsRinex::read() {
 #endif
 
 /// Example:
-/// D21  -1339276.297 0   -263905.449 0 115619271.79511 115619357.25411      -119.750 7
-///          -108.200 7      2149.340         530.000 1       -10.000 1        60.000 1
+/// D21  -1339276.297 0   -263905.449 0 115619271.79511 115619357.25411 -119.750
+/// 7
+///          -108.200 7      2149.340         530.000 1       -10.000
+///          1        60.000 1
 /// +---------------------------------------------------------------------------+
-/// 
+///
 /// * A1,I2 aka [0-3)   Station number e.g. 'D02' Only at first line, else 3X
 /// * F14.3 aka [3-17)  Observation
 /// * I1    aka [17-18) flag-m1
 /// * I2    aka [18-19) flag m2
-/// if more than 5 measurements then repeat (instead of Station number we have 3X)
-/// Missing observations are written as 0.0 or blanks.
-/// maximum number of chars per (record) line: 3 + 5*16 = 83
-/// @note Note that the resulting observable values are always scaled using the 
+/// if more than 5 measurements then repeat (instead of Station number we have
+/// 3X) Missing observations are written as 0.0 or blanks. maximum number of
+/// chars per (record) line: 3 + 5*16 = 83
+/// @note Note that the resulting observable values are always scaled using the
 ///       'SYS / SCALE FACTOR' header information (stored in m_obs_scale_factors
 int ids::DorisObsRinex::read_data_block(
     ids::RinexDataRecordHeader &hdr,
@@ -278,35 +288,6 @@ int ids::DorisObsRinex::resolve_data_epoch(
   return status;
 }
 
-int ids::RinexDataBlockIterator::next() noexcept {
-  char line[DorisObsRinex::MAX_RECORD_CHARS];
-
-  // try getting the next line from the RINEX stream ...
-  if (!rnx->stream().getline(line, DorisObsRinex::MAX_RECORD_CHARS)) {
-    if (rnx->stream().eof())  return -1;
-    fprintf(stderr, "Failed to read lines from RINEX file (traceback: %s)\n",
-            __func__);
-    return 1;
-  }
-
-  // ... this should be a data record line; resolve it
-  if (int error = rnx->resolve_data_epoch(line, cheader); error) {
-    fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n",
-            __func__);
-    fprintf(stderr, "Line is: \"%s\"\n", line);
-    return 2;
-  }
-
-  // get block of observations that follow ...
-  if (int error = rnx->read_data_block(cheader, cblock); error) {
-    fprintf(stderr, "Failed parsing data block line! (traceback: %s)\n",
-            __func__);
-    return 3;
-  }
-
-  return 0;
-}
-
 int ids::DorisObsRinex::print_metadata() const noexcept {
   char buf[64];
   printf("RINEX filename: %s\n", m_filename.c_str());
@@ -318,16 +299,21 @@ int ids::DorisObsRinex::print_metadata() const noexcept {
   printf("Recvr Version : %s\n", m_rec_version);
   printf("Antenna Type  : %s\n", m_antenna_type);
   printf("Antenna Number: %s\n", m_antenna_number);
-  printf("Apprx Position: [%.3f, %.3f, %.3f]\n", m_approx_position[0], m_approx_position[1], m_approx_position[2]);
-  printf("Mass Center   : [%.3f, %.3f, %.3f]\n", m_center_mass[0], m_center_mass[1], m_center_mass[2]);
+  printf("Apprx Position: [%.3f, %.3f, %.3f]\n", m_approx_position[0],
+         m_approx_position[1], m_approx_position[2]);
+  printf("Mass Center   : [%.3f, %.3f, %.3f]\n", m_center_mass[0],
+         m_center_mass[1], m_center_mass[2]);
   printf("Obs. Codes    : (%d) ", (int)m_obs_codes.size());
-  for (const auto &c : m_obs_codes) printf("[%s]", c.to_str(buf));
+  for (const auto &c : m_obs_codes)
+    printf("[%s]", c.to_str(buf));
   printf("\n");
   printf("Scale Factors : (%d) ", (int)m_obs_scale_factors.size());
-  for (const auto &c : m_obs_scale_factors) printf("[%2d]", c);
+  for (const auto &c : m_obs_scale_factors)
+    printf("[%2d]", c);
   printf("\n");
   printf("Beacons       : (%d)\n", (int)m_stations.size());
-  for (const auto &c : m_stations) printf("\t%s\n", c.to_str(buf));
+  for (const auto &c : m_stations)
+    printf("\t%s\n", c.to_str(buf));
 
   return 0;
 }
