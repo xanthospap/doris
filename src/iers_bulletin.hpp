@@ -2,6 +2,7 @@
 #define __DSO__IERS_BULLTEIN_PARSERS_HPP__
 
 #include "datetime/dtcalendar.hpp"
+#include <datetime/dtfund.hpp>
 #include <fstream>
 #include <limits>
 
@@ -26,7 +27,7 @@ struct EopLookUpTable {
   double mjd[N], xpa[N], ypa[N], ut1a[N];
 };// EopLookUpTable
 
-struct IersBulletinB_Section1Block {
+struct [[deprecated]] IersBulletinB_Section1Block {
   long mjd;
   double x, y, dut1, dX, dY; //[mas], [mas], [ms], [mas], [mas]
   double xerr, yerr, dut1err, dXerr, dYerr;
@@ -34,7 +35,21 @@ struct IersBulletinB_Section1Block {
   char type; // 'F' for final, 'P' for preliminery
 };
 
-class IersBulletinB {
+class EopFile {
+  char filename[256];
+  EopFile(const char *fn);
+  EopFile(const EopFile &other) = delete;
+  EopFile(EopFile &&other) noexcept;
+  EopFile &operator=(const EopFile &other) = delete;
+  EopFile &operator=(EopFile &&other) noexcept;
+  ~EopFile() noexcept;
+
+  //
+  int parse(dso::modified_julian_day start, dso::modified_julian_day end,
+            double *mjd, double *xpa, double *ypa, double *ut1a, int &sz) noexcept;
+}; // EopFile
+
+class [[deprecated]] IersBulletinB {
 private:
   char filename[256];
   std::ifstream stream;
@@ -98,6 +113,7 @@ public:
 
 }; // IersBulletinB
 
+[[deprecated]]
 int download_iers_bulletinb_for(long mjd, char *downloaded_fn = nullptr,
                                 const char *dir = nullptr) noexcept;
 
