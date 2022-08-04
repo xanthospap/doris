@@ -71,9 +71,63 @@ bc04_url = "https://hpiers.obspm.fr/iers/bul/bulb_new/bulletinb."
 bc04_nr0 = 252
 bc04_first_date = datetime.datetime.strptime("20081212", "%Y%m%d")
 
-def c04_date_span(c04fn):
-    dates_in_file = []
+## Give a Bulletin B/C04 file, open it and extract the time interval 
+## (start/stop datetimes) of the final data block.
+def c04_get_final_data(c04fn):
+    final_data = []
     error = 0
+    
+    with open(c04fn, 'r') as fin:
+        line = fin.readline()
+        
+        lines_matched = 0
+        while line.strip() != 'Mean formal error':
+            line = fin.readline()
+            if not line:
+                error = 1
+                break
+            if line.strip() == "1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY":
+              lines_matched += 1
+            elif ' '.join(line.strip().split()) == "DATE MJD x y UT1-UTC dX dY x err y err UT1 err dX err dY err":
+              lines_matched += 1
+            elif ' '.join(line.strip().split()) == "(0 h UTC) mas mas ms mas mas mas mas ms mas mas":
+              lines_matched += 1
+        
+        if lines_matched != 3:
+          print('ERROR Failed to validate lines in Bulletin B file {:}'.format(c04fn), file=sys.stderr)
+        
+        if not error:
+            line = fin.readline() # empty ...
+            line = fin.readline() # Mean formal error
+            if not line.lstrip().startswith('Mean formal error') :
+                print('ERROR. Expected \'Mean formal error\' not found in file {:}'.format(c04fn), file=sys.stderr)
+                error = 1
+            line = fin.readline() # empty ...
+
+        if not error:
+            ## read actual final data
+            line = fin.readline()
+            while line.strip() != '':
+                ## int values
+                int_list = [int(d) for d in line.split()[0:4]]
+                ## floating values, should be 10
+                float_list = [ float(f) for f in line.split()[4:]
+                assert(len(float_list) == 10)
+                ## append collected data
+                final_data.append(int_list + float_list)
+                ## next line
+                line = fin.readline()
+    
+    if not error:
+        return dates_in_file[0], dates_in_file[-1]
+    else:
+        raise RuntimeError('Failed parsing Bulletin B/C04 file')
+
+## Give a Bulletin B/C04 file, open it and extract the EOP data for the 
+## (final data block.
+def c04_date_span(c04fn):
+    error = 0
+    dates_in_file = []
     
     with open(c04fn, 'r') as fin:
         line = fin.readline()
@@ -107,6 +161,11 @@ def c04_date_span(c04fn):
     else:
         raise RuntimeError('Failed parsing Bulletin B/C04 file')
 
+## cast a dictionary of type {filename1:
+##                           {'t0':datetime_start, 't':datetime_stop},
+##                           {filename2:
+##                           {'t0':datetime_start, 't':datetime_stop}, ...
+## to  a sorted list of filenames, base on the value 't0'
 def c04_dict_to_sorted_list(c04_dict):
     lst = []
     ct = datetime.datetime.max()
@@ -123,8 +182,9 @@ def merge_c04_files(c04_dict):
     if len(c04_dict) == 0: return None
     elif len(c04_dict) == 1: return list(c04_dict.keys())[0]
     else:
-        
-        
+      ## filenames in chronological order
+      c04_list = c04_dict_to_sorted_list(c04_dict)
+      final_data_extra = [ c04_get_final_data(fn) for f in c04_list[1:]]
 
 if __name__ == '__main__':
 
