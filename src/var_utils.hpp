@@ -38,8 +38,8 @@ YAML::Node get_yaml_node(const YAML::Node &root, const char *key) {
 /// else
 ///   // val hold the value 4
 template <typename T>
-int get_yaml_value_depth2(const YAML::Node &root, const char &key1,
-                          const char &key2, T &val) noexcept {
+int get_yaml_value_depth2(const YAML::Node &root, const char *key1,
+                          const char *key2, T &val) noexcept {
   try {
     const YAML::Node node = get_yaml_node(root, key1);
     val = node[std::string(key2)].as<T>();

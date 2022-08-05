@@ -1,13 +1,10 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
 #include "var_utils.hpp"
-#include "eop.hpp"
+#include "orbit_integration.hpp"
 #include <charconv>
 #include <cstdio>
 #include <datetime/dtfund.hpp>
-
-// EOP Look-up tables will hold data for max 10 days
-constexpr const int EopCapacityDays = 10;
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -39,6 +36,7 @@ int main(int argc, char *argv[]) {
   // resolve the yaml config file and get the root node
   const YAML::Node config = YAML::LoadFile(argv[1]);
   char buf[256];
+  int error;
 
   // DORIS RINEX instance
   // Construct the DorisRinex instance rnx
@@ -56,7 +54,7 @@ int main(int argc, char *argv[]) {
   // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
   // -------------------------------------------------------------------------
-  dso::EopLookUpTable<EopCapacityDays> eop_lut;
+  dso::EopLookUpTable eop_lut;
   if (dso::get_yaml_value_depth2(config, "eop-info", "eop-file", buf)) {
     fprintf(stderr, "ERROR. Failed parsing eop-info/eop-file file from YAML %s\n",
             argv[1]);
@@ -66,23 +64,30 @@ int main(int argc, char *argv[]) {
     const int ref_mjd = rnx.ref_datetime().as_mjd();
     const int start = ref_mjd - 4;
     const int end = ref_mjd + 4;
-    if (eopin.make_lookup_table<EopCapacityDays>(start, end, eop_lut)) {
+    if (eopin.parse(start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
   }
 
   // Gravity
-  //
-  const int degree = dso::get_yaml_value_depth2<int>(&config, "gravity", "degree", buf);
-  const int order  = dso::get_yaml_value_depth2<int>(&config, "gravity", "order", buf);
-  if (order > degree || degree < 1) {
-    fprintf(stderr, "ERROR. Invalid degree/order for gravity field\n");
+  // -------------------------------------------------------------------------
+  // parse degree and order and the requested gravity model into a 
+  // HarmonicCoeffs instance. Note that to compute potential we will need 
+  // Lagrange polynomials (later on)
+  int degree, order;
+  error = 0;
+  error = dso::get_yaml_value_depth2<int>(config, "gravity", "degree", degree);
+  error += dso::get_yaml_value_depth2<int>(config, "gravity", "order", order);
+  dso::HarmonicCoeffs harmonics(degree);
+  if (!error)
+    error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
+  if (!error)
+    error = dso::parse_gravity_model(buf, degree, order, harmonics, true);
+  if (error) {
+    fprintf(stderr, "ERROR Failed handling gravity field model!\n");
     return 1;
   }
-  dso::HarmonicCoeffs hc(degree);
-  if (parse_gravity(get_yaml_value_depth2(&config, "gravity", "model", buf), degree, order, hc)) {
-
 
   // station/beacon coordinates
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
@@ -105,6 +110,20 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Setup Integration Parameters for Orbit Integration
+  // ------------------------------------------------------------------------
+  dso::IntegrationParameters IntegrationParams(
+      degree, order, eop_lut, harmonics);
+
+  // Orbit Integrator
+  // -------------------------------------------------------------------------
+  // Setup an integrator, to extrapolate orbit with:
+  // 1. Relative accuracy 1e-12
+  // 2. Absolute accuracy 1e-12
+  // 3. Num of Equations: 6 for state and 6*6 for variational equations
+  dso::SGOde Integrator(VariationalEquations, 6 + 6*6, 1e-12, 1e-12, &params);
+
+
   // get the (RINEX) indexes for the observables we want
   int l1i,l2i,fi;
   if (get_rinex_indexes(rnx, l1i, l2i, fi)) return 1;
@@ -114,7 +133,7 @@ int main(int argc, char *argv[]) {
   // get an iterator to the RINEXs data blocks
   dso::RinexDataBlockIterator it(&rnx);
 
-  int error = 0;
+  error = 0;
   // for every new data block in the RINEX file ...
   while (!(error = it.next())) {
     // the current reference time for the L1 observation

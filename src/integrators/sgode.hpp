@@ -2,6 +2,7 @@
 #define __DSO_SGODE_ODE_HPP__
 
 #include "odefun.hpp"
+#include "orbit_integration.hpp"
 
 namespace dso {
 

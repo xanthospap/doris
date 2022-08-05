@@ -20,7 +20,7 @@ int dso::HarmonicCoeffs::deallocate() noexcept {
   return 0;
 }
 
-void dso::HarmonicCoeffs::resize() noexcept {
+void dso::HarmonicCoeffs::resize(int degree) noexcept {
     if (degree <= m_degree) {
       m_degree = degree;
     } else {

@@ -20,8 +20,8 @@ dso::EopFile &dso::EopFile::operator=(dso::EopFile &&other) noexcept {
 }
 
 int dso::EopFile::parse(dso::modified_julian_day start_mjd,
-                        dso::modified_julian_day end_mjd, double *mjda,
-                        double *xpa, double *ypa, double *ut1a) noexcept {
+                        dso::modified_julian_day end_mjd,
+                        dso::EopLookUpTable &etable) noexcept {
   // open file
   std::ifstream fin(filename);
   if (!fin.is_open()) {
@@ -32,8 +32,11 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
     return -1;
   }
 
-  char line[MAX_LINE_CHARS];
+  // if needed, resize the EOp table
+  int days = end_mjd.as_underlying_type() - start_mjd.as_underlying_type();
+  etable.resize(days);
 
+  char line[MAX_LINE_CHARS];
   int sz = 0;
   // skip any line starting with '#'
   while (fin.getline(line, MAX_LINE_CHARS)) {
@@ -61,18 +64,18 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
       // if the date is ok, collect data
       if (cmjd >= start_mjd && cmjd < end_mjd) {
         error = 0;
-        mjda[sz] = static_cast<double>(mjd);
+        etable.mjd[sz] = static_cast<double>(mjd);
 
         start = end;
-        xpa[sz] = std::strtod(start, &end);
+        etable.xpa[sz] = std::strtod(start, &end);
         error += (start == end);
 
         start = end;
-        ypa[sz] = std::strtod(start, &end);
+        etable.ypa[sz] = std::strtod(start, &end);
         error += (start == end);
 
         start = end;
-        ut1a[sz] = std::strtod(start, &end);
+        etable.ut1a[sz] = std::strtod(start, &end);
         error += (start == end);
 
         ++sz;
@@ -91,6 +94,5 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
   }
 
   // we were supposed to collect:
-  int sz_check = end_mjd.as_underlying_type() - start_mjd.as_underlying_type();
-  return !(sz_check == sz);
+  return !(days == sz);
 }

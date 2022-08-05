@@ -12,6 +12,23 @@
 
 namespace dso {
 
+/// @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs
+///        instance
+/// @param[in] model_fn An icegm file, describing a static gravity/geopotential 
+///        model
+/// @param[in] degree Max degree for harmonics to extract; should be at 
+///        maximum equal to the model's max degree
+/// @param[in] order Max order for harmonics to extract; should be at 
+///        maximum equal to the model's max order and <= to degree
+/// @param[out] harmonics An dso::HarmonicCoeffs instance to store results. If 
+///        (at input) the instance has wrong size, it will be resized to match 
+///        the needs of the requested harmonics
+/// @param[in] denormalize Denormalize coefficients (if normalized)
+/// @return Anything other than 0 denotes an error
+int parse_gravity_model(const char *model_fn, int degree, int order,
+                        dso::HarmonicCoeffs &harmonics,
+                        bool denormalize = true) noexcept;
+
 /// @brief Computes the perturbational acceleration due to a point mass
 /// E.g. use this function we can compute the perturbing acceleration affecting
 /// a satellite via sun or moon.

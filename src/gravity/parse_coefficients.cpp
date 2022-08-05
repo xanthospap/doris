@@ -1,8 +1,10 @@
-#include "icgem.hpp"
+#include "egravity.hpp"
+#include "icgemio.hpp"
 #include <cstdio>
 
-int parse_gravity_model(const char *model_fn, int degree, int order,
-                        dso::HarmonicCoeffs &harmonics) noexcept {
+int dso::parse_gravity_model(const char *model_fn, int degree, int order,
+                             dso::HarmonicCoeffs &harmonics,
+                             bool denormalize) noexcept {
   dso::Icgem gfc(model_fn);
 
   // parse the header ...
@@ -25,7 +27,7 @@ int parse_gravity_model(const char *model_fn, int degree, int order,
   harmonics.resize(degree);
 
   // parse data; store coefficients to harmonics
-  if (gfc.parse_data(degree, order, &hc)) {
+  if (gfc.parse_data(degree, order, &harmonics)) {
     fprintf(stderr,
             "[ERROR] Failed to parse harmonic coefficients from file %s "
             "(traceback: %s)\n",
@@ -34,7 +36,8 @@ int parse_gravity_model(const char *model_fn, int degree, int order,
   }
 
   // if needed denormalize coefficients
-  harmonics.denormalize();
+  if (denormalize)
+    harmonics.denormalize();
 
   // all done
   return 0;

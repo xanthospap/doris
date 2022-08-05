@@ -1,9 +1,8 @@
 #include "eop.hpp"
 #include "iers2010/iers2010.hpp"
 
-int interpolate_eop(double fmjd_utc, const double *mjd, const double *xpa,
-                    const double *ypa, const double *ut1a, int sz, double &xp,
-                    double &yp, double &dut1) noexcept {
+int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
+                                     double &dut1) const noexcept {
 
   // apply corrections; first use INTERP to interpolate x,y,ut1 values for
   // the given date (in [mas], [msec])
