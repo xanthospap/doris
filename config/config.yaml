@@ -6,6 +6,9 @@ data:
 reference-frame:
   station-coordinates: data/dpod2014_053.snx
 
+eop-info:
+  eop-file: 
+
 naif-kernels:
   spk: data/jpl/de405.bsp
   pck: data/jpl/gm_de431.tpc

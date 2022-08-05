@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <cmath>
 
-namespace ids {
+namespace dso {
 
 /// In DORIS RINEX files, the receiver clock offset may be missing for
 /// some/all epochs; this value signifies a missing epoch Receiver clock
@@ -171,6 +171,6 @@ struct BeaconStation {
   int set_from_rinex_line(const char *line) noexcept;
 }; // BeaconStation
 
-} // namespace ids
+} // dso
 
 #endif

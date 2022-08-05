@@ -11,7 +11,7 @@
 /// 1. open the input file
 /// 2. parse the header
 /// If any of the above fails, then an std::runtime_error will be thrown.
-ids::DorisObsRinex::DorisObsRinex(const char *fn)
+dso::DorisObsRinex::DorisObsRinex(const char *fn)
     : m_filename(fn), m_stream(fn, std::ios_base::in) {
   // pre-allocate vectors ..
   m_obs_codes.reserve(10);
@@ -32,10 +32,10 @@ ids::DorisObsRinex::DorisObsRinex(const char *fn)
   m_lines_per_beacon = lines_per_beacon();
 }
 
-ids::DorisObsRinex::~DorisObsRinex() noexcept = default;
+dso::DorisObsRinex::~DorisObsRinex() noexcept = default;
 
-int ids::DorisObsRinex::get_observation_code_index(
-    ids::ObservationCode tp) const noexcept {
+int dso::DorisObsRinex::get_observation_code_index(
+    dso::ObservationCode tp) const noexcept {
   auto it = std::find(m_obs_codes.begin(), m_obs_codes.end(), tp);
   if (it == m_obs_codes.end())
     return -1;
@@ -43,7 +43,7 @@ int ids::DorisObsRinex::get_observation_code_index(
 }
 
 const char *
-ids::DorisObsRinex::beacon_internal_id2id(const char *inid) const noexcept {
+dso::DorisObsRinex::beacon_internal_id2id(const char *inid) const noexcept {
   auto it = std::find_if(m_stations.begin(), m_stations.end(),
                          [&](const BeaconStation &bcn) {
                            return !std::strncmp(inid, bcn.m_internal_code, 3);
@@ -54,8 +54,8 @@ ids::DorisObsRinex::beacon_internal_id2id(const char *inid) const noexcept {
   return m_stations[idx].m_station_id;
 }
 
-void ids::DorisObsRinex::skip_data_block(
-    const ids::RinexDataRecordHeader &hdr) noexcept {
+void dso::DorisObsRinex::skip_data_block(
+    const dso::RinexDataRecordHeader &hdr) noexcept {
   char line[MAX_RECORD_CHARS];
   for (int i = 0; i < hdr.m_num_stations * m_lines_per_beacon; i++) {
     m_stream.getline(line, MAX_RECORD_CHARS);
@@ -64,7 +64,7 @@ void ids::DorisObsRinex::skip_data_block(
 }
 
 #ifdef DEBUG
-void ids::DorisObsRinex::read() {
+void dso::DorisObsRinex::read() {
   m_stream.seekg(m_end_of_head);
   char line[MAX_RECORD_CHARS];
   RinexDataRecordHeader hdr;
@@ -117,8 +117,8 @@ void ids::DorisObsRinex::read() {
 /// chars per (record) line: 3 + 5*16 = 83
 /// @note Note that the resulting observable values are always scaled using the
 ///       'SYS / SCALE FACTOR' header information (stored in m_obs_scale_factors
-int ids::DorisObsRinex::read_data_block(
-    ids::RinexDataRecordHeader &hdr,
+int dso::DorisObsRinex::read_data_block(
+    dso::RinexDataRecordHeader &hdr,
     std::vector<BeaconObservations> &obsvec) noexcept {
   static char line[MAX_RECORD_CHARS];
   if (!obsvec.empty())
@@ -224,8 +224,8 @@ int ids::DorisObsRinex::read_data_block(
 ///   |  - 0 otherwise          |           | Max length of line = 59 chars
 ///   +-------------------------+-----------+------------------------------
 ///
-int ids::DorisObsRinex::resolve_data_epoch(
-    const char *line, ids::RinexDataRecordHeader &hdr) const noexcept {
+int dso::DorisObsRinex::resolve_data_epoch(
+    const char *line, dso::RinexDataRecordHeader &hdr) const noexcept {
   if (*line != '>')
     return 1; // must start with '>' character
 
@@ -288,7 +288,7 @@ int ids::DorisObsRinex::resolve_data_epoch(
   return status;
 }
 
-int ids::DorisObsRinex::print_metadata() const noexcept {
+int dso::DorisObsRinex::print_metadata() const noexcept {
   char buf[64];
   printf("RINEX filename: %s\n", m_filename.c_str());
   printf("RINEX version : %.2f\n", m_version);

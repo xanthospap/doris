@@ -55,10 +55,10 @@ int extrapolate_coordinates(
   return 0;
 }
 
-int ids::extrapolate_sinex_coordinates(
-    const char *snxfn, const std::vector<ids::BeaconStation> &beacons,
+int dso::extrapolate_sinex_coordinates(
+    const char *snxfn, const std::vector<dso::BeaconStation> &beacons,
     const dso::datetime<dso::microseconds> &t,
-    std::vector<ids::BeaconCoordinates> &result_array,
+    std::vector<dso::BeaconCoordinates> &result_array,
     bool missing_site_is_error) noexcept {
   // allocate and fill the list of site id's
   int num_sites = beacons.size();
@@ -78,7 +78,7 @@ int ids::extrapolate_sinex_coordinates(
 
   // call the core function to extrapolate the coordinates
   int sites_found;
-  int error = ids::extrapolate_sinex_coordinates(
+  int error = dso::extrapolate_sinex_coordinates(
       snxfn, sites, num_sites, t, result_array.data(), sites_found,
       missing_site_is_error);
 
@@ -95,10 +95,10 @@ int ids::extrapolate_sinex_coordinates(
   return error;
 }
 
-int ids::extrapolate_sinex_coordinates(
+int dso::extrapolate_sinex_coordinates(
     const char *snx_fn, char **station_ids, int num_stations,
     const dso::datetime<dso::microseconds> &t,
-    ids::BeaconCoordinates *result_array, int &result_size,
+    dso::BeaconCoordinates *result_array, int &result_size,
     bool missing_site_is_error) noexcept {
 
   // clear result size

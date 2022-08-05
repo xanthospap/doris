@@ -1,9 +1,9 @@
 #include "doris_system_info.hpp"
-#include <cstring>
 #include <cassert>
+#include <cstring>
 #include <stdexcept>
 
-char ids::ObservationType_to_char(ids::ObservationType o) {
+char dso::ObservationType_to_char(dso::ObservationType o) {
   switch (o) {
   case (ObservationType::phase):
     return 'L';
@@ -25,7 +25,7 @@ char ids::ObservationType_to_char(ids::ObservationType o) {
   }
 }
 
-ids::ObservationType ids::char_to_observationType(char c) {
+dso::ObservationType dso::char_to_observationType(char c) {
   switch (c) {
   case ('L'):
     return ObservationType::phase;
@@ -53,7 +53,7 @@ ids::ObservationType ids::char_to_observationType(char c) {
 /// * ObservationType::phase, or
 /// * ObservationType::pseudorange, or
 /// * ObservationType::power_level
-bool ids::observationType_has_frequency(ObservationType type) noexcept {
+bool dso::observationType_has_frequency(ObservationType type) noexcept {
   switch (type) {
   case (ObservationType::phase):
   case (ObservationType::pseudorange):
@@ -74,7 +74,7 @@ bool ids::observationType_has_frequency(ObservationType type) noexcept {
 /// 0.
 /// If the type is any of phase, pseudorange or power_level, and freq is not
 /// in range [1,2], then the constructor will throw an std::runtime_error.
-ids::ObservationCode::ObservationCode(ObservationType type, int_fast8_t freq)
+dso::ObservationCode::ObservationCode(ObservationType type, int_fast8_t freq)
     : m_type(type), m_freq(freq) {
   if (observationType_has_frequency(m_type)) {
     if (m_freq < 1 || m_freq > 2) {
@@ -91,11 +91,11 @@ ids::ObservationCode::ObservationCode(ObservationType type, int_fast8_t freq)
 /// * ObservationType::phase, or
 /// * ObservationType::pseudorange, or
 /// * ObservationType::power_level
-bool ids::ObservationCode::has_frequency() const noexcept {
+bool dso::ObservationCode::has_frequency() const noexcept {
   return observationType_has_frequency(m_type);
 }
 
-int ids::BeaconStation::set_from_rinex_line(const char *line) noexcept {
+int dso::BeaconStation::set_from_rinex_line(const char *line) noexcept {
   if (std::strlen(line) < 60)
     return 1;
   std::memcpy(m_internal_code, line, sizeof m_internal_code);
@@ -116,26 +116,28 @@ int ids::BeaconStation::set_from_rinex_line(const char *line) noexcept {
 
   // remove trailing whitespace characters from stations name
   char *s = m_station_name + (sizeof m_station_name) - 1;
-  while (*s==' ' && (s-m_station_name)>0) *s-- = '\0';
+  while (*s == ' ' && (s - m_station_name) > 0)
+    *s-- = '\0';
   s = m_station_domes + (sizeof m_station_domes) - 1;
-  while (*s==' ' && (s-m_station_domes)>0) *s-- = '\0';
+  while (*s == ' ' && (s - m_station_domes) > 0)
+    *s-- = '\0';
 
   return 0;
 }
 
-char *ids::BeaconStation::to_str(char *buffer) const noexcept {
+char *dso::BeaconStation::to_str(char *buffer) const noexcept {
   std::sprintf(buffer, "[%.3s/%.4s_%.9s](%s)", m_internal_code, m_station_id,
                m_station_domes, m_station_name);
   return buffer;
 }
 
-char *ids::ObservationCode::to_str(char *buffer) const noexcept {
-  assert(m_freq<10);
+char *dso::ObservationCode::to_str(char *buffer) const noexcept {
+  assert(m_freq < 10);
   std::sprintf(buffer, "%c%1d", ObservationType_to_char(m_type), m_freq);
   return buffer;
 }
 
-ids::GroundAntennaType ids::BeaconStation::type() const {
+dso::GroundAntennaType dso::BeaconStation::type() const {
   switch (m_station_id[3]) {
   case ('A'):
     return GroundAntennaType::Alcatel;

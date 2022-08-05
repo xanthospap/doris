@@ -1,47 +1,27 @@
-#include "iers_bulletin.hpp"
-#include <cmath>
+#include "eop.hpp"
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <datetime/dtfund.hpp>
+#include <fstream>
 
 constexpr const std::size_t MAX_LINE_CHARS = 512;
-
-// retrun a pointer to the first non-whitespace char
-inline char *nws(char *line) noexcept {
-  char *c = line;
-  while (*c && *c == ' ')
-    ++c;
-  return c;
-}
 
 dso::EopFile::EopFile(const char *fn) {
   assert(std::strlen(fn) < 256);
   std::strcpy(filename, fn);
-  //if (!stream.is_open()) {
-  //  fprintf(stderr,
-  //          "[ERROR] Failed opening Eop file %s (traceback: %s)\n",
-  //          filename, __func__);
-  //  throw std::runtime_error("Failed opening file");
-  //}
 }
 
 dso::EopFile::EopFile(dso::EopFile &&other) noexcept {
   std::strcpy(filename, other.filename);
 }
 
-dso::EopFile &
-dso::EopFile::operator=(dso::EopFile &&other) noexcept {
+dso::EopFile &dso::EopFile::operator=(dso::EopFile &&other) noexcept {
   std::strcpy(filename, other.filename);
   return *this;
 }
 
 int dso::EopFile::parse(dso::modified_julian_day start_mjd,
-                        dso::modified_julian_day end_mjd, double *mjda, double *xpa,
-                        double *ypa, double *ut1a, int &sz) noexcept {
-  // no data yet ...
-  sz = 0;
-
+                        dso::modified_julian_day end_mjd, double *mjda,
+                        double *xpa, double *ypa, double *ut1a) noexcept {
   // open file
   std::ifstream fin(filename);
   if (!fin.is_open()) {
@@ -54,6 +34,7 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
 
   char line[MAX_LINE_CHARS];
 
+  int sz = 0;
   // skip any line starting with '#'
   while (fin.getline(line, MAX_LINE_CHARS)) {
     const char *start;

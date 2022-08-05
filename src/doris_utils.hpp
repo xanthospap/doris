@@ -6,7 +6,7 @@
 #include <vector>
 #include <type_traits>
 
-namespace ids {
+namespace dso {
 
 /// @brief This structure is meant to hold beacon coordinates and std.
 /// deviations
@@ -65,10 +65,10 @@ int extrapolate_sinex_coordinates(const char *snx_fn, char **site_ids,
 /// @param[in] snx_in The filename of the SINEX file to use; this file should
 ///            have a SOLUTION/ESTIMATE block; we will seek the STA[XYZ] and
 ///            VEL[XYZ] parameters for the requested sites
-/// @param[in] station_ids Array of ids::BeaconStation which we will try to
+/// @param[in] station_ids Array of dso::BeaconStation which we will try to
 ///            extrapolate coordinates to the epoch requested. To identify
-///            the ids::BeaconStation to a site written in the SINEX file, we
-///            will use the ids::BeaconStation::m_station_id member variable,
+///            the dso::BeaconStation to a site written in the SINEX file, we
+///            will use the dso::BeaconStation::m_station_id member variable,
 ///            aka it's 4-char ID.
 /// @param[in] t The epoch we want to extrapolate coordinates at
 /// @param[out] BeaconCoordinates An array of BeaconCoordinates to hold
@@ -78,9 +78,9 @@ int extrapolate_sinex_coordinates(const char *snx_fn, char **site_ids,
 ///            file.
 /// @return An integer; Anything other than 0 denotes an error
 int extrapolate_sinex_coordinates(
-    const char *snxfn, const std::vector<ids::BeaconStation> &station_ids,
+    const char *snxfn, const std::vector<dso::BeaconStation> &station_ids,
     const dso::datetime<dso::microseconds> &t,
-    std::vector<ids::BeaconCoordinates> &result_array,
+    std::vector<dso::BeaconCoordinates> &result_array,
     bool missing_site_is_error = true) noexcept;
 
 /// @brief Overload of the above, for any datetime<T> type.
@@ -93,9 +93,9 @@ template <class T,
                                       (!std::is_same_v<T, dso::microseconds>)>>
 #endif
     int extrapolate_sinex_coordinates(
-        const char *snxfn, const std::vector<ids::BeaconStation> &station_ids,
+        const char *snxfn, const std::vector<dso::BeaconStation> &station_ids,
         const dso::datetime<T> &t,
-        std::vector<ids::BeaconCoordinates> &result_array,
+        std::vector<dso::BeaconCoordinates> &result_array,
         bool missing_site_is_error) noexcept {
   dso::datetime<dso::microseconds> t_micro =
       t.template cast_to<dso::microseconds>();

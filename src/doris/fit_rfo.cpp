@@ -86,7 +86,7 @@ struct LinearKalman {
 
 int get_starting_rfo(const char *rnx_fn, double &rfo,
                      dso::datetime<dso::nanoseconds> &reft) noexcept {
-  using namespace ids;
+  using namespace dso;
 
   DorisObsRinex rnx(rnx_fn); // may throw ....
   char line[DorisObsRinex::MAX_RECORD_CHARS];
@@ -138,7 +138,7 @@ int get_starting_rfo(const char *rnx_fn, double &rfo,
 
 int get_rinex_rfo(const char *rnx_fn, long &rfo_collected,
                   LinearKalman *filter) {
-  using namespace ids;
+  using namespace dso;
 
   rfo_collected = 0;
   DorisObsRinex rnx(rnx_fn); // may throw ....
@@ -214,7 +214,7 @@ int get_rinex_rfo(const char *rnx_fn, long &rfo_collected,
   return 1;
 }
 
-int ids::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
+int dso::fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
                                        double sigma_x, double sigma_vx,
                                        double sigma_z) noexcept {
 

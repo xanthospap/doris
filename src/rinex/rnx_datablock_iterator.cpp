@@ -1,6 +1,6 @@
 #include "doris_rinex.hpp"
 
-int ids::RinexDataBlockIterator::next() noexcept {
+int dso::RinexDataBlockIterator::next() noexcept {
   char line[DorisObsRinex::MAX_RECORD_CHARS];
 
   // try getting the next line from the RINEX stream ...
@@ -32,7 +32,7 @@ int ids::RinexDataBlockIterator::next() noexcept {
   return 0;
 }
 
-dso::datetime<dso::nanoseconds> ids::RinexDataBlockIterator::corrected_l1_epoch(
+dso::datetime<dso::nanoseconds> dso::RinexDataBlockIterator::corrected_l1_epoch(
     dso::datetime<dso::nanoseconds> &tl2) const noexcept {
   dso::datetime<dso::nanoseconds> t = cheader.m_epoch;
   if (!rnx->receiver_clock_offsets_applied()) [[likely]] {

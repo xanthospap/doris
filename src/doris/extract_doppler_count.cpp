@@ -8,11 +8,11 @@
 #endif
 
 struct BeaconObservationData {
-  ids::BeaconObservations obs;
+  dso::BeaconObservations obs;
   dso::datetime<dso::nanoseconds> t;
 };
 
-int compute_ndop(const std::vector<ids::BeaconObservations> &obsvec,
+int compute_ndop(const std::vector<dso::BeaconObservations> &obsvec,
     const dso::datetime<dso::nanoseconds> &t,
     std::vector<BeaconObservationData> &data) noexcept {
   const char *newid = nullptr;
@@ -38,7 +38,7 @@ int compute_ndop(const std::vector<ids::BeaconObservations> &obsvec,
 }
 
 
-int update(const std::vector<ids::BeaconObservations> &obsvec,
+int update(const std::vector<dso::BeaconObservations> &obsvec,
            const dso::datetime<dso::nanoseconds> &t,
            std::vector<BeaconObservationData> &data) noexcept {
   const char *newid = nullptr;
@@ -62,20 +62,20 @@ int update(const std::vector<ids::BeaconObservations> &obsvec,
   return 0;
 }
 
-int ids::DorisObsRinex::get_doppler_counts() noexcept {
+int dso::DorisObsRinex::get_doppler_counts() noexcept {
 
   long parsed_blocks = 0;
 
   /* find indexes of L1 and L2 in this RINEX's observation codes vector
-  auto l1_ptr = std::find_if(m_obs_codes.cbegin(), m_obs_codes.cend(), ObservationType{ObservationType::phase, 1});
-  if (l1_ptr == m_obs_codes.cend()) {
-    fprintf(stderr, "[ERROR] Failed to find ObservationType L1 in RINEX\'s observation types vector! (traceback: %s)\n", __func__);
-    return 1;
+  auto l1_ptr = std::find_if(m_obs_codes.cbegin(), m_obs_codes.cend(),
+  ObservationType{ObservationType::phase, 1}); if (l1_ptr == m_obs_codes.cend())
+  { fprintf(stderr, "[ERROR] Failed to find ObservationType L1 in RINEX\'s
+  observation types vector! (traceback: %s)\n", __func__); return 1;
   }
-  auto l2_ptr = std::find_if(m_obs_codes.cbegin(), m_obs_codes.cend(), ObservationType{ObservationType::phase, 2});
-  if (l2_ptr == m_obs_codes.cend()) {
-    fprintf(stderr, "[ERROR] Failed to find ObservationType L2 in RINEX\'s observation types vector! (traceback: %s)\n", __func__);
-    return 1;
+  auto l2_ptr = std::find_if(m_obs_codes.cbegin(), m_obs_codes.cend(),
+  ObservationType{ObservationType::phase, 2}); if (l2_ptr == m_obs_codes.cend())
+  { fprintf(stderr, "[ERROR] Failed to find ObservationType L2 in RINEX\'s
+  observation types vector! (traceback: %s)\n", __func__); return 1;
   }
 
   // index of L1 and L2 in the m_obs_codes vector
@@ -94,20 +94,23 @@ int ids::DorisObsRinex::get_doppler_counts() noexcept {
 
   // read first line ....
   if (!m_stream.getline(line, MAX_RECORD_CHARS)) {
-    fprintf(stderr, "Failed to read lines from RINEX file (traceback: %s)\n", __func__);
+    fprintf(stderr, "Failed to read lines from RINEX file (traceback: %s)\n",
+            __func__);
     return 1;
   }
 
   // this should be a data record line
   if (int error = resolve_data_epoch(line, hdr); error) {
-    fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n", __func__);
+    fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n",
+            __func__);
     fprintf(stderr, "Line is: \"%s\"\n", line);
     return 2;
   }
 
   // now this should be the data
-  if (int error=read_data_block(hdr, obsvec); error) {
-    fprintf(stderr, "Failed parsing data block! (#2) (traceback: %s)\n", __func__);
+  if (int error = read_data_block(hdr, obsvec); error) {
+    fprintf(stderr, "Failed parsing data block! (#2) (traceback: %s)\n",
+            __func__);
     return 3;
   }
 
@@ -115,23 +118,26 @@ int ids::DorisObsRinex::get_doppler_counts() noexcept {
   update(obsvec, hdr.m_epoch, latest_data);
 
   while (m_stream.getline(line, MAX_RECORD_CHARS)) {
-    
+
     // resolve data block header ...
     if (int error = resolve_data_epoch(line, hdr); error) {
-      fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n", __func__);
+      fprintf(stderr, "Failed parsing data header line (#1)! (traceback: %s)\n",
+              __func__);
       fprintf(stderr, "Line is: \"%s\"\n", line);
       return 2;
     }
     // read the corresponding data block ...
-    if (int error=read_data_block(hdr, obsvec); error) {
-      fprintf(stderr, "Failed parsing data block! (#2) (traceback: %s)\n", __func__);
+    if (int error = read_data_block(hdr, obsvec); error) {
+      fprintf(stderr, "Failed parsing data block! (#2) (traceback: %s)\n",
+              __func__);
       return 3;
     }
-  
-    // compute Doppler counts for each beacon (if a previous observation is 
+
+    // compute Doppler counts for each beacon (if a previous observation is
     // preseent)
     if (compute_ndop(obsvec, hdr.m_epoch, latest_data)) {
-      fprintf(stderr,"[ERROR] Failed computing ndop (traceback: %s)\n", __func__);
+      fprintf(stderr, "[ERROR] Failed computing ndop (traceback: %s)\n",
+              __func__);
       return 5;
     }
 
@@ -139,13 +145,16 @@ int ids::DorisObsRinex::get_doppler_counts() noexcept {
     update(obsvec, hdr.m_epoch, latest_data);
     ++parsed_blocks;
   }
-  
+
   // should have reached EOF ...
   if (m_stream.eof()) {
     printf("Number of data blocks parsed: %ld; EOF reached\n", parsed_blocks);
     return 0;
   }
 
-  fprintf(stderr, "[ERROR] Failed getting new line while not EOF encountered (traceback: %s)\n", __func__);
+  fprintf(stderr,
+          "[ERROR] Failed getting new line while not EOF encountered "
+          "(traceback: %s)\n",
+          __func__);
   return 1;
 }

@@ -25,7 +25,7 @@ int count_length_reverse(const char *str, int from) noexcept {
 /// The instance's stream must be open and in good state. If it is not placed
 /// at the top of the file, it will be rewinded to the top.
 ///
-int ids::DorisObsRinex::read_header() noexcept {
+int dso::DorisObsRinex::read_header() noexcept {
 #ifdef DEBUG
   if (errno)
     fprintf(stderr, "[WRNNG] Going into function %s witth an errno = %d !\n",
@@ -273,7 +273,7 @@ int ids::DorisObsRinex::read_header() noexcept {
 
     } else if (!std::strncmp(line + 60, "STATION REFERENCE", 17)) {
       // STATION REFERENCE; fill m_stations (err. code 170)
-      m_stations.emplace_back(ids::BeaconStation{});
+      m_stations.emplace_back(dso::BeaconStation{});
       if (m_stations[m_stations.size() - 1].set_from_rinex_line(line)) {
         return 171;
       }
@@ -324,7 +324,7 @@ int ids::DorisObsRinex::read_header() noexcept {
       } catch (std::exception &e) {
         return 201;
       }
-    
+
     } else if (!std::strncmp(line + 60, "RCV CLOCK OFFS APPL",
                              19)) { // Code: 210
 

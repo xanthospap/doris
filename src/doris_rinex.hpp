@@ -7,7 +7,7 @@
 #include <fstream>
 #include <vector>
 
-namespace ids {
+namespace dso {
 
 /// @class TimeReferenceStation
 /// This class holds time reference stations (beacons) recorded in a DORIS
@@ -300,6 +300,6 @@ struct RinexDataBlockIterator {
   corrected_l1_epoch(dso::datetime<dso::nanoseconds> &tl2) const noexcept;
 }; // BlockIterator
 
-} // namespace ids
+} // dso
 
 #endif
