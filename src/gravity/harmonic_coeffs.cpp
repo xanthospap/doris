@@ -20,6 +20,18 @@ int dso::HarmonicCoeffs::deallocate() noexcept {
   return 0;
 }
 
+void dso::HarmonicCoeffs::resize() noexcept {
+    if (degree <= m_degree) {
+      m_degree = degree;
+    } else {
+      deallocate();
+      m_data = nullptr;
+      m_degree = degree;
+      allocate();
+    }
+    return;
+}
+
 dso::HarmonicCoeffs::HarmonicCoeffs(dso::HarmonicCoeffs &&h) noexcept {
   this->deallocate();
   this->m_degree = h.m_degree;

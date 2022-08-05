@@ -84,6 +84,10 @@ public:
 
   ~HarmonicCoeffs() noexcept { deallocate(); }
 
+  /// @brief Resize; check current capacity and only re-allocated data if 
+  ///        needed. m_degree set to new value.
+  void resize(int degree) noexcept;
+
 #ifdef DEBUG
   void print(double scale = 1e0) noexcept {
     for (int i = 0; i <= m_degree; i++) {

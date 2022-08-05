@@ -72,6 +72,18 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Gravity
+  //
+  const int degree = dso::get_yaml_value_depth2<int>(&config, "gravity", "degree", buf);
+  const int order  = dso::get_yaml_value_depth2<int>(&config, "gravity", "order", buf);
+  if (order > degree || degree < 1) {
+    fprintf(stderr, "ERROR. Invalid degree/order for gravity field\n");
+    return 1;
+  }
+  dso::HarmonicCoeffs hc(degree);
+  if (parse_gravity(get_yaml_value_depth2(&config, "gravity", "model", buf), degree, order, hc)) {
+
+
   // station/beacon coordinates
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
   // Result coordinates per beacon are stored in the beaconCrdVec vector.
