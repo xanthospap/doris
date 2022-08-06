@@ -122,7 +122,7 @@ public:
   double relerr,abserr;
   /// May store a pointer to some king of parameters that are passed in the
   /// ODE function
-  void *params{nullptr};
+  dso::IntegrationParameters *params{nullptr};
 }; // SGOde
 
 } // dso

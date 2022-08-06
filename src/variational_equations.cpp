@@ -33,12 +33,14 @@ void dso::VariationalEquations(
   gacc = t2c * gacc;
   gpartials = t2c.transpose() * gpartials * t2c;
 
+  // get Sun/Moon gravitational parameters
+
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
   Eigen::Matrix<double, 3, 1> sun_acc;
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
-  SunMoon(cmjd, r, sun_acc, mon_acc, rsun,
+  dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
           tb_partials);
 
   // Drag

@@ -72,7 +72,7 @@ int dso::cspice::load_if_unloaded_pck(const char *pck_kernel) noexcept {
   return 0;
 }
 
-int dso::getSunMoonGM(const char *pck_kernel, double &GMSun,
+int dso::get_sun_moon_GM(const char *pck_kernel, double &GMSun,
                       double &GMMoon) noexcept {
   if (pck_kernel)
     dso::cspice::load_if_unloaded_pck(pck_kernel);

@@ -81,7 +81,7 @@ namespace cspice {
 /// @param[out] GMMoon Moon's gravitational constant according to the kernel in
 ///         [km^3 / sec^2]
 /// @return Anything other than zero denotes an error.
-int getSunMoonGM(const char *pck_kernel, double &GMSun,
+int get_sun_moon_GM(const char *pck_kernel, double &GMSun,
                  double &GMMoon) noexcept;
 
 /// @brief Sun's geocentric position using a low precision analytical series

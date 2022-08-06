@@ -1,8 +1,7 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
 #include "var_utils.hpp"
-#include "orbit_integration.hpp"
-#include <charconv>
+#include "integrators.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
 
@@ -102,9 +101,15 @@ int main(int argc, char *argv[]) {
   }
 
   // Setup Integration Parameters for Orbit Integration
+  // We will need the pck (SPICE) kernel for gravitational parameters of Sun
+  // and Moon
   // ------------------------------------------------------------------------
+  if (dso::get_yaml_value_depth2(config, "naif-kernels", "pck", buf)) {
+    fprintf(stderr, "ERROR Failed locating NAIF pck kernel\n");
+    return 1;
+  }
   dso::IntegrationParameters IntegrationParams(
-      degree, order, eop_lut, harmonics);
+      degree, order, eop_lut, harmonics, buf);
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -112,7 +117,7 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(VariationalEquations, 6 + 6*6, 1e-12, 1e-12, &params);
+  dso::SGOde Integrator(dso::VariationalEquations, 6 + 6*6, 1e-12, 1e-12, &IntegrationParams);
 
 
   // get the (RINEX) indexes for the observables we want
