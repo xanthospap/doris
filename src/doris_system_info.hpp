@@ -19,11 +19,11 @@ static constexpr double RECEIVER_CLOCK_OFFSET_MISSING =
 static constexpr double OBSERVATION_VALUE_MISSING =
     std::numeric_limits<double>::min();
 
-/// @brief the 2 GHz fundamental DORIS frequency
-constexpr double DORIS_FREQ1_MHZ = 2.036250e3;
+/// @brief the 2 GHz fundamental DORIS frequency (aka S1)
+constexpr double DORIS_FREQ1_MHZ = 2.036250e3; // [MHz]
 
-/// @brief the 400 MHz fundamental DORIS frequency
-constexpr double DORIS_FREQ2_MHZ = 401.250e0;
+/// @brief the 400 MHz fundamental DORIS frequency (aka U2)
+constexpr double DORIS_FREQ2_MHZ = 401.250e0; // [MHz]
 
 /// @brief the (freq1 / freq2) factor (normally used for iono-free l.
 /// combination)
@@ -40,8 +40,8 @@ constexpr double USO_F0 = 5e6;
 ///        for a DORIS beacon
 /// @param[in] shift_factor The beacon's shift factor (e.g. as extracted from 
 ///        the 'STATION REFERENCE' field from a DORIS RINEX file)
-/// @param[out] s1_freq The S1 (aka 2GHz) nominal frequency in Hz
-/// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in Hz
+/// @param[out] s1_freq The S1 (aka 2GHz) nominal frequency [Hz]
+/// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in [Hz]
 inline
 int beacon_nominal_frequency(int shift_factor, double &s1_freq,
                                        double &u2_freq) noexcept {

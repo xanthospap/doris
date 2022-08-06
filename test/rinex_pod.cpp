@@ -259,8 +259,8 @@ int main(int argc, char *argv[]) {
                 beaconobs->id());
         return 1;
       }
-      double s1_freq, u2_freq;
-      dso::beacon_nominal_frequency(k, s1_freq, u2_freq);
+      double fs1_nom, fu2_nom; // [Hz]
+      dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
 
       // a pointer to the **NON** null terminating 4-char id of the beacon
       const char *b4c_name = rnx.beacon_internal_id2id(beaconobs->id());
@@ -285,8 +285,13 @@ int main(int argc, char *argv[]) {
                "%.1f [deg] time: %s (TAI)\n",
                b4c_name, dso::rad2deg(el), dtbuf);
       } else {
-        // elevation ok, contiinue processing
-      }
+        // elevation ok, continue processing
+
+        // we need to find the true proper frequency of the receiver, f_rT [Hz]
+        const double fs1_eT =
+            s1_freq * (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+
+      } // elevation > limit
 
     } // for every beacon observation set in epoch
   } // for every new data-block/epoch in the RINEX file
