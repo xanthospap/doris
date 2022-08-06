@@ -2,6 +2,7 @@
 #define __DSO_ODE_FUNCTION_PROTO_HPP__
 
 #include "eigen3/Eigen/Eigen"
+#include "orbit_integration.hpp"
 
 namespace dso {
 
@@ -12,7 +13,7 @@ typedef void (*ODEfun)(double x,                 // Independent variable
                        /*const Eigen::MatrixXd &Phi,*/
                        Eigen::Ref<Eigen::VectorXd> yp, // Partials/Derivative
                        /*Eigen::MatrixXd &Phip, */
-                       void *params) noexcept;
+                       dso::IntegrationParameters *params) noexcept;
 }// dso
 
 #endif

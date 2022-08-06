@@ -12,15 +12,6 @@ double GMSun, GMMoon;
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
-// to transfer parameters for Variational Equations
-/*struct AuxParams {
-  double mjd_tai;
-  dso::EopLookUpTable<EopCapacityDays> *eopLookUpTables;
-  dso::HarmonicCoeffs *hc;
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *V, *W;
-  int degree, order;
-};*/
-
 // get the l1, l2 and f indexes off from a RINEX file (instance)
 int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1, int &l2,
                       int &f) noexcept;
