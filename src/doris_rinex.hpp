@@ -6,6 +6,7 @@
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 namespace dso {
 
@@ -70,6 +71,10 @@ struct BeaconObservations {
   explicit BeaconObservations(int size_hint = 10) noexcept {
     m_values.reserve(size_hint);
   }
+  /// @brief Get the beacon (internal) 3-character ID as a **non-null** 
+  ///        terminating character array
+  /// @warning Cannot stress enough, that is **not a null terminating string**
+  const char *id() const noexcept {return m_beacon_id;}
 #ifdef DEBUG
   std::string to_string() const {
     std::string s(m_beacon_id, 3);
@@ -215,19 +220,60 @@ public:
 
   int get_doppler_counts() noexcept;
 
-  const std::vector<BeaconStation>& stations() const noexcept { return m_stations; }
+  const std::vector<BeaconStation> &stations() const noexcept {
+    return m_stations;
+  }
 
-  auto ref_datetime() const noexcept { return m_time_ref_stat;}
+  auto ref_datetime() const noexcept { return m_time_ref_stat; }
 
-  std::ifstream& stream() noexcept { return m_stream; }
+  std::ifstream &stream() noexcept { return m_stream; }
 
-  const std::vector<ObservationCode>& observation_codes() const noexcept { return m_obs_codes;}
+  const std::vector<ObservationCode> &observation_codes() const noexcept {
+    return m_obs_codes;
+  }
 
   int get_observation_code_index(ObservationCode t) const noexcept;
 
+  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return 
+  ///        the beacon's 4-character station code
+  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX). 
+  ///        Only the first three chars will be considered, no null-terminated
+  ///        string required (just an array of three chars)
+  /// @return A pointer to the instance's m_stations[].m_station_id, which is
+  ///        a non-null terminating string of size 4.
+  ///        If no station is matched, the reutned pointer point to NULL
+  /// @warning Th character array returned here is a **non-null terminated**
+  ///        string. Beware  how you use it. See dso::BeaconStation and its
+  ///        member variable m_station_id
   const char *beacon_internal_id2id(const char *inid) const noexcept;
 
+  auto time_of_first_obs() const noexcept {return m_time_of_first_obs;}
+
   int print_metadata() const noexcept;
+
+  /// @brief Given a beacon (interbal) 3-char identifier, query the RINEX's
+  ///        station list and return the frequency shift factor
+  ///        For more information, see DORIS RINEX 3 (1.7), sec. 6.16
+  /// @param[in] beaconid A 3-char id of the beacon (as identified within this
+  ///        RINEX file, e.g. 'D01')
+  /// @param[out] k The shift factor for the queried beacon. To actully
+  ///        compute the beacon's nominal frequencies, see 
+  ///        ids::beacon_nominal_frequency
+  /// @return If a values other than 0 is returned, the beacon was not found
+  ///        (in the RINEX) and k should not be used.
+  int beacon_shift_factor(const char *beaconid, int &k) const noexcept {
+    auto it = std::find_if(stations().cbegin(), stations().cend(),
+                           [&](const BeaconStation &b) {
+                             return (b.m_internal_code[0] == beaconid[0] &&
+                                     b.m_internal_code[1] == beaconid[1] &&
+                                     b.m_internal_code[2] == beaconid[2]);
+                           });
+    if (it != stations().cend()) {
+      k = it->m_shift_factor;
+      return 0;
+    }
+    return 1;
+  }
 
   /// @brief Check if receiver clock offsets are applied
   bool receiver_clock_offsets_applied() const noexcept {
@@ -273,10 +319,12 @@ struct RinexDataBlockIterator {
   };
 
   /// @brief Get next data block
+  /// Will advance cheader to the next header/epoch and fectch the new
+  /// observation set for this epoch. Aka, updates cheader and cblock.
   int next() noexcept;
 
   /// @brief Get the L1-reference epoch for the observations, corrected for 
-  /// receiver clock offset
+  /// receiver clock offset (if not applied)
   dso::datetime<dso::nanoseconds> corrected_l1_epoch() const noexcept {
     dso::datetime<dso::nanoseconds> t = cheader.m_epoch;
     if (!rnx->receiver_clock_offsets_applied()) [[likely]] {

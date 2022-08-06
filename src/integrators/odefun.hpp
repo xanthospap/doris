@@ -13,7 +13,7 @@ typedef void (*ODEfun)(double x,                 // Independent variable
                        /*const Eigen::MatrixXd &Phi,*/
                        Eigen::Ref<Eigen::VectorXd> yp, // Partials/Derivative
                        /*Eigen::MatrixXd &Phip, */
-                       dso::IntegrationParameters *params) noexcept;
+                       dso::IntegrationParameters &params) noexcept;
 }// dso
 
 #endif

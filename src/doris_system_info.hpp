@@ -36,13 +36,14 @@ constexpr double GAMMA_FACTOR = GAMMA_FACTOR_SQRT * GAMMA_FACTOR_SQRT;
 /// @brief F0, aka USO frequency in Hz
 constexpr double USO_F0 = 5e6;
 
-/// @brief Compute the S1 and U2 (aka 2GHz and 400 MHz) nominal frequencies for
-///        a DORIS beacon
+/// @brief Compute the S1 and U2 (aka 2GHz and 400 MHz) nominal frequencies
+///        for a DORIS beacon
 /// @param[in] shift_factor The beacon's shift factor (e.g. as extracted from 
 ///        the 'STATION REFERENCE' field from a DORIS RINEX file)
 /// @param[out] s1_freq The S1 (aka 2GHz) nominal frequency in Hz
 /// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in Hz
-constexpr int beacon_nominal_frequency(int shift_factor, double &s1_freq,
+inline
+int beacon_nominal_frequency(int shift_factor, double &s1_freq,
                                        double &u2_freq) noexcept {
   const long two26 = std::pow(2, 26);
   constexpr double fac1 = USO_F0 * (3e0 / 4e0);

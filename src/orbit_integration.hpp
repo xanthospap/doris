@@ -3,8 +3,8 @@
 
 #include "egravity.hpp"
 #include "eop.hpp"
-#include <cassert>
 #include "planetpos.hpp"
+#include <cassert>
 
 namespace dso {
 
@@ -35,8 +35,7 @@ struct IntegrationParameters {
             degree_ + 3, order_ + 3)},
         Lagrange_W{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
             degree_ + 3, order_ + 3)},
-        degree(degree_), order(order_) 
-  {
+        degree(degree_), order(order_) {
     assert(degree_ == harmonics_.degree());
     // gravitational parameters
     assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon));

@@ -48,7 +48,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   int ifail;
   if (start) {
     // initialize.  compute appropriate step size for first step
-    f(x, yy(), yp(), params);
+    f(x, yy(), yp(), *params);
     Phi.col(0) = yp();
     Phi.col(1).setZero();
     const double sum = (yp().array() / wt().array()).matrix().norm();
@@ -227,7 +227,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     xold = x;
     x += h;
     absh = std::abs(h);
-    f(x, p(), yp(), params);
+    f(x, p(), yp(), *params);
 
     // estimate errors at orders k,k-1,k-2
     erkm2 = 0e0;
@@ -352,7 +352,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   }
 
   // -- break point 420: --
-  f(x, yy(), yp(), params);
+  f(x, yy(), yp(), *params);
 
   // update differences for next step
   Phi.col(kp1 - 1) = yp() - Phi.col(0);

@@ -103,7 +103,7 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     if (!(isn > 0 || std::abs(tout - x) >= fouru * std::abs(x))) {
       // -- break point 60: --
       h = tout - x;
-      f(x, yy(), yp(), params); // derivate at yp()
+      f(x, yy(), yp(), *params); // derivate at yp()
       yout = yy() + h * yp();
       iflag = 2;
       t = tout;
