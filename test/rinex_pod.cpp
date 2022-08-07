@@ -6,6 +6,7 @@
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
+#include "iers2010/tropo.hpp"
 #include "datetime/datetime_write.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
@@ -104,6 +105,9 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            double &Drel_r) noexcept;
 double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
                               double Lu2_nominal) noexcept;
+Eigen::Matrix<double, 3, 1>
+beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
+                       const dso::BeaconStation &beacon) noexcept;
 
 // get the l1, l2 and f indexes off from a RINEX file (instance)
 int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1, int &l2,
@@ -182,6 +186,16 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Troposphere
+  // -------------------------------------------------------------------------
+  // read-in the 5x5 grid file. That is all for now
+  dso::get_yaml_value_depth3(config, "troposphere", "gpt3", "grid", buf);
+  dso::gpt3::gpt3_grid gpt3_grid(
+      dso::gpt3::gpt3_grid_attributes<dso::gpt3::Gpt3Grid::grid5x5>::num_lines);
+  if (dso::gpt3::parse_gpt3_grid(buf, &gpt3_grid)) {
+    fprintf(stderr, "[ERROR] Failed to parse the gpt3 grid file %s!\n", buf);
+    return 123;
+  }
   // Station/Beacon coordinates
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
   // Result coordinates per beacon are stored in the beaconCrdVec vector.
@@ -291,15 +305,12 @@ int main(int argc, char *argv[]) {
 
       // what is the current beacon ?
       auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
-      assert(beacon_it != rnx.m_stations.cend());
-
-      // a pointer to the **NON** null terminating 4-char id of the beacon
-      // const char *b4c_name = beacon_it->m_station_id;
+      assert(beacon_it != rnx.stations().cend());
 
       // we are going to need the beacons ECEF coordinates (note that these
       // are antenna RP coordinates)
       const Eigen::Matrix<double, 3, 1> bxyz_arp =
-          beacon_coordinates(b4c_name, beaconCrdVec);
+          beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
       
       // get azimouth [rad], elevation [rad] and geometric distance [m] 
       // (beacon to satellite)
@@ -328,23 +339,23 @@ int main(int argc, char *argv[]) {
             });
 
         // TODO what if it is the first ?
+        
+        // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
+        const double Diono = ionospheric_correction(
+            beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value,
+            fs1_nom, fu2_nom);
+
+        // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
+        const Eigen::Matrix<double,3,1> bxyz_ion = beacon_arp2ion(bxyz_arp, *beacon_it);
 
         // we need to find the true proper frequency of the receiver, f_rT [Hz]
         const double fs1_eT =
             fs1_nom * (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
       
-        // compute beacon coordinates w.r.t the Iono-Free Phase center
-        
-
         // relativistic correction
         double Drel_c, Drel_r;
-        relativity_corrections(svState.state,bxyz, J2, Re, GM, Drel_c,Drel_r);
+        relativity_corrections(svState.state, bxyz_ion, J2, Re, GM, Drel_c,Drel_r);
         const double Drel = Drel_c + Drel_r;
-
-        // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
-        const double Diono = ionospheric_correction(
-            beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value,
-            fs1_nom, fu2_nom);
 
       } // elevation > limit
 
@@ -469,8 +480,30 @@ double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
 }
 
 Eigen::Matrix<double, 3, 1>
-iono_free_phase_center(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
-                       const char *id3c) noexcept 
+beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
+                       const dso::BeaconStation &beacon) noexcept 
 {
+  // transform cartesian to ellipsoidal
+  auto lfh = dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
+  lfh(2) += beacon.iono_free_phase_center();
+  return dso::ell2car<dso::ellipsoid::grs80>(lfh);
+}
+
+int get_tropo(double mjd, const Eigen::Matrix<double, 3, 1> &bxyz,
+              dso::gpt3::gpt3_grid *grid) noexcept {
+  double mjdi;
+  double mjdf = std::modf(mjd, &mjdi);
+  Datetime t(dso::modified_julian_day(static_cast<int>(mjdi)),
+             dso::nanoseconds(static_cast<dso::nanoseconds::underlying_type>(
+                 mjdf * 86400e0 * 1e9)));
+  Eigen::Matrix<double, 3, 1> bell = dso::car2ell<dso::ellipsoid::grs80>(bxyz);
+  dso::gpt3_result g3out;
+  
+  if (dso::gpt3_fast(t, &bell(1), &bell(0), &bell(2), 1, 0,
+                     &gpt3_grid, &g3out)) {
+    fprintf(stderr, "[ERROR] Failed to compute gpt3!\n");
+    return 20;
+  }
+
 
 }

@@ -4,7 +4,17 @@
 #include "doris_system_info.hpp"
 #include "geodesy/units.hpp"
 
-namespace ids {
+namespace dso {
+
+/// @brief The type of a ground antenna (aka a beacon)
+/// The type of antenna is identified by the 4th character of the beacon
+/// mnemonic: letter 'A' for the Alcatel type; letter 'B' or letter ‘C’ for
+/// the Starec B or C type. STAREC antennae B and C are identical in terms of
+/// design and specification, the difference is about the error budget in
+/// phase center position. For STAREC C, manufacturing process and error
+/// budget have been improved.
+/// @see DORIS SYSTEM GROUND SEGMENT MODELS, Issue 1.3
+enum class GroundAntennaType : int_fast8_t { Alcatel, Starec_B, Starec_C };
 
 /// @class AntennaOffsetTraits A kinda traits class holding Antenna specific
 ///        information. Needs to be specialized based on:
@@ -15,15 +25,18 @@ template <GroundAntennaType T, int Freq> struct AntennaOffsetTraits {};
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Alcatel,
 ///        and Frequency=1
 template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 1> {
+  
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 510e0};
+  
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
   /// of 5 deg.
   static constexpr double plarray[] = {
       0.00e0,  2.05e0,  7.24e0,  9.21e0,  6.71e0,  8.14e0,  11.87e0,
       12.48e0, 12.28e0, 13.67e0, 13.91e0, 13.01e0, 13.01e0, 11.87e0,
       9.70e0,  7.94e0,  4.99e0,  0.41e0,  -3.93}; /* 0-90 step=5*/
+  
   /// @brief Get PCV value in mm, geven the zenith angle using linear
   ///        interpolation
   /// @param[in] zenith Zenith angle in radians
@@ -50,28 +63,34 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 1> {
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Alcatel,
 ///        and Frequency=2
 template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 2> {
+  
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 335e0};
+  
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
     out_of_bounds = (zenith < 0e0) + (zenith > dso::DPI / 2e0);
     return 0e0;
   }
+
 };
 
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Starec_B,
 ///        and Frequency=1
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 1> {
+
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 487e0};
+  
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
   /// of 5 deg.
   static constexpr double plarray[] = {
       0.00e0,  0.06e0,  -0.32e0, -1.12e0, -2.87e0, -4.02e0, -3.44e0,
       -2.15e0, -1.73e0, -1.73e0, -0.08e0, 1.37e0,  2.20e0,  5.37e0,
       7.02e0,  10.70e0, 13.86e0, 17.27e0, 22.37}; /* 0-90 step=5*/
+  
   /// @brief Get PCV value in mm, geven the zenith angle.
   /// @param[in] zenith Zenith angle in radians
   /// @param[out] out_of_bounds If not 0 (at output), the given zenith angle
@@ -97,9 +116,11 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 1> {
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Starec_B,
 ///        and Frequency=2
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 2> {
+  
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static double constexpr offset[3] = {0e0, 0e0, 0e0};
+  
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
     out_of_bounds = (zenith < 0e0) + (zenith > dso::DPI / 2e0);
@@ -110,15 +131,18 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 2> {
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Starec_C,
 ///        and Frequency=1
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 1> {
+  
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 487e0};
+  
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
   /// of 5 deg.
   static constexpr double plarray[] = {
       0.00e0,  0.06e0,  -0.32e0, -1.12e0, -2.87e0, -4.02e0, -3.44e0,
       -2.15e0, -1.73e0, -1.73e0, -0.08e0, 1.37e0,  2.20e0,  5.37e0,
       7.02e0,  10.70e0, 13.86e0, 17.27e0, 22.37}; /* 0-90 step=5*/
+  
   /// @brief Get PCV value in mm, geven the zenith angle.
   /// @param[in] zenith Zenith angle in radians
   /// @param[out] out_of_bounds If not 0 (at output), the given zenith angle
@@ -144,9 +168,11 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 1> {
 /// @class Specialization of AntennaOffsetTraits for GroundAntennaType=Starec_C,
 ///        and Frequency=2
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 2> {
+  
   /// Eccentricities of the mean antenna phase center relative to the antenna
   /// reference point (ARP). North, east and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 0e0};
+  
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
     out_of_bounds = (zenith < 0e0) + (zenith > dso::DPI / 2e0);
@@ -174,6 +200,7 @@ struct AntennaOffset : AntennaOffsetTraits<T, Freq> {
   static constexpr double dup() noexcept {
     return AntennaOffsetTraits<T, Freq>::offset[2];
   }
+  
   /// @brief Get PCV value in mm, geven the zenith angle.
   /// @param[in] zenith Zenith angle in radians
   /// @param[out] out_of_bounds If not 0 (at output), the given zenith angle

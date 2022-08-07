@@ -19,6 +19,10 @@ gravity:
   degree: 20
   order: 20
 
+troposphere:
+  gpt3:
+    grid: data/gpt3_5.grd
+
 force-model:
   atmospheric-drag:
     drag-model: nrlmsise00

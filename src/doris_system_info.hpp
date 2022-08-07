@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <stdint.h>
 #include <cmath>
+#include "antenna_pcv.hpp"
 
 namespace dso {
 
@@ -132,70 +133,61 @@ struct ObservationCode {
   char* to_str(char *buffer) const noexcept;
 }; // ObservationCode
 
-/// @brief The type of a ground antenna (aka a beacon)
-/// The type of antenna is identified by the 4th character of the beacon
-/// mnemonic: letter 'A' for the Alcatel type; letter 'B' or letter ‘C’ for
-/// the Starec B or C type. STAREC antennae B and C are identical in terms of
-/// design and specification, the difference is about the error budget in
-/// phase center position. For STAREC C, manufacturing process and error
-/// budget have been improved.
-/// @see DORIS SYSTEM GROUND SEGMENT MODELS, Issue 1.3
-enum class GroundAntennaType : int_fast8_t { Alcatel, Starec_B, Starec_C };
 
-template<GroundAntennaType Type>
-struct GroundAntennaGeometry {
-};
-
-template<>
-struct GroundAntennaGeometry<GroundAntennaType::Alcatel> {
-  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
-  static constexpr const double Dh_s1 = 510e-3; // [m]
-  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
-  ///  Center
-  static constexpr const double Dh_u2 = 335e-3; // [m]a
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
-  static constexpr const double Dh_ionofree =
-      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
-  ///< for non-default gamma (γ) value
-  double dh_ionofree(double gamma) const noexcept {
-    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
-  }
-};
-
-template<>
-struct GroundAntennaGeometry<GroundAntennaType::Starec_B> {
-  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
-  static constexpr const double Dh_s1 = 487e-3; // [m]
-  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
-  ///  Center
-  static constexpr const double Dh_u2 = 0e0; // [m]
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
-  static constexpr const double Dh_ionofree =
-      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
-  ///< for non-default gamma (γ) value
-  double dh_ionofree(double gamma) const noexcept {
-    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
-  }
-};
-
-template<>
-struct GroundAntennaGeometry<GroundAntennaType::Starec_C> {
-  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
-  static constexpr const double Dh_s1 = 487e-3; // [m]
-  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
-  ///  Center
-  static constexpr const double Dh_u2 = 0e0; // [m]
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
-  static constexpr const double Dh_ionofree =
-      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
-  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
-  ///< for non-default gamma (γ) value
-  double dh_ionofree(double gamma) const noexcept {
-    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
-  }
-};
+//template<GroundAntennaType Type>
+//struct GroundAntennaGeometry {
+//};
+//
+//template<>
+//struct GroundAntennaGeometry<GroundAntennaType::Alcatel> {
+//  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
+//  static constexpr const double Dh_s1 = 510e-3; // [m]
+//  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
+//  ///  Center
+//  static constexpr const double Dh_u2 = 335e-3; // [m]a
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
+//  static constexpr const double Dh_ionofree =
+//      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
+//  ///< for non-default gamma (γ) value
+//  double dh_ionofree(double gamma) const noexcept {
+//    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
+//  }
+//};
+//
+//template<>
+//struct GroundAntennaGeometry<GroundAntennaType::Starec_B> {
+//  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
+//  static constexpr const double Dh_s1 = 487e-3; // [m]
+//  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
+//  ///  Center
+//  static constexpr const double Dh_u2 = 0e0; // [m]
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
+//  static constexpr const double Dh_ionofree =
+//      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
+//  ///< for non-default gamma (γ) value
+//  double dh_ionofree(double gamma) const noexcept {
+//    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
+//  }
+//};
+//
+//template<>
+//struct GroundAntennaGeometry<GroundAntennaType::Starec_C> {
+//  ///< DeltaHeight from Antenna Reference point for S1 (aka 2GHz) Phase Center
+//  static constexpr const double Dh_s1 = 487e-3; // [m]
+//  ///< DeltaHeight from Antenna Reference point for U2 (aka 400MHz) Phase 
+//  ///  Center
+//  static constexpr const double Dh_u2 = 0e0; // [m]
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center
+//  static constexpr const double Dh_ionofree =
+//      Dh_s1 + (Dh_s1 - Dh_u2) / (GAMMA_FACTOR - 1e0); // [m]
+//  ///< DeltaHeight from Antenna Reference point for Iono-Free Phase Center 
+//  ///< for non-default gamma (γ) value
+//  double dh_ionofree(double gamma) const noexcept {
+//    return Dh_s1 + (Dh_s1 - Dh_u2) / (gamma - 1e0); // [m]
+//  }
+//};
 
 /// @brief A station (aka beacon) as defined in RINEX DORIS 3.0 (Issue 1.7)
 struct BeaconStation {
@@ -222,21 +214,16 @@ struct BeaconStation {
   ///        (height component), such that:
   ///        Iono-Free PC = Antenna RP + iono_free_phase_center()
   double iono_free_phase_center() const noexcept {
+    return AntennaOffset<GroundAntennaType::Alcatel, 1>::dup() *
+            (type() == GroundAntennaType::Alcatel) +
+        AntennaOffset<GroundAntennaType::Starec_B, 1>::dup() *
+            (type() == GroundAntennaType::Starec_B);
     // let's do it branchless
-    return GroundAntennaGeometry<GroundAntennaType::Alcatel>::Dh_ionofree *
-               (type() == GroundAntennaType::Alcatel) +
-           GroundAntennaGeometry<GroundAntennaType::Starec_C>::Dh_ionofree *
-               ((type() == GroundAntennaType::Starec_B ||
-                 type() == GroundAntennaType::Starec_C));
-    //switch (type()) {
-    //  case (GroundAntennaType::Alcatel):
-    //    return GroundAntennaGeometry<GroundAntennaType::Alcatel>::Dh_ionofree;
-    //    break;
-    //  case (GroundAntennaType::Starec_B):
-    //    [[fallthrough]];
-    //  case (GroundAntennaType::Starec_C):
-    //    return GroundAntennaGeometry<GroundAntennaType::Starec_C>::Dh_ionofree;
-    //}
+    //return GroundAntennaGeometry<GroundAntennaType::Alcatel>::Dh_ionofree *
+    //           (type() == GroundAntennaType::Alcatel) +
+    //       GroundAntennaGeometry<GroundAntennaType::Starec_C>::Dh_ionofree *
+    //           ((type() == GroundAntennaType::Starec_B ||
+    //             type() == GroundAntennaType::Starec_C));
   }
 
   /// @brief Concatenate Beacon information to a string
