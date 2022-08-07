@@ -241,11 +241,30 @@ public:
   ///        string required (just an array of three chars)
   /// @return A pointer to the instance's m_stations[].m_station_id, which is
   ///        a non-null terminating string of size 4.
-  ///        If no station is matched, the reutned pointer point to NULL
-  /// @warning Th character array returned here is a **non-null terminated**
+  ///        If no station is matched, the retuned pointer point to NULL
+  /// @warning The character array returned here is a **non-null terminated**
   ///        string. Beware  how you use it. See dso::BeaconStation and its
   ///        member variable m_station_id
   const char *beacon_internal_id2id(const char *inid) const noexcept;
+  
+  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return 
+  ///        the corresponding BeaconStation instance (stored in the instance)
+  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX). 
+  ///        Only the first three chars will be considered, no null-terminated
+  ///        string required (just an array of three chars)
+  /// @return An iterator to the instance's m_stations, set to the 
+  ///        BeaconStation instance with internal (3-char)id equal to the one 
+  ///        given. If no station is matched, the retuned iterator is set to
+  ///        m_stations.cend().
+  std::vector<BeaconStation>::const_iterator
+  beacon_internal_id2BeaconStation(const char *inid) const noexcept {
+    return std::find_if(m_stations.begin(), m_stations.end(),
+                        [&](const BeaconStation &bcn) {
+                          return (inid[0] == bcn.m_internal_code[0] &&
+                                  inid[1] == bcn.m_internal_code[1] &&
+                                  inid[2] == bcn.m_internal_code[2]);
+                        });
+  }
 
   auto time_of_first_obs() const noexcept {return m_time_of_first_obs;}
 

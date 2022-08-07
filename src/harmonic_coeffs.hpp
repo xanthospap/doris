@@ -19,6 +19,9 @@
 
 namespace dso {
 
+/// @todo Why the fuck did i make this a pointer to pointer? Could be just
+/// one big chunk of memory.
+///
 /// @brief Storage and access of Harmonic Coefficients.
 /// We are allocating and using a 2-d array of size (degree+1) * (degree+1) 
 /// (hence not actually using the order of the Coefficients). This make take 
@@ -106,6 +109,12 @@ public:
   double &GM() noexcept { return _GM; }
   double &Re() noexcept { return _Re; }
   bool &normalized() noexcept { return _cnormalized; }
+  double J2() const noexcept {
+#ifdef DEBUG
+    assert( m_data[2][0]  == this->C(2,0));
+#endif
+    return -m_data[2][0];
+  };
 
   /// @brief De-normalize harmonic coefficients.
   /// If the coefficients are alredy un-normalized, this is a no-op.

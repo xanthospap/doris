@@ -5,6 +5,7 @@
 #include "sp3/sp3.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
+#include "iers2010/iersc.hpp"
 #include "datetime/datetime_write.hpp"
 #include <cstdio>
 #include <datetime/dtfund.hpp>
@@ -14,6 +15,11 @@ double GMSun, GMMoon;
 
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
+
+struct SatBeacon {
+  char id3c[3]; ///< beacons internal (3-char) id
+  double t; ///< time
+};
 
 // hold satellite state & time
 struct SatelliteState {
@@ -91,6 +97,13 @@ struct SatelliteState {
     return 0;
   }
 };
+
+int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
+                           const Eigen::Matrix<double, 3, 1> &rbeacon,
+                           double J2, double Re, double GM, double &Drel_c,
+                           double &Drel_r) noexcept;
+double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
+                              double Lu2_nominal) noexcept;
 
 // get the l1, l2 and f indexes off from a RINEX file (instance)
 int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1, int &l2,
@@ -172,6 +185,9 @@ int main(int argc, char *argv[]) {
   // Station/Beacon coordinates
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
   // Result coordinates per beacon are stored in the beaconCrdVec vector.
+  // Note that these poition vectors are w.r.t the beacon/antenna reference 
+  // point. When in actual processing, this has to be changed, if we are
+  // considering iono-free analysis
   // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "reference-frame",
                                  "station-coordinates", buf)) {
@@ -190,10 +206,15 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Previous Observation relating Beacon/Satellite (to compute Ndop)
+  /// ------------------------------------------------------------------------
+  std::vector<SatBeacon> prevec;
+  prevec.reserve(beaconCrdVec.size());
+
   // Setup Integration Parameters for Orbit Integration
   // We will need the pck (SPICE) kernel for gravitational parameters of Sun
   // and Moon
-  // ------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "naif-kernels", "pck", buf)) {
     fprintf(stderr, "ERROR Failed locating NAIF pck kernel\n");
     return 1;
@@ -234,6 +255,11 @@ int main(int argc, char *argv[]) {
   // get an iterator to the RINEXs data blocks
   dso::RinexDataBlockIterator it(&rnx);
 
+  // Some variables ...
+  const double J2 = harmonics.J2();
+  const double GM = harmonics.GM();
+  const double Re = harmonics.Re();
+
   error = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
@@ -248,7 +274,8 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    // iterate through the observation set (aka the various beacons)
+    // iterate through the observation set (aka the various beacons with 
+    // observations for current epoch)
     auto beaconobs = it.cblock.begin();
     while (beaconobs != it.cblock.end()) {
 
@@ -262,20 +289,25 @@ int main(int argc, char *argv[]) {
       double fs1_nom, fu2_nom; // [Hz]
       dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
 
+      // what is the current beacon ?
+      auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
+      assert(beacon_it != rnx.m_stations.cend());
+
       // a pointer to the **NON** null terminating 4-char id of the beacon
-      const char *b4c_name = rnx.beacon_internal_id2id(beaconobs->id());
-      assert(b4c_name); // cannot be NULL!
+      // const char *b4c_name = beacon_it->m_station_id;
 
-      // we are going to need the beacons ECEF coordinates
-      const Eigen::Matrix<double, 3, 1> bxyz =
+      // we are going to need the beacons ECEF coordinates (note that these
+      // are antenna RP coordinates)
+      const Eigen::Matrix<double, 3, 1> bxyz_arp =
           beacon_coordinates(b4c_name, beaconCrdVec);
-
-      // get azimouth and zenith angle (beacon to satellite)
+      
+      // get azimouth [rad], elevation [rad] and geometric distance [m] 
+      // (beacon to satellite)
       const Eigen::Matrix<double, 3, 1> r_enu =
-          dso::car2top<dso::ellipsoid::grs80>(bxyz,
+          dso::car2top<dso::ellipsoid::grs80>(bxyz_arp,
                                               svState.state.block<3, 1>(0, 0));
-      double az,el; // [radians]
-      const double distance = dso::top2dae(r_enu, az, el); // [m]
+      double az,el;
+      const double rho = dso::top2dae(r_enu, az, el);
       
       // only process observations to elevation > 10 [deg]
       if (dso::rad2deg(el) < 10) {
@@ -283,13 +315,36 @@ int main(int argc, char *argv[]) {
         dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
         printf("* Skipping observation to beacon %.4s because elevation is "
                "%.1f [deg] time: %s (TAI)\n",
-               b4c_name, dso::rad2deg(el), dtbuf);
+               beacon_it->m_station_id, dso::rad2deg(el), dtbuf);
       } else {
         // elevation ok, continue processing
 
+        // check if we already have a previous observation for this beacon
+        const auto pprev_obs = std::find_if(
+            prevec.cbegin(), prevec.cend(), [&](const SatBeacon &sb) {
+              return (sb.id3c[0] == beaconobs->id()[0] &&
+                      sb.id3c[1] == beaconobs->id()[1] &&
+                      sb.id3c[2] == beaconobs->id()[2]);
+            });
+
+        // TODO what if it is the first ?
+
         // we need to find the true proper frequency of the receiver, f_rT [Hz]
         const double fs1_eT =
-            s1_freq * (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+            fs1_nom * (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+      
+        // compute beacon coordinates w.r.t the Iono-Free Phase center
+        
+
+        // relativistic correction
+        double Drel_c, Drel_r;
+        relativity_corrections(svState.state,bxyz, J2, Re, GM, Drel_c,Drel_r);
+        const double Drel = Drel_c + Drel_r;
+
+        // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
+        const double Diono = ionospheric_correction(
+            beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value,
+            fs1_nom, fu2_nom);
 
       } // elevation > limit
 
@@ -361,6 +416,7 @@ int get_satellite_sp3_state(const char *sp3fn, double mjd_tai,
 
 return 0;
 }
+
 Eigen::Matrix<double, 3, 1>
 beacon_coordinates(const char *_4charid,
                    const std::vector<dso::BeaconCoordinates> &crdVec) noexcept {
@@ -372,4 +428,49 @@ beacon_coordinates(const char *_4charid,
 
   double data[3] = {it->x, it->y, it->z};
   return Eigen::Matrix<double, 3, 1>(data);
+}
+
+int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
+                           const Eigen::Matrix<double, 3, 1> &rbeacon,
+                           double J2, double Re, double GM, double &Drel_c,
+                           double &Drel_r) noexcept {
+  // (J_2 augmented) potential at satellite (Larson et al, 2007)
+  // satellite potential and velocity, state needed in ECEF here
+  const double rs = sv_state.block<3, 1>(0, 0).norm();
+  const double zs = sv_state(2);
+  const double rs2 = rs * rs;
+  const double Ur =
+      -(GM / rs) * (1e0 - J2 * (Re / rs) * (Re / rs) *
+                              ((3e0 * zs * zs - rs2) / (2e0 * rs2)));
+  const double Vr2 = sv_state.block<3, 1>(3, 0).squaredNorm();
+
+  // beacon potential and velocity
+  const double rb = rbeacon.norm();
+  const double zb = rbeacon(2);
+  const double rb2 = rb * rb;
+  const double Ue =
+      -(GM / rb) * (1e0 - J2 * (Re / rb) * (Re / rb) *
+                              ((3e0 * zb * zb - rb2) / (2e0 * rb2)));
+
+  // relativity clock correction, Lemoine 2016
+  Drel_c = (Ur - Ue + Vr2 / 2e0) / iers2010::C;
+
+  // TODO relativity correction for travel time
+  Drel_r = 0e0;
+
+  return 0;
+}
+
+double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
+                           double Lu2_nominal) noexcept {
+  const double sroot_gamma = Ls1_nominal / Lu2_nominal;
+  const double gamma = sroot_gamma * sroot_gamma;
+  return (Ls1 - sroot_gamma * Lu2) / (gamma - 1e0);
+}
+
+Eigen::Matrix<double, 3, 1>
+iono_free_phase_center(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
+                       const char *id3c) noexcept 
+{
+
 }
