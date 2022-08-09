@@ -238,10 +238,13 @@ int dso::DorisObsRinex::resolve_data_epoch(
     status = status ? status : 2;
   }
 
+  // we are going to chec errno from now on, set it to 0
+  errno = 0;
+
   // probably i am exagerating a bit here, but nevertheless ...
   // it could happen that the 'Epoch flag' and the 'Number of stations' fields
   // are joined in one big int (if number of stations is >=100). Hence, just to
-  // be safe, we are moving the firlds in a temporary buffer and parse from
+  // be safe, we are moving the fields in a temporary buffer and parse from
   // there
   char tbuf[4];
   std::memset(tbuf, '\0', sizeof tbuf);

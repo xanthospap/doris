@@ -8,7 +8,7 @@ int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
   // the given date (in [mas], [msec])
   if (iers2010::interp_pole(mjd, xpa, ypa, ut1a, sz, fmjd_utc, xp, yp, dut1))
     return 1;
-
+  
   // account for variations in polar motion (Dx,Dy) ocean-tides; results in
   // [μas] and [μsec]
   double dxp, dyp, dut2;

@@ -66,12 +66,12 @@ parser.add_argument(
 bc04_url = "https://hpiers.obspm.fr/iers/bul/bulb_new/bulletinb."
 bc04_nr0 = 252
 bc04_first_date = datetime.datetime.strptime("20081212", "%Y%m%d")
-header = """1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY
- Angular unit is milliarcsecond (mas), time unit is millisecond (ms). 
- Upgraded solution from March 1 2017 - consistent with ITRF 2014.
- 
-       DATE     MJD       x       y      UT1-UTC      dX     dY     x err    y err   UT1 err  dX err  dY err
-    (0 h UTC)            mas     mas       ms         mas    mas     mas      mas      ms     mas     mas
+header = """#1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY
+# Angular unit is milliarcsecond (mas), time unit is millisecond (ms). 
+# Upgraded solution from March 1 2017 - consistent with ITRF 2014.
+# 
+#      DATE     MJD       x       y      UT1-UTC      dX     dY     x err    y err   UT1 err  dX err  dY err
+#   (0 h UTC)            mas     mas       ms         mas    mas     mas      mas      ms     mas     mas
 """
 
 ## Given a Bulletin B/C04 file, open it and extract the EOP data for the 
@@ -156,7 +156,7 @@ def c04_dict_to_sorted_list(c04_dict):
 ## passed in
 def c04_cat(outfn, *c04fns):
   with open(outfn, 'w') as fout:
-    print(header, file=fout)
+    print(header, end='', file=fout)
     for cfn in c04fns:
       fdata = c04_get_final_data(cfn)
       for line in fdata:

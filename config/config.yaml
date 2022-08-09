@@ -7,7 +7,7 @@ reference-frame:
   station-coordinates: data/dpod2014_053.snx
 
 eop-info:
-  eop-file: 
+  eop-file: data/bulb0121
 
 naif-kernels:
   spk: data/jpl/de405.bsp

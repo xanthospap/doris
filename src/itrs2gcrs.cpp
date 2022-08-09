@@ -2,6 +2,8 @@
 #include "iers2010/iers2010.hpp"
 #include "iers2010/iau.hpp"
 
+// TODO should have an error status!!!!
+
 Eigen::Matrix<double, 3, 3>
 dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept {
@@ -17,8 +19,8 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // interpolate/correct EOP values using UTC
   double xp, yp, dut1;
-  if (eop_table.interpolate(mjd_days + utcf, xp, yp, dut1)) {
-    fprintf(stderr, "ERROR. Failed getting EOP values");
+  if (int error; (error=eop_table.interpolate(mjd_days + utcf, xp, yp, dut1))) {
+    fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
   }
 
   // compute UT1 date (fractional part) UT1 = UTC + DUT1

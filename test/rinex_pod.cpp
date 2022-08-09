@@ -1,15 +1,15 @@
+#include "datetime/datetime_write.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
-#include "integrators.hpp"
-#include "var_utils.hpp"
-#include "sp3/sp3.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include "iers2010/tropo.hpp"
-#include "datetime/datetime_write.hpp"
+#include "integrators.hpp"
+#include "sp3/sp3.hpp"
+#include "var_utils.hpp"
 #include <cstdio>
-#include <datetime/dtfund.hpp>
+#include "datetime/datetime_write.hpp"
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -17,9 +17,28 @@ double GMSun, GMMoon;
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
+struct TropoDetails {
+  double Lhz, mfh;
+  double Lwz, mfw;
+  double sum() const noexcept {
+    return Lhz * mfh + Lwz * mfw;
+  }
+};
+
 struct SatBeacon {
   char id3c[3]; ///< beacons internal (3-char) id
-  double t; ///< time
+  Datetime t;   ///< time
+  double Diono; ///< ionospheric correction
+  SatBeacon(const char *id_, const Datetime &t_, double Diono_) noexcept
+      : t(t_), Diono(Diono_) {
+    std::strncpy(id3c, id_, 3);
+  }
+  SatBeacon &operator=(const SatBeacon &sb) noexcept {
+    std::strncpy(id3c, sb.id3c, 3);
+    t = sb.t;
+    Diono = sb.Diono;
+    return *this;
+  }
 };
 
 // hold satellite state & time
@@ -46,7 +65,8 @@ struct SatelliteState {
   int integrate(double mjd_target, dso::SGOde &integrator) noexcept {
     // Vector containing state + variational equations size: 6 + 6x6
     // Ref. Frame: inertial
-    Eigen::Matrix<double, 6+6*6, 1> yPhi = Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
+    Eigen::Matrix<double, 6 + 6 * 6, 1> yPhi =
+        Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
     {
       int k = 6;
@@ -59,13 +79,13 @@ struct SatelliteState {
     integrator.params->mjd_tai = mjd_tai;
 
     // target t for variational equations; seconds after t0
-    double tout = (mjd_target-mjd_tai) * 86400e0;
+    double tout = (mjd_target - mjd_tai) * 86400e0;
 
     // set initial intergation flag
     integrator.flag() = 1;
 
     // keep solution here (celestial RF at tout)
-    Eigen::VectorXd sol(6+6*6);
+    Eigen::VectorXd sol(6 + 6 * 6);
 
     // integrate (in inertial RF), from 0 to tout [sec]
     double tsec = 0e0;
@@ -75,15 +95,17 @@ struct SatelliteState {
     double tout_mjd = integrator.params->mjd_tai + tsec / 86400e0;
 
     // let's see were we are at
-    if (std::abs(tout_mjd-mjd_target) > 1e-12) {
-      fprintf(stderr, "ERROR wanted integration to %.9f and got up to %.9f, that is %.9f sec apart!\n", 
-        mjd_target, tout_mjd, (mjd_target-mjd_tai) * 86400e0);
+    if (std::abs(tout_mjd - mjd_target) > 1e-12) {
+      fprintf(stderr,
+              "ERROR wanted integration to %.9f and got up to %.9f, that is "
+              "%.9f sec apart!\n",
+              mjd_target, tout_mjd, (mjd_target - mjd_tai) * 86400e0);
       return 1;
     }
 
     // everything seems ok, update state and time
     mjd_tai = tout_mjd;
-    
+
     // Terrestrial to Celestial transformation matrix and derivative for this
     // TAI
     Eigen::Matrix<double, 3, 3> dt2c;
@@ -107,15 +129,19 @@ double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
                               double Lu2_nominal) noexcept;
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
-                       const dso::BeaconStation &beacon) noexcept;
+               const dso::BeaconStation &beacon) noexcept;
 
 // get the l1, l2 and f indexes off from a RINEX file (instance)
 int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1, int &l2,
-                       int &f) noexcept;
+                      int &f) noexcept;
 
 Eigen::Matrix<double, 3, 1>
 beacon_coordinates(const char *_4charid,
                    const std::vector<dso::BeaconCoordinates> &crdVec) noexcept;
+
+int get_tropo(double mjd, const Eigen::Matrix<double, 3, 1> &bxyz,
+              const Eigen::Matrix<double, 3, 1> &sxyz,
+              const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept;
 
 // get state of satellite at a given epoch
 int get_satellite_sp3_state(const char *sp3, double mjd_tai,
@@ -133,6 +159,19 @@ int main(int argc, char *argv[]) {
   const YAML::Node config = YAML::LoadFile(argv[1]);
   char buf[256];
   int error;
+  
+  // Load CSPICE/NAIF Kernels (2/3)
+  // -------------------------------------------------------------------------
+  if (dso::get_yaml_value_depth2(config, "naif-kernels", "spk", buf)) {
+    fprintf(stderr, "ERROR failed to find spk kernel\n");
+    return 1;
+  }
+  dso::cspice::load_if_unloaded_spk(buf);
+  if (dso::get_yaml_value_depth2(config, "naif-kernels", "lsk", buf)) {
+    fprintf(stderr, "ERROR failed to find spk kernel\n");
+    return 1;
+  }
+  dso::cspice::load_if_unloaded_lsk(buf);
 
   // DORIS RINEX instance
   // Construct the DorisRinex instance rnx
@@ -146,6 +185,20 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
   rnx.print_metadata();
 #endif
+  
+  // Initial Orbit
+  // -------------------------------------------------------------------------
+  // Intial satellite state, get it from the Sp3 using the RINEX's time of
+  // first obs
+  SatelliteState svState;
+  {
+    double rnx_first_obs = rnx.time_of_first_obs().as_mjd();
+    dso::get_yaml_value_depth2(config, "data", "sp3", buf);
+    if (get_satellite_sp3_state(buf, rnx_first_obs, svState.state,
+                                svState.mjd_tai)) {
+      return 1;
+    }
+  }
 
   // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -188,18 +241,15 @@ int main(int argc, char *argv[]) {
 
   // Troposphere
   // -------------------------------------------------------------------------
-  // read-in the 5x5 grid file. That is all for now
+  // read-in the grid file. That is all for now
   dso::get_yaml_value_depth3(config, "troposphere", "gpt3", "grid", buf);
-  dso::gpt3::gpt3_grid gpt3_grid(
-      dso::gpt3::gpt3_grid_attributes<dso::gpt3::Gpt3Grid::grid5x5>::num_lines);
-  if (dso::gpt3::parse_gpt3_grid(buf, &gpt3_grid)) {
-    fprintf(stderr, "[ERROR] Failed to parse the gpt3 grid file %s!\n", buf);
-    return 123;
-  }
+  dso::Gpt3Grid gpt3_grid(buf);
+  
   // Station/Beacon coordinates
+  // -------------------------------------------------------------------------
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
   // Result coordinates per beacon are stored in the beaconCrdVec vector.
-  // Note that these poition vectors are w.r.t the beacon/antenna reference 
+  // Note that these poition vectors are w.r.t the beacon/antenna reference
   // point. When in actual processing, this has to be changed, if we are
   // considering iono-free analysis
   // -------------------------------------------------------------------------
@@ -219,9 +269,10 @@ int main(int argc, char *argv[]) {
             "ERROR. Failed extracting/extrapolating beacon coordinates\n");
     return 1;
   }
+  for (int i=0; i<(int)beaconCrdVec.size(); i++) printf("\t> got coordinates for %.4s\n", beaconCrdVec[i].id);
 
   // Previous Observation relating Beacon/Satellite (to compute Ndop)
-  /// ------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   std::vector<SatBeacon> prevec;
   prevec.reserve(beaconCrdVec.size());
 
@@ -245,20 +296,6 @@ int main(int argc, char *argv[]) {
   dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6, 1e-12, 1e-12,
                         &IntegrationParams);
 
-  // Initial Orbit
-  // -------------------------------------------------------------------------
-  // Intial satellite state, get it from the Sp3 using the RINEX's time of
-  // first obs
-  SatelliteState svState;
-  {
-    double rnx_first_obs = rnx.time_of_first_obs().as_mjd();
-    dso::get_yaml_value_depth2(config, "data", "sp3", buf);
-    if (get_satellite_sp3_state(buf, rnx_first_obs, svState.state,
-                                svState.mjd_tai)) {
-      return 1;
-    }
-  }
-
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi;
   if (get_rinex_indexes(rnx, l1i, l2i, fi))
@@ -277,7 +314,7 @@ int main(int argc, char *argv[]) {
   error = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
-    // the current reference time for the L1 observation (corrected for 
+    // the current reference time for the L1 observation (corrected for
     // receiver clock offset)
     auto tl1 = it.corrected_l1_epoch();
 
@@ -288,7 +325,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    // iterate through the observation set (aka the various beacons with 
+    // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
     auto beaconobs = it.cblock.begin();
     while (beaconobs != it.cblock.end()) {
@@ -311,15 +348,15 @@ int main(int argc, char *argv[]) {
       // are antenna RP coordinates)
       const Eigen::Matrix<double, 3, 1> bxyz_arp =
           beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
-      
-      // get azimouth [rad], elevation [rad] and geometric distance [m] 
+
+      // get azimouth [rad], elevation [rad] and geometric distance [m]
       // (beacon to satellite)
       const Eigen::Matrix<double, 3, 1> r_enu =
           dso::car2top<dso::ellipsoid::grs80>(bxyz_arp,
                                               svState.state.block<3, 1>(0, 0));
-      double az,el;
+      double az, el;
       const double rho = dso::top2dae(r_enu, az, el);
-      
+
       // only process observations to elevation > 10 [deg]
       if (dso::rad2deg(el) < 10) {
         char dtbuf[64];
@@ -331,36 +368,58 @@ int main(int argc, char *argv[]) {
         // elevation ok, continue processing
 
         // check if we already have a previous observation for this beacon
-        const auto pprev_obs = std::find_if(
-            prevec.cbegin(), prevec.cend(), [&](const SatBeacon &sb) {
+        auto pprev_obs = std::find_if(
+            prevec.begin(), prevec.end(), [&](const SatBeacon &sb) {
               return (sb.id3c[0] == beaconobs->id()[0] &&
                       sb.id3c[1] == beaconobs->id()[1] &&
                       sb.id3c[2] == beaconobs->id()[2]);
             });
 
         // TODO what if it is the first ?
-        
+
         // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
         const double Diono = ionospheric_correction(
             beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value,
             fs1_nom, fu2_nom);
 
         // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
-        const Eigen::Matrix<double,3,1> bxyz_ion = beacon_arp2ion(bxyz_arp, *beacon_it);
+        const Eigen::Matrix<double, 3, 1> bxyz_ion =
+            beacon_arp2ion(bxyz_arp, *beacon_it);
 
         // we need to find the true proper frequency of the receiver, f_rT [Hz]
         const double fs1_eT =
             fs1_nom * (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
-      
+
         // relativistic correction
         double Drel_c, Drel_r;
-        relativity_corrections(svState.state, bxyz_ion, J2, Re, GM, Drel_c,Drel_r);
+        relativity_corrections(svState.state, bxyz_ion, J2, Re, GM, Drel_c,
+                               Drel_r);
         const double Drel = Drel_c + Drel_r;
+
+        // tropospheric correction
+        TropoDetails Dtropo;
+        if (get_tropo(tl1.as_mjd(), bxyz_ion, svState.state.block<3, 1>(0, 0),
+                      gpt3_grid, Dtropo)) {
+          return 3;
+        }
+
+        // update previous measurement with this one
+        if (pprev_obs == prevec.end()) {
+          prevec.emplace_back(SatBeacon(beaconobs->id(), tl1, Diono));
+        } else {
+          *pprev_obs = SatBeacon(beaconobs->id(), tl1, Diono);
+        }
+
+        dso::strftime_ymd_hmfs(tl1, buf);
+        printf("%s Elv:%.2f[deg] Rel:%+.9f[m] Trop:%+.9f[m] Iono:%+.9f[m] Fnom:%.3f[Hz] "
+               "Ftrue:%.3f[Hz] R:%+.9f[km]\n",
+               buf, dso::rad2deg(el), Drel, Dtropo.sum(),
+               Diono * dso::DORIS_FREQ1_MHZ * 1e3, fs1_nom, fs1_eT, rho*1e-3);
 
       } // elevation > limit
 
     } // for every beacon observation set in epoch
-  } // for every new data-block/epoch in the RINEX file
+  }   // for every new data-block/epoch in the RINEX file
 
   return 0;
 }
@@ -405,19 +464,22 @@ int get_satellite_sp3_state(const char *sp3fn, double mjd_tai,
     return 1;
   }
 
+  blockp.t = Datetime::max();
+
   int error = 0;
   while (!(error = sp3.get_next_data_block(sv, block))) {
     // check the heath status
     if (!block.flag.is_set(dso::Sp3Event::bad_abscent_position)) {
-      if (block.t.as_mjd() > mjd_tai)
+      if (block.t.as_mjd() > mjd_tai) {
         break;
-    } else {
-      blockp = block;
-    }
+      } else {
+        blockp = block;
+      }
+    } 
   }
   if (error)
     return error;
-  
+
   // accumulate state (m, m/sec), earth-fixed
   state << blockp.state[0] * 1e3, blockp.state[1] * 1e3, blockp.state[2] * 1e3,
       blockp.state[4] * 1e-1, blockp.state[5] * 1e-1, blockp.state[6] * 1e-1;
@@ -425,17 +487,19 @@ int get_satellite_sp3_state(const char *sp3fn, double mjd_tai,
   // set time of state (TAI)
   mjd_state = blockp.t.as_mjd();
 
-return 0;
+  return 0;
 }
 
 Eigen::Matrix<double, 3, 1>
 beacon_coordinates(const char *_4charid,
                    const std::vector<dso::BeaconCoordinates> &crdVec) noexcept {
-  const auto it = std::find_if(crdVec.cbegin(),crdVec.cend(),
+  const auto it = std::find_if(crdVec.cbegin(), crdVec.cend(),
                                [&](const dso::BeaconCoordinates &b) {
                                  return !std::strncmp(b.id, _4charid, 4);
                                });
-  assert(it!=crdVec.cend());
+  fprintf(stderr, "Fuck! Failed to find coordinates for site %.4s\n", _4charid);
+  fprintf(stderr, "Giving up!\n");
+  assert(it != crdVec.cend());
 
   double data[3] = {it->x, it->y, it->z};
   return Eigen::Matrix<double, 3, 1>(data);
@@ -473,7 +537,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 }
 
 double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
-                           double Lu2_nominal) noexcept {
+                              double Lu2_nominal) noexcept {
   const double sroot_gamma = Ls1_nominal / Lu2_nominal;
   const double gamma = sroot_gamma * sroot_gamma;
   return (Ls1 - sroot_gamma * Lu2) / (gamma - 1e0);
@@ -481,8 +545,7 @@ double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
 
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
-                       const dso::BeaconStation &beacon) noexcept 
-{
+               const dso::BeaconStation &beacon) noexcept {
   // transform cartesian to ellipsoidal
   auto lfh = dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
   lfh(2) += beacon.iono_free_phase_center();
@@ -490,20 +553,58 @@ beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
 }
 
 int get_tropo(double mjd, const Eigen::Matrix<double, 3, 1> &bxyz,
-              dso::gpt3::gpt3_grid *grid) noexcept {
+              const Eigen::Matrix<double, 3, 1> &sxyz,
+              const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept {
+
+  // fractional mjd to datetime
   double mjdi;
   double mjdf = std::modf(mjd, &mjdi);
   Datetime t(dso::modified_julian_day(static_cast<int>(mjdi)),
              dso::nanoseconds(static_cast<dso::nanoseconds::underlying_type>(
                  mjdf * 86400e0 * 1e9)));
+
+  // ellipsoidal coordinates of the station; store them in an array
   Eigen::Matrix<double, 3, 1> bell = dso::car2ell<dso::ellipsoid::grs80>(bxyz);
-  dso::gpt3_result g3out;
-  
-  if (dso::gpt3_fast(t, &bell(1), &bell(0), &bell(2), 1, 0,
-                     &gpt3_grid, &g3out)) {
+  std::vector<std::array<double,3>> ellipsoidal(1,std::array<double,3>{bell(0), bell(1), bell(2)});
+
+  // store results here
+  std::vector<dso::gpt3_result> g3out;
+
+  // call gpt3_fast
+  if (dso::gpt3_fast(t, ellipsoidal, 1, grid, g3out)) {
     fprintf(stderr, "[ERROR] Failed to compute gpt3!\n");
     return 20;
   }
+  // get azimouth [rad], elevation [rad] and geometric distance [m]
+  // (beacon to satellite)
+  const Eigen::Matrix<double, 3, 1> enu =
+      dso::car2top<dso::ellipsoid::grs80>(bxyz, sxyz);
+  double az, el;
+  [[maybe_unused]] const double rho = dso::top2dae(enu, az, el);
+  const double zd = iers2010::DPI / 2e0 - el;
+  assert(zd >= 0e0 && zd <= iers2010::DPI / 2e0);
 
+  // use VMF3 to compute
+  double mfh, mfw;
+  if (dso::vmf3(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), bell(2), mfh, mfw)) {
+    fprintf(stderr, "Failed to compute VMF3\n");
+    return 30;
+  }
 
+  // use refined saastamnoinen to compute the hydrostatic delay (zenith)
+  const double zhd0 = dso::saasthyd(g3out[0].p, bell(1), bell(2));
+  // apply VMF3 mapping function to compute hydrostatic delay at given zenith
+  // const double Dtropo_hydrostatic = zhd0 * vmf3_res.mfh;
+
+  // use Askne and Nordius to approximate wet dealy in zenith
+  const double zwd0 = dso::asknewet(g3out[0].e, g3out[0].Tm, g3out[0].la);
+  // apply VMF3 mapping function
+  // const double Dtropo_wet = zwd0 * vmf3_res.mfw;
+
+  Dtrop.Lhz = zhd0;
+  Dtrop.mfh = mfh;
+  Dtrop.Lwz = zwd0;
+  Dtrop.mfw = mfw;
+
+  return 0;
 }
