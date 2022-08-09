@@ -269,7 +269,6 @@ int main(int argc, char *argv[]) {
             "ERROR. Failed extracting/extrapolating beacon coordinates\n");
     return 1;
   }
-  for (int i=0; i<(int)beaconCrdVec.size(); i++) printf("\t> got coordinates for %.4s\n", beaconCrdVec[i].id);
 
   // Previous Observation relating Beacon/Satellite (to compute Ndop)
   // -------------------------------------------------------------------------
@@ -312,11 +311,16 @@ int main(int argc, char *argv[]) {
   const double Re = harmonics.Re();
 
   error = 0;
+  int dummy_counter = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
     // the current reference time for the L1 observation (corrected for
     // receiver clock offset)
     auto tl1 = it.corrected_l1_epoch();
+        
+    char dtbuf[64];
+    dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
+    printf("Processing observation block at %s (TAI)", buf);
 
     // integrate orbit to here (TAI)
     // svState will contain satellite state for time tl1 in the terrestrial RF
@@ -324,6 +328,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
       return 1;
     }
+    printf("SV at %.4f %.4f %.4f [km] ECEF\n", svState.state(0)*1e-3, svState.state(1)*1e-3, svState.state(2)*1e-3);
 
     // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
@@ -344,6 +349,8 @@ int main(int argc, char *argv[]) {
       auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
       assert(beacon_it != rnx.stations().cend());
 
+      printf("> Consuming new observation on beacon %.4s ...\n", beacon_it->m_station_id);
+
       // we are going to need the beacons ECEF coordinates (note that these
       // are antenna RP coordinates)
       const Eigen::Matrix<double, 3, 1> bxyz_arp =
@@ -359,9 +366,8 @@ int main(int argc, char *argv[]) {
 
       // only process observations to elevation > 10 [deg]
       if (dso::rad2deg(el) < 10) {
-        char dtbuf[64];
         dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-        printf("* Skipping observation to beacon %.4s because elevation is "
+        printf("\tSkipping observation to beacon %.4s because elevation is "
                "%.1f [deg] time: %s (TAI)\n",
                beacon_it->m_station_id, dso::rad2deg(el), dtbuf);
       } else {
@@ -411,14 +417,18 @@ int main(int argc, char *argv[]) {
         }
 
         dso::strftime_ymd_hmfs(tl1, buf);
-        printf("%s Elv:%.2f[deg] Rel:%+.9f[m] Trop:%+.9f[m] Iono:%+.9f[m] Fnom:%.3f[Hz] "
+        printf("\t%s Elv:%.2f[deg] Rel:%+.9f[m] Trop:%+.9f[m] Iono:%+.9f[m] Fnom:%.3f[Hz] "
                "Ftrue:%.3f[Hz] R:%+.9f[km]\n",
                buf, dso::rad2deg(el), Drel, Dtropo.sum(),
                Diono * dso::DORIS_FREQ1_MHZ * 1e3, fs1_nom, fs1_eT, rho*1e-3);
 
       } // elevation > limit
-
+      
+      // netxt beacon observation block for this epoch
+      ++beaconobs;
     } // for every beacon observation set in epoch
+    
+    if (++dummy_counter > 100) break;
   }   // for every new data-block/epoch in the RINEX file
 
   return 0;
@@ -497,10 +507,7 @@ beacon_coordinates(const char *_4charid,
                                [&](const dso::BeaconCoordinates &b) {
                                  return !std::strncmp(b.id, _4charid, 4);
                                });
-  fprintf(stderr, "Fuck! Failed to find coordinates for site %.4s\n", _4charid);
-  fprintf(stderr, "Giving up!\n");
   assert(it != crdVec.cend());
-
   double data[3] = {it->x, it->y, it->z};
   return Eigen::Matrix<double, 3, 1>(data);
 }

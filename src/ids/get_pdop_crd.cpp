@@ -71,10 +71,10 @@ int dso::extrapolate_sinex_coordinates(
 
   // check that the result_array has enough memmory to hold results
   // also, clear it up
-  if (result_array.capacity() < beacons.size()) {
-    result_array.resize(beacons.size());
-  }
   result_array.clear();
+  // We are going to use the raw memory of the std::vector, so do not remove
+  // the following line; if needed, resize at the end
+  result_array.resize(beacons.size());
 
   // call the core function to extrapolate the coordinates
   int sites_found;
@@ -146,12 +146,13 @@ int dso::extrapolate_sinex_coordinates(
               sid, snx.filename().c_str(), __func__);
       if (missing_site_is_error)
         return 1;
+    } else {
+      std::memcpy(result_array[result_size].id, sid, 4 * sizeof(char));
+      result_array[result_size].x = pos[0];
+      result_array[result_size].y = pos[1];
+      result_array[result_size].z = pos[2];
+      ++result_size;
     }
-    std::memcpy(result_array[result_size].id, sid, 4);
-    result_array[result_size].x = pos[0];
-    result_array[result_size].y = pos[1];
-    result_array[result_size].z = pos[2];
-    ++result_size;
   }
 
   return 0;
