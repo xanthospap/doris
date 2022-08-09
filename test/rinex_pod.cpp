@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
         
     char dtbuf[64];
     dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-    printf("Processing observation block at %s (TAI)", buf);
+    printf("Processing observation block at %s (TAI)", dtbuf);
 
     // integrate orbit to here (TAI)
     // svState will contain satellite state for time tl1 in the terrestrial RF
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
       return 1;
     }
-    printf("SV at %.4f %.4f %.4f [km] ECEF\n", svState.state(0)*1e-3, svState.state(1)*1e-3, svState.state(2)*1e-3);
+    printf(", SV at %.4f %.4f %.4f [km] ECEF\n", svState.state(0)*1e-3, svState.state(1)*1e-3, svState.state(2)*1e-3);
 
     // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
@@ -428,7 +428,7 @@ int main(int argc, char *argv[]) {
       ++beaconobs;
     } // for every beacon observation set in epoch
     
-    if (++dummy_counter > 100) break;
+    if (++dummy_counter > 500) break;
   }   // for every new data-block/epoch in the RINEX file
 
   return 0;
@@ -615,3 +615,32 @@ int get_tropo(double mjd, const Eigen::Matrix<double, 3, 1> &bxyz,
 
   return 0;
 }
+
+/*
+double elevation(const Eigen::Matrix<double, 3, 1> &rsat,
+                 const Eigen::Matrix<double, 3, 1> &rsta) noexcept {
+  const Eigen::Matrix<double, 3, 1> lfh =
+      dso::car2ell<dso::ellipsoid::grs80>(rsta);
+  const double sf = std::sin(lfh(1));
+  const double cf = std::cos(lfh(1));
+  const double sl = std::sin(lfh(0));
+  const double cl = std::cos(lfh(0));
+  const double cwR[] = {sf*cl, sf*sl, -cf, -sl, cl, 0e0, cf*cl, cf*sl, sf};
+                       
+  Eigen::Matrix<double, 3, 3> R
+  R << cwR[0], cwR[1], cwR[2], cwR[3], cwR[4], cwR[5], cwR[6], cwR[7], cwR[8];
+  assert(R(0,0)== sf*cl && R(0,1)== sf*sl && R(0,2)==-cf);
+  assert(R(1,0)==-sl && R(1,1)==cl && R(1,2)==0e0);
+  assert(R(2,0)== cf*cl && R(2,1)== cf*sl && R(2,2)==sf);
+  printf("Note-->topocentric matrix 2\n");
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      printf(" %+.3f ", R(i,j));
+    }
+    printf("\n");
+  }
+  const Eigen::Matrix<double, 3, 1> rho = R * (rsat - rsta);
+  printf("topocentric vector 2: %+.3f %+.3f %+.3f\n", rho(1), rho(0), rho(2));
+  return std::asin(rho(2) / rho.norm());
+}
+*/
