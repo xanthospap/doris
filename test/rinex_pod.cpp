@@ -7,9 +7,12 @@
 #include "iers2010/tropo.hpp"
 #include "integrators.hpp"
 #include "sp3/sp3.hpp"
+#include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
 #include "datetime/datetime_write.hpp"
+
+constexpr const double EleCutOff = 7e0; // elevation cut-off angle, [deg]
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -200,6 +203,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // SP3 Validation Orbit (Should not be needed)
+  // -------------------------------------------------------------------------
+  dso::Sp3c sp3(buf);
+  dso::sp3::SatelliteId sv("XXX");
+  sv.set_id(sp3.sattellite_vector()[0].id);
+  dso::SvInterpolator sv_intrp(sv, sp3);
+
   // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
   // -------------------------------------------------------------------------
@@ -328,33 +338,32 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
       return 1;
     }
-    printf(", SV at %.4f %.4f %.4f [km] ECEF\n", svState.state(0)*1e-3, svState.state(1)*1e-3, svState.state(2)*1e-3);
+    printf(", SV at %.3f %.3f %.3f [km] ECEF\n", svState.state(0)*1e-3, svState.state(1)*1e-3, svState.state(2)*1e-3);
+
+    // SP3 interpolated state (only for validation)
+    // satellite position for current epoch
+    double xyz[3], dxyz[3];
+    sv_intrp.interpolate_at(tl1, xyz, dxyz);
+    printf("                                                                   , SV at %.3f %.3f %.3f [km]\n", xyz[0], xyz[1], xyz[2]);
+    svState.state(0) = xyz[0] * 1e3;
+    svState.state(1) = xyz[1] * 1e3;
+    svState.state(2) = xyz[2] * 1e3;
 
     // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
     auto beaconobs = it.cblock.begin();
     while (beaconobs != it.cblock.end()) {
 
-      // nominal frequencies for the beacon: s1_freq and u2_freq
-      int k; // shift factor
-      if (rnx.beacon_shift_factor(beaconobs->id(), k)) {
-        fprintf(stderr, "Failed to find shift factor for beacon %.3s\n",
-                beaconobs->id());
-        return 1;
-      }
-      double fs1_nom, fu2_nom; // [Hz]
-      dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
-
       // what is the current beacon ?
       auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
       assert(beacon_it != rnx.stations().cend());
-
-      printf("> Consuming new observation on beacon %.4s ...\n", beacon_it->m_station_id);
 
       // we are going to need the beacons ECEF coordinates (note that these
       // are antenna RP coordinates)
       const Eigen::Matrix<double, 3, 1> bxyz_arp =
           beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
+
+      printf("\t> Consuming new observation on beacon %.4s at %.1f %.1f %.1f\n", beacon_it->m_station_id, bxyz_arp(0), bxyz_arp(1), bxyz_arp(2));
 
       // get azimouth [rad], elevation [rad] and geometric distance [m]
       // (beacon to satellite)
@@ -362,16 +371,27 @@ int main(int argc, char *argv[]) {
           dso::car2top<dso::ellipsoid::grs80>(bxyz_arp,
                                               svState.state.block<3, 1>(0, 0));
       double az, el;
+      // printf("\t\tNote enu=%.6f %.6f %.6f\n",r_enu(0),r_enu(1),r_enu(2));
       const double rho = dso::top2dae(r_enu, az, el);
 
       // only process observations to elevation > 10 [deg]
-      if (dso::rad2deg(el) < 10) {
+      if (dso::rad2deg(el) < EleCutOff && !std::strncmp(beacon_it->m_station_id, "D03", 3)) {
         dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-        printf("\tSkipping observation to beacon %.4s because elevation is "
+        printf("\t\tSkipping observation to beacon %.4s because elevation is "
                "%.1f [deg] time: %s (TAI)\n",
                beacon_it->m_station_id, dso::rad2deg(el), dtbuf);
       } else {
         // elevation ok, continue processing
+      
+        // nominal frequencies for the beacon: s1_freq and u2_freq
+        int k; // shift factor
+        if (rnx.beacon_shift_factor(beaconobs->id(), k)) {
+          fprintf(stderr, "Failed to find shift factor for beacon %.3s\n",
+                  beaconobs->id());
+          return 1;
+        }
+        double fs1_nom, fu2_nom; // [Hz]
+        dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
 
         // check if we already have a previous observation for this beacon
         auto pprev_obs = std::find_if(
@@ -417,8 +437,8 @@ int main(int argc, char *argv[]) {
         }
 
         dso::strftime_ymd_hmfs(tl1, buf);
-        printf("\t%s Elv:%.2f[deg] Rel:%+.9f[m] Trop:%+.9f[m] Iono:%+.9f[m] Fnom:%.3f[Hz] "
-               "Ftrue:%.3f[Hz] R:%+.9f[km]\n",
+        printf("\t\t%s Elv:%.1f[deg] Rel:%+.3f[m] Trop:%+.3f[m] Iono:%+.3f[m] Fnom:%.3f[Hz] "
+               "Ftrue:%.3f[Hz] R:%+.3f[km]\n",
                buf, dso::rad2deg(el), Drel, Dtropo.sum(),
                Diono * dso::DORIS_FREQ1_MHZ * 1e3, fs1_nom, fs1_eT, rho*1e-3);
 
@@ -588,12 +608,17 @@ int get_tropo(double mjd, const Eigen::Matrix<double, 3, 1> &bxyz,
       dso::car2top<dso::ellipsoid::grs80>(bxyz, sxyz);
   double az, el;
   [[maybe_unused]] const double rho = dso::top2dae(enu, az, el);
+
+  if (el < 0e0  || el > iers2010::DPI / 2e0) {
+    fprintf(stderr, "WTF?? elevation angle computed to :%.1f [deg]\n", dso::rad2deg(el));
+    el = dso::deg2rad(0.1);
+  }
   const double zd = iers2010::DPI / 2e0 - el;
-  assert(zd >= 0e0 && zd <= iers2010::DPI / 2e0);
+  // assert(zd >= 0e0 && zd <= iers2010::DPI / 2e0);
 
   // use VMF3 to compute
   double mfh, mfw;
-  if (dso::vmf3(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), bell(2), mfh, mfw)) {
+  if (dso::vmf3(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), zd, mfh, mfw)) {
     fprintf(stderr, "Failed to compute VMF3\n");
     return 30;
   }
