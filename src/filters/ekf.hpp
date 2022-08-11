@@ -1,7 +1,6 @@
 #ifndef __EXTENDED_KALMAN_FILTER_HPP__
 #define __EXTENDED_KALMAN_FILTER_HPP__
 
-#include "iers2010/matvec.hpp"
 #include "eigen3/Eigen/Eigen"
 #ifdef DEBUG
 #include <cstdio>
