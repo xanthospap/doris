@@ -15,16 +15,18 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   Eigen::Matrix<double, N, N> P;
   Eigen::Matrix<double, N, 1> K;
 
-  Vector3 state_position_vector() const noexcept {
-    return Vector3({x(0), x(1), x(2)});
-  }
+  //Vector3 state_position_vector() const noexcept {
+  //  return Vector3({x(0), x(1), x(2)});
+  //}
   
-  Vector3 state_velocity_vector() const noexcept {
-    return Vector3({x(3), x(4), x(5)});
-  }
+  //Vector3 state_velocity_vector() const noexcept {
+  //  return Vector3({x(3), x(4), x(5)});
+  //}
 
   const Eigen::Matrix<double, N, 1> &state() const noexcept {return x;}
   dso::datetime<S> time() const noexcept {return t;}
+
+  ExtendedKalmanFilter() noexcept {};
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
                   const Eigen::Matrix<double, N, 1> &x0,
