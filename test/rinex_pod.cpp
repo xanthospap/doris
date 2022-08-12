@@ -130,9 +130,9 @@ struct SatelliteState {
     state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                               dt2c.transpose() * sol.block<3, 1>(0, 0);
 
-    // assign Phi matrix
+    // assign Phi matrix (6x6)
     for (int i = 0; i < 6; i++) {
-      Phi.col(i) = yPhi.block<6, 1>(6 * i, 1);
+      Phi.col(i) = yPhi.block<6, 1>(6 * (i+1), 0);
     }
 
     return 0;
@@ -497,7 +497,11 @@ int main(int argc, char *argv[]) {
           // satellite), f_rT [Hz]
           const double frT = dso::DORIS_FREQ1_MHZ *
                              (1e0 + beaconobs->m_values[fi].m_value * 1e-11) *
-                             1e3;
+                             1e6;
+          printf("\t\tFrequencies: [Hz]\n");
+          printf("\t\t* system: %.3f\n", dso::DORIS_FREQ1_MHZ * 1e6);
+          printf("\t\t* frt   : %.3f\n", frT);
+          printf("\t\t* fen   : %.3f\n", fs1_nom);
 
           // compute observation equation (two-part)
           const double Ndop = beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
@@ -506,11 +510,13 @@ int main(int argc, char *argv[]) {
           const double Umeasured =
               (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt) +
               (Diono - pprev_obs->Diono) + (Drel - pprev_obs->Drel);
+          printf("\t\tUmeasured   : %.3f = (%.3f / %.3f) * (%.3f - %.3f -%.3f) + (%.3f) + (%.3f)\n", Umeasured, iers2010::C, fs1_nom, fs1_nom, frT, NdopDt, Diono - pprev_obs->Diono, Drel - pprev_obs->Drel);
 
           const double Utheoretical =
               (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds() +
               (Dtropo.sum() - pprev_obs->Dtropo) -
               iers2010::C * (frT + NdopDt) / fs1_nom;
+          printf("\t\tUtheoretical: %.3f = (%.3f - %.3f) / %.3f + (%.3f) - %.3f * (%.3f + %.3f) / %.3f\n", Utheoretical, rho, pprev_obs->rho(), delta_tau.to_fractional_seconds(), Dtropo.sum() - pprev_obs->Dtropo, iers2010::C, frT, NdopDt, fs1_nom);
 
           //
           Um = Umeasured;
@@ -527,6 +533,7 @@ int main(int argc, char *argv[]) {
               pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
               delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
 
+          printf("\t\tObserved range-rate: %+.6f, Computed : %+.6f\n", Umeasured + Utheoretical, rho_dot);
           Filter.observation_update(Umeasured - Utheoretical, rho_dot,
                                     2e0 / std::cos(el), drrdrv);
 

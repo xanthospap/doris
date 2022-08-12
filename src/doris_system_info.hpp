@@ -47,7 +47,7 @@ inline
 int beacon_nominal_frequency(int shift_factor, double &s1_freq,
                                        double &u2_freq) noexcept {
   const long two26 = std::pow(2, 26);
-  constexpr double fac1 = USO_F0 * /*(3e0 / 4e0)*/0.75e0;
+  constexpr double fac1 = USO_F0 * 0.75e0;
   const double fac2 =
       (USO_F0 * (87e0 * shift_factor)) / (5e0 * static_cast<double>(two26));
   s1_freq = 543e0 * fac1 + 543e0 * fac2;
