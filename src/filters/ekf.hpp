@@ -65,6 +65,7 @@ template <int N, typename S> struct ExtendedKalmanFilter {
   void observation_update(double z, double g, double sigma,
                           const Eigen::Matrix<double, N, 1> &H) noexcept {
     double inv_w = sigma * sigma;
+    
     // kalman gain
     // K = P * H / (inv_w + H.transpose() * P * H);
     K = P * H / (inv_w + H.dot(P * H));
