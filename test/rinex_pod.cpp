@@ -28,20 +28,22 @@ struct TropoDetails {
 
 struct SatBeacon {
   char id3c[3];                  ///< beacons internal (3-char) id
+  int count;                    ///< internally used integer id
   Datetime t;                    ///< time
   double Ls1;                    ///< cycles on L1 (S1)
   double Diono;                  ///< ionospheric corrections
   double Dtropo;                 ///< Tropospheric correction
   double Drel;                   ///< relativity correction
   Eigen::Matrix<double, 3, 1> s; ///< beacon-satellite vector in topocentric rf
-  SatBeacon(const char *id_, const Datetime &t_, double L1, double Diono_,
+  SatBeacon(const char *id_, int count_, const Datetime &t_, double L1, double Diono_,
             double Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
-      : t(t_), Ls1(L1), Diono(Diono_), Dtropo(Dtropo_), Drel(Drel_), s(s_) {
+      : count(count_), t(t_), Ls1(L1), Diono(Diono_), Dtropo(Dtropo_), Drel(Drel_), s(s_) {
     std::strncpy(id3c, id_, 3);
   }
   SatBeacon &operator=(const SatBeacon &sb) noexcept {
     std::strncpy(id3c, sb.id3c, 3);
+    count = sb.count;
     t = sb.t;
     Ls1 = sb.Ls1;
     Diono = sb.Diono;
@@ -49,6 +51,14 @@ struct SatBeacon {
     Drel = sb.Drel;
     s = sb.s;
     return *this;
+  }
+  void update(const Datetime &t_, double L1_, double Diono_,double Dtropo_, double Drel_,const Eigen::Matrix<double, 3, 1> &s_) noexcept {
+    t = t_;
+    Ls1 = L1_;
+    Diono = Diono_;
+    Dtropo = Dtropo_;
+    Drel = Drel_;
+    s = s_;
   }
   double rho() const noexcept { return s.norm(); }
 };
@@ -143,6 +153,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            const Eigen::Matrix<double, 3, 1> &rbeacon,
                            double J2, double Re, double GM, double &Drel_c,
                            double &Drel_r) noexcept;
+
 double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
                               double Lu2_nominal) noexcept;
 Eigen::Matrix<double, 3, 1>
@@ -333,7 +344,8 @@ int main(int argc, char *argv[]) {
 
   // Extended Kalman Filter instance
   // -------------------------------------------------------------------------
-  dso::ExtendedKalmanFilter<6, dso::nanoseconds> Filter;
+  const int NumParams = 6+rnx.stations().size();
+  dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
 
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
@@ -347,6 +359,8 @@ int main(int argc, char *argv[]) {
 
   error = 0;
   int dummy_counter = 0;
+  // count beacons as we encounter them (above min. elevation)
+  int receiver_count = 0; 
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
     // the current reference time for the L1 observation (corrected for
@@ -380,11 +394,12 @@ int main(int argc, char *argv[]) {
     // if this is the first iteration, initialize the Kalman filter
     if (!dummy_counter) {
       Filter.t = tl1;
-      Filter.x = svState.state;
-      Filter.P = Eigen::Matrix<double, 6, 6>::Identity();
-      Filter.P.block<3, 3>(0, 0) *= 1e0; // default sigma for position is 1 [m]
+      Filter.x.block<6,1>(0,0) = svState.state;
+      for (int i=6; i<NumParams; i++) Filter.x(i) = 1e-6;
+      Filter.P = Eigen::MatrixXd::Identity(NumParams,NumParams) * 1e2;
+      Filter.P.block<3, 3>(0, 0) *= 1e-2; // default sigma for position is 1 [m]
       Filter.P.block<3, 3>(3, 3) *=
-          5e0; // default sigma for velocity is 5 [m/sec]
+          5e0*1e-2; // default sigma for velocity is 5 [m/sec]
     }
 
     // iterate through the observation set (aka the various beacons with
@@ -486,9 +501,15 @@ int main(int argc, char *argv[]) {
         // if this is the first obs of a pair, do nothing more except updating
         // the arc
         if (pprev_obs == prevec.end() || start_new_arc) {
-          prevec.emplace_back(SatBeacon(beaconobs->id(), tl1,
+          if (pprev_obs != prevec.end()) {
+            pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value, Diono, Dtropo.sum(), Drel, enu_ion);
+          } else {
+          prevec.emplace_back(SatBeacon(beaconobs->id(), receiver_count, tl1,
                                         beaconobs->m_values[l1i].m_value, Diono,
                                         Dtropo.sum(), Drel, enu_ion));
+            printf("\t>> Note new receiver encountered, %.3s, assigned id=%d\n", beaconobs->id(), receiver_count);
+            ++receiver_count;
+          }
 
         } else {
           // compute Ndop and observation equation
@@ -498,10 +519,6 @@ int main(int argc, char *argv[]) {
           const double frT = dso::DORIS_FREQ1_MHZ *
                              (1e0 + beaconobs->m_values[fi].m_value * 1e-11) *
                              1e6;
-          printf("\t\tFrequencies: [Hz]\n");
-          printf("\t\t* system: %.3f\n", dso::DORIS_FREQ1_MHZ * 1e6);
-          printf("\t\t* frt   : %.3f\n", frT);
-          printf("\t\t* fen   : %.3f\n", fs1_nom);
 
           // compute observation equation (two-part)
           const double Ndop = beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
@@ -512,19 +529,37 @@ int main(int argc, char *argv[]) {
               (Diono - pprev_obs->Diono) + (Drel - pprev_obs->Drel);
           printf("\t\tUmeasured   : %.3f = (%.3f / %.3f) * (%.3f - %.3f -%.3f) + (%.3f) + (%.3f)\n", Umeasured, iers2010::C, fs1_nom, fs1_nom, frT, NdopDt, Diono - pprev_obs->Diono, Drel - pprev_obs->Drel);
 
-          const double Utheoretical =
+          // we will need the estimated Δf_e / f_eN
+          const int receiver_number = pprev_obs->count;
+          const double DfefeN = Filter.x(6+receiver_number);
+
+          const double Utheoretical = 
               (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds() +
               (Dtropo.sum() - pprev_obs->Dtropo) -
-              iers2010::C * (frT + NdopDt) / fs1_nom;
-          printf("\t\tUtheoretical: %.3f = (%.3f - %.3f) / %.3f + (%.3f) - %.3f * (%.3f + %.3f) / %.3f\n", Utheoretical, rho, pprev_obs->rho(), delta_tau.to_fractional_seconds(), Dtropo.sum() - pprev_obs->Dtropo, iers2010::C, frT, NdopDt, fs1_nom);
+              (iers2010::C * (frT + NdopDt) / fs1_nom)*DfefeN;
+          printf("\t\tUtheoretical: %.3f = (%.3f - %.3f) / %.3f + (%.3f) - (%.3f * (%.3f + %.3f) / %.3f) * %.10e\n", Utheoretical, rho, pprev_obs->rho(), delta_tau.to_fractional_seconds(), Dtropo.sum() - pprev_obs->Dtropo, iers2010::C, frT, NdopDt, fs1_nom, DfefeN);
 
           //
           Um = Umeasured;
           Ut = Utheoretical;
 
-          //auto Yprev = Filter.state();
-          //auto tprev = Filter.time();
-          Filter.time_update(tl1, svState.state, svState.Phi);
+          // Filter time-update
+          Eigen::MatrixXd PhiP = Eigen::MatrixXd::Zero(NumParams, NumParams);
+          PhiP.block<6,6>(0,0) = svState.Phi;
+          PhiP(6+receiver_number, 6+receiver_number) = 1e0;
+          auto estimates = Filter.x;
+          estimates.block<6,1>(0,0) = svState.state;
+          Filter.time_update(tl1, estimates, PhiP);
+          // Filter.time_update(tl1, svState.state, svState.Phi);
+          for (int i=6; i<6+receiver_number; i++) {
+            for (int j=6; j<6+receiver_number; j++) {
+              if (i!=j) {
+                assert(Filter.P(i,j) == 0e0);
+              } else if (i==6+receiver_number) {
+                printf("P(%d,%d) = %.9e\n", i,j,Filter.P(i,j));
+              }
+            }
+          }
 
           // handle range-rate measurement
           Eigen::Matrix<double, 6, 1> drrdrv;
@@ -534,13 +569,22 @@ int main(int argc, char *argv[]) {
               delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
 
           printf("\t\tObserved range-rate: %+.6f, Computed : %+.6f\n", Umeasured + Utheoretical, rho_dot);
+
+          Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
+          dHdX.block<6,1>(0,0) = drrdrv;
+          dHdX(6+receiver_number) = iers2010::C * (frT + NdopDt) / fs1_nom;
           Filter.observation_update(Umeasured - Utheoretical, rho_dot,
-                                    2e0 / std::cos(el), drrdrv);
+                                    2e0 / std::cos(el), dHdX);
+          
+          // results
+          for (int i=0; i<NumParams; i++) {
+            printf("%.3e ", Filter.x(i));
+          }
+          printf("\n");
 
           // update previous observation for next Ndop
-          *pprev_obs =
-              SatBeacon(beaconobs->id(), tl1, beaconobs->m_values[l1i].m_value,
-                        Diono, Dtropo.sum(), Drel, s);
+          pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value, Diono, Dtropo.sum(), Drel, s);
+          printf("\t\tBeacon with internal id %.3s parameter value index %d, estimate: %.15e\n", pprev_obs->id3c, 6+receiver_number, Filter.x(6+receiver_number));
 
         } // computing Ndop
 

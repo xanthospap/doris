@@ -8,74 +8,75 @@
 
 namespace dso {
 
-template <int N, typename S> struct ExtendedKalmanFilter {
+template <typename S> struct ExtendedKalmanFilter {
   dso::datetime<S> t;
-  Eigen::Matrix<double, N, 1> x;
-  Eigen::Matrix<double, N, N> P;
-  Eigen::Matrix<double, N, 1> K;
-
-  //Vector3 state_position_vector() const noexcept {
-  //  return Vector3({x(0), x(1), x(2)});
-  //}
-  
-  //Vector3 state_velocity_vector() const noexcept {
-  //  return Vector3({x(3), x(4), x(5)});
-  //}
-
-  const Eigen::Matrix<double, N, 1> &state() const noexcept {return x;}
-  dso::datetime<S> time() const noexcept {return t;}
+  Eigen::VectorXd x;
+  Eigen::MatrixXd P;
+  Eigen::VectorXd K;
 
   ExtendedKalmanFilter() noexcept {};
 
+  ExtendedKalmanFilter(int num_params) noexcept :
+    t(dso::datetime<S>::min()),
+    x(Eigen::VectorXd(num_params)),
+    P(Eigen::MatrixXd(num_params,num_params)),
+    K(Eigen::VectorXd(num_params))
+    {}
+
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
-                  const Eigen::Matrix<double, N, 1> &x0,
-                  const Eigen::Matrix<double, N, N> &P0) noexcept {
+                  const Eigen::VectorXd &x0,
+                  const Eigen::MatrixXd &P0) noexcept {
     t = t0;
     x = x0;
     P = P0;
+    K = Eigen::VectorXd(x0.cols());
   }
-
-  ExtendedKalmanFilter(const dso::datetime<S> &t0,
-                  const Eigen::Matrix<double, N, 1> &x0,
-                  const double *sigmas) noexcept {
-    t = t0;
-    x = x0;
-    P.setZero();
-    for (int i = 0; i < N; i++)
-      P(i, i) = sigmas[i] * sigmas[i];
-  }
+  
+  const Eigen::VectorXd &state() const noexcept {return x;}
+  
+  dso::datetime<S> time() const noexcept {return t;}
 
   void time_update(const dso::datetime<S> &tk,
-                   const Eigen::Matrix<double, N, 1> &xk,
-                   const Eigen::Matrix<double, N, N> &phi) noexcept {
+                   const Eigen::VectorXd &xk,
+                   const Eigen::MatrixXd &phi) noexcept {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose();
+
+    //const int n = x.rows();
+    //for (int i=0; i<n; i++) {
+    //  for (int j=0; j<n; j++) {
+    //    printf(" %.6f ", P(i,j));
+    //  }
+    //  printf("\t\t%.9f\n", x(i));
+    //}
   }
 
   void time_update(const dso::datetime<S> &tk,
-                   const Eigen::Matrix<double, N, 1> &xk,
-                   const Eigen::Matrix<double, N, N> &phi,
-                   const Eigen::Matrix<double, N, N> &Qdt) noexcept {
+                   const Eigen::VectorXd &xk,
+                   const Eigen::MatrixXd &phi,
+                   const Eigen::MatrixXd &Qdt) noexcept {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose() + Qdt;
   }
 
   void observation_update(double z, double g, double sigma,
-                          const Eigen::Matrix<double, N, 1> &H) noexcept {
+                          const Eigen::VectorXd &H) noexcept {
     double inv_w = sigma * sigma;
-    
+
     // kalman gain
     // K = P * H / (inv_w + H.transpose() * P * H);
     K = P * H / (inv_w + H.dot(P * H));
     
     // state update
     x = x + K * (z - g);
+
+    const int n = x.rows();
     
-    // covariance update (Joseph)
+    // covariance update (Joseph variant)
     auto KWm1Kt = (K * sigma) * (K * sigma).transpose();
-    auto ImKG = Eigen::Matrix<double, N, N>::Identity() - K * H.transpose();
+    auto ImKG = Eigen::MatrixXd::Identity(n,n) - K * H.transpose();
     P = ImKG * P * ImKG.transpose() + KWm1Kt;
   }
 
