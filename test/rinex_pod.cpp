@@ -549,7 +549,7 @@ int main(int argc, char *argv[]) {
           printf("\t\tUmeasured   : %.3f = (%.3f / %.3f) * (%.3f - %.3f -%.3f) "
                  "+ (%.3f) + (%.3f)\n",
                  Umeasured, iers2010::C, fs1_nom, fs1_nom, frT, NdopDt,
-                 Diono - pprev_obs->Diono, Drel - pprev_obs->Drel);
+                 Diono, Drel - pprev_obs->Drel);
         
           // we will need the estimated Δf_e / f_eN
           const int receiver_number = pprev_obs->count;
