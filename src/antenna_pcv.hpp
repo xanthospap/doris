@@ -3,6 +3,7 @@
 
 #include "doris_system_info.hpp"
 #include "geodesy/units.hpp"
+#include "eigen3/Eigen/Eigen"
 
 namespace dso {
 
@@ -27,7 +28,7 @@ template <GroundAntennaType T, int Freq> struct AntennaOffsetTraits {};
 template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 1> {
   
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 510e0};
   
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
@@ -65,7 +66,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 1> {
 template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 2> {
   
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 335e0};
   
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
@@ -81,7 +82,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 2> {
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 1> {
 
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 487e0};
   
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
@@ -118,7 +119,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 1> {
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 2> {
   
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static double constexpr offset[3] = {0e0, 0e0, 0e0};
   
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
@@ -133,7 +134,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 2> {
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 1> {
   
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 487e0};
   
   /// Phase pattern values in millimeters from 0 to 90 deg, with an increment
@@ -170,7 +171,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 1> {
 template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 2> {
   
   /// Eccentricities of the mean antenna phase center relative to the antenna
-  /// reference point (ARP). North, east and up component (in millimeters).
+  /// reference point (ARP). East, north and up component (in millimeters).
   static constexpr double offset[3] = {0e0, 0e0, 0e0};
   
   /// @brief Antenna/Frequency pair has no PCV information; always return 0
@@ -188,24 +189,33 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 2> {
 /// You can get offsets (north, east and up) and pcv values (if any).
 template <GroundAntennaType T, int Freq>
 struct AntennaOffset : AntennaOffsetTraits<T, Freq> {
-  /// @brief North eccentricity of the mean antenna phase center in mm
+  
+  /// @brief North eccentricity of the mean antenna phase center in [mm]
   static constexpr double dnorth() noexcept {
-    return AntennaOffsetTraits<T, Freq>::offset[0];
-  }
-  /// @brief East eccentricity of the mean antenna phase center in mm
-  static constexpr double deast() noexcept {
     return AntennaOffsetTraits<T, Freq>::offset[1];
   }
-  /// @brief Up eccentricity of the mean antenna phase center in mm
+  
+  /// @brief East eccentricity of the mean antenna phase center in [mm]
+  static constexpr double deast() noexcept {
+    return AntennaOffsetTraits<T, Freq>::offset[0];
+  }
+  
+  /// @brief Up eccentricity of the mean antenna phase center in [mm]
   static constexpr double dup() noexcept {
     return AntennaOffsetTraits<T, Freq>::offset[2];
+  }
+  
+  /// @brief Return the vector [east, north, up] eccentricities for this
+  ///        GroundAntennaType and Freq combination in [mm]
+  static Eigen::Matrix<double,3,1> pco() noexcept {
+    return Eigen::Matrix<double,3,1>(AntennaOffsetTraits<T, Freq>::offset);
   }
   
   /// @brief Get PCV value in mm, geven the zenith angle.
   /// @param[in] zenith Zenith angle in radians
   /// @param[out] out_of_bounds If not 0 (at output), the given zenith angle
   ///            is out of bounds (aka <0 or >90)
-  /// @return PCV value for this Antenna/Frequency in mm. If out_of_bounds set,
+  /// @return PCV value for this Antenna/Frequency in [mm]. If out_of_bounds set,
   ///         the functionwill return 0e0. If the Antenna/Frequency pair has
   ///         no relevant information (aka no PCV values), 0 is returned.
   static constexpr double pcv(double zenithdeg, int &out_of_bounds) noexcept {
