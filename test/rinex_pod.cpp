@@ -486,8 +486,8 @@ int main(int argc, char *argv[]) {
             beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value);
 
         // tropospheric correction
-        TropoDetails Dtropo;
-        if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid, Dtropo)) {
+        TropoDetails cDtropo;
+        if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid, cDtropo)) {
           return 3;
         }
 
@@ -501,12 +501,14 @@ int main(int argc, char *argv[]) {
         // the arc
         if (pprev_obs == prevec.end() || start_new_arc) {
           if (pprev_obs != prevec.end()) {
-            pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value, Diono,
-                              Dtropo.sum(), Drel, r_enu);
+            pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                              beaconobs->m_values[l2i].m_value, Diono,
+                              cDtropo.sum(), Drel, r_enu);
           } else {
             prevec.emplace_back(SatBeacon(beaconobs->id(), receiver_count, tl1,
-                                          beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value,
-                                          Diono, Dtropo.sum(), Drel, r_enu));
+                                          beaconobs->m_values[l1i].m_value,
+                                          beaconobs->m_values[l2i].m_value,
+                                          Diono, cDtropo.sum(), Drel, r_enu));
             printf("\t>> Note new receiver encountered, %.3s, assigned id=%d\n",
                    beaconobs->id(), receiver_count);
             ++receiver_count;
@@ -530,6 +532,10 @@ int main(int argc, char *argv[]) {
                               (Diono - pprev_obs->Diono) /
                               delta_tau.to_fractional_seconds();
 
+          // Tropospheric delay in [m/sec]
+          const double Dtropo = (cDtropo.sum() - pprev_obs->Dtropo) /
+                                delta_tau.to_fractional_seconds();
+
           const double Umeasured =
               (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt)
               + Dion
@@ -545,17 +551,15 @@ int main(int argc, char *argv[]) {
 
           const double Utheoretical =
               (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds() 
-              + (Dtropo.sum() - pprev_obs->Dtropo)*0e0 
-              - (iers2010::C * (frT + NdopDt) / fs1_nom) * DfefeN * 0e0;
-          printf("\t\tUtheoretical: %.3f = (%.3f - %.3f) / %.3f + (%.3f) - "
+              + Dtropo
+              - (iers2010::C * (frT + NdopDt) / fs1_nom) * DfefeN;
+          printf("\t\tUtheoretical: %.3f = (%.3f - %.3f) / %.3f + %.3f - "
                  "(%.3f * (%.3f + %.3f) / %.3f) * %.10e\n",
                  Utheoretical, rho, pprev_obs->rho(),
                  delta_tau.to_fractional_seconds(),
-                 Dtropo.sum() - pprev_obs->Dtropo, iers2010::C, frT, NdopDt,
+                 Dtropo, iers2010::C, frT, NdopDt,
                  fs1_nom, DfefeN);
           
-          printf("\t\tDelta time : %.9f\n", delta_tau.to_fractional_seconds());
-
           // Filter time-update
           // ----------------------------------------------------------------
           // State transition matrix (augmented)
@@ -582,15 +586,9 @@ int main(int argc, char *argv[]) {
           Filter.observation_update(Umeasured - Utheoretical, rho_dot,
                                     2e0 / std::cos(el), dHdX);
 
-          // results
-          for (int i = 0; i < NumParams; i++) {
-            printf("%.3e ", Filter.x(i));
-          }
-          printf("\n");
-
           // update previous observation for next Ndop
           pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value, Diono,
-                            Dtropo.sum(), Drel, s);
+                            cDtropo.sum(), Drel, s);
           printf("\t\tBeacon with internal id %.3s parameter value index %d, "
                  "estimate: %.15e\n",
                  pprev_obs->id3c, 6 + receiver_number,
