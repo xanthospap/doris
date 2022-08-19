@@ -26,6 +26,7 @@ struct TropoDetails {
   double Lhz, mfh;
   double Lwz, mfw;
   double sum() const noexcept { return Lhz * mfh + Lwz * mfw; }
+  double sum(double Lwz_) const noexcept { return Lhz * mfh + Lwz_ * mfw; }
 };
 
 struct SatBeacon {
@@ -34,11 +35,11 @@ struct SatBeacon {
   Datetime t;                    ///< time
   double Ls1, Lu2;               ///< cycles on L1 (S1)
   double Diono;                  ///< ionospheric corrections [cycles]
-  double Dtropo;                 ///< Tropospheric correction
   double Drel;                   ///< relativity correction
+  TropoDetails Dtropo;           ///< tropospheric correction
   Eigen::Matrix<double, 3, 1> s; ///< beacon-satellite vector in topocentric rf
   SatBeacon(const char *id_, int count_, const Datetime &t_, double L1, double L2, 
-            double Diono_, double Dtropo_, double Drel_,
+            double Diono_, const TropoDetails& Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
       : count(count_), t(t_), Ls1(L1), Lu2(L2), Diono(Diono_), Dtropo(Dtropo_),
         Drel(Drel_), s(s_) {
@@ -56,7 +57,7 @@ struct SatBeacon {
     s = sb.s;
     return *this;
   }
-  void update(const Datetime &t_, double L1_, double L2_, double Diono_, double Dtropo_,
+  void update(const Datetime &t_, double L1_, double L2_, double Diono_, const TropoDetails &Dtropo_,
               double Drel_, const Eigen::Matrix<double, 3, 1> &s_) noexcept {
     t = t_;
     Ls1 = L1_;
@@ -157,7 +158,7 @@ struct SatelliteState {
 
 int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            const Eigen::Matrix<double, 3, 1> &rbeacon,
-                           double J2, double Re, double GM, double &Drel_c,
+                           double Re, double GM, double J2, double &Drel_c,
                            double &Drel_r) noexcept;
 
 /*double ionospheric_correction(double Ls1, double Lu2, double Ls1_nominal,
@@ -352,7 +353,9 @@ int main(int argc, char *argv[]) {
 
   // Extended Kalman Filter instance
   // -------------------------------------------------------------------------
-  const int NumParams = 6 + rnx.stations().size();
+  const int NumParams = 6    ///< satellite state 
+    + rnx.stations().size()  ///< beacon relative frequency offset
+    + rnx.stations().size(); ///< wet tropo path dealy (zenith)
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
 
   // Start RINEX data-block iteration
@@ -403,12 +406,14 @@ int main(int argc, char *argv[]) {
     if (!dummy_counter) {
       Filter.t = tl1;
       Filter.x.block<6, 1>(0, 0) = svState.state;
-      for (int i = 6; i < NumParams; i++)
-        Filter.x(i) = 1e-6;
+      for (int i = 6; i < NumParams; i+=2) {
+        Filter.x(i) = 1e-6;  // beacon relative frequency offset
+        Filter.x(i+1) = 0e0; // apriori tropo wet delay at zenith
+      }
       // default sigma for releative frequency offset
       Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams) * 1e3;
       // default sigma for position is 1 [m]
-      Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double,3,3>::Identity(); 
+      Filter.P.block<3, 3>(0, 0) = 5e0 * Eigen::Matrix<double,3,3>::Identity(); 
       // default sigma for velocity is 5 [m/sec]
       Filter.P.block<3, 3>(3, 3) = 5e0 * Eigen::Matrix<double,3,3>::Identity();
     }
@@ -493,9 +498,8 @@ int main(int argc, char *argv[]) {
 
         // relativistic correction
         double Drel_c, Drel_r;
-        relativity_corrections(svState.state, bxyz_ion, J2, Re, GM, Drel_c,
-                               Drel_r);
-        const double Drel = Drel_c + Drel_r;
+        relativity_corrections(svState.state, bxyz_ion, Re, GM, J2, Drel_c, Drel_r);
+        const double cDrel = Drel_c + Drel_r;
 
         // if this is the first obs of a pair, do nothing more except updating
         // the arc
@@ -503,16 +507,19 @@ int main(int argc, char *argv[]) {
           if (pprev_obs != prevec.end()) {
             pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
                               beaconobs->m_values[l2i].m_value, Diono,
-                              cDtropo.sum(), Drel, r_enu);
+                              cDtropo, cDrel, r_enu);
           } else {
             prevec.emplace_back(SatBeacon(beaconobs->id(), receiver_count, tl1,
                                           beaconobs->m_values[l1i].m_value,
                                           beaconobs->m_values[l2i].m_value,
-                                          Diono, cDtropo.sum(), Drel, r_enu));
+                                          Diono, cDtropo, cDrel, r_enu));
             printf("\t>> Note new receiver encountered, %.3s, assigned id=%d\n",
                    beaconobs->id(), receiver_count);
             ++receiver_count;
           }
+
+          // update a-priori value for this beacon zenith wet tropo delay [m]
+          Filter.x(6 + receiver_count*2 + 1) = cDtropo.Lwz;
 
         } else {
           // compute Ndop and observation equation
@@ -533,21 +540,27 @@ int main(int argc, char *argv[]) {
                               delta_tau.to_fractional_seconds();
 
           // Tropospheric delay in [m/sec]
-          const double Dtropo = (cDtropo.sum() - pprev_obs->Dtropo) /
+          // get current estimate of Wet Zenith delay
+          const double cWzd = Filter.x(6 + receiver_count*2 + 1);
+          const double Dtropo = (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                                 delta_tau.to_fractional_seconds();
+
+          // Relativistic corrections
+          const double Drel =
+              (cDrel - pprev_obs->Drel) / delta_tau.to_fractional_seconds();
 
           const double Umeasured =
               (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt)
               + Dion
-              + (Drel - pprev_obs->Drel) * 0e0;
+              + Drel;
           printf("\t\tUmeasured   : %.3f = (%.3f / %.3f) * (%.3f - %.3f -%.3f) "
                  "+ %.3f + %.3f\n",
                  Umeasured, iers2010::C, fs1_nom, fs1_nom, frT, NdopDt,
-                 Dion, Drel - pprev_obs->Drel);
+                 Dion, Drel);
         
           // we will need the estimated Δf_e / f_eN
           const int receiver_number = pprev_obs->count;
-          const double DfefeN = Filter.x(6 + receiver_number);
+          const double DfefeN = Filter.x(6 + receiver_number*2);
 
           const double Utheoretical =
               (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds() 
@@ -563,7 +576,8 @@ int main(int argc, char *argv[]) {
           // Filter time-update
           // ----------------------------------------------------------------
           // State transition matrix (augmented)
-          Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
+          Eigen::MatrixXd PhiP =
+              Eigen::MatrixXd::Identity(NumParams, NumParams);
           PhiP.block<6, 6>(0, 0) = svState.Phi;
           // PhiP(6 + receiver_number, 6 + receiver_number) = 1e0; already done
           auto estimates = Filter.x;
@@ -577,8 +591,10 @@ int main(int argc, char *argv[]) {
               pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
               delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
 
-          printf("\t\tObserved range-rate: %+.6f, Computed : %+.6f, p2-p1 / Dt : %+.6f\n",
-                 Umeasured - Utheoretical, rho_dot, (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds());
+          printf("\t\tObserved range-rate: %+.6f, Computed : %+.6f, p2-p1 / Dt "
+                 ": %+.6f\n",
+                 Umeasured - Utheoretical, rho_dot,
+                 (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds());
 
           Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
           dHdX.block<6, 1>(0, 0) = drrdrv;
@@ -587,8 +603,9 @@ int main(int argc, char *argv[]) {
                                     2e0 / std::cos(el), dHdX);
 
           // update previous observation for next Ndop
-          pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value, beaconobs->m_values[l2i].m_value, Diono,
-                            cDtropo.sum(), Drel, s);
+          pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                            beaconobs->m_values[l2i].m_value, Diono, cDtropo,
+                            cDrel, s);
           printf("\t\tBeacon with internal id %.3s parameter value index %d, "
                  "estimate: %.15e\n",
                  pprev_obs->id3c, 6 + receiver_number,
@@ -697,30 +714,23 @@ beacon_coordinates(const char *_4charid,
   return Eigen::Matrix<double, 3, 1>(data);
 }
 
+
 int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            const Eigen::Matrix<double, 3, 1> &rbeacon,
-                           double J2, double Re, double GM, double &Drel_c,
+                           double Re, double GM, double J2, double &Drel_c,
                            double &Drel_r) noexcept {
-  // (J_2 augmented) potential at satellite (Larson et al, 2007)
-  // satellite potential and velocity, state needed in ECEF here
-  const double rs = sv_state.block<3, 1>(0, 0).norm();
-  const double zs = sv_state(2);
-  const double rs2 = rs * rs;
-  const double Ur =
-      -(GM / rs) * (1e0 - J2 * (Re / rs) * (Re / rs) *
-                              ((3e0 * zs * zs - rs2) / (2e0 * rs2)));
-  const double Vr2 = sv_state.block<3, 1>(3, 0).squaredNorm();
+  // correction for beacon (no J2 term)
+  const double Bdelta_clock = dso::relativistic_clock_correction(
+      rbeacon, Eigen::Matrix<double, 3, 1>::Zero(), GM,
+      Re);
 
-  // beacon potential and velocity
-  const double rb = rbeacon.norm();
-  const double zb = rbeacon(2);
-  const double rb2 = rb * rb;
-  const double Ue =
-      -(GM / rb) * (1e0 - J2 * (Re / rb) * (Re / rb) *
-                              ((3e0 * zb * zb - rb2) / (2e0 * rb2)));
+  // correction for satellite (including J2 term)
+  const double Sdelta_clock = dso::relativistic_clock_correction(
+      sv_state.block<3,1>(0,0), sv_state.block<3,1>(3,0), GM,
+      J2, Re);
 
-  // relativity clock correction, Lemoine 2016
-  Drel_c = (Ur - Ue + Vr2 / 2e0) / iers2010::C;
+  //// relativity clock correction, Lemoine 2016
+  Drel_c = Sdelta_clock - Bdelta_clock;
 
   // TODO relativity correction for travel time
   Drel_r = 0e0;
@@ -798,23 +808,32 @@ range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
            const Eigen::Matrix<double, 3, 1> &rsta,
            const Eigen::Matrix<double, 3, 1> &rsat, double dt,
            double &rr_computed, Eigen::Matrix<double, 6, 1> &drrdrv) noexcept {
+  
   // ellipsoidal coordinates at t
   const Eigen::Matrix<double, 3, 1> ell =
       dso::car2ell<dso::ellipsoid::grs80>(rsta);
+  
   // ITRF to topocentric matrix with center at beacon
   const auto E = dso::topocentric_matrix(ell(0), ell(1));
+  
   // satellite-beacon vector in topocentric frame
   const Eigen::Matrix<double, 3, 1> s = E * (rsat - rsta);
+  
   // vellocity in topocentric frame
   const Eigen::Matrix<double, 3, 1> v = (s - s_t0) / dt;
+  
   // norms
   const double sn = s.norm();
   const double vn = v.norm();
+  
   // model value for range-rate
   rr_computed = s.dot(v) / sn;
-  // partials w.r.t r
+  
+  // partials w.r.t r (topocentric -> ECEF)
   drrdrv.block<3, 1>(0, 0) =
       (sn * v.transpose() - vn * s.transpose()) * E / sn / sn;
+
+  // partials w.r.t v (topocentric -> ECEF)
   drrdrv.block<3, 1>(3, 0) = s.transpose() * E / sn;
 
   return s;
