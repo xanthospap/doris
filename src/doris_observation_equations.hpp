@@ -20,7 +20,7 @@ inline double carrier_iono_correction(double L1cycles,
 
 double relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
                                      const Eigen::Matrix<double, 3, 1> &vecef,
-                                     double GM, double Re) noexcept;
+                                     double GM) noexcept;
 double relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
                                      const Eigen::Matrix<double, 3, 1> &vecef,
                                      double GM, double J2, double Re) noexcept;

@@ -41,8 +41,8 @@ struct SatBeacon {
   SatBeacon(const char *id_, int count_, const Datetime &t_, double L1, double L2, 
             double Diono_, const TropoDetails& Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
-      : count(count_), t(t_), Ls1(L1), Lu2(L2), Diono(Diono_), Dtropo(Dtropo_),
-        Drel(Drel_), s(s_) {
+      : count(count_), t(t_), Ls1(L1), Lu2(L2), Diono(Diono_), Drel(Drel_), Dtropo(Dtropo_),
+        s(s_) {
     std::strncpy(id3c, id_, 3);
   }
   SatBeacon &operator=(const SatBeacon &sb) noexcept {
@@ -721,8 +721,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            double &Drel_r) noexcept {
   // correction for beacon (no J2 term)
   const double Bdelta_clock = dso::relativistic_clock_correction(
-      rbeacon, Eigen::Matrix<double, 3, 1>::Zero(), GM,
-      Re);
+      rbeacon, Eigen::Matrix<double, 3, 1>::Zero(), GM);
 
   // correction for satellite (including J2 term)
   const double Sdelta_clock = dso::relativistic_clock_correction(
