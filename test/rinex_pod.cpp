@@ -533,6 +533,12 @@ int main(int argc, char *argv[]) {
           const double Ndop = beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
           const auto delta_tau = tl1.delta_sec(pprev_obs->t);
           const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
+
+          if (!std::strncmp(beacon_it->m_station_id, "TLSB", 4)) {
+            printf("%.4s %.6f %.6f %.6f\n", beacon_it->m_station_id,
+                   tl1.sec().to_fractional_seconds(), Ndop,
+                   delta_tau.to_fractional_seconds());
+          }
           
           // Ionospheric path delay in [m/sec]
           const double Dion = (iers2010::C / fs1_nom) *
@@ -629,8 +635,8 @@ int main(int argc, char *argv[]) {
       ++beaconobs;
     } // for every beacon observation set in epoch
 
-    if (++dummy_counter > 500)
-      break;
+    //if (++dummy_counter > 500)
+    //  break;
   } // for every new data-block/epoch in the RINEX file
 
   return 0;
