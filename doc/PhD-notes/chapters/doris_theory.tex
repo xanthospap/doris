@@ -54,14 +54,167 @@ Each observation (on each frequency) in the RINEX file is marked with two ``flag
 aka two distinct characters that follow the observation value and flag important 
 events if any. Here, we will exclude observations if the following conditions are true:
 \begin{description}
-  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is a ``central frequency'' measurement (that is the 
-  first flag is an \texttt{1})
-  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is marked as discontinuity, i.e. Loss-of-Lock has occured 
-  (that is the seconds flag is an \texttt{1})
-  \item[power-level \texttt{W}] measurement (on either of the frequencies) flags a 
-  beacon on restart mode (first flag is an \texttt{1})
+  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is a ``central frequency'' 
+  measurement (that is the first flag is an \texttt{1})
+  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is marked as discontinuity, 
+  i.e. Loss-of-Lock has occured (that is the seconds flag is an \texttt{1})
+  \item[power-level \texttt{W}] measurement (on either of the frequencies) flags 
+  a beacon on restart mode (first flag is an \texttt{1})
 \end{description}
 
+\textbf{Ionospheric Refraction}
+\label{ionospheric-refraction}
+For each observation, the ionosphere-induced delay is computed using both 
+(carrier) phase measurements. The correction, for each observation, is: 
+(\cite{lemoine-2016}):
+\begin{equation}
+  L_{iono-free-2GHz} = L_{2GHz} 
+    + \frac{L_{2GHz} - \sqrt \gamma L_{400MHz}}{\gamma - 1} 
+    \text{ in [cycles]}
+\end{equation}
+For the observation equation, we should differentiate the ionospheric delays on 
+(the) two consecutive observations, to compute $\Delta u_{ION}$. Thus,
+\begin{equation}
+  \Delta u_{ION} = \frac{c}{f_{rN}} \left( L_{iono-free-2GHz}^{\tau_{r_2}} 
+    - L_{iono-free-2GHz}^{\tau_{r_1}} \right) / (\tau_{r_2} - \tau_{r_1})
+    \text{ in [m/sec]}
+\end{equation}
+Note that the above meas that we are now referencing a ``iono-free'' phase center, 
+different than the L2GHz phase center.
+
+\textbf{Tropospheric Refraction}
+\label{tropospheric-refraction}
+For each observation we have to compute the tropospheric delay. This is done using 
+the GPT3/VMF3 model. GPT3 uses a grid to compute values for various atmospheric 
+parameters (e.g. pressure, temperature, etc). VMF3 computes mapping functions values 
+$mf_{el}^{wet}$ and $mf_{el}^{hydrostatic}$ for given elevation/zenith angles.
+For the hydrostatic zenith path delay $L_{z}^{hydrostatic}$, we use the 
+``refined'' Saastamoinen formula. An approximate, a-priori value for the 
+respective wet delay $L_{z}^{wet}$ can be computed using the Aske \& Nordius 
+formula. Finaly:
+\begin{equation}
+  \Delta _{trop} = L_{z}^{hyd} \cdot mf_{el}^{hyd} 
+                 + L_{z}^{wet} \cdot mf_{el}^{wet} \text{ in [m]}
+\end{equation}
+As with the ionosphere, when considering the Doppler observation equation, we should 
+get the differential correction betwee two consecutive observations,
+\begin{equation}
+  \begin{split}
+  \label{eq:dutropo}
+  \Delta u_{TRO} & = \left( \Delta _{trop}^{\tau_{r_2}} 
+                  - \Delta _{trop}^{\tau_{r_1}} \right)
+                    / (\tau_{r_2} - \tau_{r_1}) \\
+                 & = \frac{L_{z,\tau_{r_2}}^{hyd} \cdot mf_{el,\tau_{r_2}}^{hyd} 
+                   - L_{z,\tau_{r_1}}^{hyd} \cdot mf_{el,\tau_{r_1}}^{hyd} 
+                   + L_{z}^{wet} \left( mf_{el,\tau_{r_2}}^{wet} - mf_{el,\tau_{r_1}}^{wet} \right)}
+                   {\tau_{r_2} - \tau_{r_1}} \\
+                 & \text{ in [m/sec]}
+  \end{split}
+\end{equation}
+For every observation, a call to GPT3 is made to compute various quantities, 
+that depend both on time and (beacon) coordinates. A call to VMF3 is performed 
+to compute the mapping functions $mf_{el,\tau_i}^{wet}$ and $mf_{el,\tau_i}^{hyd}$.
+Again, for every observation/beacon we compute the zenith hydrostatic delay 
+$L_{z,\tau_i}^{hyd}$. The zenith wet delay $L_{z}^{wet}$ is considered a constant 
+for one satellite pass. An a-priori value is computed using the Aske \& Nordius formula 
+and the value is estimated as a (filter) parameter.
+
+Considering \ref{eq:dutropo}, the following {\color{lime} simplified} partial 
+derivatives are derived:
+\begin{align}
+  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{beacon}}    &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{beacon}} = \bm{0} \\
+  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{satellite}} &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{satellite}} = \bm{0} \\
+  \frac{\partial \Delta u_{TRO}}{\partial L_{z}^{wet}} & = \frac{mf_{el,\tau_{r_2}}^{wet} - mf_{el,\tau_{r_1}}^{wet}}{\tau_{r_2} - \tau_{r_1}}
+\end{align}
+
+\textbf{Relativistic Corrections}
+According to \cite{lemoine-2016}, relativistic correction can be split into two 
+parts, $\Delta_{rel_C}$, which is the clock correction, and $\Delta_{rel_r}$ 
+which is the travel-time correction. They are given respectively by:
+\begin{equation}
+  \Delta_{rel_C} = \frac{1}{c} \left( U_r - U_e + \frac{V_r^2 -V_e^2}{2} \right)
+\end{equation}
+\begin{equation}
+  \Delta_{rel_r} = \frac{2\mu}{\Delta \tau _r c^2} \left( \ln{\frac{R_1+R_{1'}+\rho_1}{R_1+R_{1'}-\rho_1}} - \ln{\frac{R_2+R_{2'}+\rho_2}{R_2+R_{2'}-\rho_2}} \right)
+\end{equation}
+{\color{brown}At this point, we are only considering the relativistic clock correction!}.
+
+\textbf{Beacon Coordinates and Reference Points}
+\label{beacon-coordiates-and-reference-points}
+Beacon coordinates are extracted from the \texttt{dpod2014\_053.snx} file, and 
+extrapolated to first epoch of the RINEX file. {\color{brown} Loading/Tidal site 
+displacements are ot yet considered}, hence the beacon position is considered 
+stable for all measurements in the RINEX file.
+
+Because we are using iono-free 2GHz measuremets, we must ``reduce'' the beacon 
+coordinates to reference the iono-free phase center. For this, we procced as 
+\cite{lemoine-2016}, aka the vector from the beacon Reference Point to the
+2GHz-iono-free phase center is:
+\begin{equation}
+  \bm{r}'_{iono-free-2GHz} = \bm{r}_{2GHz} + 
+    \frac{\bm{r}_{2GHz} - \bm{r}_{400MHz}}{\gamma - 1}
+\end{equation}
+Note that this equation is w.r.t a topocentric reference frame.
+
+The actual computation for this reduction is:
+\begin{enumerate}
+  \item transform the beacon coordinates from Cartesian ECEF to ellipsoidal ECEF
+  \item compute the ECEF-to-topocentric rotation matrix $R$ (that is 
+    $\bm{x}_{enu} = R \cdot \delta \bm{x}_{xyz}$)
+  \item compute the iono-free-2GHz reference position as:
+  \begin{equation}
+    \bm{r}_{iono-free-2GHz}^{xyz} = \bm{r}_{dpod} + R^T \cdot \bm{r}'_{iono-free-2GHz}
+  \end{equation}
+\end{enumerate}
+
+\textbf{Pseudocode}
+\begin{enumerate}
+  
+  \item Extract/extrapolate all beacon coordinates from \texttt{dpod2014\_053.snx}, 
+    contained in the RINEX file. These will be the reference coordinates. 
+    Extrapolation is performed to the first epoch contained in the RINEX file to 
+    get $\bm{r}_{e,dpod}^{ecef}$ for each beacon.
+
+  \item For every new epoch/data-block contained in the RINEX file and taged as $t_i$ in \texttt{TAI}.
+  \begin{enumerate}
+    \item compute receiver/satellite ``proper'' time using the 
+      \emph{receiver clock offset} correction in the block header; this will be $\tau_{i}$
+      (note that this correction can be quite large and up to 1 minute!).
+
+    \item integrate satellite orbit to get state at {\color{red} $\tau_{i}$}. Tarnsform state 
+    to ECEF, $\bm{r}_{r}^{ecef}$.
+
+    \item for each beacon (observation set) in this, current block:
+    \begin{enumerate}
+      \item check observation flags (\ref{measurement-flags}). If flags are ok proced, else mark as 
+        discontinuous and skip observation for this beacon.
+
+      \item compute iono-free-2GHz reference point of the beacon 
+      (\ref{beacon-coordiates-and-reference-points}), henceforth, we are going 
+      to use these coordinates for the beacon: $\bm{r}_{e}^{ecef} \equiv \bm{r}_{iono-free-2GHz}^{ECEF}$
+
+      \item compute azimouth $Az$, elevation $el$ and range $\rho$, of the 
+      beacon-satellite vector (performed in topocentric RF). If the elevation 
+      is above some fixed value (e.g. 7 degrees) procced.
+
+      \item compute ``nominal'' values for the beacon frequencies (using the RINEX 
+      header data), $f_{eN}$ (for 2GHz and 400MHz).
+
+      \item compute ionospheric correction for this observation 
+      (\ref{ionospheric-refraction}) $\Delta _{ion}$
+
+      \item compute tropospheric correction for this observation
+      (\ref{tropospheric-refraction}) $\Delta _{tro}$. We use the filter value 
+      for the zenith wet delay ($L_{z}^{wet}$). In case this is the start of a 
+      new arc, we use the Aske \& Nordius formula to compute a starting value.
+    \end{enumerate}
+
+  \end{enumerate}
+\end{enumerate}
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
 
 \chapter{DORIS System Theoretical Implications}
 \label{ch:doris-theory}
