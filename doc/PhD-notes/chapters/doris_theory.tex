@@ -1,7 +1,7 @@
 \chapter{The DORIS System}
 \label{ch:doris-system}
 
-\section{The Doppler Effect}
+\section{DORIS Observation Equation}
 \label{sec:doppler-effect}
 
 In the following, we will use the notation:
@@ -43,10 +43,25 @@ In the implementation, the formula is computed using \emph{topocentric} vectors
 (with origin at the beacon). Hence $\rho_{\tau_{r_1}}$ and $\rho_{\tau_{r_2}}$ are 
 actualy $\rho_{\tau_{r_1}}^{enu}$ and $\rho_{\tau_{r_2}}^{enu}$.
 
-Note, that the \emph{instataneous} range range is computed via (\cite{Montenbruck2000})
+Note, that the above is different from the \emph{instataneous} range rate, 
+which is computed via (\cite{Montenbruck2000})
 \begin{equation}
   \dot{\rho} = \dot{s} = \frac{\bm{s} \bm{\dot{s}}}{s}
 \end{equation}
+
+\textbf{Beacon Nominal Frequencies}\\
+\label{beacon-nominal-frequencies}
+The RINEX file contains a \emph{station frequency shift factor} for each of the 
+beacons included. This is used to compute the ``nominal'' frequencies of the 
+beacon/emitter. Usually, this shift factor is just $0$, but it can be an integer 
+$k \neq 0$. The frequencies are computed as:
+\begin{equation}
+  \begin{align}
+    L_{2GHz}   &= 543 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) \\
+    L_{400MHz} &= 107 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) 
+  \end{align}
+\end{equation}
+where $F_0 = 5e6 \text{ Hz}$ the USO frequency.
 
 \textbf{Measurement Flags}\\
 \label{measurement-flags}
@@ -122,9 +137,12 @@ and the value is estimated as a (filter) parameter.
 Considering \ref{eq:dutropo}, the following {\color{lime} simplified} partial 
 derivatives are derived:
 \begin{align}
-  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{beacon}}    &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{beacon}} = \bm{0} \\
-  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{satellite}} &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{satellite}} = \bm{0} \\
-  \frac{\partial \Delta u_{TRO}}{\partial L_{z}^{wet}} & = \frac{mf_{el,\tau_{r_2}}^{wet} - mf_{el,\tau_{r_1}}^{wet}}{\tau_{r_2} - \tau_{r_1}}
+  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{beacon}}    
+    &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{beacon}} = \bm{0} \\
+  \frac{\partial \Delta u_{TRO}}{\partial \bm{r}_{satellite}} 
+    &= \frac{\partial \Delta u_{TRO}}{\partial \bm{v}_{satellite}} = \bm{0} \\
+  \frac{\partial \Delta u_{TRO}}{\partial L_{z}^{wet}} 
+    &= \frac{mf_{el,\tau_{r_2}}^{wet} - mf_{el,\tau_{r_1}}^{wet}}{\tau_{r_2} - \tau_{r_1}}
 \end{align}
 
 \textbf{Relativistic Corrections}
@@ -132,12 +150,33 @@ According to \cite{lemoine-2016}, relativistic correction can be split into two
 parts, $\Delta_{rel_C}$, which is the clock correction, and $\Delta_{rel_r}$ 
 which is the travel-time correction. They are given respectively by:
 \begin{equation}
+  \label{eq:relativistic-clock-correction}
   \Delta_{rel_C} = \frac{1}{c} \left( U_r - U_e + \frac{V_r^2 -V_e^2}{2} \right)
 \end{equation}
 \begin{equation}
-  \Delta_{rel_r} = \frac{2\mu}{\Delta \tau _r c^2} \left( \ln{\frac{R_1+R_{1'}+\rho_1}{R_1+R_{1'}-\rho_1}} - \ln{\frac{R_2+R_{2'}+\rho_2}{R_2+R_{2'}-\rho_2}} \right)
+  \Delta_{rel_r} = \frac{2\mu}{\Delta \tau _r c^2} 
+    \left( \ln{\frac{R_1+R_{1'}+\rho_1}{R_1+R_{1'}-\rho_1}} 
+      - \ln{\frac{R_2+R_{2'}+\rho_2}{R_2+R_{2'}-\rho_2}} \right)
 \end{equation}
 {\color{brown}At this point, we are only considering the relativistic clock correction!}.
+In \ref{eq:relativistic-clock-correction}, the subscript \texttt{e} denotes the 
+emitter which in DORIS is the beacon, which is located on the surface of the 
+Earth, close to the geoid. Hence, we can use the approximation:
+\begin{equation}
+  U_e + V_e^2 / 2 = \mu / r_{beacon}^{ecef}
+\end{equation}
+
+On the other hand, the gravitational potential for a LEO satellite cannot be 
+approximated adequately using only the fist term. Hence, we will include the 
+$J_2$ term so that:
+\begin{equation}
+  U_r = \frac{\mu}{r_{satellite}^{ecef}} - 
+    \left( 1 - \left( \frac{\alpha _e}{r_{satellite}^{ecef}} \right) ^2 
+      \cdot J_2 \cdot \frac{3 \sin^{2}{\phi} -1}{2} \right)
+\end{equation}
+where $\alpha _e$ is the equatorial radius of the earth. The term $V_r$ is 
+simply the norm of the satellite's {\color{brown}velocity vector in ECEF}.
+Is this last sentence correct?
 
 \textbf{Beacon Coordinates and Reference Points}
 \label{beacon-coordiates-and-reference-points}
@@ -167,6 +206,12 @@ The actual computation for this reduction is:
   \end{equation}
 \end{enumerate}
 
+{\color{brown}Here we are assuming that the beacon coordinates in the SINEX 
+file correspond to the antenna RP. Is that true? If DORIS is like GNSS, it 
+could be that the log files contain eccentricities. Make a Python script to 
+parse DORIS log files and spit beacon eccentricities.}
+
+
 \textbf{Pseudocode}
 \begin{enumerate}
   
@@ -178,27 +223,29 @@ The actual computation for this reduction is:
   \item For every new epoch/data-block contained in the RINEX file and taged as $t_i$ in \texttt{TAI}.
   \begin{enumerate}
     \item compute receiver/satellite ``proper'' time using the 
-      \emph{receiver clock offset} correction in the block header; this will be $\tau_{i}$
-      (note that this correction can be quite large and up to 1 minute!).
+    \emph{receiver clock offset} correction in the block header; this will 
+     be $\tau_{i}$ (note that this correction can be quite large and up to 
+     1 minute!).
 
-    \item integrate satellite orbit to get state at {\color{red} $\tau_{i}$}. Tarnsform state 
-    to ECEF, $\bm{r}_{r}^{ecef}$.
+    \item integrate satellite orbit to get state at {\color{red} $\tau_{i}$}. 
+    Transform state to ECEF, $\bm{r}_{r}^{ecef}$.
 
     \item for each beacon (observation set) in this, current block:
     \begin{enumerate}
-      \item check observation flags (\ref{measurement-flags}). If flags are ok proced, else mark as 
-        discontinuous and skip observation for this beacon.
+      \item check observation flags (\ref{measurement-flags}). If flags are ok 
+      procced, else mark as discontinuous and skip observation for this beacon.
 
       \item compute iono-free-2GHz reference point of the beacon 
       (\ref{beacon-coordiates-and-reference-points}), henceforth, we are going 
-      to use these coordinates for the beacon: $\bm{r}_{e}^{ecef} \equiv \bm{r}_{iono-free-2GHz}^{ECEF}$
+      to use these coordinates for the beacon: 
+      $\bm{r}_{e}^{ecef} \equiv \bm{r}_{iono-free-2GHz}^{ECEF}$
 
       \item compute azimouth $Az$, elevation $el$ and range $\rho$, of the 
       beacon-satellite vector (performed in topocentric RF). If the elevation 
       is above some fixed value (e.g. 7 degrees) procced.
 
-      \item compute ``nominal'' values for the beacon frequencies (using the RINEX 
-      header data), $f_{eN}$ (for 2GHz and 400MHz).
+      \item compute ``nominal'' values for the beacon frequencies 
+      (\ref{beacon-nominal-frequencies}) $f_{eN}$ (for 2GHz and 400MHz).
 
       \item compute ionospheric correction for this observation 
       (\ref{ionospheric-refraction}) $\Delta _{ion}$

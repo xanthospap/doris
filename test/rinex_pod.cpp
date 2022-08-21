@@ -601,12 +601,11 @@ int main(int argc, char *argv[]) {
                 dso::strftime_ymd_hmfs(tl1, dtbuf);
                 printf(
                     "%.4s ArcNr: %d Date: %s SecOfDay: %.6f Elev[deg]: %.1f Ndop: %.6f "
-                    "Dt[sec]: %.6f C*Ndop/(fe*dt): %.6f (rho2-rho1)/dt: %.6f\n",
+                    "Dt[sec]: %.6f (c/fe)*(Ndop/dt-(fe-fr)): %.6f (rho2-rho1)/dt: %.6f\n",
                     beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
                     tl1.sec().to_fractional_seconds(), dso::rad2deg(el), Ndop,
                     delta_tau.to_fractional_seconds(),
-                    iers2010::C * Ndop /
-                        (fs1_nom * delta_tau.to_fractional_seconds()),
+                    (iers2010::C/fs1_nom)*(NdopDt-(fs1_nom-frT)),
                     (rho - pprev_obs->rho()) /
                         delta_tau.to_fractional_seconds());
 
