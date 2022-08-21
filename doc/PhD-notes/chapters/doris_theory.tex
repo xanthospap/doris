@@ -30,6 +30,19 @@ refraction, etc), this measurement differentiated by the time interval between t
 two measurements, would give the \emph{range-rate}, i.e. the relative becon-to-satellite 
 velocity.
 
+\textbf{Range Rate}\\
+Suppose that the two consecutive measurements are performed at $\tau_{r_1}$ 
+and $\tau_{r_2}$ respectively, at the receiver proper time. We must compute the 
+``\emph{theoretical}'' range-rate value (to compare it with the value observed).
+According to \cite{Montenbruck2000}, the formula for computing range-rate is:
+\begin{equation}
+  \dot{\rho} = \frac{\rho_{\tau_{r_2}} - \rho_{\tau_{r_1}}}{\tau_{r_2} - \tau_{r_1}}
+\end{equation}
+Note, that the \emph{instataneous} range range is computed via (\cite{Montenbruck2000})
+\begin{equation}
+  \dot{\rho} = \dot{s} = \frac{\bm{s} \bm{\dot{s}}}{s}
+\end{equation}
+
 \chapter{DORIS System Theoretical Implications}
 \label{ch:doris-theory}
 

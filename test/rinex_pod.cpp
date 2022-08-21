@@ -38,6 +38,7 @@ struct SatBeacon {
   double Drel;                   ///< relativity correction
   TropoDetails Dtropo;           ///< tropospheric correction
   Eigen::Matrix<double, 3, 1> s; ///< beacon-satellite vector in topocentric rf
+  int arcnr{0};
   SatBeacon(const char *id_, int count_, const Datetime &t_, double L1,
             double L2, double Diono_, const TropoDetails &Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
@@ -143,7 +144,7 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
 
-    // transform inertial to geocentric
+    // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
     state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                               dt2c.transpose() * sol.block<3, 1>(0, 0);
@@ -183,9 +184,9 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept;
 
 // get state of satellite at a given epoch
-int get_satellite_sp3_state(const char *sp3, double mjd_tai,
+/*int get_satellite_sp3_state(const char *sp3, double mjd_tai,
                             Eigen::Matrix<double, 6, 1> &state,
-                            double &mjd_state);
+                            double &mjd_state);*/
 
 Eigen::Matrix<double, 3, 1>
 range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
@@ -236,21 +237,17 @@ int main(int argc, char *argv[]) {
   // Intial satellite state, get it from the Sp3 using the RINEX's time of
   // first obs
   SatelliteState svState;
-  {
-    double rnx_first_obs = rnx.time_of_first_obs().as_mjd();
-    dso::get_yaml_value_depth2(config, "data", "sp3", buf);
-    if (get_satellite_sp3_state(buf, rnx_first_obs, svState.state,
-                                svState.mjd_tai)) {
-      return 1;
-    }
-  }
+  dso::get_yaml_value_depth2(config, "data", "sp3", buf);
+  dso::Sp3c sp3(buf);
+  dso::Sp3Iterator sp3_iterator(sp3);
+  printf("Sp3 iterator created\n");
 
   // SP3 Validation Orbit (Should not be needed)
   // -------------------------------------------------------------------------
-  dso::Sp3c sp3(buf);
-  dso::sp3::SatelliteId sv("XXX");
-  sv.set_id(sp3.sattellite_vector()[0].id);
-  dso::SvInterpolator sv_intrp(sv, sp3);
+  //dso::Sp3c sp3(buf);
+  //dso::sp3::SatelliteId sv("XXX");
+  //sv.set_id(sp3.sattellite_vector()[0].id);
+  //dso::SvInterpolator sv_intrp(sv, sp3);
 
   // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -370,12 +367,21 @@ int main(int argc, char *argv[]) {
   const double GM = harmonics.GM();
   const double Re = harmonics.Re();
 
+  // I only need TLSB at this point; get its RINEX-internal, 3-char id
+  const char *tlsb = rnx.beacon_id2internal_id("TLSB");
+  assert(tlsb);
+
   error = 0;
   int dummy_counter = 0;
+  int boundary_condition_chage = true;
   // count beacons as we encounter them (above min. elevation)
   int receiver_count = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
+    
+    // limit to one beacon TLSB; if the block does not cotain this beacon, skip)
+    if (it.contains_beacon(tlsb) != it.cblock.end()) {
+
     // the current reference time for the L1 observation (corrected for
     // receiver clock offset)
     auto tl1 = it.corrected_l1_epoch();
@@ -386,24 +392,39 @@ int main(int argc, char *argv[]) {
 
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in the terrestrial RF
-    // if (svState.integrate(tl1.as_mjd(), Integrator)) {
-    //  fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
-    //  return 1;
-    //}
+    // first get reference state from sp3, for an epoch as close as possible
+    if (sp3_iterator.goto_epoch(tl1)) {
+      fprintf(stderr, "ERROR Failed to get reference positio from SP3\n");
+      return 1;
+    }
+    if (svState.mjd_tai != sp3_iterator.current_time().as_mjd()) boundary_condition_chage = 1;
+    svState.mjd_tai  = sp3_iterator.current_time().as_mjd();
+    svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
+    svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
+    svState.state(2) = sp3_iterator.data_block().state[2] * 1e3;
+    svState.state(3) = sp3_iterator.data_block().state[0] * 1e-1;
+    svState.state(4) = sp3_iterator.data_block().state[1] * 1e-1;
+    svState.state(5) = sp3_iterator.data_block().state[2] * 1e-1;
+    if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
+      return 1;
+    }
+    printf(". Integrating orbit from %.6f to %.6f, that is %.3f seconds\n",
+      sp3_iterator.current_time().as_mjd(), svState.mjd_tai, (svState.mjd_tai - sp3_iterator.current_time().as_mjd()) * 86400e0);
     // printf(", SV at %.3f %.3f %.3f [km] ECEF\n", svState.state(0) * 1e-3,
     //       svState.state(1) * 1e-3, svState.state(2) * 1e-3);
 
     // SP3 interpolated state (only for validation)
     // satellite position for current epoch
-    double spos[3], svel[3], rverr[6];
-    sv_intrp.interpolate_at(tl1, spos, rverr, svel, rverr + 3);
-    printf(", SV at %.3f %.3f %.3f [km]\n", spos[0], spos[1], spos[2]);
-    svState.state(0) = spos[0] * 1e3;
-    svState.state(1) = spos[1] * 1e3;
-    svState.state(2) = spos[2] * 1e3;
-    svState.state(3) = svel[0] * 1e-1;
-    svState.state(4) = svel[1] * 1e-1;
-    svState.state(5) = svel[2] * 1e-1;
+    //double spos[3], svel[3], rverr[6];
+    //sv_intrp.interpolate_at(tl1, spos, rverr, svel, rverr + 3);
+    //printf(", SV at %.3f %.3f %.3f [km]\n", spos[0], spos[1], spos[2]);
+    //svState.state(0) = spos[0] * 1e3;
+    //svState.state(1) = spos[1] * 1e3;
+    //svState.state(2) = spos[2] * 1e3;
+    //svState.state(3) = svel[0] * 1e-1;
+    //svState.state(4) = svel[1] * 1e-1;
+    //svState.state(5) = svel[2] * 1e-1;
 
     // if this is the first iteration, initialize the Kalman filter
     if (!dummy_counter) {
@@ -440,9 +461,9 @@ int main(int argc, char *argv[]) {
         const Eigen::Matrix<double, 3, 1> bxyz_sta =
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
 
-        printf(
-            "\t> Consuming new observation on beacon %.4s at %.1f %.1f %.1f\n",
-            beacon_it->m_station_id, bxyz_sta(0), bxyz_sta(1), bxyz_sta(2));
+        //printf(
+        //    "\t> Consuming new observation on beacon %.4s at %.1f %.1f %.1f\n",
+        //    beacon_it->m_station_id, bxyz_sta(0), bxyz_sta(1), bxyz_sta(2));
 
         // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
@@ -521,6 +542,8 @@ int main(int argc, char *argv[]) {
               pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
                                 beaconobs->m_values[l2i].m_value, Diono,
                                 cDtropo, cDrel, r_enu);
+              pprev_obs->arcnr+=1;
+              if (pprev_obs->arcnr > 3) return 99;
             } else {
               prevec.emplace_back(SatBeacon(beaconobs->id(), receiver_count,
                                             tl1,
@@ -547,11 +570,15 @@ int main(int argc, char *argv[]) {
             const auto delta_tau = tl1.delta_sec(pprev_obs->t);
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
 
-            printf("%.4s %.6f %.1f %.6f %.6f %.6f\n", beacon_it->m_station_id,
+            printf("%.4s ArcNr: %d SecOfDay: %.6f Elev[deg]: %.1f Ndop: %.6f "
+                   "Dt[sec]: %.6f C*Ndop/(fe*dt): %.6f (rho2-rho1)/dt: %.6f InitalCondChanged: %d\n",
+                   beacon_it->m_station_id, pprev_obs->arcnr,
                    tl1.sec().to_fractional_seconds(), dso::rad2deg(el), Ndop,
                    delta_tau.to_fractional_seconds(),
                    iers2010::C * Ndop /
-                       (fs1_nom * delta_tau.to_fractional_seconds()));
+                       (fs1_nom * delta_tau.to_fractional_seconds()),
+                   (rho - pprev_obs->rho()) /
+                       delta_tau.to_fractional_seconds(), boundary_condition_chage);
 
             // Ionospheric path delay in [m/sec]
             const double Dion = (iers2010::C / fs1_nom) *
@@ -594,16 +621,16 @@ int main(int argc, char *argv[]) {
             // Filter time-update
             // ----------------------------------------------------------------
             // State transition matrix (augmented)
-            Eigen::MatrixXd PhiP =
-                Eigen::MatrixXd::Identity(NumParams, NumParams);
-            PhiP.block<6, 6>(0, 0) = svState.Phi;
-            // PhiP(6 + receiver_number, 6 + receiver_number) = 1e0; already
-            // done
-            auto estimates = Filter.x;
-            estimates.block<6, 1>(0, 0) = svState.state;
-            Filter.time_update(tl1, estimates, PhiP);
+            //Eigen::MatrixXd PhiP =
+            //    Eigen::MatrixXd::Identity(NumParams, NumParams);
+            //PhiP.block<6, 6>(0, 0) = svState.Phi;
+            //// PhiP(6 + receiver_number, 6 + receiver_number) = 1e0; already
+            //// done
+            //auto estimates = Filter.x;
+            //estimates.block<6, 1>(0, 0) = svState.state;
+            //Filter.time_update(tl1, estimates, PhiP);
 
-            // handle range-rate measurement
+            //// handle range-rate measurement
             Eigen::Matrix<double, 6, 1> drrdrv;
             double rho_dot; // computed value for range-rate
             const Eigen::Matrix<double, 3, 1> s = range_rate(
@@ -616,11 +643,11 @@ int main(int argc, char *argv[]) {
                 Umeasured - Utheoretical, rho_dot,
                 (rho - pprev_obs->rho()) / delta_tau.to_fractional_seconds());
 
-            Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
-            dHdX.block<6, 1>(0, 0) = drrdrv;
-            dHdX(6 + receiver_number) = iers2010::C * (frT + NdopDt) / fs1_nom;
-            Filter.observation_update(Umeasured - Utheoretical, rho_dot,
-                                      2e0 / std::cos(el), dHdX);
+            //Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
+            //dHdX.block<6, 1>(0, 0) = drrdrv;
+            //dHdX(6 + receiver_number) = iers2010::C * (frT + NdopDt) / fs1_nom;
+            //Filter.observation_update(Umeasured - Utheoretical, rho_dot,
+            //                          2e0 / std::cos(el), dHdX);
 
             // update previous observation for next Ndop
             pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
@@ -647,6 +674,8 @@ int main(int argc, char *argv[]) {
       // next beacon observation block for this epoch
       ++beaconobs;
     } // for every beacon observation set in epoch
+
+    } // if (it->contains_beacon(tlsb) != it->cblock.end()) 
 
     // if (++dummy_counter > 500)
     //   break;
@@ -680,6 +709,7 @@ int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1_idx, int &l2_idx,
   return 0;
 }
 
+/*
 int get_satellite_sp3_state(const char *sp3fn, double mjd_tai,
                             Eigen::Matrix<double, 6, 1> &state,
                             double &mjd_state) {
@@ -720,6 +750,7 @@ int get_satellite_sp3_state(const char *sp3fn, double mjd_tai,
 
   return 0;
 }
+*/
 
 Eigen::Matrix<double, 3, 1>
 beacon_coordinates(const char *_4charid,

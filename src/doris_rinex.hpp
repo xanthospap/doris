@@ -245,7 +245,9 @@ public:
   /// @warning The character array returned here is a **non-null terminated**
   ///        string. Beware  how you use it. See dso::BeaconStation and its
   ///        member variable m_station_id
-  const char *beacon_internal_id2id(const char *inid) const noexcept;
+  const char *beacon_internal_id2id(const char *_3charid) const noexcept;
+
+  const char *beacon_id2internal_id(const char *_4charid) const noexcept;
   
   /// @brief Given a beacon 3-char identifier (internal to this RINEX), return 
   ///        the corresponding BeaconStation instance (stored in the instance)
@@ -331,6 +333,22 @@ struct RinexDataBlockIterator {
   std::vector<BeaconObservations> cblock;
   ///< pointer to the RINEX file
   DorisObsRinex *rnx;
+
+  /// @brief Check if current block contains observations from a given beacon,
+  ///        given its internal, 3-char id (RINEX-specific).
+  /// @return An iterator to the BeaconObservations instance (in the instances
+  ///        clock vector) holding measuremets for the given beacon. If no
+  ///        measuremets for the beacon are available (in this block), the 
+  ///        iterator in invalid, aka cblock.end()
+  std::vector<BeaconObservations>::iterator
+  contains_beacon(const char *_3char_id) noexcept {
+    return std::find_if(cblock.begin(), cblock.end(),
+                        [&](const BeaconObservations &obs) {
+                          return obs.m_beacon_id[0] == _3char_id[0] &&
+                                 obs.m_beacon_id[1] == _3char_id[1] &&
+                                 obs.m_beacon_id[2] == _3char_id[2];
+                        });
+  }
 
   /// @brief Constructor
   RinexDataBlockIterator(DorisObsRinex *drnx) noexcept : rnx(drnx) {

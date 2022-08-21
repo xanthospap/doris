@@ -54,6 +54,18 @@ dso::DorisObsRinex::beacon_internal_id2id(const char *inid) const noexcept {
   return m_stations[idx].m_station_id;
 }
 
+const char *
+dso::DorisObsRinex::beacon_id2internal_id(const char *inid) const noexcept {
+  auto it = std::find_if(m_stations.begin(), m_stations.end(),
+                         [&](const BeaconStation &bcn) {
+                           return !std::strncmp(inid, bcn.m_station_id, 4);
+                         });
+  if (it == m_stations.end())
+    return nullptr;
+  auto idx = std::distance(m_stations.begin(), it);
+  return m_stations[idx].m_internal_code;
+}
+
 void dso::DorisObsRinex::skip_data_block(
     const dso::RinexDataRecordHeader &hdr) noexcept {
   char line[MAX_RECORD_CHARS];
