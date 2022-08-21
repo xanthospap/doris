@@ -31,6 +31,7 @@ two measurements, would give the \emph{range-rate}, i.e. the relative becon-to-s
 velocity.
 
 \textbf{Range Rate}\\
+\label{range-rate}
 Suppose that the two consecutive measurements are performed at $\tau_{r_1}$ 
 and $\tau_{r_2}$ respectively, at the receiver proper time. We must compute the 
 ``\emph{theoretical}'' range-rate value (to compare it with the value observed).
@@ -38,10 +39,29 @@ According to \cite{Montenbruck2000}, the formula for computing range-rate is:
 \begin{equation}
   \dot{\rho} = \frac{\rho_{\tau_{r_2}} - \rho_{\tau_{r_1}}}{\tau_{r_2} - \tau_{r_1}}
 \end{equation}
+In the implementation, the formula is computed using \emph{topocentric} vectors 
+(with origin at the beacon). Hence $\rho_{\tau_{r_1}}$ and $\rho_{\tau_{r_2}}$ are 
+actualy $\rho_{\tau_{r_1}}^{enu}$ and $\rho_{\tau_{r_2}}^{enu}$.
+
 Note, that the \emph{instataneous} range range is computed via (\cite{Montenbruck2000})
 \begin{equation}
   \dot{\rho} = \dot{s} = \frac{\bm{s} \bm{\dot{s}}}{s}
 \end{equation}
+
+\textbf{Measurement Flags}\\
+\label{measurement-flags}
+Each observation (on each frequency) in the RINEX file is marked with two ``flags'', 
+aka two distinct characters that follow the observation value and flag important 
+events if any. Here, we will exclude observations if the following conditions are true:
+\begin{description}
+  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is a ``central frequency'' measurement (that is the 
+  first flag is an \texttt{1})
+  \item[\texttt{L2GHz} or \texttt{L400MHz}] measurement is marked as discontinuity, i.e. Loss-of-Lock has occured 
+  (that is the seconds flag is an \texttt{1})
+  \item[power-level \texttt{W}] measurement (on either of the frequencies) flags a 
+  beacon on restart mode (first flag is an \texttt{1})
+\end{description}
+
 
 \chapter{DORIS System Theoretical Implications}
 \label{ch:doris-theory}
