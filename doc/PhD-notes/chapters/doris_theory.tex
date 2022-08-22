@@ -49,6 +49,47 @@ which is computed via (\cite{Montenbruck2000})
   \dot{\rho} = \dot{s} = \frac{\bm{s} \bm{\dot{s}}}{s}
 \end{equation}
 
+\textbf{Coordinate and Proper Time}\\
+\label{coordinate-and-proper-time}
+We distingiush between to different times-scales:
+\begin{itemize}
+  \item \emph{Proper time} $\tau$, which is the time implemented by the receiver 
+    electronics, and
+  \item \emph{Coordinate time} $t$ which is considered as the TCG time-scale.
+  {\color{brown}For simplicity, we are using TAI as the coordinate time system, not TCG.}
+\end{itemize}
+Within the RINEX files,
+\begin{displayquote}
+  The timing of events such as phase sampling and pseudo-range acquisition are 
+  given in the receiver time scale.
+\end{displayquote}
+and
+\begin{displayquote}
+  This epoch is by construction the instrument time of the event corrected for 
+  instrumental delays, so that it is the time at which the event happened at the 
+  phase center of the antenna.
+  The TAI time of these events can be obtained by adding the Receiver clock 
+  offset to the epoch.
+\end{displayquote}
+
+Notes:
+  TCG is a time coordinate system of the IAU spacetime metric called 
+  geocentric celestial reference system, GCRS \cite(SOFA20210125), Sec. 3.6.3
+  Geocentric coordinate time, TCG, is appropriate for theoretical studies of 
+  geocentric ephemerides. Its relationship with TT is this conventional linear 
+  transformation:
+  \begin{equation}
+    TCG = TT + L_G \cdot (JD_{TT} - TT_0)
+  \end{equation}
+  where $TT_0=2443144.5003725$ (i.e. TT at 1977 January 1.0 TAI), $JD_{TT}$ is 
+  TT expressed as Julian date, and $L_G = 6.969290134 \cdot 10-10$ 
+  (\cite{SOFA20210125}, Sec. 3.6.4).
+  To within $10^{-18}$ in rate, we can use the approximation (\cite{iers2010}):
+  \begin{equation}
+    TCG - TT = L_G \cdot \left( MJD - 43144.0 \right) \cdot 86400 \text{ [sec]}
+  \end{equation}
+  where $MJD$ refers to the modified Julian date of TAI ($TT=TAI+32.184\text{ sec}$)
+
 \textbf{Beacon Nominal Frequencies}\\
 \label{beacon-nominal-frequencies}
 The RINEX file contains a \emph{station frequency shift factor} for each of the 
@@ -56,12 +97,52 @@ beacons included. This is used to compute the ``nominal'' frequencies of the
 beacon/emitter. Usually, this shift factor is just $0$, but it can be an integer 
 $k \neq 0$. The frequencies are computed as:
 \begin{equation}
-  \begin{align}
+  \begin{aligned}
     L_{2GHz}   &= 543 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) \\
     L_{400MHz} &= 107 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) 
-  \end{align}
+  \end{aligned}
 \end{equation}
 where $F_0 = 5e6 \text{ Hz}$ the USO frequency.
+
+Note that regardless of the beacon's frequency shift factor $k$, the $\gamma$ 
+value, given by $\gamma = \left( \frac{f_{2GHz}}{f_{400MHz}} \right) ^2$ remains 
+the same.
+
+\textbf{True and Nominal Frequencies}\\
+\label{true-nominal-frequencies}
+The ``true'' frequencies emitted and received, are in fact slightly different 
+than the nominal ones. To quantify this difference, we will use the 
+\emph{relative frequency offset} factor, $\Delta f_e / f_{e,Nominal}$ and 
+$\Delta f_r / f_{r,Nominal}$ for the emitter and the receiver respectively. 
+Hence, from now on, we will use the subscript $N$ for nominal frequencies and 
+$T$ for the true ones, using the relations:
+\begin{equation}
+  \begin{aligned}
+    f_{eT} &= f_{eN} \cdot \left( 1 + \frac{\Delta f_e}{f_{eN}} \right) \\
+    f_{rT} &= f_{rN} \cdot \left( 1 + \frac{\Delta f_r}{f_{rN}} \right) \\
+  \end{aligned}
+\end{equation}
+Due to correlation between the relative frequency offsets (of the emitter and 
+the receiver), it is only possible to estimate one of the two. Following \cite{lemoine-2016}, 
+we choose to estimate the $\Delta f_e$ (per beacon) factors. This means that we 
+must use a known/computed value for $\Delta f_r$. {\color{brown}There are a couple 
+of ways to compute $\Delta f_r$, the most simple one being using the RINEX values 
+reported every epoch.}
+Thus, for every epoch, we will use the RINEX-reported value of \texttt{F} to 
+compute the ``true'' frequency of the receiver as:
+\begin{equation}
+  f_{rT} = f_{rN} \cdot \left( 1 + F \cdot 1e-11 \right)
+\end{equation}
+where $f_{rN}$ is 2GHz and 400MHz for the first and second frequencies 
+respectively.
+
+We are going to estimate the $\Delta f_e$ values, using one estimate per beacon, 
+per pass. An initial starting value of $1e-6$ is used.
+
+Using this approach, the \emph{observed} value of the range-rate becomes:
+\begin{equation}
+  \frac{c}{f_{eN}} \left( f_{eN} - f_{rT} - \frac{N_{DOP}}{\Delta \tau_{r}} \right) 
+\end{equation}
 
 \textbf{Measurement Flags}\\
 \label{measurement-flags}
@@ -212,6 +293,93 @@ could be that the log files contain eccentricities. Make a Python script to
 parse DORIS log files and spit beacon eccentricities.}
 
 
+%% This declares a command \Comment
+%% The argument will be surrounded by /* ... */
+\SetKwComment{Comment}{/* }{ */}
+
+\begin{algorithm}
+\caption{An algorithm with caption}\label{alg:two}
+\KwData{MinElevationAngle}
+\KwIn{RINEX}
+
+\BlankLine
+readRinexHeader;
+
+\ForEach{$dataBlock$ in RINEX}
+{
+  get current proper time $\tau_i$\;
+  \Comment*[r]{Apply the receiver clock offset $rco$ from RINEX to get to TAI}\
+  $t_i \gets \tau_i + rco$\ 
+  \Comment*[r]{Integrate satellite orbit to $t_i$ (TAI), state GCRS-to-ECEF}\
+  $\bm{r}_{sat_{t_i}}^{ecef} \gets \bm{r}_{sat_{t_i}}^{gcrs}$
+  $\bm{v}_{sat_{t_i}}^{ecef} \gets \bm{v}_{sat_{t_i}}^{gcrs}$
+
+  \ForEach{$beacon$ in $dataBlock$} 
+  {
+    \eIf{observation flags not ok}
+    {
+      \lIf{previous observation exist}{mark discontinuity}
+      skip observation
+    }
+    {
+      \Comment*[r]{get beacon coordinates from SINEX}
+      $\bm{r}_{sta}^{ecef} \gets SINEX$\;
+      \Comment*[r]{aplly iono-free phase center correction}
+      $\bm{r}_{sta}^{ecef} \gets \bm{r}_{sta}^{ecef} + \Delta _{iono-free}$\;
+      \Comment*[r]{compute Azimouth, Elevation, and Range}
+      $Az_{t_i}$, $El_{t_i}$, $\rho _{t_i}$
+
+      \If{$El_{t_i} > MinElevationAngle$}
+      {
+        \Comment*[r]{compute nominal beacon frequency}
+        $f_{eN}$
+
+        \Comment*[r]{compute ionospheric correction}
+        $\Delta_{iono}$
+
+        \Comment*[r]{compute tropospheric correction}
+        $L_{z,t_i}^{hyd}$, $mf_{t_i}^{hyd}$, $mf_{t_i}^{wet}$
+
+        \eIf{start of new pass}{
+          compute $L_{z,t_i}^{wet}$
+        }
+        {
+          retrieve filter value for $L_{z,t_i}^{wet}$
+        }
+
+        \Comment*[r]{compute relativistic correction}
+        $\Delta_{{rel}_c}$
+
+        \If{this is a new arc, or new beacon, or recovering from discontinuity} 
+        {
+          store/update beacon data ($t_i$, $\Delta_{iono}$, $\Delta_{trop}$, etc)
+        }
+        {
+          \Comment*[r]{compute true proper frequency}
+          $f_{rT}$
+
+          \Comment*[r]{compute doppler count}
+          $N_{DOP} \gets L1_{t_i} - L1_{t_{i-1}}$
+
+          \Comment*[r]{differentiate ionospheric correction}
+          $\Delta_{iono} \gets ( \Delta_{iono_{t_i}} - \Delta_{iono_{t_{i-1}}} ) / \Delta t$
+
+          \Comment*[r]{differentiate tropospheric correction}
+          $\Delta_{trop} \gets ( \Delta_{trop_{t_i}} - \Delta_{trop_{t_{i-1}}} ) / \Delta t$
+
+          \Comment*[r]{differentiate relativistic correction}
+          $\Delta_{relc} \gets ( \Delta_{relc_{t_i}} - \Delta_{relc_{t_{i-1}}} ) / \Delta t$
+
+          \Comment*[r]{retrieve value for the relative frequency offset of the emitter}
+          $\Delta_{fe} / f_{eN}$
+        }
+      }
+    }
+  }
+}
+
+\end{algorithm}
+
 \textbf{Pseudocode}
 \begin{enumerate}
   
@@ -246,6 +414,8 @@ parse DORIS log files and spit beacon eccentricities.}
 
       \item compute ``nominal'' values for the beacon frequencies 
       (\ref{beacon-nominal-frequencies}) $f_{eN}$ (for 2GHz and 400MHz).
+
+      \item compute ``true'' frequency of the receiver (\ref{true-nominal-frequencies})
 
       \item compute ionospheric correction for this observation 
       (\ref{ionospheric-refraction}) $\Delta _{ion}$

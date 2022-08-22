@@ -371,6 +371,8 @@ int main(int argc, char *argv[]) {
   const char *tlsb = rnx.beacon_id2internal_id("TLSB");
   assert(tlsb);
 
+  printf("Site Arc Date Time SecOfDay Elev Ndop Dt (c/feN)*(feN-frT-Ndop/dt) (rho2-rho1)/dt Ion Dion Tro Dtro Relc Drelc frT Df/f ClkOffset\n");
+
   error = 0;
   int dummy_counter = 0;
   // count beacons as we encounter them (above min. elevation)
@@ -382,12 +384,12 @@ int main(int argc, char *argv[]) {
     if (it.contains_beacon(tlsb) != it.cblock.end()) {
 
       // the current reference time for the L1 observation (corrected for
-      // receiver clock offset)
+      // receiver clock offset). That is tl1 is approximately TAI
       auto tl1 = it.corrected_l1_epoch();
 
       char dtbuf[64];
-      dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-      printf("Processing observation block at %s (TAI)", dtbuf);
+      //dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
+      //printf("#Processing observation block at %s (TAI)", dtbuf);
 
       // integrate orbit to here (TAI) TODO
       // svState will contain satellite state for time tl1 in the terrestrial RF
@@ -396,7 +398,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR Failed to get reference positio from SP3\n");
         return 1;
       }
-      svState.mjd_tai = sp3_iterator.current_time().as_mjd();
+      svState.mjd_tai  = sp3_iterator.current_time().as_mjd();
       svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
       svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
       svState.state(2) = sp3_iterator.data_block().state[2] * 1e3;
@@ -407,7 +409,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
-      printf(". Integrating orbit from %.6f to %.6f, that is %.3f seconds\n",
+      printf("# Integrating orbit from %.6f to %.6f, that is %.3f seconds\n",
              sp3_iterator.current_time().as_mjd(), svState.mjd_tai,
              (svState.mjd_tai - sp3_iterator.current_time().as_mjd()) *
                  86400e0);
@@ -461,7 +463,7 @@ int main(int argc, char *argv[]) {
             if (pprev_obs != prevec.end()) {
               pprev_obs->reinitialize = 1;
             }
-            printf("\t\tNote! Observation has flags: L1[%c%c]/L2[%c%c]/W1[%c%c]/W2[%c%c]; skipped!\n",
+            printf("\t\t#Note! Observation has flags: L1[%c%c]/L2[%c%c]/W1[%c%c]/W2[%c%c]; skipped!\n",
                    beaconobs->m_values[l1i].m_flag1,
                    beaconobs->m_values[l1i].m_flag2,
                    beaconobs->m_values[l2i].m_flag1,
@@ -598,17 +600,6 @@ int main(int argc, char *argv[]) {
                 const auto delta_tau = tl1.delta_sec(pprev_obs->t);
                 const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
 
-                dso::strftime_ymd_hmfs(tl1, dtbuf);
-                printf(
-                    "%.4s ArcNr: %d Date: %s SecOfDay: %.6f Elev[deg]: %.1f Ndop: %.6f "
-                    "Dt[sec]: %.6f (c/fe)*(Ndop/dt-(fe-fr)): %.6f (rho2-rho1)/dt: %.6f\n",
-                    beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
-                    tl1.sec().to_fractional_seconds(), dso::rad2deg(el), Ndop,
-                    delta_tau.to_fractional_seconds(),
-                    (iers2010::C/fs1_nom)*(NdopDt-(fs1_nom-frT)),
-                    (rho - pprev_obs->rho()) /
-                        delta_tau.to_fractional_seconds());
-
                 // Ionospheric path delay in [m/sec]
                 const double Dion = (iers2010::C / fs1_nom) *
                                     (Diono - pprev_obs->Diono) /
@@ -617,37 +608,40 @@ int main(int argc, char *argv[]) {
                 // Tropospheric delay in [m/sec]
                 // get current estimate of Wet Zenith delay
                 const double cWzd = Filter.x(6 + receiver_count * 2 + 1);
-                const double Dtropo =
+                [[maybe_unused]]const double Dtropo =
                     (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                     delta_tau.to_fractional_seconds();
 
                 // Relativistic corrections
                 const double Drel = (cDrel - pprev_obs->Drel) /
                                     delta_tau.to_fractional_seconds();
-
-                const double Umeasured =
-                    (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt) + Dion +
-                    Drel;
-                printf("\t\t#Umeasured   : %.3f = (%.3f / %.3f) * (%.3f - %.3f "
-                       "-%.3f) "
-                       "+ %.3f + %.3f\n",
-                       Umeasured, iers2010::C, fs1_nom, fs1_nom, frT, NdopDt,
-                       Dion, Drel);
+                
+                dso::strftime_ymd_hmfs(tl1, dtbuf);
+                printf(
+                    "%.4s %d %s %.6f %.1f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.3f %.6f %.6f\n",
+                    beacon_it->m_station_id,
+                    pprev_obs->arcnr, 
+                    dtbuf,
+                    tl1.sec().to_fractional_seconds(), 
+                    dso::rad2deg(el), 
+                    Ndop,
+                    delta_tau.to_fractional_seconds(),
+                    (iers2010::C/fs1_nom)*(fs1_nom-frT-NdopDt),
+                    (rho - pprev_obs->rho()) /
+                        delta_tau.to_fractional_seconds(),
+                    (iers2010::C / fs1_nom)*Diono, 
+                    Dion,
+                    cDtropo.sum(), 
+                    (cDtropo.sum() - pprev_obs->Dtropo.sum()) /delta_tau.to_fractional_seconds(),
+                    cDrel, 
+                    Drel,
+                    frT, 
+                    beaconobs->m_values[fi].m_value,
+                    it.cheader.m_clock_offset);
 
                 // we will need the estimated Δf_e / f_eN
                 const int receiver_number = pprev_obs->count;
-                const double DfefeN = Filter.x(6 + receiver_number * 2);
-
-                const double Utheoretical =
-                    (rho - pprev_obs->rho()) /
-                        delta_tau.to_fractional_seconds() +
-                    Dtropo - (iers2010::C * (frT + NdopDt) / fs1_nom) * DfefeN;
-                printf(
-                    "\t\t#Utheoretical: %.3f = (%.3f - %.3f) / %.3f + %.3f - "
-                    "(%.3f * (%.3f + %.3f) / %.3f) * %.10e\n",
-                    Utheoretical, rho, pprev_obs->rho(),
-                    delta_tau.to_fractional_seconds(), Dtropo, iers2010::C, frT,
-                    NdopDt, fs1_nom, DfefeN);
+                [[maybe_unused]]const double DfefeN = Filter.x(6 + receiver_number * 2);
 
                 // Filter time-update
                 // ----------------------------------------------------------------
@@ -667,13 +661,6 @@ int main(int argc, char *argv[]) {
                 const Eigen::Matrix<double, 3, 1> s = range_rate(
                     pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
                     delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
-
-                printf("\t\t#Observed range-rate: %+.6f, Computed : %+.6f, "
-                       "p2-p1 / Dt "
-                       ": %+.6f\n",
-                       Umeasured - Utheoretical, rho_dot,
-                       (rho - pprev_obs->rho()) /
-                           delta_tau.to_fractional_seconds());
 
                 // Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
                 // dHdX.block<6, 1>(0, 0) = drrdrv;
@@ -825,15 +812,15 @@ beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
   // just for debugging, validation
   if (lfh(2) < 0e0) {
     fprintf(stderr, "WTF!! Height is negative\n");
-    printf("Cartesian  : %.3f %.3f %.3f [m]\n", bxyz_arp(0), bxyz_arp(1),
-           bxyz_arp(2));
-    printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
-           dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
-    const auto R = dso::topocentric_matrix(lfh);
-    auto b = bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
-    lfh = dso::car2ell<dso::ellipsoid::grs80>(b);
-    printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
-           dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
+    //printf("Cartesian  : %.3f %.3f %.3f [m]\n", bxyz_arp(0), bxyz_arp(1),
+    //       bxyz_arp(2));
+    //printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
+    //       dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
+    //const auto R = dso::topocentric_matrix(lfh);
+    //auto b = bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
+    //lfh = dso::car2ell<dso::ellipsoid::grs80>(b);
+    //printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
+    //       dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
   }
   const auto R = dso::topocentric_matrix(lfh);
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
