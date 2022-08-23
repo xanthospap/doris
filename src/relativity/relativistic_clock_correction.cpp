@@ -22,10 +22,6 @@ dso::relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
   // velocity squared
   const double V2 = vecef.squaredNorm();
 
-#ifdef DEBUG
-printf("\t\tDU (beacon) = %.6f\n", U);
-#endif
-
   // return total potential, aka U + V^2 / 2
   return U + V2/2e0;
 }
@@ -62,10 +58,6 @@ dso::relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
 
   // velocity squared
   const double V2 = vecef.squaredNorm();
-
-#ifdef DEBUG
-printf("\t\tDU (satellite) = %.6f + %.6f (J2=%.6f)\n", U, V2/2e0, J2);
-#endif
 
   // return total potential, aka U + V^2 / 2
   return U + V2 / 2e0;

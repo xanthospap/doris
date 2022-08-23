@@ -48,7 +48,8 @@ struct SatBeacon {
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
       : count(count_), t(t_), Ls1(L1), Lu2(L2), Diono(Diono_), Drel(Drel_),
         Dtropo(Dtropo_), s(s_) {
-    std::strncpy(id3c, id_, 3);
+    // std::strncpy(id3c, id_, 3); // fuck the warning!
+    std::memcpy(id3c, id_, sizeof(char)*3);
   }
   SatBeacon &operator=(const SatBeacon &sb) noexcept {
     std::strncpy(id3c, sb.id3c, 3);
@@ -79,9 +80,10 @@ struct SatBeacon {
 // hold satellite state & time
 struct SatelliteState {
   double mjd_tai;
-  Eigen::Matrix<double, 6, 1> state;
-  Eigen::Matrix<double, 6, 6> Phi;
+  Eigen::Matrix<double, 6, 1> state;    // state vector at t=ttai in ECEF
+  Eigen::Matrix<double, 6, 6> Phi;      // state transition matrix at t=tai
 
+  // ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
     // Terrestrial to Celestial transformation matrix and derivative for this
@@ -183,11 +185,6 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
               const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept;
 
-// get state of satellite at a given epoch
-/*int get_satellite_sp3_state(const char *sp3, double mjd_tai,
-                            Eigen::Matrix<double, 6, 1> &state,
-                            double &mjd_state);*/
-
 Eigen::Matrix<double, 3, 1>
 range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
            const Eigen::Matrix<double, 3, 1> &rsta,
@@ -240,7 +237,6 @@ int main(int argc, char *argv[]) {
   dso::get_yaml_value_depth2(config, "data", "sp3", buf);
   dso::Sp3c sp3(buf);
   dso::Sp3Iterator sp3_iterator(sp3);
-  printf("Sp3 iterator created\n");
 
   // SP3 Validation Orbit (Should not be needed)
   // -------------------------------------------------------------------------
@@ -368,7 +364,7 @@ int main(int argc, char *argv[]) {
   const double Re = harmonics.Re();
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
-  const char *tlsb = rnx.beacon_id2internal_id("TLSB");
+  const char *tlsb = "foobar"; // rnx.beacon_id2internal_id("TLSB");
   assert(tlsb);
 
   printf("Site Arc Date Time SecOfDay Elev Ndop Dt (c/feN)*(feN-frT-Ndop/dt) (rho2-rho1)/dt Ion Dion Tro Dtro Relc Drelc frT Df/f ClkOffset\n");
@@ -378,18 +374,19 @@ int main(int argc, char *argv[]) {
   // count beacons as we encounter them (above min. elevation)
   int receiver_count = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
+  dso::datetime<dso::nanoseconds> last_ex_target;
   while (!(error = it.next())) {
 
     // limit to one beacon TLSB; if the block does not cotain this beacon, skip)
-    if (it.contains_beacon(tlsb) != it.cblock.end()) {
+    // if (it.contains_beacon(tlsb) != it.cblock.end()) {
 
       // the current reference time for the L1 observation (corrected for
-      // receiver clock offset). That is tl1 is approximately TAI
+      // receiver clock offset). That is tl1 is approximately TAI.
+      // aka proper-time to coordinate-time
       auto tl1 = it.corrected_l1_epoch();
 
+      // a buffer to write datetime strings to
       char dtbuf[64];
-      //dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-      //printf("#Processing observation block at %s (TAI)", dtbuf);
 
       // integrate orbit to here (TAI) TODO
       // svState will contain satellite state for time tl1 in the terrestrial RF
@@ -402,112 +399,75 @@ int main(int argc, char *argv[]) {
       svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
       svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
       svState.state(2) = sp3_iterator.data_block().state[2] * 1e3;
-      svState.state(3) = sp3_iterator.data_block().state[0] * 1e-1;
-      svState.state(4) = sp3_iterator.data_block().state[1] * 1e-1;
-      svState.state(5) = sp3_iterator.data_block().state[2] * 1e-1;
-      if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
+      svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
+      svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
+      // if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      // WARNING just for debugging!
+      // Extrapolate orbit to the next second!
+      auto tepoch = sp3_iterator.current_time();
+      tepoch.add_seconds(dso::nanoseconds(1'000'000'000 * 600L));
+      if (tepoch!=last_ex_target) {
+      if (svState.integrate(tepoch.as_mjd(), Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
-      printf("# Integrating orbit from %.6f to %.6f, that is %.3f seconds\n",
-             sp3_iterator.current_time().as_mjd(), svState.mjd_tai,
-             (svState.mjd_tai - sp3_iterator.current_time().as_mjd()) *
-                 86400e0);
-
-      // if this is the first iteration, initialize the Kalman filter
-      if (!dummy_counter) {
-        Filter.t = tl1;
-        Filter.x.block<6, 1>(0, 0) = svState.state;
-        for (int i = 6; i < NumParams; i += 2) {
-          Filter.x(i) = 1e-6;    // beacon relative frequency offset
-          Filter.x(i + 1) = 0e0; // apriori tropo wet delay at zenith
-        }
-        // default sigma for releative frequency offset
-        Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams) * 1e3;
-        // default sigma for position is 1 [m]
-        Filter.P.block<3, 3>(0, 0) =
-            5e0 * Eigen::Matrix<double, 3, 3>::Identity();
-        // default sigma for velocity is 5 [m/sec]
-        Filter.P.block<3, 3>(3, 3) =
-            5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+      printf("%s %.6f %.6f %.6f %.9f %.9f %.9f %.12f\n",
+             dso::strftime_ymd_hmfs<dso::nanoseconds>(tepoch, dtbuf),
+             svState.state(0), svState.state(1), svState.state(2),
+             svState.state(3), svState.state(4), svState.state(5), tepoch.as_mjd());
+      last_ex_target = tepoch;
       }
 
-      // iterate through the observation set (aka the various beacons with
-      // observations for current epoch)
-      auto beaconobs = it.cblock.begin();
-      while (beaconobs != it.cblock.end()) {
+      // limit to one beacon TLSB; if the block does not cotain this beacon,
+      // skip)
+      if (it.contains_beacon(tlsb) != it.cblock.end()) {
 
-        // what is the current beacon ?
-        auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
-        assert(beacon_it != rnx.stations().cend());
+        // if this is the first iteration, initialize the Kalman filter
+        if (!dummy_counter) {
+          Filter.t = tl1;
+          Filter.x.block<6, 1>(0, 0) = svState.state;
+          for (int i = 6; i < NumParams; i += 2) {
+            Filter.x(i) = 1e-6;    // beacon relative frequency offset
+            Filter.x(i + 1) = 0e0; // apriori tropo wet delay at zenith
+          }
+          // default sigma for releative frequency offset
+          Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams) * 1e3;
+          // default sigma for position is 1 [m]
+          Filter.P.block<3, 3>(0, 0) =
+              5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+          // default sigma for velocity is 5 [m/sec]
+          Filter.P.block<3, 3>(3, 3) =
+              5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+        }
 
-        // (debugging) only consume TLSB
-        if (!std::strncmp(beacon_it->m_station_id, "TLSB", 4)) {
+        // iterate through the observation set (aka the various beacons with
+        // observations for current epoch)
+        auto beaconobs = it.cblock.begin();
+        while (beaconobs != it.cblock.end()) {
 
-          // check flags
-          if (beaconobs->m_values[l1i].m_flag1 == '1' || // 2 GHz central frequency measurement
-              beaconobs->m_values[l1i].m_flag2 == '1' || // discontinuity of 2 GHZ measurement
-              beaconobs->m_values[l2i].m_flag1 == '1' || // 400 MHz central frequency measurement
-              beaconobs->m_values[l2i].m_flag2 == '1' || // discontinuity of 400 MHZ measurement
-              beaconobs->m_values[w1i].m_flag1 == '1' || // station on restart mode
-              beaconobs->m_values[w2i].m_flag1 == '1'    // station on restart mode
-           ) {
-            // check if we already have a previous observation for this beacon
-            auto pprev_obs = std::find_if(
-                prevec.begin(), prevec.end(), [&](const SatBeacon &sb) {
-                  return (sb.id3c[0] == beaconobs->id()[0] &&
-                          sb.id3c[1] == beaconobs->id()[1] &&
-                          sb.id3c[2] == beaconobs->id()[2]);
-                });
-            // mark as discontinuity and skip observation
-            if (pprev_obs != prevec.end()) {
-              pprev_obs->reinitialize = 1;
-            }
-            printf("\t\t#Note! Observation has flags: L1[%c%c]/L2[%c%c]/W1[%c%c]/W2[%c%c]; skipped!\n",
-                   beaconobs->m_values[l1i].m_flag1,
-                   beaconobs->m_values[l1i].m_flag2,
-                   beaconobs->m_values[l2i].m_flag1,
-                   beaconobs->m_values[l2i].m_flag2,
-                   beaconobs->m_values[w1i].m_flag1,
-                   beaconobs->m_values[w1i].m_flag2,
-                   beaconobs->m_values[w2i].m_flag1,
-                   beaconobs->m_values[w2i].m_flag2
-                   );
+          // what is the current beacon ?
+          auto beacon_it =
+              rnx.beacon_internal_id2BeaconStation(beaconobs->id());
+          assert(beacon_it != rnx.stations().cend());
 
-            // flags ok, continue with processing ...
-          } else {
+          // (debugging) only consume TLSB
+          if (!std::strncmp(beacon_it->m_station_id, "TLSB", 4)) {
 
-            // we are going to need the beacons ECEF coordinates (note that
-            // these are antenna RP coordinates)
-            const Eigen::Matrix<double, 3, 1> bxyz_sta =
-                beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
-
-            // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
-            const Eigen::Matrix<double, 3, 1> bxyz_ion =
-                beacon_arp2ion(bxyz_sta, *beacon_it);
-
-            // get azimouth [rad], elevation [rad] and geometric distance [m]
-            // (beacon to satellite)
-            const Eigen::Matrix<double, 3, 1> r_enu =
-                dso::car2top<dso::ellipsoid::grs80>(
-                    bxyz_ion, svState.state.block<3, 1>(0, 0));
-            double az, el;
-            double rho = dso::top2dae(r_enu, az, el);
-
-            // only process observations to elevation > EleCutOff [deg]
-            if (dso::rad2deg(el) < EleCutOff) {
-              dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
-              printf("\t\tSkipping observation to beacon %.4s because "
-                     "elevation is "
-                     "%.1f [deg] time: %s (TAI)\n",
-                     beacon_it->m_station_id, dso::rad2deg(el), dtbuf);
-
-            } else {
-              // elevation ok, continue processing
-
-              // is this the start of a new arc ?
-              bool start_new_arc = false;
-
+            // check flags
+            if (beaconobs->m_values[l1i].m_flag1 ==
+                    '1' || // 2 GHz central frequency measurement
+                beaconobs->m_values[l1i].m_flag2 ==
+                    '1' || // discontinuity of 2 GHZ measurement
+                beaconobs->m_values[l2i].m_flag1 ==
+                    '1' || // 400 MHz central frequency measurement
+                beaconobs->m_values[l2i].m_flag2 ==
+                    '1' || // discontinuity of 400 MHZ measurement
+                beaconobs->m_values[w1i].m_flag1 ==
+                    '1' || // station on restart mode
+                beaconobs->m_values[w2i].m_flag1 ==
+                    '1' // station on restart mode
+            ) {
               // check if we already have a previous observation for this beacon
               auto pprev_obs = std::find_if(
                   prevec.begin(), prevec.end(), [&](const SatBeacon &sb) {
@@ -515,180 +475,235 @@ int main(int argc, char *argv[]) {
                             sb.id3c[1] == beaconobs->id()[1] &&
                             sb.id3c[2] == beaconobs->id()[2]);
                   });
-              // if not, check if we have to start a new arc
+              // mark as discontinuity and skip observation
               if (pprev_obs != prevec.end()) {
-                if (tl1.delta_sec(pprev_obs->t) >
-                    dso::nanoseconds(
-                        max_sec_for_new_arc *
-                        dso::nanoseconds::sec_factor<
-                            dso::nanoseconds::underlying_type>())) {
-                  start_new_arc = true;
-                }
+                pprev_obs->reinitialize = 1;
               }
+              // printf("\t\t#Note! Observation has flags:
+              // L1[%c%c]/L2[%c%c]/W1[%c%c]/W2[%c%c]; skipped!\n",
+              //        beaconobs->m_values[l1i].m_flag1,
+              //        beaconobs->m_values[l1i].m_flag2,
+              //        beaconobs->m_values[l2i].m_flag1,
+              //        beaconobs->m_values[l2i].m_flag2,
+              //        beaconobs->m_values[w1i].m_flag1,
+              //        beaconobs->m_values[w1i].m_flag2,
+              //        beaconobs->m_values[w2i].m_flag1,
+              //        beaconobs->m_values[w2i].m_flag2
+              //        );
 
-              // nominal frequencies for the beacon: s1_freq and u2_freq
-              int k; // shift factor
-              if (rnx.beacon_shift_factor(beaconobs->id(), k)) {
-                fprintf(stderr, "Failed to find shift factor for beacon %.3s\n",
-                        beaconobs->id());
-                return 1;
-              }
-              double fs1_nom, fu2_nom; // [Hz]
-              dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
+              // flags ok, continue with processing ...
+            } else {
 
-              // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
-              const double Diono = dso::carrier_iono_correction(
-                  beaconobs->m_values[l1i].m_value,
-                  beaconobs->m_values[l2i].m_value);
+              // we are going to need the beacons ECEF coordinates (note that
+              // these are antenna RP coordinates)
+              const Eigen::Matrix<double, 3, 1> bxyz_sta =
+                  beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
 
-              // tropospheric correction
-              TropoDetails cDtropo;
-              if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid,
-                            cDtropo)) {
-                return 3;
-              }
+              // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
+              const Eigen::Matrix<double, 3, 1> bxyz_ion =
+                  beacon_arp2ion(bxyz_sta, *beacon_it);
 
-              // relativistic correction
-              double Drel_c, Drel_r;
-              relativity_corrections(svState.state, bxyz_ion, Re, GM, J2,
-                                     Drel_c, Drel_r);
-              const double cDrel = Drel_c + Drel_r;
+              // get azimouth [rad], elevation [rad] and geometric distance [m]
+              // (beacon to satellite)
+              const Eigen::Matrix<double, 3, 1> r_enu =
+                  dso::car2top<dso::ellipsoid::grs80>(
+                      bxyz_ion, svState.state.block<3, 1>(0, 0));
+              double az, el;
+              double rho = dso::top2dae(r_enu, az, el);
 
-              // Are we going to compute Doppler count / observations equation?
-              // We may not need to, if :
-              // 1. this is the first observation of the beacon
-              //    aka pprev_obs == prevec.end()
-              // 2. We are starting a new arc (aka start_new_arc==1)
-              // 3. Previous observation was marked (pprev_obs->reinitialize==1)
-              if (pprev_obs == prevec.end() || pprev_obs->reinitialize ||
-                  start_new_arc) {
-                if (pprev_obs != prevec.end()) {
-                  pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
-                                    beaconobs->m_values[l2i].m_value, Diono,
-                                    cDtropo, cDrel, r_enu);
-                  if (start_new_arc)
-                    pprev_obs->arcnr += 1;
-                  if (pprev_obs->reinitialize)
-                    pprev_obs->reinitialize = 0;
-                  if (pprev_obs->arcnr > 3)
-                    return 99;
-                } else {
-                  prevec.emplace_back(
-                      SatBeacon(beaconobs->id(), receiver_count, tl1,
-                                beaconobs->m_values[l1i].m_value,
-                                beaconobs->m_values[l2i].m_value, Diono,
-                                cDtropo, cDrel, r_enu));
-                  ++receiver_count;
-                }
-
-                // update a-priori value for this beacon zenith wet tropo delay
-                // [m]
-                Filter.x(6 + receiver_count * 2 + 1) = cDtropo.Lwz;
+              // only process observations to elevation > EleCutOff [deg]
+              if (dso::rad2deg(el) < EleCutOff) {
+                // dso::strftime_ymd_hmfs(it.cheader.m_epoch, dtbuf);
+                // printf("\t\tSkipping observation to beacon %.4s because "
+                //        "elevation is "
+                //        "%.1f [deg] time: %s (TAI)\n",
+                //        beacon_it->m_station_id, dso::rad2deg(el), dtbuf);
+                ;
 
               } else {
-                // compute Ndop and observation equation
+                // elevation ok, continue processing
 
-                // we need to find the true proper frequency of the receiver
-                // (aka satellite), f_rT [Hz]
-                const double frT =
-                    dso::DORIS_FREQ1_MHZ * 1e6 *
-                    (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+                // is this the start of a new arc ?
+                bool start_new_arc = false;
 
-                // Doppler count and delta time
-                const double Ndop =
-                    beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
-                const auto delta_tau = tl1.delta_sec(pprev_obs->t);
-                const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
+                // check if we already have a previous observation for this
+                // beacon
+                auto pprev_obs = std::find_if(
+                    prevec.begin(), prevec.end(), [&](const SatBeacon &sb) {
+                      return (sb.id3c[0] == beaconobs->id()[0] &&
+                              sb.id3c[1] == beaconobs->id()[1] &&
+                              sb.id3c[2] == beaconobs->id()[2]);
+                    });
+                // if not, check if we have to start a new arc
+                if (pprev_obs != prevec.end()) {
+                  if (tl1.delta_sec(pprev_obs->t) >
+                      dso::nanoseconds(
+                          max_sec_for_new_arc *
+                          dso::nanoseconds::sec_factor<
+                              dso::nanoseconds::underlying_type>())) {
+                    start_new_arc = true;
+                  }
+                }
 
-                // Ionospheric path delay in [m/sec]
-                const double Dion = (iers2010::C / fs1_nom) *
-                                    (Diono - pprev_obs->Diono) /
-                                    delta_tau.to_fractional_seconds();
+                // nominal frequencies for the beacon: s1_freq and u2_freq
+                int k; // shift factor
+                if (rnx.beacon_shift_factor(beaconobs->id(), k)) {
+                  fprintf(stderr,
+                          "Failed to find shift factor for beacon %.3s\n",
+                          beaconobs->id());
+                  return 1;
+                }
+                double fs1_nom, fu2_nom; // [Hz]
+                dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
 
-                // Tropospheric delay in [m/sec]
-                // get current estimate of Wet Zenith delay
-                const double cWzd = Filter.x(6 + receiver_count * 2 + 1);
-                [[maybe_unused]]const double Dtropo =
-                    (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
-                    delta_tau.to_fractional_seconds();
+                // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
+                const double Diono = dso::carrier_iono_correction(
+                    beaconobs->m_values[l1i].m_value,
+                    beaconobs->m_values[l2i].m_value);
 
-                // Relativistic corrections
-                const double Drel = (cDrel - pprev_obs->Drel) /
-                                    delta_tau.to_fractional_seconds();
-                
-                dso::strftime_ymd_hmfs(tl1, dtbuf);
-                printf(
-                    "%.4s %d %s %.6f %.1f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.3f %.6f %.6f\n",
-                    beacon_it->m_station_id,
-                    pprev_obs->arcnr, 
-                    dtbuf,
-                    tl1.sec().to_fractional_seconds(), 
-                    dso::rad2deg(el), 
-                    Ndop,
-                    delta_tau.to_fractional_seconds(),
-                    (iers2010::C/fs1_nom)*(fs1_nom-frT-NdopDt),
-                    (rho - pprev_obs->rho()) /
-                        delta_tau.to_fractional_seconds(),
-                    (iers2010::C / fs1_nom)*Diono, 
-                    Dion,
-                    cDtropo.sum(), 
-                    (cDtropo.sum() - pprev_obs->Dtropo.sum()) /delta_tau.to_fractional_seconds(),
-                    cDrel, 
-                    Drel,
-                    frT, 
-                    beaconobs->m_values[fi].m_value,
-                    it.cheader.m_clock_offset);
+                // tropospheric correction
+                TropoDetails cDtropo;
+                if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid,
+                              cDtropo)) {
+                  return 3;
+                }
 
-                // we will need the estimated Δf_e / f_eN
-                const int receiver_number = pprev_obs->count;
-                [[maybe_unused]]const double DfefeN = Filter.x(6 + receiver_number * 2);
+                // relativistic correction
+                double Drel_c, Drel_r;
+                relativity_corrections(svState.state, bxyz_ion, Re, GM, J2,
+                                       Drel_c, Drel_r);
+                const double cDrel = Drel_c + Drel_r;
 
-                // Filter time-update
-                // ----------------------------------------------------------------
-                // State transition matrix (augmented)
-                // Eigen::MatrixXd PhiP =
-                //    Eigen::MatrixXd::Identity(NumParams, NumParams);
-                // PhiP.block<6, 6>(0, 0) = svState.Phi;
-                //// PhiP(6 + receiver_number, 6 + receiver_number) = 1e0;
-                ///already / done
-                // auto estimates = Filter.x;
-                // estimates.block<6, 1>(0, 0) = svState.state;
-                // Filter.time_update(tl1, estimates, PhiP);
-
-                //// handle range-rate measurement
-                Eigen::Matrix<double, 6, 1> drrdrv;
-                double rho_dot; // computed value for range-rate
-                const Eigen::Matrix<double, 3, 1> s = range_rate(
-                    pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
-                    delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
-
-                // Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
-                // dHdX.block<6, 1>(0, 0) = drrdrv;
-                // dHdX(6 + receiver_number) = iers2010::C * (frT + NdopDt) /
-                // fs1_nom; Filter.observation_update(Umeasured - Utheoretical,
-                // rho_dot,
-                //                           2e0 / std::cos(el), dHdX);
-
-                // update previous observation for next Ndop
-                pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                // Are we going to compute Doppler count / observations
+                // equation? We may not need to, if :
+                // 1. this is the first observation of the beacon
+                //    aka pprev_obs == prevec.end()
+                // 2. We are starting a new arc (aka start_new_arc==1)
+                // 3. Previous observation was marked
+                // (pprev_obs->reinitialize==1)
+                if (pprev_obs == prevec.end() || pprev_obs->reinitialize ||
+                    start_new_arc) {
+                  if (pprev_obs != prevec.end()) {
+                    pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                                      beaconobs->m_values[l2i].m_value, Diono,
+                                      cDtropo, cDrel, r_enu);
+                    if (start_new_arc)
+                      pprev_obs->arcnr += 1;
+                    if (pprev_obs->reinitialize)
+                      pprev_obs->reinitialize = 0;
+                    if (pprev_obs->arcnr > 3)
+                      return 99;
+                  } else {
+                    prevec.emplace_back(
+                        SatBeacon(beaconobs->id(), receiver_count, tl1,
+                                  beaconobs->m_values[l1i].m_value,
                                   beaconobs->m_values[l2i].m_value, Diono,
-                                  cDtropo, cDrel, s);
+                                  cDtropo, cDrel, r_enu));
+                    ++receiver_count;
+                  }
 
-              } // computing Ndop
+                  // update a-priori value for this beacon zenith wet tropo
+                  // delay [m]
+                  Filter.x(6 + receiver_count * 2 + 1) = cDtropo.Lwz;
 
-            } // elevation > limit
+                } else {
+                  // compute Ndop and observation equation
 
-          } // if (station == TLSB)
+                  // we need to find the true proper frequency of the receiver
+                  // (aka satellite), f_rT [Hz]
+                  const double frT =
+                      dso::DORIS_FREQ1_MHZ * 1e6 *
+                      (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
 
-        } // L2GHz flags ok
+                  // Doppler count and delta time
+                  const double Ndop =
+                      beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
+                  const auto delta_tau = tl1.delta_sec(pprev_obs->t);
+                  const double NdopDt =
+                      Ndop / delta_tau.to_fractional_seconds();
 
-        // next beacon observation block for this epoch
-        ++beaconobs;
-      } // for every beacon observation set in epoch
+                  // Ionospheric path delay in [m/sec]
+                  const double Dion = (iers2010::C / fs1_nom) *
+                                      (Diono - pprev_obs->Diono) /
+                                      delta_tau.to_fractional_seconds();
+
+                  // Tropospheric delay in [m/sec]
+                  // get current estimate of Wet Zenith delay
+                  const double cWzd = Filter.x(6 + receiver_count * 2 + 1);
+                  [[maybe_unused]] const double Dtropo =
+                      (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
+                      delta_tau.to_fractional_seconds();
+
+                  // Relativistic corrections
+                  const double Drel = (cDrel - pprev_obs->Drel) /
+                                      delta_tau.to_fractional_seconds();
+
+                  dso::strftime_ymd_hmfs(tl1, dtbuf);
+                  printf("%.4s %d %s %.6f %.1f %.6f %.6f %.6f %.6f %.6f %.6f "
+                         "%.6f %.6f %.6f %.6f %.3f %.6f %.6f\n",
+                         beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
+                         tl1.sec().to_fractional_seconds(), dso::rad2deg(el),
+                         Ndop, delta_tau.to_fractional_seconds(),
+                         (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt),
+                         (rho - pprev_obs->rho()) /
+                             delta_tau.to_fractional_seconds(),
+                         (iers2010::C / fs1_nom) * Diono, Dion, cDtropo.sum(),
+                         (cDtropo.sum() - pprev_obs->Dtropo.sum()) /
+                             delta_tau.to_fractional_seconds(),
+                         cDrel, Drel, frT, beaconobs->m_values[fi].m_value,
+                         it.cheader.m_clock_offset);
+
+                  // we will need the estimated Δf_e / f_eN
+                  const int receiver_number = pprev_obs->count;
+                  [[maybe_unused]] const double DfefeN =
+                      Filter.x(6 + receiver_number * 2);
+
+                  // Filter time-update
+                  // ----------------------------------------------------------------
+                  // State transition matrix (augmented)
+                  // Eigen::MatrixXd PhiP =
+                  //    Eigen::MatrixXd::Identity(NumParams, NumParams);
+                  // PhiP.block<6, 6>(0, 0) = svState.Phi;
+                  //// PhiP(6 + receiver_number, 6 + receiver_number) = 1e0;
+                  /// already / done
+                  // auto estimates = Filter.x;
+                  // estimates.block<6, 1>(0, 0) = svState.state;
+                  // Filter.time_update(tl1, estimates, PhiP);
+
+                  //// handle range-rate measurement
+                  Eigen::Matrix<double, 6, 1> drrdrv;
+                  double rho_dot; // computed value for range-rate
+                  const Eigen::Matrix<double, 3, 1> s = range_rate(
+                      pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
+                      delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
+
+                  // Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
+                  // dHdX.block<6, 1>(0, 0) = drrdrv;
+                  // dHdX(6 + receiver_number) = iers2010::C * (frT + NdopDt) /
+                  // fs1_nom; Filter.observation_update(Umeasured -
+                  // Utheoretical, rho_dot,
+                  //                           2e0 / std::cos(el), dHdX);
+
+                  // update previous observation for next Ndop
+                  pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                                    beaconobs->m_values[l2i].m_value, Diono,
+                                    cDtropo, cDrel, s);
+
+                } // computing Ndop
+
+              } // elevation > limit
+
+            } // if (station == TLSB)
+
+          } // L2GHz flags ok
+
+          // next beacon observation block for this epoch
+          ++beaconobs;
+        } // for every beacon observation set in epoch
 
     } // if (it->contains_beacon(tlsb) != it->cblock.end())
 
-    // if (++dummy_counter > 500)
+    //if (++dummy_counter > 1)
     //   break;
   } // for every new data-block/epoch in the RINEX file
 
