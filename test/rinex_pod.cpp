@@ -696,9 +696,9 @@ int main(int argc, char *argv[]) {
                       (1e0 / Dtau) * R.transpose() *
                       ((1e0 / pprev_obs->rho()) * pprev_obs->s -
                        (1e0 / rho) * r_enu);
-                  dHdX(6 + receiver_number * 2, 1) =
+                  dHdX(6 + receiver_number * 2) =
                       (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
-                  dHdX(6 + receiver_number * 2 + 1, 1) =
+                  dHdX(6 + receiver_number * 2 + 1) =
                       -(iers2010::C / feN) * (NdopDt + frT);
 
                   // Filter measurement update
