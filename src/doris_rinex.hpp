@@ -360,6 +360,10 @@ struct RinexDataBlockIterator {
   /// observation set for this epoch. Aka, updates cheader and cblock.
   int next() noexcept;
 
+  dso::datetime<dso::nanoseconds> proper_time() const noexcept {
+    return cheader.m_epoch;
+  }
+
   /// @brief Get the L1-reference epoch for the observations, corrected for 
   /// receiver clock offset (if not applied)
   dso::datetime<dso::nanoseconds> corrected_l1_epoch() const noexcept {

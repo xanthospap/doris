@@ -35,7 +35,7 @@ struct TropoDetails {
 struct SatBeacon {
   char id3c[3];                  ///< beacons internal (3-char) id
   int count;                     ///< internally used integer id
-  Datetime t;                    ///< time
+  Datetime ttai, tproper;        ///< time
   double Ls1, Lu2;               ///< cycles on L1 (S1)
   double Diono;                  ///< ionospheric corrections [cycles]
   double Drel;                   ///< relativity correction
@@ -43,10 +43,10 @@ struct SatBeacon {
   Eigen::Matrix<double, 3, 1> s; ///< beacon-satellite vector in topocentric rf
   int arcnr{0};
   int reinitialize{0}; ///< measurement marked as discontinuity
-  SatBeacon(const char *id_, int count_, const Datetime &t_, double L1,
+  SatBeacon(const char *id_, int count_, const Datetime &ttai_, const Datetime &tproper_, double L1,
             double L2, double Diono_, const TropoDetails &Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_) noexcept
-      : count(count_), t(t_), Ls1(L1), Lu2(L2), Diono(Diono_), Drel(Drel_),
+      : count(count_), ttai(ttai_), tproper(tproper_), Ls1(L1), Lu2(L2), Diono(Diono_), Drel(Drel_),
         Dtropo(Dtropo_), s(s_) {
     // std::strncpy(id3c, id_, 3); // fuck the warning!
     std::memcpy(id3c, id_, sizeof(char)*3);
@@ -54,7 +54,8 @@ struct SatBeacon {
   SatBeacon &operator=(const SatBeacon &sb) noexcept {
     std::strncpy(id3c, sb.id3c, 3);
     count = sb.count;
-    t = sb.t;
+    ttai = sb.ttai;
+    tproper = sb.tproper;
     Ls1 = sb.Ls1;
     Lu2 = sb.Lu2;
     Diono = sb.Diono;
@@ -63,10 +64,11 @@ struct SatBeacon {
     s = sb.s;
     return *this;
   }
-  void update(const Datetime &t_, double L1_, double L2_, double Diono_,
+  void update(const Datetime &ttai_, const Datetime &tproper_, double L1_, double L2_, double Diono_,
               const TropoDetails &Dtropo_, double Drel_,
               const Eigen::Matrix<double, 3, 1> &s_) noexcept {
-    t = t_;
+    ttai = ttai_;
+    tproper = tproper_;
     Ls1 = L1_;
     Lu2 = L2_;
     Diono = Diono_;
@@ -364,7 +366,7 @@ int main(int argc, char *argv[]) {
   const double Re = harmonics.Re();
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
-  const char *tlsb = "foobar"; // rnx.beacon_id2internal_id("TLSB");
+  const char *tlsb = rnx.beacon_id2internal_id("TLSB");
   assert(tlsb);
 
   printf("Site Arc Date Time SecOfDay Elev Ndop Dt (c/feN)*(feN-frT-Ndop/dt) (rho2-rho1)/dt Ion Dion Tro Dtro Relc Drelc frT Df/f ClkOffset\n");
@@ -374,22 +376,25 @@ int main(int argc, char *argv[]) {
   // count beacons as we encounter them (above min. elevation)
   int receiver_count = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
-  dso::datetime<dso::nanoseconds> last_ex_target;
+  // dso::datetime<dso::nanoseconds> last_ex_target;
   while (!(error = it.next())) {
 
     // limit to one beacon TLSB; if the block does not cotain this beacon, skip)
-    // if (it.contains_beacon(tlsb) != it.cblock.end()) {
+    if (it.contains_beacon(tlsb) != it.cblock.end()) {
 
       // the current reference time for the L1 observation (corrected for
       // receiver clock offset). That is tl1 is approximately TAI.
       // aka proper-time to coordinate-time
-      auto tl1 = it.corrected_l1_epoch();
+      const auto tl1 = it.corrected_l1_epoch();
+
+      // current proper time (aka tau)
+      const auto tproper = it.proper_time();
 
       // a buffer to write datetime strings to
       char dtbuf[64];
 
       // integrate orbit to here (TAI) TODO
-      // svState will contain satellite state for time tl1 in the terrestrial RF
+      // svState will contain satellite state for time tl1 in ECEF 
       // first get reference state from sp3, for an epoch as close as possible
       if (sp3_iterator.goto_epoch(tl1)) {
         fprintf(stderr, "ERROR Failed to get reference positio from SP3\n");
@@ -402,26 +407,22 @@ int main(int argc, char *argv[]) {
       svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
       svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
       svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
-      // if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator)) {
       // WARNING just for debugging!
       // Extrapolate orbit to the next second!
-      auto tepoch = sp3_iterator.current_time();
-      tepoch.add_seconds(dso::nanoseconds(1'000'000'000 * 600L));
-      if (tepoch!=last_ex_target) {
-      if (svState.integrate(tepoch.as_mjd(), Integrator)) {
+      //auto tepoch = sp3_iterator.current_time();
+      //tepoch.add_seconds(dso::nanoseconds(1'000'000'000 * 600L));
+      //if (tepoch!=last_ex_target) {
+      //if (svState.integrate(tepoch.as_mjd(), Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
-      printf("%s %.6f %.6f %.6f %.9f %.9f %.9f %.12f\n",
-             dso::strftime_ymd_hmfs<dso::nanoseconds>(tepoch, dtbuf),
-             svState.state(0), svState.state(1), svState.state(2),
-             svState.state(3), svState.state(4), svState.state(5), tepoch.as_mjd());
-      last_ex_target = tepoch;
-      }
-
-      // limit to one beacon TLSB; if the block does not cotain this beacon,
-      // skip)
-      if (it.contains_beacon(tlsb) != it.cblock.end()) {
+      //printf("%s %.6f %.6f %.6f %.9f %.9f %.9f %.12f\n",
+      //       dso::strftime_ymd_hmfs<dso::nanoseconds>(tepoch, dtbuf),
+      //       svState.state(0), svState.state(1), svState.state(2),
+      //       svState.state(3), svState.state(4), svState.state(5), tepoch.as_mjd());
+      //last_ex_target = tepoch;
+      //}
 
         // if this is the first iteration, initialize the Kalman filter
         if (!dummy_counter) {
@@ -432,7 +433,7 @@ int main(int argc, char *argv[]) {
             Filter.x(i + 1) = 0e0; // apriori tropo wet delay at zenith
           }
           // default sigma for releative frequency offset
-          Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams) * 1e3;
+          Filter.P = Eigen::MatrixXd::Zero(NumParams, NumParams);
           // default sigma for position is 1 [m]
           Filter.P.block<3, 3>(0, 0) =
               5e0 * Eigen::Matrix<double, 3, 3>::Identity();
@@ -446,7 +447,8 @@ int main(int argc, char *argv[]) {
         auto beaconobs = it.cblock.begin();
         while (beaconobs != it.cblock.end()) {
 
-          // what is the current beacon ?
+          // an iterator to the RINEX's stations vector (aka a BeaconStation)
+          // matching the current beacon
           auto beacon_it =
               rnx.beacon_internal_id2BeaconStation(beaconobs->id());
           assert(beacon_it != rnx.stations().cend());
@@ -468,7 +470,9 @@ int main(int argc, char *argv[]) {
                 beaconobs->m_values[w2i].m_flag1 ==
                     '1' // station on restart mode
             ) {
-              // check if we already have a previous observation for this beacon
+              // Oops! flags not ok! we are skipping this observation. first,
+              // check if the observation is in the middle of the arc. If yes,
+              // then mark a discontinuity
               auto pprev_obs = std::find_if(
                   prevec.begin(), prevec.end(), [&](const SatBeacon &sb) {
                     return (sb.id3c[0] == beaconobs->id()[0] &&
@@ -491,8 +495,8 @@ int main(int argc, char *argv[]) {
               //        beaconobs->m_values[w2i].m_flag2
               //        );
 
-              // flags ok, continue with processing ...
             } else {
+              // flags ok, continue with processing ...
 
               // we are going to need the beacons ECEF coordinates (note that
               // these are antenna RP coordinates)
@@ -534,9 +538,10 @@ int main(int argc, char *argv[]) {
                               sb.id3c[1] == beaconobs->id()[1] &&
                               sb.id3c[2] == beaconobs->id()[2]);
                     });
-                // if not, check if we have to start a new arc
+                // if we do, check if we have to start a new arc. Check 
+                // performed in proper time
                 if (pprev_obs != prevec.end()) {
-                  if (tl1.delta_sec(pprev_obs->t) >
+                  if (tproper.delta_sec(pprev_obs->tproper) >
                       dso::nanoseconds(
                           max_sec_for_new_arc *
                           dso::nanoseconds::sec_factor<
@@ -545,7 +550,7 @@ int main(int argc, char *argv[]) {
                   }
                 }
 
-                // nominal frequencies for the beacon: s1_freq and u2_freq
+                // nominal frequencies for the beacon: feN
                 int k; // shift factor
                 if (rnx.beacon_shift_factor(beaconobs->id(), k)) {
                   fprintf(stderr,
@@ -553,8 +558,8 @@ int main(int argc, char *argv[]) {
                           beaconobs->id());
                   return 1;
                 }
-                double fs1_nom, fu2_nom; // [Hz]
-                dso::beacon_nominal_frequency(k, fs1_nom, fu2_nom);
+                double feN, fe2N; // [Hz]
+                dso::beacon_nominal_frequency(k, feN, fe2N);
 
                 // ionospheric correction (actually L_2GHz = L_2GHz + Diono)
                 const double Diono = dso::carrier_iono_correction(
@@ -584,18 +589,22 @@ int main(int argc, char *argv[]) {
                 if (pprev_obs == prevec.end() || pprev_obs->reinitialize ||
                     start_new_arc) {
                   if (pprev_obs != prevec.end()) {
-                    pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                    // not the first observation for the beacon; update last
+                    // observation info
+                    pprev_obs->update(tl1, tproper,
+                                      beaconobs->m_values[l1i].m_value,
                                       beaconobs->m_values[l2i].m_value, Diono,
                                       cDtropo, cDrel, r_enu);
+                    // update arc number -- if needed
                     if (start_new_arc)
                       pprev_obs->arcnr += 1;
+                    // passed discontinuity, observation ok
                     if (pprev_obs->reinitialize)
                       pprev_obs->reinitialize = 0;
-                    if (pprev_obs->arcnr > 3)
-                      return 99;
                   } else {
+                    // first observation for the beacon
                     prevec.emplace_back(
-                        SatBeacon(beaconobs->id(), receiver_count, tl1,
+                        SatBeacon(beaconobs->id(), receiver_count, tl1, tproper,
                                   beaconobs->m_values[l1i].m_value,
                                   beaconobs->m_values[l2i].m_value, Diono,
                                   cDtropo, cDrel, r_enu));
@@ -615,15 +624,15 @@ int main(int argc, char *argv[]) {
                       dso::DORIS_FREQ1_MHZ * 1e6 *
                       (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
 
-                  // Doppler count and delta time
+                  // Doppler count and delta time (proper)
                   const double Ndop =
                       beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
-                  const auto delta_tau = tl1.delta_sec(pprev_obs->t);
+                  const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
                   const double NdopDt =
                       Ndop / delta_tau.to_fractional_seconds();
 
                   // Ionospheric path delay in [m/sec]
-                  const double Dion = (iers2010::C / fs1_nom) *
+                  const double Dion = (iers2010::C / feN) *
                                       (Diono - pprev_obs->Diono) /
                                       delta_tau.to_fractional_seconds();
 
@@ -644,10 +653,10 @@ int main(int argc, char *argv[]) {
                          beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
                          tl1.sec().to_fractional_seconds(), dso::rad2deg(el),
                          Ndop, delta_tau.to_fractional_seconds(),
-                         (iers2010::C / fs1_nom) * (fs1_nom - frT - NdopDt),
+                         (iers2010::C / feN) * (feN - frT - NdopDt),
                          (rho - pprev_obs->rho()) /
                              delta_tau.to_fractional_seconds(),
-                         (iers2010::C / fs1_nom) * Diono, Dion, cDtropo.sum(),
+                         (iers2010::C / feN) * Diono, Dion, cDtropo.sum(),
                          (cDtropo.sum() - pprev_obs->Dtropo.sum()) /
                              delta_tau.to_fractional_seconds(),
                          cDrel, Drel, frT, beaconobs->m_values[fi].m_value,
@@ -661,33 +670,53 @@ int main(int argc, char *argv[]) {
                   // Filter time-update
                   // ----------------------------------------------------------------
                   // State transition matrix (augmented)
-                  // Eigen::MatrixXd PhiP =
-                  //    Eigen::MatrixXd::Identity(NumParams, NumParams);
-                  // PhiP.block<6, 6>(0, 0) = svState.Phi;
-                  //// PhiP(6 + receiver_number, 6 + receiver_number) = 1e0;
+                  Eigen::MatrixXd PhiP =
+                      Eigen::MatrixXd::Identity(NumParams, NumParams);
+                  PhiP.block<6, 6>(0, 0) = svState.Phi;
                   /// already / done
-                  // auto estimates = Filter.x;
-                  // estimates.block<6, 1>(0, 0) = svState.state;
-                  // Filter.time_update(tl1, estimates, PhiP);
+                  auto estimates = Filter.x;
+                  estimates.block<6, 1>(0, 0) = svState.state;
+                  Filter.time_update(tl1, estimates, PhiP);
 
-                  //// handle range-rate measurement
+                  // handle range-rate measurement
+                  // ---------------------------------------------------------
+                  const double Dtau = delta_tau.to_fractional_seconds();
+                  const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(
+                      dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
+                  // observed value
+                  const double Uobs =
+                      (iers2010::C / feN) * (feN - frT - NdopDt) + Diono + Drel;
+                  // theoretical value
+                  const double Utheo =
+                      (1e0 / Dtau) * (rho - pprev_obs->rho()) +
+                      Dtropo - (iers2010::C / feN) * (NdopDt + frT) * DfefeN;
+                  // partials wrt [x,y,z,Vx,Vy,Vz,Lwz, Dfe/feN]
+                  Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
+                  dHdX.block<3, 1>(0, 0) =
+                      (1e0 / Dtau) * R.transpose() *
+                      ((1e0 / pprev_obs->rho()) * pprev_obs->s -
+                       (1e0 / rho) * r_enu);
+                  dHdX(6 + receiver_number * 2, 1) =
+                      (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
+                  dHdX(6 + receiver_number * 2 + 1, 1) =
+                      -(iers2010::C / feN) * (NdopDt + frT);
+
+                  // Filter measurement update
+                  Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
+          
+                  /*
                   Eigen::Matrix<double, 6, 1> drrdrv;
                   double rho_dot; // computed value for range-rate
                   const Eigen::Matrix<double, 3, 1> s = range_rate(
                       pprev_obs->s, bxyz_ion, svState.state.block<3, 1>(0, 0),
                       delta_tau.to_fractional_seconds(), rho_dot, drrdrv);
-
-                  // Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
-                  // dHdX.block<6, 1>(0, 0) = drrdrv;
-                  // dHdX(6 + receiver_number) = iers2010::C * (frT + NdopDt) /
-                  // fs1_nom; Filter.observation_update(Umeasured -
-                  // Utheoretical, rho_dot,
-                  //                           2e0 / std::cos(el), dHdX);
+                  */
 
                   // update previous observation for next Ndop
-                  pprev_obs->update(tl1, beaconobs->m_values[l1i].m_value,
+                  pprev_obs->update(tl1, tproper,
+                                    beaconobs->m_values[l1i].m_value,
                                     beaconobs->m_values[l2i].m_value, Diono,
-                                    cDtropo, cDrel, s);
+                                    cDtropo, cDrel, r_enu);
 
                 } // computing Ndop
 
@@ -887,6 +916,7 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
   return 0;
 }
 
+/*
 Eigen::Matrix<double, 3, 1>
 range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
            const Eigen::Matrix<double, 3, 1> &rsta,
@@ -922,3 +952,4 @@ range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
 
   return s;
 }
+*/
