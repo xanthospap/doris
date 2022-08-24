@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
   const char *tlsb = rnx.beacon_id2internal_id("TLSB");
   assert(tlsb);
 
-  printf("Site Arc Date Time SecOfDay Elev Ndop Dt (c/feN)*(feN-frT-Ndop/dt) (rho2-rho1)/dt Ion Dion Tro Dtro Relc Drelc frT Df/f ClkOffset\n");
+  // printf("Site Arc Date Time SecOfDay Elev Ndop Dt (c/feN)*(feN-frT-Ndop/dt) (rho2-rho1)/dt Ion Dion Tro Dtro Relc Drelc frT Df/f ClkOffset\n");
 
   error = 0;
   int dummy_counter = 0;
@@ -647,20 +647,20 @@ int main(int argc, char *argv[]) {
                   const double Drel = (cDrel - pprev_obs->Drel) /
                                       delta_tau.to_fractional_seconds();
 
-                  dso::strftime_ymd_hmfs(tl1, dtbuf);
-                  printf("%.4s %d %s %.6f %.1f %.6f %.6f %.6f %.6f %.6f %.6f "
-                         "%.6f %.6f %.6f %.6f %.3f %.6f %.6f\n",
-                         beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
-                         tl1.sec().to_fractional_seconds(), dso::rad2deg(el),
-                         Ndop, delta_tau.to_fractional_seconds(),
-                         (iers2010::C / feN) * (feN - frT - NdopDt),
-                         (rho - pprev_obs->rho()) /
-                             delta_tau.to_fractional_seconds(),
-                         (iers2010::C / feN) * Diono, Dion, cDtropo.sum(),
-                         (cDtropo.sum() - pprev_obs->Dtropo.sum()) /
-                             delta_tau.to_fractional_seconds(),
-                         cDrel, Drel, frT, beaconobs->m_values[fi].m_value,
-                         it.cheader.m_clock_offset);
+                  //dso::strftime_ymd_hmfs(tl1, dtbuf);
+                  //printf("%.4s %d %s %.6f %.1f %.6f %.6f %.6f %.6f %.6f %.6f "
+                  //       "%.6f %.6f %.6f %.6f %.3f %.6f %.6f\n",
+                  //       beacon_it->m_station_id, pprev_obs->arcnr, dtbuf,
+                  //       tl1.sec().to_fractional_seconds(), dso::rad2deg(el),
+                  //       Ndop, delta_tau.to_fractional_seconds(),
+                  //       (iers2010::C / feN) * (feN - frT - NdopDt),
+                  //       (rho - pprev_obs->rho()) /
+                  //           delta_tau.to_fractional_seconds(),
+                  //       (iers2010::C / feN) * Diono, Dion, cDtropo.sum(),
+                  //       (cDtropo.sum() - pprev_obs->Dtropo.sum()) /
+                  //           delta_tau.to_fractional_seconds(),
+                  //       cDrel, Drel, frT, beaconobs->m_values[fi].m_value,
+                  //       it.cheader.m_clock_offset);
 
                   // we will need the estimated Δf_e / f_eN
                   const int receiver_number = pprev_obs->count;
@@ -685,7 +685,7 @@ int main(int argc, char *argv[]) {
                       dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
                   // observed value
                   const double Uobs =
-                      (iers2010::C / feN) * (feN - frT - NdopDt) + Diono + Drel;
+                      (iers2010::C / feN) * (feN - frT - NdopDt) + Dion + Drel;
                   // theoretical value
                   const double Utheo =
                       (1e0 / Dtau) * (rho - pprev_obs->rho()) +
@@ -697,12 +697,15 @@ int main(int argc, char *argv[]) {
                       ((1e0 / pprev_obs->rho()) * pprev_obs->s -
                        (1e0 / rho) * r_enu);
                   dHdX(6 + receiver_number * 2) =
-                      (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
-                  dHdX(6 + receiver_number * 2 + 1) =
                       -(iers2010::C / feN) * (NdopDt + frT);
+                  dHdX(6 + receiver_number * 2 + 1) =
+                      (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
                   // Filter measurement update
                   Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
+                  dso::strftime_ymd_hmfs(tl1, dtbuf);
+                  printf("Estimate at %s (TAI) %.4s %+15.3f %+15.3f %+15.3f %+12.6f %+12.6f %+12.6f %+12.6f %+10.5e\n", 
+                    dtbuf,beacon_it->m_station_id,Filter.x(0),Filter.x(1),Filter.x(2),Filter.x(3),Filter.x(4),Filter.x(5),Filter.x(6+receiver_number*2+1),Filter.x(6+receiver_number*2));
           
                   /*
                   Eigen::Matrix<double, 6, 1> drrdrv;
