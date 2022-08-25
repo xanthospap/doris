@@ -683,8 +683,6 @@ int main(int argc, char *argv[]) {
                   dHdX(6 + receiver_number * 2 + 1) =
                       (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
-                  printf("Umeasured = %.3f, Utheoretical = %.3f\n", Uobs, Utheo);
-                  
                   //for (int i=0; i<NumParams; i++) printf("%.5e ", dHdX(i)); 
                   //printf("\n");
                   //printf("A-priori at %s (TAI) %.4s %+15.3f %+15.3f %+15.3f "
@@ -698,11 +696,11 @@ int main(int argc, char *argv[]) {
                   Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
                   dso::strftime_ymd_hmfs(tl1, dtbuf);
                   printf("Estimate at %s (TAI) %.4s %+15.3f %+15.3f %+15.3f "
-                         "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e\n",
+                         "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f\n",
                          dtbuf, beacon_it->m_station_id, Filter.x(0),
                          Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
                          Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
-                         Filter.x(6 + receiver_number * 2));
+                         Filter.x(6 + receiver_number * 2), Uobs, Utheo);
 
                   // update previous observation for next Ndop
                   pprev_obs->update(tl1, tproper,
