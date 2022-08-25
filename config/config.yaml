@@ -17,8 +17,8 @@ naif-kernels:
 
 gravity:
   model: data/gfc/GOCO02s.gfc
-  degree: 20
-  order: 20
+  degree: 50
+  order: 50
 
 troposphere:
   gpt3:
