@@ -13,6 +13,7 @@
 #include "var_utils.hpp"
 #include <cstdio>
 #include <geodesy/geoconst.hpp>
+#include "beacon_tbl.hpp"
 
 constexpr const double EleCutOff = 7e0; // elevation cut-off angle, [deg]
 
@@ -176,6 +177,11 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            double Re, double GM, double J2, double &Drel_c,
                            double &Drel_r) noexcept;
 
+int prepare_beacon_coordinates(
+    std::vector<dso::BeaconCoordinates> &beaconCrdVec,
+    const char *beacon_info_tbl,
+    const dso::datetime<dso::nanoseconds> &t) noexcept;
+
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept;
@@ -315,10 +321,17 @@ int main(int argc, char *argv[]) {
   }
   std::vector<dso::BeaconCoordinates> beaconCrdVec;
   beaconCrdVec.reserve(rnx.stations().size());
+  // coordinates of beacons (on ground), ECEF/pdop
   if (extrapolate_sinex_coordinates(buf, rnx.stations(), rnx.ref_datetime(),
                                     beaconCrdVec, true)) {
     fprintf(stderr,
             "ERROR. Failed extracting/extrapolating beacon coordinates\n");
+    return 1;
+  }
+  // coordinates of beacons (on antenna RP), ECEF/pdop
+  dso::get_yaml_value_depth2(config, "data", "beacon-information", buf);
+  if (prepare_beacon_coordinates(beaconCrdVec, buf, rnx.ref_datetime())) {
+    fprintf(stderr, "ERROR Failed applying eccentricities to beacons!\n");
     return 1;
   }
 
@@ -836,6 +849,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
   return 0;
 }
 
+// TODO this should only be done once, for all stations!
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept {
@@ -843,19 +857,53 @@ beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
   auto lfh = dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
   // just for debugging, validation
   if (lfh(2) < 0e0) {
-    fprintf(stderr, "WTF!! Height is negative\n");
-    //printf("Cartesian  : %.3f %.3f %.3f [m]\n", bxyz_arp(0), bxyz_arp(1),
-    //       bxyz_arp(2));
-    //printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
-    //       dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
-    //const auto R = dso::topocentric_matrix(lfh);
-    //auto b = bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
-    //lfh = dso::car2ell<dso::ellipsoid::grs80>(b);
-    //printf("Ellipsoidal: %+.6f %+.6f %+.3f [deg] and [m]\n",
-    //       dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), dso::rad2deg(lfh(2)));
+    fprintf(stderr, "WTF!! Height is negative, %.4s\n", beacon.m_station_id);
   }
   const auto R = dso::topocentric_matrix(lfh);
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
+}
+
+int prepare_beacon_coordinates(
+    std::vector<dso::BeaconCoordinates> &beaconCrdVec,
+    const char *beacon_info_tbl,
+    const dso::datetime<dso::nanoseconds> &t) noexcept {
+  
+  // load and parse the Beacon Information file (TODO btbl.load_to_memmory can throw)
+  dso::BeaconInformationTable btbl(beacon_info_tbl);
+  const auto tblvec = btbl.load_to_memmory(t);
+
+  // apply station height to every beacon
+  for (auto it = beaconCrdVec.begin(); it != beaconCrdVec.end(); it++) {
+    auto bhgt =
+        std::find_if(tblvec.cbegin(), tblvec.cend(),
+                     [&](const dso::BeaconInformationTableEntry &entry) {
+                       return (it->id[0] == entry._4charid[0] &&
+                               it->id[1] == entry._4charid[1] &&
+                               it->id[2] == entry._4charid[2] &&
+                               it->id[3] == entry._4charid[3]);
+                     });
+    if (bhgt == tblvec.cend()) {
+      fprintf(stderr, "ERROR. Failed to find entry for beacons %.4s in table file %s\n", it->id, beacon_info_tbl);
+      return 1;
+    }
+
+    // (cartesian) coordinates of beacon in PDOP
+    double data[3] = {it->x, it->y, it->z};
+    const Eigen::Matrix<double, 3, 1> cartesian(data);
+    // (ellipsoidal) coordinates of beacon in PDOP
+    const auto lfh = dso::car2ell<dso::ellipsoid::grs80>(cartesian);
+    // cartesian-to-topocentric matrix
+    const auto R = dso::topocentric_matrix(lfh);
+    // ENU eccentricity from tables file
+    data[0] = 0e0; data[1] = 0e0; data[2] = bhgt->_height;
+    const Eigen::Matrix<double, 3, 1> denu(data);
+    // apply ENU and get cartesian coordinates (now w.r.t beacon RP)
+    const Eigen::Matrix<double, 3, 1> arp = cartesian + R.transpose() * denu;
+    // swap coordinates in vector
+    it->x = arp(0); it->y = arp(1); it->z = arp(2);
+  }
+
+  return 0;
 }
 
 int get_tropo(const dso::datetime<dso::nanoseconds> &t,
