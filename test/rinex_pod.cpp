@@ -238,9 +238,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   dso::DorisObsRinex rnx(buf);
-#ifdef DEBUG
-  rnx.print_metadata();
-#endif
 
   // Initial Orbit
   // -------------------------------------------------------------------------
@@ -250,13 +247,6 @@ int main(int argc, char *argv[]) {
   dso::get_yaml_value_depth2(config, "data", "sp3", buf);
   dso::Sp3c sp3(buf);
   dso::Sp3Iterator sp3_iterator(sp3);
-
-  // SP3 Validation Orbit (Should not be needed)
-  // -------------------------------------------------------------------------
-  // dso::Sp3c sp3(buf);
-  // dso::sp3::SatelliteId sv("XXX");
-  // sv.set_id(sp3.sattellite_vector()[0].id);
-  // dso::SvInterpolator sv_intrp(sv, sp3);
 
   // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -385,7 +375,7 @@ int main(int argc, char *argv[]) {
   }
   // default sigma for position is 1 [m]
   Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double, 3, 3>::Identity();
-  // default sigma for velocity is 5 [m/sec]
+  // default sigma for velocity is .5 [m/sec]
   Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
 
   // Start RINEX data-block iteration
@@ -399,8 +389,8 @@ int main(int argc, char *argv[]) {
   const double Re = harmonics.Re();
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
-  const char *tlsb = rnx.beacon_id2internal_id("TLSB");
-  assert(tlsb);
+  //const char *tlsb = rnx.beacon_id2internal_id("TLSB");
+  //assert(tlsb);
 
   error = 0;
   [[maybe_unused]] int dummy_counter = 0;
@@ -510,7 +500,7 @@ int main(int argc, char *argv[]) {
         const Eigen::Matrix<double, 3, 1> bxyz_sta =
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
 
-        // Iono-Free phase center w.r.t antenna RP, Cartesian ECEF
+        // Iono-Free phase center, ECEF
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
             beacon_arp2ion(bxyz_sta, *beacon_it);
 
@@ -660,8 +650,8 @@ int main(int argc, char *argv[]) {
             // State transition matrix (augmented)
             Eigen::MatrixXd PhiP =
                 Eigen::MatrixXd::Identity(NumParams, NumParams);
-            PhiP.block<6, 6>(0, 0) = svState.Phi;
-            /// already / done
+            // PhiP.block<6, 6>(0, 0) = svState.Phi;
+            // already / done
             auto estimates = Filter.x;
             estimates.block<6, 1>(0, 0) = svState.state;
             Filter.time_update(tl1, estimates, PhiP);
@@ -824,10 +814,10 @@ int prepare_beacon_coordinates(
       return 1;
     }
 
-    // (cartesian) coordinates of beacon in PDOP
+    // (cartesian) coordinates of beacon in DPOD
     double data[3] = {it->x, it->y, it->z};
     const Eigen::Matrix<double, 3, 1> cartesian(data);
-    // (ellipsoidal) coordinates of beacon in PDOP
+    // (ellipsoidal) coordinates of beacon in DPOD
     const auto lfh = dso::car2ell<dso::ellipsoid::grs80>(cartesian);
     // cartesian-to-topocentric matrix
     const auto R = dso::topocentric_matrix(lfh);

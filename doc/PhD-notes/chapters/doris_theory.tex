@@ -6,13 +6,19 @@
   \item Should i parse the log files and add \texttt{Height above ground mark}
     to get the ``real'' height of the beacon refrence point ?
 
-  \item Do i need to turn the state matrix (from variational eq) to ECEF (
-  from GCRS)?
+  \item \label{itm:q-state-transition-matrix} i need to turn the state 
+  matrix (from variational eq) to ECEF (from GCRS)
+
+  \item \label{itm:q-clock-rel-correction} Is the clock induced relativistic 
+  correction ok? especially for the velocity components (should they be in ECEF)?.
+
+  \item \label{itm:q-clock-travel-correction} Compute travel time relativistic 
+  correction
 
   \item RINEX file in config mentions station'SYQB'. In the IDS logs, i can 
   only find SYPB and SYOB, for site SYOWA
 
-  \ietm Same as above for 'SOFC SOCORRO'
+  \item Same as above for 'SOFC SOCORRO'
 
   \item same for 'GR[34]B GRASSE'
 \end{enumerate}
@@ -65,8 +71,8 @@ which is computed via (\cite{Montenbruck2000})
   \dot{\rho} = \dot{s} = \frac{\bm{s} \bm{\dot{s}}}{s}
 \end{equation}
 
-\textbf{Coordinate and Proper Time}\\
-\label{coordinate-and-proper-time}
+\section{Coordinate and Proper Time}
+\label{sec:coordinate-and-proper-time}
 We distingiush between to different times-scales:
 \begin{itemize}
   \item \emph{Proper time} $\tau$, which is the time implemented by the receiver 
@@ -74,6 +80,7 @@ We distingiush between to different times-scales:
   \item \emph{Coordinate time} $t$ which is considered as the TCG time-scale.
   {\color{brown}For simplicity, we are using TAI as the coordinate time system, not TCG.}
 \end{itemize}
+
 Within the RINEX files,
 \begin{displayquote}
   The timing of events such as phase sampling and pseudo-range acquisition are 
@@ -88,26 +95,31 @@ and
   offset to the epoch.
 \end{displayquote}
 
-Notes:
-  TCG is a time coordinate system of the IAU spacetime metric called 
-  geocentric celestial reference system, GCRS \cite(SOFA20210125), Sec. 3.6.3
-  Geocentric coordinate time, TCG, is appropriate for theoretical studies of 
-  geocentric ephemerides. Its relationship with TT is this conventional linear 
-  transformation:
-  \begin{equation}
-    TCG = TT + L_G \cdot (JD_{TT} - TT_0)
-  \end{equation}
-  where $TT_0=2443144.5003725$ (i.e. TT at 1977 January 1.0 TAI), $JD_{TT}$ is 
-  TT expressed as Julian date, and $L_G = 6.969290134 \cdot 10-10$ 
-  (\cite{SOFA20210125}, Sec. 3.6.4).
-  To within $10^{-18}$ in rate, we can use the approximation (\cite{iers2010}):
-  \begin{equation}
-    TCG - TT = L_G \cdot \left( MJD - 43144.0 \right) \cdot 86400 \text{ [sec]}
-  \end{equation}
-  where $MJD$ refers to the modified Julian date of TAI ($TT=TAI+32.184\text{ sec}$)
+In practice, when going through a RINEX file we have two timestamps: 
+\textit{(a)} $\tau _i$, which is the time recorded in the (data header block) 
+RINEX, and \textit{(b)} $t_i$ which is $\tau _i$ corrected using the 
+\texttt{Receiver CLock Offset} provided in the RINEX file for each epoch.
 
-\textbf{Beacon Nominal Frequencies}\\
-\label{beacon-nominal-frequencies}
+%Notes:
+%  TCG is a time coordinate system of the IAU spacetime metric called 
+%  geocentric celestial reference system, GCRS \cite(SOFA20210125), Sec. 3.6.3
+%  Geocentric coordinate time, TCG, is appropriate for theoretical studies of 
+%  geocentric ephemerides. Its relationship with TT is this conventional linear 
+%  transformation:
+%  \begin{equation}
+%    TCG = TT + L_G \cdot (JD_{TT} - TT_0)
+%  \end{equation}
+%  where $TT_0=2443144.5003725$ (i.e. TT at 1977 January 1.0 TAI), $JD_{TT}$ is 
+%  TT expressed as Julian date, and $L_G = 6.969290134 \cdot 10-10$ 
+%  (\cite{SOFA20210125}, Sec. 3.6.4).
+%  To within $10^{-18}$ in rate, we can use the approximation (\cite{iers2010}):
+%  \begin{equation}
+%    TCG - TT = L_G \cdot \left( MJD - 43144.0 \right) \cdot 86400 \text{ [sec]}
+%  \end{equation}
+%  where $MJD$ refers to the modified Julian date of TAI ($TT=TAI+32.184\text{ sec}$)
+
+\section{Beacon Nominal Frequencies}
+\label{sec:beacon-nominal-frequencies}
 The RINEX file contains a \emph{station frequency shift factor} for each of the 
 beacons included. This is used to compute the ``nominal'' frequencies of the 
 beacon/emitter. Usually, this shift factor is just $0$, but it can be an integer 
@@ -124,8 +136,8 @@ Note that regardless of the beacon's frequency shift factor $k$, the $\gamma$
 value, given by $\gamma = \left( \frac{f_{2GHz}}{f_{400MHz}} \right) ^2$ remains 
 the same.
 
-\textbf{True and Nominal Frequencies}\\
-\label{true-nominal-frequencies}
+\section{True and Nominal Frequencies}
+\label{sec:true-nominal-frequencies}
 The ``true'' frequencies emitted and received, are in fact slightly different 
 than the nominal ones. To quantify this difference, we will use the 
 \emph{relative frequency offset} factor, $\Delta f_e / f_{e,Nominal}$ and 
@@ -138,12 +150,13 @@ $T$ for the true ones, using the relations:
     f_{rT} &= f_{rN} \cdot \left( 1 + \frac{\Delta f_r}{f_{rN}} \right) \\
   \end{aligned}
 \end{equation}
+
 Due to correlation between the relative frequency offsets (of the emitter and 
-the receiver), it is only possible to estimate one of the two. Following \cite{lemoine-2016}, 
-we choose to estimate the $\Delta f_e$ (per beacon) factors. This means that we 
-must use a known/computed value for $\Delta f_r$. {\color{brown}There are a couple 
-of ways to compute $\Delta f_r$, the most simple one being using the RINEX values 
-reported every epoch.}
+the receiver), it is only possible to estimate one of the two. Following 
+\cite{lemoine-2016}, we choose to estimate the $\Delta f_e / f_{eN}$ (per beacon) 
+factors. This means that we must use a known/computed value for $\Delta f_{rN}$. 
+{\color{brown}There are a couple of ways to compute $\Delta f_r / f_{rN}$, 
+the most simple one being using the RINEX values reported every epoch.}
 Thus, for every epoch, we will use the RINEX-reported value of \texttt{F} to 
 compute the ``true'' frequency of the receiver as:
 \begin{equation}
@@ -152,16 +165,15 @@ compute the ``true'' frequency of the receiver as:
 where $f_{rN}$ is 2GHz and 400MHz for the first and second frequencies 
 respectively.
 
-We are going to estimate the $\Delta f_e$ values, using one estimate per beacon, 
-per pass. An initial starting value of $1e-6$ is used.
+We are going to estimate the $\Delta f_e$ values, using one estimate per beacon.
 
 Using this approach, the \emph{observed} value of the range-rate becomes:
 \begin{equation}
   \frac{c}{f_{eN}} \left( f_{eN} - f_{rT} - \frac{N_{DOP}}{\Delta \tau_{r}} \right) 
 \end{equation}
 
-\textbf{Measurement Flags}\\
-\label{measurement-flags}
+\section{Measurement Flags}
+\label{sec:measurement-flags}
 Each observation (on each frequency) in the RINEX file is marked with two ``flags'', 
 aka two distinct characters that follow the observation value and flag important 
 events if any. Here, we will exclude observations if the following conditions are true:
@@ -174,8 +186,8 @@ events if any. Here, we will exclude observations if the following conditions ar
   a beacon on restart mode (first flag is an \texttt{1})
 \end{description}
 
-\textbf{Ionospheric Refraction}
-\label{ionospheric-refraction}
+\section{Ionospheric Refraction}
+\label{sec:ionospheric-refraction}
 For each observation, the ionosphere-induced delay is computed using both 
 (carrier) phase measurements. The correction, for each observation, is: 
 (\cite{lemoine-2016}):
@@ -184,6 +196,11 @@ For each observation, the ionosphere-induced delay is computed using both
     + \frac{L_{2GHz} - \sqrt \gamma L_{400MHz}}{\gamma - 1} 
     \text{ in [cycles]}
 \end{equation}
+
+{\color{brown}For his computation we use the measured $L_{2GHz}$ and $L_{400MHz}$ 
+ccyles from the RINEX files. SHould we take into consideration the distinction 
+of nominal/true frequencies and e.g. use a cycle scale factor?}
+
 For the observation equation, we should differentiate the ionospheric delays on 
 (the) two consecutive observations, to compute $\Delta u_{ION}$. Thus,
 \begin{equation}
@@ -191,16 +208,18 @@ For the observation equation, we should differentiate the ionospheric delays on
     - L_{iono-free-2GHz}^{\tau_{r_1}} \right) / (\tau_{r_2} - \tau_{r_1})
     \text{ in [m/sec]}
 \end{equation}
-Note that the above meas that we are now referencing a ``iono-free'' phase center, 
+Note that the above means that we are now referencing a ``iono-free'' phase center, 
 different than the L2GHz phase center.
 
-\textbf{Tropospheric Refraction}
-\label{tropospheric-refraction}
-For each observation we have to compute the tropospheric delay. This is done using 
-the GPT3/VMF3 model. GPT3 uses a grid to compute values for various atmospheric 
-parameters (e.g. pressure, temperature, etc). VMF3 computes mapping functions values 
-$mf_{el}^{wet}$ and $mf_{el}^{hydrostatic}$ for given elevation/zenith angles.
-For the hydrostatic zenith path delay $L_{z}^{hydrostatic}$, we use the 
+\section{Tropospheric Refraction}
+\label{sec:tropospheric-refraction}
+For each observation we have to compute the tropospheric delay. This is done 
+using the GPT3/VMF3 model. GPT3 uses a grid to compute values for various 
+atmospheric parameters (e.g. pressure, temperature, etc). VMF3 computes mapping 
+functions values $mf_{el}^{wet}$ and $mf_{el}^{hyd}$ for given elevation/zenith 
+angles.
+
+For the hydrostatic zenith path delay $L_{z}^{hyd}$, we use the 
 ``refined'' Saastamoinen formula. An approximate, a-priori value for the 
 respective wet delay $L_{z}^{wet}$ can be computed using the Aske \& Nordius 
 formula. Finaly:
@@ -208,8 +227,9 @@ formula. Finaly:
   \Delta _{trop} = L_{z}^{hyd} \cdot mf_{el}^{hyd} 
                  + L_{z}^{wet} \cdot mf_{el}^{wet} \text{ in [m]}
 \end{equation}
-As with the ionosphere, when considering the Doppler observation equation, we should 
-get the differential correction betwee two consecutive observations,
+
+As with the ionosphere, when considering the Doppler observation equation, we 
+should get the differential correction betwee two consecutive observations,
 \begin{equation}
   \begin{split}
   \label{eq:dutropo}
@@ -223,13 +243,15 @@ get the differential correction betwee two consecutive observations,
                  & \text{ in [m/sec]}
   \end{split}
 \end{equation}
+
 For every observation, a call to GPT3 is made to compute various quantities, 
 that depend both on time and (beacon) coordinates. A call to VMF3 is performed 
 to compute the mapping functions $mf_{el,\tau_i}^{wet}$ and $mf_{el,\tau_i}^{hyd}$.
 Again, for every observation/beacon we compute the zenith hydrostatic delay 
-$L_{z,\tau_i}^{hyd}$. The zenith wet delay $L_{z}^{wet}$ is considered a constant 
-for one satellite pass. An a-priori value is computed using the Aske \& Nordius formula 
-and the value is estimated as a (filter) parameter.
+$L_{z,\tau_i}^{hyd}$. The zenith wet delay $L_{z}^{wet}$ is considered a 
+constant for one satellite pass (to be estimated). An a-priori value is 
+computed using the Aske \& Nordius formula and the value is estimated as a 
+(filter) parameter.
 
 Considering \ref{eq:dutropo}, the following {\color{lime} simplified} partial 
 derivatives are derived:
@@ -242,7 +264,8 @@ derivatives are derived:
     &= \frac{mf_{el,\tau_{r_2}}^{wet} - mf_{el,\tau_{r_1}}^{wet}}{\tau_{r_2} - \tau_{r_1}}
 \end{align}
 
-\textbf{Relativistic Corrections}
+\section{Relativistic Corrections}
+\label{sec:relativistic-correction}
 According to \cite{lemoine-2016}, relativistic correction can be split into two 
 parts, $\Delta_{rel_C}$, which is the clock correction, and $\Delta_{rel_r}$ 
 which is the travel-time correction. They are given respectively by:
@@ -255,7 +278,9 @@ which is the travel-time correction. They are given respectively by:
     \left( \ln{\frac{R_1+R_{1'}+\rho_1}{R_1+R_{1'}-\rho_1}} 
       - \ln{\frac{R_2+R_{2'}+\rho_2}{R_2+R_{2'}-\rho_2}} \right)
 \end{equation}
-{\color{brown}At this point, we are only considering the relativistic clock correction!}.
+{\color{brown}At this point, we are only considering the relativistic clock correction!} 
+(see \ref{itm:q-clock-travel-correction}).
+
 In \ref{eq:relativistic-clock-correction}, the subscript \texttt{e} denotes the 
 emitter which in DORIS is the beacon, which is located on the surface of the 
 Earth, close to the geoid. Hence, we can use the approximation:
@@ -273,121 +298,189 @@ $J_2$ term so that:
 \end{equation}
 where $\alpha _e$ is the equatorial radius of the earth. The term $V_r$ is 
 simply the norm of the satellite's {\color{brown}velocity vector in ECEF}.
-Is this last sentence correct?
+Is this last sentence correct (see \ref{itm:q-clock-rel-correction})?
 
-\textbf{Beacon Coordinates and Reference Points}
-\label{beacon-coordiates-and-reference-points}
-Beacon coordinates are extracted from the \texttt{dpod2014\_053.snx} file, and 
+\section{Beacon Coordinates and Reference Points}
+\label{sec:beacon-coordiates-and-reference-points}
+
+\subsection{Site Eccentricities and Beacon ARP}
+\label{ssec:site-eccentricities-and-beacon-arp}
+Site coordinates are extracted from the \texttt{dpod2014\_053.snx} file, and 
 extrapolated to first epoch of the RINEX file. {\color{brown} Loading/Tidal site 
 displacements are ot yet considered}, hence the beacon position is considered 
 stable for all measurements in the RINEX file.
 
+I assume here, that the extrapolated coordinates correspond to a point (probably 
+on the ground) that is not the same as the beacon/antenna reference point (ARP). 
+To go from the site coordinates to the beacon/antenna ARP, i use the IDS-published 
+log files. These contain $\Delta height$ values, to correct for the site-to-ARP 
+eccentricity. Hence, in a first step, the extrapolated \texttt{dpod2014\_053.snx} 
+coordinates are corrected for the height eccentricity, and the resulting 
+coordinates are assumed to describe the beacon ARP. The eccentricity is applied 
+in a topocentric RF, as:
+\begin{equation}
+  \bm{r}_{ARP}^{ecef} = \bm{r}_{dpod}^{ecef} + \bm{R}^T \cdot 
+    \begin{bmatrix} 0\\ 0\\ \Delta height\end{bmatrix}
+\end{equation}
+where $\bm{R}$ is the cartesian-to-topocentrix matrix (centered at $\bm{r}_{dpod}^{ecef}$).
+
+\subsection{Iono-Free Phase Center}
+\label{ssec:iono-free-phase-center}
 Because we are using iono-free 2GHz measuremets, we must ``reduce'' the beacon 
-coordinates to reference the iono-free phase center. For this, we procced as 
-\cite{lemoine-2016}, aka the vector from the beacon Reference Point to the
+coordinates to reference the iono-free phase center (and not the ARP). For this, 
+we procced as \cite{lemoine-2016}, aka the vector from the beacon ARP to the
 2GHz-iono-free phase center is:
 \begin{equation}
   \bm{r}'_{iono-free-2GHz} = \bm{r}_{2GHz} + 
     \frac{\bm{r}_{2GHz} - \bm{r}_{400MHz}}{\gamma - 1}
 \end{equation}
-Note that this equation is w.r.t a topocentric reference frame.
+Note that vectors used in this equation (aka $\bm{r}_{2GHz}$ and $\bm{r}_{400MHz}$) 
+are w.r.t a topocentric reference frame, centered at the beacon ARP (that is they 
+are given as eccentricities).
 
-The actual computation for this reduction is:
+The actual computation for this reduction, that is from $\bm{r}_{ARP}^{ecef}$ 
+to $\bm{r}_{iono-free-2GHz}^{ecef}$ we use:
+\begin{equation}
+  \bm{r}_{iono-free-2GHz}^{ecef} = \bm{r}_{ARP}^{ecef} + \bm{R}^T \cdot \bm{r}'_{iono-free-2GHz}
+\end{equation}
+
+\section{The Kalman Filter}
+\label{sec:the-kalman-filter}
+The Kalman filter is implemented as an  Extended Kalman Filter (EKF). The parameters 
+estimated are:
+\begin{itemize} 
+  \item $6$ parameters for the satellite state, $\begin{bmatrix} x\\ y\\ z\\ \dot{x}\\ \dot{y}\\ \dot{z}\end{bmatrix}$
+  \item $1$ parameter per beacon for the relative frequency offset of the emitter, $\Delta f_{e} / f_{eN}$, and
+  \item $1$ parameter per beacon, per pass for the tropospheric zenith wet delay, $L_{z}^{wet}$
+\end{itemize}
+
+Initial values for the state vector are extracted from an sp3 file; we inspect 
+the sp3 file for a record closest to (but not larger than) the first epoch 
+encountered in the RINEX file that has valid measurements. Std. deviation values 
+are assumed as $1$ [meter] for position and $0.5$ [m/sec] for velocity components.
+
+Initial values for the $\Delta f_{e} / f_{eN}$ values, are set to $1e-5$ with a 
+corresponding (initial) std. deviation of $100$.
+
+Initial values for the $L_{z}^{wet}$ values, are computed once for every new 
+pass according to the \textit{Aske \& Nordius formula} (\ref{sec:tropospheric-refraction}) 
+using an std. deviation of $0.5$ meters.
+
+The a-priori weight matrix has no correlations.
+
+\subsection{Time Update}
+For the time update, we procced as follows:
 \begin{enumerate}
-  \item transform the beacon coordinates from Cartesian ECEF to ellipsoidal ECEF
-  \item compute the ECEF-to-topocentric rotation matrix $R$ (that is 
-    $\bm{x}_{enu} = R \cdot \delta \bm{x}_{xyz}$)
-  \item compute the iono-free-2GHz reference position as:
+  \item get the state transition matrix $\Phi$ (from variational equation solution of 
+  the orbit integration). This needs to be transformed from GCRS to ECEF.
+  \set the kalman transition matrix to 
   \begin{equation}
-    \bm{r}_{iono-free-2GHz}^{xyz} = \bm{r}_{dpod} + R^T \cdot \bm{r}'_{iono-free-2GHz}
+    \begin{bmatrix}
+      \bm{\Phi}_{(6x6)} & \bm{0}  \\
+      \bm{0} & I_{beacons x 2}
+    \end{bmatrix}
   \end{equation}
-\end{enumerate}
 
-{\color{brown}Here we are assuming that the beacon coordinates in the SINEX 
-file correspond to the antenna RP. Is that true? If DORIS is like GNSS, it 
-could be that the log files contain eccentricities. Make a Python script to 
-parse DORIS log files and spit beacon eccentricities.}
+  \item update satellite state
+\end{enumerate}
 
 
 %% This declares a command \Comment
 %% The argument will be surrounded by /* ... */
 \SetKwComment{Comment}{/* }{ */}
+\SetAlFnt{\footnotesize}
 
 \begin{algorithm}
 \caption{An algorithm with caption}\label{alg:two}
-\KwData{MinElevationAngle}
-\KwIn{RINEX}
+%\KwData{MinElevationAngle}
+%\KwIn{RINEX}
 
 \BlankLine
-readRinexHeader;
+readRinexHeader
+
+\ForEach{$beacon$ in RINEX} {
+  \Comment{Extrapolate PDOP coordinates and apply eccentricities}
+  $\bm{r}_{ARP}^{ecef}$, see \ref{sec:beacon-coordiates-and-reference-points}
+}
+
+\Comment{Initialize the Kalman filter}
+$Filter$, see \ref{sec:the-kalman-filter}
+
 
 \ForEach{$dataBlock$ in RINEX}
 {
-  get current proper time $\tau_i$\;
-  \Comment*[r]{Apply the receiver clock offset $rco$ from RINEX to get to TAI}\
-  $t_i \gets \tau_i + rco$\ 
-  \Comment*[r]{Integrate satellite orbit to $t_i$ (TAI), state GCRS-to-ECEF}\
-  $\bm{r}_{sat_{t_i}}^{ecef} \gets \bm{r}_{sat_{t_i}}^{gcrs}$
-  $\bm{v}_{sat_{t_i}}^{ecef} \gets \bm{v}_{sat_{t_i}}^{gcrs}$
+  get current proper time $\tau_i$ (see \ref{sec:coordinate-and-proper-time})
+
+  \Comment{Apply the receiver clock offset $rco$ from RINEX to get to TAI}
+  $t_i \gets \tau_i + \Delta_{rco}$\  (see \ref{sec:coordinate-and-proper-time})
+
+  \Comment{Integrate satellite orbit to $t_i$, state GCRS-to-ECEF}
+  Compute: $\bm{r}_{sat_{t_i}}^{ecef}$, $\bm{v}_{sat_{t_i}}^{ecef}$ and 
+  state transition matrix $\Phi _{t_{i-1},t_i}$ (from var. equations), see 
+  \ref{itm:q-state-transition-matrix}.
 
   \ForEach{$beacon$ in $dataBlock$} 
   {
-    \eIf{observation flags not ok}
+    \eIf{observation flags not ok (see \ref{sec:measurement-flags})}
     {
       \lIf{previous observation exist}{mark discontinuity}
       skip observation
     }
     {
-      \Comment*[r]{get beacon coordinates from SINEX}
-      $\bm{r}_{sta}^{ecef} \gets SINEX$\;
-      \Comment*[r]{aplly iono-free phase center correction}
-      $\bm{r}_{sta}^{ecef} \gets \bm{r}_{sta}^{ecef} + \Delta _{iono-free}$\;
-      \Comment*[r]{compute Azimouth, Elevation, and Range}
+      \Comment{apply iono-free phase center correction to ARP}
+      $\bm{r}_{sta} \gets \bm{r}_{ARP} + \Delta _{iono-free}$ 
+      (see \ref{sec:beacon-coordiates-and-reference-points})
+
+      \Comment{compute Azimouth, Elevation, and Range (ECEF-ENU)}
       $Az_{t_i}$, $El_{t_i}$, $\rho _{t_i}$
 
       \If{$El_{t_i} > MinElevationAngle$}
       {
-        \Comment*[r]{compute nominal beacon frequency}
-        $f_{eN}$
+        \Comment{nominal beacon frequency}
+        compute $f_{eN}$ (\ref{sec:beacon-nominal-frequencies})
 
-        \Comment*[r]{compute ionospheric correction}
-        $\Delta_{iono}$
+        \Comment{ionospheric correction (for this obs.)}
+        $\Delta_{iono}$ (\ref{sec:ionospheric-refraction})
 
-        \Comment*[r]{compute tropospheric correction}
-        $L_{z,t_i}^{hyd}$, $mf_{t_i}^{hyd}$, $mf_{t_i}^{wet}$
+        \Comment{tropospheric correction (for this obs.)}
+        $L_{z,t_i}^{hyd}$, $mf_{t_i}^{hyd}$, $mf_{t_i}^{wet}$ (see \ref{sec:tropospheric-refraction})
 
         \eIf{start of new pass}{
-          compute $L_{z,t_i}^{wet}$
+          compute $L_{z}^{wet}$ from \textit{Aske \& Nordius}
         }
         {
-          retrieve filter value for $L_{z,t_i}^{wet}$
+          retrieve filter value for $L_{z}^{wet}$
         }
 
-        \Comment*[r]{compute relativistic correction}
-        $\Delta_{{rel}_c}$
+        \Comment{relativistic correction (for this obs.)}
+        $\Delta_{{rel}_c}$ (see \ref{sec:relativistic-correction})
 
-        \If{this is a new arc, or new beacon, or recovering from discontinuity} 
+        \If{this is a new arc \texttt{or} new beacon \texttt{or} recovering from discontinuity} 
         {
           store/update beacon data ($t_i$, $\Delta_{iono}$, $\Delta_{trop}$, etc)
         }
         {
-          \Comment*[r]{compute true proper frequency}
-          $f_{rT}$
+          \Comment{receiver true proper frequency}
+          $f_{rT}$ (see \ref{sec:true-nominal-frequencies})
 
-          \Comment*[r]{compute doppler count}
-          $N_{DOP} \gets L1_{t_i} - L1_{t_{i-1}}$
+          \Comment{compute doppler count}
+          $N_{DOP} \gets L1_{\tau_i} - L1_{\tau_{i-1}}$
 
-          \Comment*[r]{differentiate ionospheric correction}
-          $\Delta_{iono} \gets ( \Delta_{iono_{t_i}} - \Delta_{iono_{t_{i-1}}} ) / \Delta t$
+          \Comment{differentiate ionospheric correction}
+          $\Delta_{Uiono} \gets \frac{c}{f_{eN}} ( \Delta_{iono_{t\tau_i}} - \Delta_{iono_{t_{\tau-1}}} ) / \Delta \tau$ (see \ref{sec:ionospheric-refraction})
 
-          \Comment*[r]{differentiate tropospheric correction}
-          $\Delta_{trop} \gets ( \Delta_{trop_{t_i}} - \Delta_{trop_{t_{i-1}}} ) / \Delta t$
+          \Comment{differentiate tropospheric correction}
+          $\Delta_{Utrop} \gets ( \Delta_{trop_{\tau_i}} - \Delta_{trop_{\tau_{i-1}}} ) / \Delta \tau$ (see \ref{sec:tropospheric-refraction})
 
-          \Comment*[r]{differentiate relativistic correction}
-          $\Delta_{relc} \gets ( \Delta_{relc_{t_i}} - \Delta_{relc_{t_{i-1}}} ) / \Delta t$
+          \Comment{differentiate relativistic correction}
+          $\Delta_{Urelc} \gets ( \Delta_{relc_{\tau_i}} - \Delta_{relc_{\tau_{i-1}}} ) / \Delta \tau$ (see \ref{sec:relativistic-correction})
 
-          \Comment*[r]{retrieve value for the relative frequency offset of the emitter}
-          $\Delta_{fe} / f_{eN}$
+          %\Comment{retrieve value for the relative frequency offset of the emitter}
+          %$\Delta_{fe} / f_{eN}$
+          \Comment{filter time-update}
+          \see ()
+
+          \Comment{filter time-update}
         }
       }
     }
@@ -395,55 +488,6 @@ readRinexHeader;
 }
 
 \end{algorithm}
-
-\textbf{Pseudocode}
-\begin{enumerate}
-  
-  \item Extract/extrapolate all beacon coordinates from \texttt{dpod2014\_053.snx}, 
-    contained in the RINEX file. These will be the reference coordinates. 
-    Extrapolation is performed to the first epoch contained in the RINEX file to 
-    get $\bm{r}_{e,dpod}^{ecef}$ for each beacon.
-
-  \item For every new epoch/data-block contained in the RINEX file and taged as $t_i$ in \texttt{TAI}.
-  \begin{enumerate}
-    \item compute receiver/satellite ``proper'' time using the 
-    \emph{receiver clock offset} correction in the block header; this will 
-     be $\tau_{i}$ (note that this correction can be quite large and up to 
-     1 minute!).
-
-    \item integrate satellite orbit to get state at {\color{red} $\tau_{i}$}. 
-    Transform state to ECEF, $\bm{r}_{r}^{ecef}$.
-
-    \item for each beacon (observation set) in this, current block:
-    \begin{enumerate}
-      \item check observation flags (\ref{measurement-flags}). If flags are ok 
-      procced, else mark as discontinuous and skip observation for this beacon.
-
-      \item compute iono-free-2GHz reference point of the beacon 
-      (\ref{beacon-coordiates-and-reference-points}), henceforth, we are going 
-      to use these coordinates for the beacon: 
-      $\bm{r}_{e}^{ecef} \equiv \bm{r}_{iono-free-2GHz}^{ECEF}$
-
-      \item compute azimouth $Az$, elevation $el$ and range $\rho$, of the 
-      beacon-satellite vector (performed in topocentric RF). If the elevation 
-      is above some fixed value (e.g. 7 degrees) procced.
-
-      \item compute ``nominal'' values for the beacon frequencies 
-      (\ref{beacon-nominal-frequencies}) $f_{eN}$ (for 2GHz and 400MHz).
-
-      \item compute ``true'' frequency of the receiver (\ref{true-nominal-frequencies})
-
-      \item compute ionospheric correction for this observation 
-      (\ref{ionospheric-refraction}) $\Delta _{ion}$
-
-      \item compute tropospheric correction for this observation
-      (\ref{tropospheric-refraction}) $\Delta _{tro}$. We use the filter value 
-      for the zenith wet delay ($L_{z}^{wet}$). In case this is the start of a 
-      new arc, we use the Aske \& Nordius formula to compute a starting value.
-    \end{enumerate}
-
-  \end{enumerate}
-\end{enumerate}
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
