@@ -650,7 +650,7 @@ int main(int argc, char *argv[]) {
             // State transition matrix (augmented)
             Eigen::MatrixXd PhiP =
                 Eigen::MatrixXd::Identity(NumParams, NumParams);
-            // PhiP.block<6, 6>(0, 0) = svState.Phi;
+            PhiP.block<6, 6>(0, 0) = svState.Phi;
             // already / done
             auto estimates = Filter.x;
             estimates.block<6, 1>(0, 0) = svState.state;

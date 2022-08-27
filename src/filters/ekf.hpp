@@ -42,14 +42,6 @@ template <typename S> struct ExtendedKalmanFilter {
     t = tk;
     x = xk;
     P = phi * P * phi.transpose();
-
-    //const int n = x.rows();
-    //for (int i=0; i<n; i++) {
-    //  for (int j=0; j<n; j++) {
-    //    printf(" %.6f ", P(i,j));
-    //  }
-    //  printf("\t\t%.9f\n", x(i));
-    //}
   }
 
   void time_update(const dso::datetime<S> &tk,
