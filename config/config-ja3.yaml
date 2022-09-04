@@ -1,0 +1,34 @@
+---
+data:
+  doris-rinex: data/Jason-3/ja3rx21002.001
+  sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
+  beacon-information: data/beacon_information.tbl
+
+reference-frame:
+  station-coordinates: data/dpod2014_053.snx
+
+eop-info:
+  eop-file: data/bulb0121
+
+naif-kernels:
+  spk: data/jpl/de405.bsp
+  pck: data/jpl/gm_de431.tpc
+  lsk: data/jpl/naif0012.tls
+
+gravity:
+  model: data/gfc/GOCO02s.gfc
+  degree: 90
+  order: 90
+
+troposphere:
+  gpt3:
+    grid: data/gpt3_5.grd
+
+force-model:
+  atmospheric-drag:
+    drag-model: nrlmsise00
+    atmo-data-csv: data/SW-All.csv
+
+attitude:
+  mass-cog: data/Jason-3/ja3mass.txt
+  body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001

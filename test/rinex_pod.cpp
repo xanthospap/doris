@@ -13,7 +13,10 @@
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
+#include <datetime/dtfund.hpp>
 #include <geodesy/geoconst.hpp>
+#include "satellites/jason3.hpp"
+#include "satellites/jason3_quaternions.hpp"
 
 constexpr const double EleCutOff = 7e0; // elevation cut-off angle, [deg]
 
@@ -108,12 +111,36 @@ struct SatelliteState {
     return rcel;
   }
 
-  int integrate(double mjd_target, dso::SGOde &integrator) noexcept {
+  // receiver offset from satellite-fixed to inertial
+  Eigen::Matrix<double, 3, 1>
+  eccentricity(const Eigen::Matrix<double, 3, 1> &pco,
+               const Eigen::Quaternion<double> &q) noexcept {
+    // assuming that the quaternion acts as:
+    // X_sat-fixed = Q * X_sat-gcrs
+    return q.conjugate() * pco;
+  }
+
+  int integrate(double mjd_target, dso::SGOde &integrator,
+                const Eigen::Matrix<double, 3, 1> *pco = nullptr,
+                const Eigen::Quaternion<double> *q = nullptr) noexcept {
+    // count calls; this is only needed because the first call should
+    // consider the satellite coordinates as CoM coordinates, and not
+    // apply eccentricity (ARP to  CoM)
+    static int call_nr = 0;
+
     // Vector containing state + variational equations size: 6 + 6x6
     // Ref. Frame: inertial
     Eigen::Matrix<double, 6 + 6 * 6, 1> yPhi =
         Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
+    // if needed, go from antenna RP to CoM
+    if (call_nr && pco) {
+      const auto ecc = eccentricity(*pco, *q);
+      yPhi(0) += ecc(0);
+      yPhi(1) += ecc(1);
+      yPhi(2) += ecc(2);
+      //printf("[1] Eccentricity vector: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
+    }
     {
       int k = 6;
       for (int col = 1; col < 7; col++)
@@ -157,6 +184,15 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> dt2c;
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
+    
+    // if needed, go from CoM to antenna RP
+    if (pco) {
+      const auto ecc = eccentricity(*pco, *q);
+      sol(0) -= ecc(0);
+      sol(1) -= ecc(1);
+      sol(2) -= ecc(2);
+      //printf("[2] Eccentricity vector: %.3f %.3f %.3f, norm=%.3f\n", ecc(0), ecc(1), ecc(2), ecc.norm());
+    }
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -168,6 +204,7 @@ struct SatelliteState {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
     }
 
+    ++call_nr;
     return 0;
   }
 };
@@ -325,6 +362,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Attitude Information
+  dso::get_yaml_value_depth2(config, "attitude",
+                                 "body-quaternion", buf);
+  dso::JasonQuaternionHunter qhunt(buf);
+
   // Previous Observation relating Beacon/Satellite (to compute Ndop)
   // -------------------------------------------------------------------------
   std::vector<SatBeacon> prevec;
@@ -388,9 +430,22 @@ int main(int argc, char *argv[]) {
   const double GM = harmonics.GM();
   const double Re = harmonics.Re();
 
+  // On-board receiver eccentricity, in the satellite-fixed frame
+  if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
+    fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
+    return 1;
+  }
+  Eigen::Matrix<double, 3, 1> sat_cog;
+  double sat_mass;
+  assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
+      rnx.ref_datetime(), buf, sat_mass, sat_cog));
+  Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
+  dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
+  //printf("DORIS RP eccentricity: %.3f %.3f %.3f, norm=%.3f\n", l1_pco(0), l1_pco(1), l1_pco(2), l1_pco.norm());
+
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
-  //const char *tlsb = rnx.beacon_id2internal_id("TLSB");
-  //assert(tlsb);
+  // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
+  // assert(tlsb);
 
   error = 0;
   [[maybe_unused]] int dummy_counter = 0;
@@ -415,12 +470,41 @@ int main(int argc, char *argv[]) {
     // a buffer to write datetime strings to
     char dtbuf[64];
 
+    // get the attitude/quaternion for this instant; must transform TAI to UTC
+    Eigen::Quaternion<double> q;
+    {
+      // get leap seconds
+      int leap_sec = dso::dat(tl1.mjd());
+      dso::datetime<dso::nanoseconds> tl1_utc = tl1;
+      // UTC = TAI - leap_seonds
+      tl1_utc.remove_seconds(dso::nanoseconds(
+          leap_sec *
+          dso::nanoseconds::sec_factor<dso::nanoseconds::underlying_type>()));
+      // get quaternion at current time
+      if (qhunt.get_at(tl1_utc, q)) {
+        fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+        return 1;
+      } else {
+        ;
+        //printf("Quaternion matched for date %.9f = [%.6f %.6f %.6f %.6f], "
+        //       "between %.9f and %.9f\n",
+        //       tl1.as_mjd(), q.w(), q.x(), q.y(), q.z(),
+        //       qhunt.bodyq[0].t.as_mjd(), qhunt.bodyq[1].t.as_mjd());
+        //printf("Grid qaternions: -> [%.6f %.6f %.6f %.6f]\n",
+        //       qhunt.bodyq[0].quaternion.w(), qhunt.bodyq[0].quaternion.x(),
+        //       qhunt.bodyq[0].quaternion.y(), qhunt.bodyq[0].quaternion.z());
+        //printf("                 -> [%.6f %.6f %.6f %.6f]\n",
+        //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
+        //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
+      }
+    }
+
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
     // first get reference state from sp3, for an epoch as close as possible
     if (!dummy_counter) {
       if (sp3_iterator.goto_epoch(tl1)) {
-        fprintf(stderr, "ERROR Failed to get reference positio from SP3\n");
+        fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
       }
       svState.mjd_tai = sp3_iterator.current_time().as_mjd();
@@ -430,12 +514,12 @@ int main(int argc, char *argv[]) {
       svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
       svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
       svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
-      if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator, &l1_pco, &q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
     } else {
-      if (svState.integrate(tl1.as_mjd(), Integrator)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator, &l1_pco, &q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }

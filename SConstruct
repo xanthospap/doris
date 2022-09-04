@@ -80,6 +80,7 @@ lib_src_files += glob.glob(r"src/web/*.cpp")
 lib_src_files += glob.glob(r"src/iers/*.cpp")
 lib_src_files += glob.glob(r"src/integrators/*.cpp")
 lib_src_files += glob.glob(r"src/relativity/*.cpp")
+lib_src_files += glob.glob(r"src/satellites/*.cpp")
 lib_src_files += glob.glob(r"src/beacon_tbl/*.cpp")
 lib_src_files += glob.glob(r"src/var/*.cpp")
 
