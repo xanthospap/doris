@@ -90,9 +90,16 @@ struct SatBeacon {
 
 // hold satellite state & time
 struct SatelliteState {
+  // Satellite's center of gravity w.r.t the satellite-fixed frame
+  Eigen::Matrix<double,3,1> *cog_sf{nullptr};
+  // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
+  Eigen::Matrix<double,3,1> *arp_sf{nullptr};
+  // Current datetime in TAI
   double mjd_tai;
-  Eigen::Matrix<double, 6, 1> state; // state vector at t=ttai in ECEF
-  Eigen::Matrix<double, 6, 6> Phi;   // state transition matrix at t=tai
+  // state vector at t=ttai in ECEF, at DORIS receiver RP (2GHz)
+  Eigen::Matrix<double, 6, 1> state; 
+  // state transition matrix at t=tai
+  Eigen::Matrix<double, 6, 6> Phi;   
 
   // ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
@@ -111,18 +118,17 @@ struct SatelliteState {
     return rcel;
   }
 
-  // receiver offset from satellite-fixed to inertial
+  // Vector to go from receiver ARP to satellite's CoG, in GCRS
   Eigen::Matrix<double, 3, 1>
-  eccentricity(const Eigen::Matrix<double, 3, 1> &pco,
-               const Eigen::Quaternion<double> &q) noexcept {
+  eccentricity(const Eigen::Quaternion<double> &q) noexcept {
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
-    return q.conjugate() * pco;
+    return (cog_sf) ? (Eigen::Matrix<double, 3, 1>::Zero())
+                    : (q.conjugate() * (*cog_sf - *arp_sf));
   }
 
   int integrate(double mjd_target, dso::SGOde &integrator,
-                const Eigen::Matrix<double, 3, 1> *pco = nullptr,
-                const Eigen::Quaternion<double> *q = nullptr) noexcept {
+                const Eigen::Quaternion<double> q) noexcept {
     // count calls; this is only needed because the first call should
     // consider the satellite coordinates as CoM coordinates, and not
     // apply eccentricity (ARP to  CoM)
@@ -134,11 +140,8 @@ struct SatelliteState {
         Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
     // if needed, go from antenna RP to CoM
-    if (call_nr && pco) {
-      const auto ecc = eccentricity(*pco, *q);
-      yPhi(0) += ecc(0);
-      yPhi(1) += ecc(1);
-      yPhi(2) += ecc(2);
+    if (call_nr) {
+      yPhi.block<3, 1>(0, 0) += eccentricity(q);
       //printf("[1] Eccentricity vector: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
     }
     {
@@ -185,14 +188,9 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
     
-    // if needed, go from CoM to antenna RP
-    if (pco) {
-      const auto ecc = eccentricity(*pco, *q);
-      sol(0) -= ecc(0);
-      sol(1) -= ecc(1);
-      sol(2) -= ecc(2);
-      //printf("[2] Eccentricity vector: %.3f %.3f %.3f, norm=%.3f\n", ecc(0), ecc(1), ecc(2), ecc.norm());
-    }
+    // if needed, go from CoM to antenna RP (sol must be in GCRS)
+    sol.block<3, 1>(0, 0) -= eccentricity(q);
+    //printf("[2] Eccentricity vector: %.3f %.3f %.3f, norm=%.3f\n", ecc(0), ecc(1), ecc(2), ecc.norm());
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -441,7 +439,9 @@ int main(int argc, char *argv[]) {
       rnx.ref_datetime(), buf, sat_mass, sat_cog));
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  //printf("DORIS RP eccentricity: %.3f %.3f %.3f, norm=%.3f\n", l1_pco(0), l1_pco(1), l1_pco(2), l1_pco.norm());
+  svState.cog_sf = &sat_cog;
+  svState.arp_sf = &l1_pco;
+  printf("DORIS RP eccentricity: %.3f %.3f %.3f, norm=%.3f\n", l1_pco(0), l1_pco(1), l1_pco(2), l1_pco.norm());
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
   // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
@@ -514,12 +514,12 @@ int main(int argc, char *argv[]) {
       svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
       svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
       svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
-      if (svState.integrate(tl1.as_mjd(), Integrator, &l1_pco, &q)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
     } else {
-      if (svState.integrate(tl1.as_mjd(), Integrator, &l1_pco, &q)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
@@ -865,9 +865,18 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept {
+  //printf("-> station coordinates: %.3f %.3f %.3f\n", bxyz_arp(0), bxyz_arp(1), bxyz_arp(2));
   // transform cartesian to ellipsoidal (antenna RP)
-  auto lfh = dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
-  const auto R = dso::topocentric_matrix(lfh);
+  const Eigen::Matrix<double, 3, 1> lfh =
+      dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
+  //printf("-> station coordinates: %.3f %.3f %.3f\n", dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), lfh(2));
+  const Eigen::Matrix<double,3,3> R = dso::topocentric_matrix(lfh);
+  //for (int i=0; i<3; i++) {
+  //  for (int j=0; j<3; j++) {
+  //    printf(" %.6f", R(i,j));
+  //  }
+  //  printf("\n");
+  //}
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
 }
 
@@ -926,6 +935,9 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept {
 
   // validate zenith angle
+  if (!(zd >= 0e0 && zd <= dso::DPI / 2e0)) {
+    fprintf(stderr, "WTF!! Weird zenith angle, is: %.2f\n", dso::rad2deg(zd));
+  }
   assert(zd >= 0e0 && zd <= dso::DPI / 2e0);
 
   // ellipsoidal coordinates of the station; store them in an array

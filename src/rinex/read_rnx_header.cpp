@@ -264,12 +264,12 @@ int dso::DorisObsRinex::read_header() noexcept {
       num_stations = std::strtol(line, &end, 10);
       if (!num_stations || (errno || end == line))
         return 161;
-      printf(">> Num stations: %d, capacity: %d\n", num_stations,
-             (int)m_stations.capacity());
+      //printf(">> Num stations: %d, capacity: %d\n", num_stations,
+      //       (int)m_stations.capacity());
       if ((int)m_stations.capacity() < num_stations)
         m_stations.reserve(num_stations);
-      printf(">> Num stations: %d, capacity: %d\n", num_stations,
-             (int)m_stations.capacity());
+      //printf(">> Num stations: %d, capacity: %d\n", num_stations,
+      //       (int)m_stations.capacity());
 
     } else if (!std::strncmp(line + 60, "STATION REFERENCE", 17)) {
       // STATION REFERENCE; fill m_stations (err. code 170)

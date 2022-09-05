@@ -1,16 +1,16 @@
-#include "jason3.hpp"
+#include "satellites.hpp"
 #include <charconv>
 #include <cstdio>
 #include <fstream>
 
-int dso::get_jason3_corrections(const char *j3mass,
+int dso::get_satellite_corrections(const char *j3mass,
                                 const dso::datetime<dso::nanoseconds> &t,
                                 double *dmdxyz) noexcept {
   std::ifstream fin(j3mass);
   if (!fin.is_open()) {
     fprintf(
         stderr,
-        "[ERROR] Failed to open Jason3 information file: %s (traceback: %s)\n",
+        "[ERROR] Failed to open satellite information file: %s (traceback: %s)\n",
         j3mass, __func__);
     return 1;
   }
@@ -64,7 +64,7 @@ int dso::get_jason3_corrections(const char *j3mass,
 
   if (error) {
     fprintf(stderr,
-            "[ERROR] Failed resolving line: \"%s\" in Jason3 information file: "
+            "[ERROR] Failed resolving line: \"%s\" in satellite ninformation file: "
             "%s (traceback: "
             "%s)\n",
             line, j3mass, __func__);
