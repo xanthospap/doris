@@ -143,8 +143,22 @@ int dso::JasonQuaternionHunter::set_at(
   }
 }
 
-int dso::JasonQuaternionHunter::get_at(const dso::datetime<dso::nanoseconds> &t,
-                                       Eigen::Quaterniond &q) noexcept {
+//Eigen::Quaternion<double> slerp(const Eigen::Quaternion<double> &q1,
+//                                const Eigen::Quaternion<double> &q2,
+//                                double t) noexcept {
+//  const double cOmega =
+//      q1.w() * q2.w() + q1.x() * q2.x() + q1.y() * q2.y() + q1.z() * q2.z();
+//  const double Omega = std::acos(cOmega);
+//  const double s1mtO = std::sin((1e0 - t) * Omega);
+//  const double stO = std::sin(t * Omega);
+//  const double sO = std::sin(Omega);
+//  Eigen::Quaternion<double> q = (q1 * s1mtO + q2 * stO) / sO;
+//  return q.normalize();
+//}
+
+    int dso::JasonQuaternionHunter::get_at(
+        const dso::datetime<dso::nanoseconds> &t,
+        Eigen::Quaterniond &q) noexcept {
   if (set_at(t))
     return 1;
 
@@ -153,14 +167,16 @@ int dso::JasonQuaternionHunter::get_at(const dso::datetime<dso::nanoseconds> &t,
 #endif
 
   auto dts = bodyq[1].t.delta_sec(bodyq[0].t);
-  const double dt_ab = dts.to_fractional_seconds();
+  const double dt_ab = dts.to_fractional_seconds(); // t2-t1
   dts = t.delta_sec(bodyq[0].t);
-  const double dt_at = dts.to_fractional_seconds();
+  const double dt_at = dts.to_fractional_seconds(); // t - t1
   const double dt = dt_at / dt_ab;
 #ifdef DEBUG
   assert(dt >= 0e0 && dt <= 1e0);
 #endif
 
   q = bodyq[0].quaternion.slerp(dt, bodyq[1].quaternion);
+  q.normalize();
+  // q = slerp(bodyq[0].quaternion, bodyq[1].quaternion, dt);
   return 0;
 }

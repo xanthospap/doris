@@ -29,6 +29,23 @@ double GMSun, GMMoon;
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
+// @see https://www.johndcook.com/blog/standard_deviation/
+struct RunningStatistics {
+  double _mean{0e0}, _var{0e0};
+  long unsigned k{1};
+
+  void update(double x) noexcept {
+    double new_mean = _mean + (x-_mean) / (double)k;
+    _var += (x-_mean) * (x-new_mean);
+    _mean = new_mean;
+    ++k;
+  }
+
+  double mean() const noexcept {return _mean;}
+  double variance() const noexcept {return _var/(k-1);}
+  double stddev() const noexcept {return std::sqrt(variance());}
+};
+
 struct TropoDetails {
   double Lhz, mfh;
   double Lwz, mfw;
@@ -123,8 +140,8 @@ struct SatelliteState {
   eccentricity(const Eigen::Quaternion<double> &q) noexcept {
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
-    return (cog_sf) ? (Eigen::Matrix<double, 3, 1>::Zero())
-                    : (q.conjugate() * (*cog_sf - *arp_sf));
+    return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
+                    : (Eigen::Matrix<double, 3, 1>::Zero());
   }
 
   int integrate(double mjd_target, dso::SGOde &integrator,
@@ -140,9 +157,9 @@ struct SatelliteState {
         Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
     // if needed, go from antenna RP to CoM
+    Eigen::Matrix<double,3,1> ecc;
     if (call_nr) {
       yPhi.block<3, 1>(0, 0) += eccentricity(q);
-      //printf("[1] Eccentricity vector: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
     }
     {
       int k = 6;
@@ -190,7 +207,6 @@ struct SatelliteState {
     
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
     sol.block<3, 1>(0, 0) -= eccentricity(q);
-    //printf("[2] Eccentricity vector: %.3f %.3f %.3f, norm=%.3f\n", ecc(0), ecc(1), ecc(2), ecc.norm());
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -429,6 +445,7 @@ int main(int argc, char *argv[]) {
   const double Re = harmonics.Re();
 
   // On-board receiver eccentricity, in the satellite-fixed frame
+  // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
     fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
     return 1;
@@ -439,18 +456,23 @@ int main(int argc, char *argv[]) {
       rnx.ref_datetime(), buf, sat_mass, sat_cog));
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = &sat_cog;
-  svState.arp_sf = &l1_pco;
-  printf("DORIS RP eccentricity: %.3f %.3f %.3f, norm=%.3f\n", l1_pco(0), l1_pco(1), l1_pco(2), l1_pco.norm());
+  svState.cog_sf = nullptr; //&sat_cog;
+  svState.arp_sf = nullptr; //&l1_pco;
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
   // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
   // assert(tlsb);
 
+  // Running average and std. deviation of O-C values
+  RunningStatistics rstats;
+
   error = 0;
   [[maybe_unused]] int dummy_counter = 0;
   // count beacons as we encounter them (above min. elevation)
   int receiver_count = 0;
+  // count Ndop observations
+  unsigned ndop_count = 0;
+  unsigned ndop_count_rejected = 0;
   // for every new data block in the RINEX file (aka every epoch) ...
   // dso::datetime<dso::nanoseconds> last_ex_target;
   while (!(error = it.next())) {
@@ -729,17 +751,6 @@ int main(int argc, char *argv[]) {
             [[maybe_unused]] const double DfefeN =
                 Filter.x(6 + receiver_number * 2);
 
-            // Filter time-update
-            // ----------------------------------------------------------------
-            // State transition matrix (augmented)
-            Eigen::MatrixXd PhiP =
-                Eigen::MatrixXd::Identity(NumParams, NumParams);
-            PhiP.block<6, 6>(0, 0) = svState.Phi;
-            // already / done
-            auto estimates = Filter.x;
-            estimates.block<6, 1>(0, 0) = svState.state;
-            Filter.time_update(tl1, estimates, PhiP);
-
             // handle range-rate measurement
             // ---------------------------------------------------------
             const double Dtau = delta_tau.to_fractional_seconds();
@@ -754,32 +765,61 @@ int main(int argc, char *argv[]) {
             const double Utheo = (1e0 / Dtau) * (rho - pprev_obs->rho()) +
                                  Dtropo -
                                  (iers2010::C / feN) * (NdopDt + frT) * DfefeN;
-            // partials wrt [x,y,z,Vx,Vy,Vz,Lwz, Dfe/feN]
-            Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
-            dHdX.block<3, 1>(0, 0) =
-                (1e0 / Dtau) * R.transpose() *
-                ((1e0 / pprev_obs->rho()) * pprev_obs->s - (1e0 / rho) * r_enu);
-            dHdX(6 + receiver_number * 2) =
-                -(iers2010::C / feN) * (NdopDt + frT);
-            dHdX(6 + receiver_number * 2 + 1) =
-                (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
-            // Filter measurement update
-            Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
-            dso::strftime_ymd_hmfs(tl1, dtbuf);
-            printf("Estimate at %s (TAI) %.4s %+15.3f %+15.3f %+15.3f "
-                   "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f %.9f\n",
-                   dtbuf, beacon_it->m_station_id, Filter.x(0), Filter.x(1),
-                   Filter.x(2), Filter.x(3), Filter.x(4), Filter.x(5),
-                   Filter.x(6 + receiver_number * 2 + 1),
-                   Filter.x(6 + receiver_number * 2), Uobs, Utheo,
-                   tl1.as_mjd());
+            const double oc = Uobs - Utheo;
+            const double threshold =
+                (rstats.stddev() > 0e0) ? (3e0 * rstats.stddev() / std::sin(el))
+                                        : 5e12;
+            if (std::abs(oc) < threshold) {
+
+              rstats.update(oc);
+
+              // partials wrt [x,y,z,Vx,Vy,Vz,Lwz, Dfe/feN]
+              Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
+              dHdX.block<3, 1>(0, 0) =
+                  (1e0 / Dtau) * R.transpose() *
+                  ((1e0 / pprev_obs->rho()) * pprev_obs->s -
+                   (1e0 / rho) * r_enu);
+              dHdX(6 + receiver_number * 2) =
+                  -(iers2010::C / feN) * (NdopDt + frT);
+              dHdX(6 + receiver_number * 2 + 1) =
+                  (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
+
+              // Filter time-update
+              // ----------------------------------------------------------------
+              // State transition matrix (augmented)
+              Eigen::MatrixXd PhiP =
+                  Eigen::MatrixXd::Identity(NumParams, NumParams);
+              PhiP.block<6, 6>(0, 0) = svState.Phi;
+              // already / done
+              auto estimates = Filter.x;
+              estimates.block<6, 1>(0, 0) = svState.state;
+              Filter.time_update(tl1, estimates, PhiP);
+
+              // Filter measurement update
+              Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
+              dso::strftime_ymd_hmfs(tl1, dtbuf);
+              printf("%s (TAI) %.4s %+15.3f %+15.3f %+15.3f "
+                     "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f %.9f "
+                     "%.6f %.6f\n",
+                     dtbuf, beacon_it->m_station_id, Filter.x(0), Filter.x(1),
+                     Filter.x(2), Filter.x(3), Filter.x(4), Filter.x(5),
+                     Filter.x(6 + receiver_number * 2 + 1),
+                     Filter.x(6 + receiver_number * 2), Uobs, Utheo,
+                     tl1.as_mjd(), rstats.mean(), rstats.stddev());
+            
+            } else {
+              fprintf(stderr, "WARNING! Skipping observation cause of too big "
+                              "O-C value %u/%u\n", ndop_count_rejected, ndop_count);
+              ++ndop_count_rejected;
+            }
 
             // update previous observation for next Ndop
             pprev_obs->update(tl1, tproper, beaconobs->m_values[l1i].m_value,
                               beaconobs->m_values[l2i].m_value, cDiono, cDtropo,
                               cDrel, r_enu);
-
+            ++ndop_count;
+          
           } // computing Ndop
 
         } // elevation > limit
@@ -789,6 +829,10 @@ int main(int argc, char *argv[]) {
       // next beacon observation block for this epoch
       ++beaconobs;
     } // while (beaconobs != it.cblock.end())
+
+    if (tl1.delta_sec(rnx.time_of_first_obs()) >
+        dso::cast_to<dso::seconds, dso::nanoseconds>(dso::seconds(6 * 60 * 60)))
+      break;
 
   } // for every new data block in the RINEX file
 
