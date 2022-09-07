@@ -157,9 +157,13 @@ struct SatelliteState {
         Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
     // if needed, go from antenna RP to CoM
-    Eigen::Matrix<double,3,1> ecc;
+    //Eigen::Matrix<double,3,1> ecc;
     if (call_nr) {
+      const auto ecc = eccentricity(q);
+      printf("Applying eccentricity to get to CoM: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
+      printf("From %.3f %.3f %.3f\n", yPhi.block<3, 1>(0, 0)(0), yPhi.block<3, 1>(0, 0)(1), yPhi.block<3, 1>(0, 0)(2));
       yPhi.block<3, 1>(0, 0) += eccentricity(q);
+      printf("To   %.3f %.3f %.3f\n", yPhi.block<3, 1>(0, 0)(0), yPhi.block<3, 1>(0, 0)(1), yPhi.block<3, 1>(0, 0)(2));
     }
     {
       int k = 6;
@@ -206,7 +210,14 @@ struct SatelliteState {
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
     
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
-    sol.block<3, 1>(0, 0) -= eccentricity(q);
+    {
+      const auto ecc = eccentricity(q);
+      printf("Applying eccentricity to get to CoM: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
+      printf("From %.3f %.3f %.3f\n", sol.block<3, 1>(0, 0)(0), sol.block<3, 1>(0, 0)(1), sol.block<3, 1>(0, 0)(2));
+    //sol.block<3, 1>(0, 0) -= eccentricity(q);
+    sol.block<3, 1>(0, 0) -= ecc;
+      printf("To   %.3f %.3f %.3f\n", sol.block<3, 1>(0, 0)(0), sol.block<3, 1>(0, 0)(1), sol.block<3, 1>(0, 0)(2));
+    }
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -456,8 +467,8 @@ int main(int argc, char *argv[]) {
       rnx.ref_datetime(), buf, sat_mass, sat_cog));
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = nullptr; //&sat_cog;
-  svState.arp_sf = nullptr; //&l1_pco;
+  svState.cog_sf = /*nullptr;*/ &sat_cog;
+  svState.arp_sf = /*nullptr;*/ &l1_pco;
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
   // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
@@ -769,7 +780,7 @@ int main(int argc, char *argv[]) {
             const double oc = Uobs - Utheo;
             const double threshold =
                 (rstats.stddev() > 0e0) ? (3e0 * rstats.stddev() / std::sin(el))
-                                        : 5e12;
+                                        : 1e3;
             if (std::abs(oc) < threshold) {
 
               rstats.update(oc);

@@ -41,6 +41,16 @@ parser.add_argument(
     help='Columns to plot. Either 2 or 2 * INPUT_FILES')
 
 parser.add_argument(
+    '-w',
+    '--where',
+    metavar='WHERE',
+    dest='where',
+    nargs = '+',
+    default=None,
+    required=False,
+    help='where clause, e.g. \"-w \'$0:4\'=DION')
+
+parser.add_argument(
     '--time',
     action='store_true',
     dest='x_is_time',
@@ -135,6 +145,13 @@ def column_dictionary2time(coldict,datetime_column):
     datetime_array = [datetime.datetime.strptime(' '.join([dc[0],dc[1][:-clip_at]]), dtformats[format_idx]) for dc in zip(coldict[datetime_column], coldict[datetime_column+1])]
     coldict[datetime_column] = datetime_array
     return coldict
+
+#def apply_where_clause(coldict, clause_dict):
+#  """ clause_dict = {0:'DION', 4:'repro22'}
+#  """
+#  for key,val in clause_dict:
+#      if key in coldict:
+
 
 def drop_cols(fncount, cols_dict, eval_str_list):
   colset = set()
