@@ -18,7 +18,7 @@
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 
-constexpr const double EleCutOff = 7e0; // elevation cut-off angle, [deg]
+constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
 
 // max time difference between two observations to mark a new arc pass [sec]
 constexpr const long max_sec_for_new_arc = 5 * 60L;
@@ -116,7 +116,9 @@ struct SatelliteState {
   // state vector at t=ttai in ECEF, at DORIS receiver RP (2GHz)
   Eigen::Matrix<double, 6, 1> state; 
   // state transition matrix at t=tai
-  Eigen::Matrix<double, 6, 6> Phi;   
+  Eigen::Matrix<double, 6, 6> Phi;
+  // attitude quaternion 
+  Eigen::Quaternion<double> qlast;
 
   // ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
@@ -145,7 +147,7 @@ struct SatelliteState {
   }
 
   int integrate(double mjd_target, dso::SGOde &integrator,
-                const Eigen::Quaternion<double> q) noexcept {
+                const Eigen::Quaternion<double> qtarget) noexcept {
     // count calls; this is only needed because the first call should
     // consider the satellite coordinates as CoM coordinates, and not
     // apply eccentricity (ARP to  CoM)
@@ -156,14 +158,12 @@ struct SatelliteState {
     Eigen::Matrix<double, 6 + 6 * 6, 1> yPhi =
         Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
-    // if needed, go from antenna RP to CoM
-    //Eigen::Matrix<double,3,1> ecc;
+    
+    // if needed, go from antenna RP to CoM (this is not needed in the first 
+    // call, since we integrate starting with the sp3 state which is w.r.t. 
+    // the satellite's CoG)
     if (call_nr) {
-      const auto ecc = eccentricity(q);
-      printf("Applying eccentricity to get to CoM: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
-      printf("From %.3f %.3f %.3f\n", yPhi.block<3, 1>(0, 0)(0), yPhi.block<3, 1>(0, 0)(1), yPhi.block<3, 1>(0, 0)(2));
-      yPhi.block<3, 1>(0, 0) += eccentricity(q);
-      printf("To   %.3f %.3f %.3f\n", yPhi.block<3, 1>(0, 0)(0), yPhi.block<3, 1>(0, 0)(1), yPhi.block<3, 1>(0, 0)(2));
+      yPhi.block<3, 1>(0, 0) += eccentricity(qlast);
     }
     {
       int k = 6;
@@ -210,14 +210,7 @@ struct SatelliteState {
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
     
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
-    {
-      const auto ecc = eccentricity(q);
-      printf("Applying eccentricity to get to CoM: %.3f %.3f %.3f\n", ecc(0), ecc(1), ecc(2));
-      printf("From %.3f %.3f %.3f\n", sol.block<3, 1>(0, 0)(0), sol.block<3, 1>(0, 0)(1), sol.block<3, 1>(0, 0)(2));
-    //sol.block<3, 1>(0, 0) -= eccentricity(q);
-    sol.block<3, 1>(0, 0) -= ecc;
-      printf("To   %.3f %.3f %.3f\n", sol.block<3, 1>(0, 0)(0), sol.block<3, 1>(0, 0)(1), sol.block<3, 1>(0, 0)(2));
-    }
+    sol.block<3, 1>(0, 0) -= eccentricity(qtarget);
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -228,6 +221,9 @@ struct SatelliteState {
     for (int i = 0; i < 6; i++) {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
     }
+
+    // now the attitude quaternion for mjd_tai is qtarget:
+    qlast = qtarget;
 
     ++call_nr;
     return 0;
@@ -463,12 +459,14 @@ int main(int argc, char *argv[]) {
   }
   Eigen::Matrix<double, 3, 1> sat_cog;
   double sat_mass;
+  // get satellite CoG coordinates in the satellite-fixed RF (with corrections)
   assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
       rnx.ref_datetime(), buf, sat_mass, sat_cog));
+  // get satellite ARP coordinates in the satellite-fixed RF
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = /*nullptr;*/ &sat_cog;
-  svState.arp_sf = /*nullptr;*/ &l1_pco;
+  svState.cog_sf = &sat_cog;
+  svState.arp_sf = &l1_pco;
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
   // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
@@ -504,6 +502,7 @@ int main(int argc, char *argv[]) {
     char dtbuf[64];
 
     // get the attitude/quaternion for this instant; must transform TAI to UTC
+    // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q;
     {
       // get leap seconds
@@ -820,8 +819,15 @@ int main(int argc, char *argv[]) {
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
             
             } else {
-              fprintf(stderr, "WARNING! Skipping observation cause of too big "
-                              "O-C value %u/%u\n", ndop_count_rejected, ndop_count);
+              fprintf(stderr,
+                      "WARNING! Skipping observation cause of too big "
+                      "O-C value %u/%u : %.3f > %.3f\n",
+                      ndop_count_rejected, ndop_count, oc, threshold);
+              fprintf(stderr,
+                      "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
+                      "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f\n",
+                      feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
+                      pprev_obs->rho());
               ++ndop_count_rejected;
             }
 
