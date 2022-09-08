@@ -427,7 +427,7 @@ int main(int argc, char *argv[]) {
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
   // initialize the Kalman filter
   for (int i = 6; i < NumParams; i += 2) {
-    Filter.x(i) = 1e-5;     // beacon relative frequency offset
+    Filter.x(i) = 0e0;     // beacon relative frequency offset
     Filter.x(i + 1) = 1e-1; // apriori tropo wet delay at zenith
   }
   // default sigma for releative frequency offset
@@ -819,15 +819,19 @@ int main(int argc, char *argv[]) {
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
             
             } else {
+              dso::strftime_ymd_hmfs(tl1, dtbuf);
               fprintf(stderr,
-                      "WARNING! Skipping observation cause of too big "
+                      "WARNING! Skipping observation at %s (TAI) for beacon "
+                      "%.4s cause of too big "
                       "O-C value %u/%u : %.3f > %.3f\n",
-                      ndop_count_rejected, ndop_count, oc, threshold);
-              fprintf(stderr,
-                      "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
-                      "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f\n",
-                      feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
-                      pprev_obs->rho());
+                      dtbuf, beacon_it->m_station_id, ndop_count_rejected,
+                      ndop_count, oc, threshold);
+              //fprintf(stderr,
+              //        "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
+              //        "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f "
+              //        "Dfe/feN=%.3e\n",
+              //        feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
+              //        pprev_obs->rho(), DfefeN);
               ++ndop_count_rejected;
             }
 
