@@ -777,9 +777,9 @@ int main(int argc, char *argv[]) {
                                  (iers2010::C / feN) * (NdopDt + frT) * DfefeN;
 
             const double oc = Uobs - Utheo;
-            const double threshold =
+            const double threshold = 0e0*(
                 (rstats.stddev() > 0e0) ? (3e0 * rstats.stddev() / std::sin(el))
-                                        : 1e3;
+                                        : 1e3);
             if (std::abs(oc) < threshold) {
 
               rstats.update(oc);
