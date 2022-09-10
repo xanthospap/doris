@@ -23,6 +23,12 @@ constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
 // max time difference between two observations to mark a new arc pass [sec]
 constexpr const long max_sec_for_new_arc = 5 * 60L;
 
+// default, i.e. a-priori value for Dfe / feN (relative frequency offset for
+// emitter)
+constexpr const double DfefeN_apriori = 0e0;
+// respective default std. deviation
+constexpr const double DfefeN_apriori_stddev = 1e-2;
+
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
 
@@ -427,13 +433,13 @@ int main(int argc, char *argv[]) {
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
   // initialize the Kalman filter
   for (int i = 6; i < NumParams; i += 2) {
-    Filter.x(i) = 0e0;     // beacon relative frequency offset
+    Filter.x(i) = DfefeN_apriori;     // beacon relative frequency offset
     Filter.x(i + 1) = 1e-1; // apriori tropo wet delay at zenith
   }
   // default sigma for releative frequency offset
   Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
   for (int i = 6; i < NumParams; i += 2) {
-    Filter.P(i, i) = 1e2;
+    Filter.P(i, i) = DfefeN_apriori_stddev;
     Filter.P(i + 1, i + 1) = 0.5e0;
   }
   // default sigma for position is 1 [m]
@@ -465,8 +471,8 @@ int main(int argc, char *argv[]) {
   // get satellite ARP coordinates in the satellite-fixed RF
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = &sat_cog;
-  svState.arp_sf = &l1_pco;
+  svState.cog_sf = nullptr;//&sat_cog;
+  svState.arp_sf = nullptr;//&l1_pco;
 
   // I only need TLSB at this point; get its RINEX-internal, 3-char id
   // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
@@ -503,8 +509,8 @@ int main(int argc, char *argv[]) {
 
     // get the attitude/quaternion for this instant; must transform TAI to UTC
     // (i.e. 'this instant' is the target time of integration)
-    Eigen::Quaternion<double> q;
-    {
+    Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
+    /*{
       // get leap seconds
       int leap_sec = dso::dat(tl1.mjd());
       dso::datetime<dso::nanoseconds> tl1_utc = tl1;
@@ -529,7 +535,7 @@ int main(int argc, char *argv[]) {
         //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
         //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
       }
-    }
+    }*/
 
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
@@ -754,7 +760,7 @@ int main(int argc, char *argv[]) {
                 delta_tau.to_fractional_seconds();
 
             // Relativistic corrections
-            const double Drel =
+            const double Drel = 0e0 *
                 (cDrel - pprev_obs->Drel) / delta_tau.to_fractional_seconds();
 
             // we will need the estimated Δf_e / f_eN
@@ -777,9 +783,9 @@ int main(int argc, char *argv[]) {
                                  (iers2010::C / feN) * (NdopDt + frT) * DfefeN;
 
             const double oc = Uobs - Utheo;
-            const double threshold = 0e0*(
+            const double threshold = 
                 (rstats.stddev() > 0e0) ? (3e0 * rstats.stddev() / std::sin(el))
-                                        : 1e3);
+                                        : 1e3;
             if (std::abs(oc) < threshold) {
 
               rstats.update(oc);
@@ -809,15 +815,17 @@ int main(int argc, char *argv[]) {
               // Filter measurement update
               Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
               dso::strftime_ymd_hmfs(tl1, dtbuf);
-              printf("%s (TAI) %.4s %+15.3f %+15.3f %+15.3f "
+              printf("%s (TAI) %.4s %d %+15.3f %+15.3f %+15.3f "
                      "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f %.9f "
                      "%.6f %.6f\n",
-                     dtbuf, beacon_it->m_station_id, Filter.x(0), Filter.x(1),
-                     Filter.x(2), Filter.x(3), Filter.x(4), Filter.x(5),
-                     Filter.x(6 + receiver_number * 2 + 1),
+                     dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
+                     Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
+                     Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
                      Filter.x(6 + receiver_number * 2), Uobs, Utheo,
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
-            
+              //printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
+              //       cDrel, pprev_obs->Drel, Drel);
+
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               fprintf(stderr,
@@ -1043,41 +1051,3 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
 
   return 0;
 }
-
-/*
-Eigen::Matrix<double, 3, 1>
-range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
-           const Eigen::Matrix<double, 3, 1> &rsta,
-           const Eigen::Matrix<double, 3, 1> &rsat, double dt,
-           double &rr_computed, Eigen::Matrix<double, 6, 1> &drrdrv) noexcept {
-
-  // ellipsoidal coordinates at t
-  const Eigen::Matrix<double, 3, 1> ell =
-      dso::car2ell<dso::ellipsoid::grs80>(rsta);
-
-  // ITRF to topocentric matrix with center at beacon
-  const auto E = dso::topocentric_matrix(ell(0), ell(1));
-
-  // satellite-beacon vector in topocentric frame
-  const Eigen::Matrix<double, 3, 1> s = E * (rsat - rsta);
-
-  // vellocity in topocentric frame
-  const Eigen::Matrix<double, 3, 1> v = (s - s_t0) / dt;
-
-  // norms
-  const double sn = s.norm();
-  const double vn = v.norm();
-
-  // model value for range-rate
-  rr_computed = s.dot(v) / sn;
-
-  // partials w.r.t r (topocentric -> ECEF)
-  drrdrv.block<3, 1>(0, 0) =
-      (sn * v.transpose() - vn * s.transpose()) * E / sn / sn;
-
-  // partials w.r.t v (topocentric -> ECEF)
-  drrdrv.block<3, 1>(3, 0) = s.transpose() * E / sn;
-
-  return s;
-}
-*/
