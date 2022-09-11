@@ -917,16 +917,16 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            const Eigen::Matrix<double, 3, 1> &rbeacon,
                            double Re, double GM, double J2, double &Drel_c,
                            double &Drel_r) noexcept {
-  // correction for beacon (no J2 term)
+  // correction for beacon (no J2 term) -- emitter
   const double Bdelta_clock = dso::relativistic_clock_correction(
       rbeacon, Eigen::Matrix<double, 3, 1>::Zero(), GM);
 
-  // correction for satellite (including J2 term)
+  // correction for satellite (including J2 term) -- receiver
   const double Sdelta_clock = dso::relativistic_clock_correction(
       sv_state.block<3, 1>(0, 0), sv_state.block<3, 1>(3, 0), GM, J2, Re);
 
   //// relativity clock correction, Lemoine 2016
-  Drel_c = Sdelta_clock - Bdelta_clock;
+  Drel_c = .5e0*(Sdelta_clock - Bdelta_clock);
 
   // TODO relativity correction for travel time
   Drel_r = 0e0;
