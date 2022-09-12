@@ -294,8 +294,8 @@ int main(int argc, char *argv[]) {
   dso::cspice::load_if_unloaded_lsk(buf);
 
   // DORIS RINEX instance
-  // Construct the DorisRinex instance rnx
   // -------------------------------------------------------------------------
+  // Construct the Doris RINEX instance rnx
   if (dso::get_yaml_value_depth2(config, "data", "doris-rinex", buf)) {
     fprintf(stderr, "ERROR. Failed parsing data/rinex file from YAML %s\n",
             argv[1]);
@@ -400,9 +400,9 @@ int main(int argc, char *argv[]) {
   prevec.reserve(beaconCrdVec.size());
 
   // Setup Integration Parameters for Orbit Integration
+  // -------------------------------------------------------------------------
   // We will need the pck (SPICE) kernel for gravitational parameters of Sun
   // and Moon
-  // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "naif-kernels", "pck", buf)) {
     fprintf(stderr, "ERROR Failed locating NAIF pck kernel\n");
     return 1;
@@ -447,6 +447,13 @@ int main(int argc, char *argv[]) {
   // default sigma for velocity is .5 [m/sec]
   Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
 
+  // Default observation sigma for a range-rate observable at zenith
+  double obs_sigma;
+  error = dso::get_yaml_value_depth2<double>(config, "filtering",
+                                             "observation-sigma", obs_sigma);
+  assert(obs_sigma > 0e0 && obs_sigma < 1e2 && (!error));
+  printf("## Note: default observation sigms value: %.3f\n", obs_sigma);
+
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
   // get an iterator to the RINEXs data blocks
@@ -471,12 +478,8 @@ int main(int argc, char *argv[]) {
   // get satellite ARP coordinates in the satellite-fixed RF
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = nullptr;//&sat_cog;
-  svState.arp_sf = nullptr;//&l1_pco;
-
-  // I only need TLSB at this point; get its RINEX-internal, 3-char id
-  // const char *tlsb = rnx.beacon_id2internal_id("TLSB");
-  // assert(tlsb);
+  svState.cog_sf = &sat_cog;
+  svState.arp_sf = &l1_pco;
 
   // Running average and std. deviation of O-C values
   RunningStatistics rstats;
@@ -492,10 +495,6 @@ int main(int argc, char *argv[]) {
   // dso::datetime<dso::nanoseconds> last_ex_target;
   while (!(error = it.next())) {
 
-    // -- DEBUGING --
-    // limit to one beacon TLSB; if the block does not cotain this beacon, skip)
-    // if (it.contains_beacon(tlsb) != it.cblock.end()) {
-
     // the current reference time for the L1 observation (corrected for
     // receiver clock offset). That is tl1 is approximately TAI.
     // aka proper-time to coordinate-time
@@ -510,7 +509,7 @@ int main(int argc, char *argv[]) {
     // get the attitude/quaternion for this instant; must transform TAI to UTC
     // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
-    /*{
+    {
       // get leap seconds
       int leap_sec = dso::dat(tl1.mjd());
       dso::datetime<dso::nanoseconds> tl1_utc = tl1;
@@ -535,7 +534,7 @@ int main(int argc, char *argv[]) {
         //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
         //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
       }
-    }*/
+    }
 
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
@@ -813,7 +812,7 @@ int main(int argc, char *argv[]) {
               Filter.time_update(tl1, estimates, PhiP);
 
               // Filter measurement update
-              Filter.observation_update(Uobs, Utheo, 5e0 / std::cos(el), dHdX);
+              Filter.observation_update(Uobs, Utheo, obs_sigma / std::cos(el), dHdX);
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf("%s (TAI) %.4s %d %+15.3f %+15.3f %+15.3f "
                      "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f %.9f "
@@ -925,7 +924,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
   const double Sdelta_clock = dso::relativistic_clock_correction(
       sv_state.block<3, 1>(0, 0), sv_state.block<3, 1>(3, 0), GM, J2, Re);
 
-  //// relativity clock correction, Lemoine 2016
+  // relativity clock correction, Lemoine 2016
   Drel_c = .5e0*(Sdelta_clock - Bdelta_clock);
 
   // TODO relativity correction for travel time
