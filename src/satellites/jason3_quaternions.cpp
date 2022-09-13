@@ -156,9 +156,8 @@ int dso::JasonQuaternionHunter::set_at(
 //  return q.normalize();
 //}
 
-    int dso::JasonQuaternionHunter::get_at(
-        const dso::datetime<dso::nanoseconds> &t,
-        Eigen::Quaterniond &q) noexcept {
+int dso::JasonQuaternionHunter::get_at(const dso::datetime<dso::nanoseconds> &t,
+                                       Eigen::Quaterniond &q) noexcept {
   if (set_at(t))
     return 1;
 
@@ -167,14 +166,14 @@ int dso::JasonQuaternionHunter::set_at(
 #endif
 
   auto dts = bodyq[1].t.delta_sec(bodyq[0].t);
-  const double dt_ab = dts.to_fractional_seconds(); // t2-t1
+  const double dt_ab = dts.to_fractional_seconds(); // t2 - t1
   dts = t.delta_sec(bodyq[0].t);
   const double dt_at = dts.to_fractional_seconds(); // t - t1
   const double dt = dt_at / dt_ab;
 #ifdef DEBUG
   assert(dt >= 0e0 && dt <= 1e0);
 #endif
-
+  // Eigen way
   q = bodyq[0].quaternion.slerp(dt, bodyq[1].quaternion);
   q.normalize();
   // q = slerp(bodyq[0].quaternion, bodyq[1].quaternion, dt);
