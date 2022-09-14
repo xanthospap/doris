@@ -1,7 +1,8 @@
-#include "datetime/datetime_read.hpp"
+#include "datetime/utcdates.hpp"
 #include "jason3_quaternions.hpp"
 #include <charconv>
 #include <cstdio>
+#include <datetime/dtfund.hpp>
 #include <exception>
 #include <fstream>
 #include <stdexcept>
@@ -10,9 +11,12 @@ constexpr const int LINE_SZ = 256;
 
 int resolve_jason3_body_quaternion_line(
     const char *line, dso::JasonBodyQuaternion &record) noexcept {
-  // read in date (UTC)
+  // read in date (UTC) and transform to TAI
   try {
-    record.t = dso::strptime_ymd_hms<dso::nanoseconds>(line);
+    dso::modified_julian_day utc_mjd, tai_mjd;
+    const double utc_fday = dso::utc_strptime_ymd_hms(line, utc_mjd);
+    record.tai_mjd = dso::utc2tai(utc_mjd, utc_fday, tai_mjd);
+    record.tai_mjd += static_cast<double>(tai_mjd.as_underlying_type());
   } catch (std::exception &e) {
     fprintf(stderr,
             "[ERROR] Failed resolving date in quaternion file, lineL \'%s\' "
@@ -108,9 +112,10 @@ int dso::JasonBodyQuaternionFile::get_next(dso::JasonBodyQuaternion *records,
 }
 
 int dso::JasonQuaternionHunter::set_at(
-    const dso::datetime<dso::nanoseconds> &t) noexcept {
+    /*const dso::datetime<dso::nanoseconds> &t*/
+    double tai_mjd) noexcept {
   // first, check if we are ok
-  if (t >= bodyq[0].t && t < bodyq[1].t)
+  if (tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd)
     return 0;
 
   // get next quaternion, hopefully we are ok now ...
@@ -124,7 +129,7 @@ int dso::JasonQuaternionHunter::set_at(
   }
 
   // check if we are ok with this pair ...
-  if (t >= bodyq[1].t && t < tmp.t) {
+  if (tai_mjd>= bodyq[1].tai_mjd && tai_mjd < tmp.tai_mjd) {
     bodyq[0] = bodyq[1];
     bodyq[1] = tmp;
 
@@ -138,7 +143,7 @@ int dso::JasonQuaternionHunter::set_at(
       bodyq[0] = tmp;
       bodyq[1] = tmp2;
       tmp = tmp2;
-    } while (!error && !(t >= bodyq[0].t && t < bodyq[1].t));
+    } while (!error && !(tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd));
     return error;
   }
 }
@@ -156,19 +161,22 @@ int dso::JasonQuaternionHunter::set_at(
 //  return q.normalize();
 //}
 
-int dso::JasonQuaternionHunter::get_at(const dso::datetime<dso::nanoseconds> &t,
+int dso::JasonQuaternionHunter::get_at(/*const dso::datetime<dso::nanoseconds> &t*/double tai_mjd,
                                        Eigen::Quaterniond &q) noexcept {
-  if (set_at(t))
+  if (set_at(tai_mjd))
     return 1;
 
 #ifdef DEBUG
-  assert(t >= bodyq[0].t && t < bodyq[1].t);
+  assert(tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd);
 #endif
 
-  auto dts = bodyq[1].t.delta_sec(bodyq[0].t);
-  const double dt_ab = dts.to_fractional_seconds(); // t2 - t1
-  dts = t.delta_sec(bodyq[0].t);
-  const double dt_at = dts.to_fractional_seconds(); // t - t1
+  //auto dts = bodyq[1].t.delta_sec(bodyq[0].t);
+  //const double dt_ab = dts.to_fractional_seconds(); // t2 - t1
+  //dts = t.delta_sec(bodyq[0].t);
+  //const double dt_at = dts.to_fractional_seconds(); // t - t1
+  //const double dt = dt_at / dt_ab;
+  const double dt_ab = bodyq[1].tai_mjd - bodyq[0].tai_mjd;
+  const double dt_at = tai_mjd - bodyq[0].tai_mjd;
   const double dt = dt_at / dt_ab;
 #ifdef DEBUG
   assert(dt >= 0e0 && dt <= 1e0);

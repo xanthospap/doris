@@ -510,15 +510,7 @@ int main(int argc, char *argv[]) {
     // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
     {
-      // get leap seconds
-      int leap_sec = dso::dat(tl1.mjd());
-      dso::datetime<dso::nanoseconds> tl1_utc = tl1;
-      // UTC = TAI - leap_seonds
-      tl1_utc.remove_seconds(dso::nanoseconds(
-          leap_sec *
-          dso::nanoseconds::sec_factor<dso::nanoseconds::underlying_type>()));
-      // get quaternion at current time
-      if (qhunt.get_at(tl1_utc, q)) {
+      if (qhunt.get_at(tl1.as_mjd(), q)) {
         fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
         return 1;
       } else {

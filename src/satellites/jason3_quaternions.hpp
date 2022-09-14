@@ -9,8 +9,8 @@
 namespace dso {
 
 struct JasonBodyQuaternion {
-    ///< datetime, UTC
-    dso::datetime<dso::nanoseconds> t{dso::datetime<dso::nanoseconds>::min()};
+    ///< TAI MJD
+    double tai_mjd;
     ///< Quaternion
     Eigen::Quaternion<double> quaternion;
 }; // JasonBodyQuaternion
@@ -57,14 +57,14 @@ struct JasonQuaternionHunter {
   /// file) and has an effect on where the file streams are placed.
   /// @param[in] t Requested datetime
   /// @return Anythiong other than 0 signals an error
-  int set_at(const dso::datetime<dso::nanoseconds> &t) noexcept;
+  int set_at(const /*dso::datetime<dso::nanoseconds> &t*/double mjd_tai) noexcept;
 
   /// @brief Get the quaternion for a given datetime instance, using the
   ///        SLERP interpolation method.
   /// @param[in]  t Requested datetime
   /// @param[out] q The quaternion at time t
   /// @return Always zero
-  int get_at(const dso::datetime<dso::nanoseconds> &t,
+  int get_at(/*const dso::datetime<dso::nanoseconds> &t*/double mjd_tai,
              Eigen::Quaternion<double> &q) noexcept;
 }; // JasonQuaternionHunter
 
