@@ -1,4 +1,5 @@
 #include "orbit_integration.hpp"
+#include "iers2010/iersc.hpp"
 
 void dso::VariationalEquations(
     double tsec, // TAI
@@ -14,8 +15,7 @@ void dso::VariationalEquations(
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> dt2c;
-  Eigen::Matrix<double, 3, 3> t2c(
-      dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
+  Eigen::Matrix<double, 3, 3> t2c(dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
@@ -25,8 +25,8 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> gpartials;
   Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
-      r_geo, params.degree, params.order, *(params.Lagrange_V), *(params.Lagrange_W),
-      params.harmonics, gpartials);
+      r_geo, params.degree, params.order, *(params.Lagrange_V),
+      *(params.Lagrange_W), params.harmonics, gpartials);
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
@@ -41,15 +41,43 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
   dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
-          tb_partials);
+               tb_partials);
 
   // Drag
+  // Warning only valid for Jason-3
+  // get the quaternion
+  Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
+  Eigen::Quaternion<double> q;
+  if (params.qhunt->get_at(cmjd, q)) {
+    fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+  } else {
+    // compute cross-section area
+    constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
+    const Eigen::Matrix<double, 3, 1> omega{omegav};
+    // Velocity relative to the Earth's atmosphere
+    const Eigen::Matrix<double, 3, 1> vrel = v - omega.cross(r);
+    // normalize
+    const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
+    // loop over flat plates of satellite
+    double ProjArea = 0e0;
+    for (int i=0; i<params.numMacroModelComponents; i++) {
+      const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
+      const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
+      const double ctheta = rv.dot(vr);
+      if (ctheta > 0e0) {
+        ProjArea += params.macromodel[i].m_surf * ctheta;
+      }
+    }
+    drag = dso::drag_accel(r, v, ProjArea, CD, Mass, atmdens);
+  }
+
   // set input parameters (time and spatial)
-  //Eigen::Matrix<double, 3, 1> drag_acc = Eigen::Matrix<double, 3, 1>::Zero();
-  //if (include_drag) {
+  // Eigen::Matrix<double, 3, 1> drag_acc = Eigen::Matrix<double, 3, 1>::Zero();
+  // if (include_drag) {
   //  int msise_mjd;
   //  double msise_secday;
-  //  setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday, params->msise_in);
+  //  setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday,
+  //  params->msise_in);
   //  //printf("\tparams set for setNrlmsise00Params ...\n");
   //  // update flux data
   //  if (params->msise_in->update_params(msise_mjd, msise_secday)) {
@@ -83,8 +111,8 @@ void dso::VariationalEquations(
   //}
 
   // SRP
-  //Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
-  //if (include_srp) {
+  // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
+  // if (include_srp) {
   //  dso::Vector3 rV({r(0), r(1), r(2)});
   //  dso::Vector3 sV({rsun(0), rsun(1), rsun(2)});
   //  if (utest::montebruck_shadow(rV, sV)) {
@@ -120,11 +148,12 @@ void dso::VariationalEquations(
   yPhiP = Eigen::VectorXd(
       Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
 
-  //printf("Accelerations: \n");
-  //printf("Gravity     Sun          Moon         srp          drag\n");
-  //for (int i=0; i<3; i++) {
-  //  printf("%+12.9f %+12.9f %+12.9f %+12.9f %+12.9f\n", gacc(i), sun_acc(i), mon_acc(i), srp(i), drag_acc(i));
-  //}
+  // printf("Accelerations: \n");
+  // printf("Gravity     Sun          Moon         srp          drag\n");
+  // for (int i=0; i<3; i++) {
+  //   printf("%+12.9f %+12.9f %+12.9f %+12.9f %+12.9f\n", gacc(i), sun_acc(i),
+  //   mon_acc(i), srp(i), drag_acc(i));
+  // }
 
   return;
 }

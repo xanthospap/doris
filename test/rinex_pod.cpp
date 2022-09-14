@@ -13,8 +13,8 @@
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
-#include <datetime/dtfund.hpp>
-#include <geodesy/geoconst.hpp>
+#include "datetime/dtfund.hpp"
+#include "geodesy/geoconst.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 
@@ -409,6 +409,11 @@ int main(int argc, char *argv[]) {
   }
   dso::IntegrationParameters IntegrationParams(degree, order, eop_lut,
                                                harmonics, buf);
+  IntegrationParams.macromodel =
+      dso::MacroModel<dso::SATELLITE::Jason3>::mmcomponents;
+  IntegrationParams.numMacroModelComponents =
+      dso::MacroModel<dso::SATELLITE::Jason3>::NumPlates;
+  IntegrationParams.qhunt = &qhunt;
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -506,7 +511,7 @@ int main(int argc, char *argv[]) {
     // a buffer to write datetime strings to
     char dtbuf[64];
 
-    // get the attitude/quaternion for this instant; must transform TAI to UTC
+    // get the attitude/quaternion for this instant;
     // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
     {

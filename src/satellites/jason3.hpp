@@ -107,6 +107,22 @@ template <> struct SatelliteInfo<SATELLITE::Jason3> {
   }
 
 }; // SatelliteInfo<SATELLITE::Jason3>
+
+template <> struct MacroModel<SATELLITE::Jason3> {
+  static constexpr int NumPlates = 8;
+  static constexpr MacroModelComponent mmcomponents[] = {
+    {0.783e0, {-1e0, 0e0, 0e0}, {0.3410e0,0.6460e0,0.0130e0}, {0.0000e0,0.9870e0,0.0130e0}},
+    {0.783e0, { 1e0, 0e0, 0e0}, {0.1490e0,0.8510e0,0.0000e0}, {0.0000e0,1.0000e0,0.0000e0}},
+    {2.040e0, { 0e0,-1e0, 0e0}, {0.5730e0,0.3840e0,0.0430e0}, {0.1040e0,0.5690e0,0.3280e0}},
+    {2.040e0, { 0e0, 1e0, 0e0}, {0.5390e0,0.4240e0,0.0370e0}, {0.0890e0,0.6270e0,0.2830e0}},
+    {3.105e0, { 0e0, 0e0,-1e0}, {0.2460e0,0.7520e0,0.0020e0}, {0.0050e0,0.9770e0,0.0170e0}},
+    {3.105e0, { 0e0, 0e0, 1e0}, {0.2130e0,0.4530e0,0.3340e0}, {0.0370e0,0.2870e0,0.6760e0}},
+    // solar arrays
+    {9.800e0, { 1e0, 0e0, 0e0}, {0.0600e0,0.4070e0,0.5330e0}, {0.0970e0,0.0980e0,0.8030e0}},
+    {9.800e0, {-1e0, 0e0, 0e0}, {0.0040e0,0.2980e0,0.6970e0}, {0.0350e0,0.0350e0,0.9310e0}}
+  };
+};// MacroModel<SATELLITE::Jason3>
+
 } // namespace dso
 
 #endif

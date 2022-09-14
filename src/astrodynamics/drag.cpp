@@ -1,6 +1,7 @@
 #include "astrodynamics.hpp"
 #include <iers2010/iersc.hpp>
 
+/// I guess i don't really need the rbpn matrix ...
 /// @brief Compute acceleration due to atmospheric drag
 ///
 /// @param[in] rsat Satellite position in GCRS/ICRF [m]
@@ -36,6 +37,26 @@ dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
   Eigen::Matrix<double, 3, 1> acc =
       -0.5e0 * CD * (Area / Mass) * atmdens * vabs * vrel;
   acc = rbpn.transpose() * acc;
+
+  return acc;
+}
+
+Eigen::Matrix<double, 3, 1>
+dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
+                const Eigen::Matrix<double, 3, 1> &vsat,
+                double Area, double CD,
+                double Mass, double atmdens) noexcept {
+  // earth angular velocity vector [rad/sec]
+  constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
+  const Eigen::Matrix<double, 3, 1> omega{omegav};
+
+  // Velocity relative to the Earth's atmosphere
+  const Eigen::Matrix<double, 3, 1> vrel = vsat - omega.cross(rsat);
+  // const auto vabs = vrel.norm();
+
+  // Acceleration
+  Eigen::Matrix<double, 3, 1> acc = -0.5e0 * CD * (Area / Mass) * atmdens *
+                                    vrel.squaredNorm() * vrel.normalized();
 
   return acc;
 }

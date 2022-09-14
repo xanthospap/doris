@@ -27,8 +27,16 @@ int get_satellite_corrections(const char *ids_mass,
                            const dso::datetime<dso::nanoseconds> &t,
                            double *dmdxyz) noexcept;
 
+struct MacroModelComponent {
+  double m_surf; ///< Surface [m^2]
+  double m_normal[3]; ///< Normal in satellite fixed ref. frame [x,y,z]
+  double m_optical_properties[3]; ///< spec, diff, abs
+  double m_infrared_properties[3]; ///< spec, diff, abs
+};
+
 enum class SATELLITE : char { Jason3, Cryosat2 }; // SATELLITE
 template <SATELLITE Sat> struct SatelliteInfo {};
+template <SATELLITE Sat> struct MacroModel {};
 
 } // dso
 

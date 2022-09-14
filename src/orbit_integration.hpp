@@ -4,6 +4,8 @@
 #include "egravity.hpp"
 #include "eop.hpp"
 #include "planetpos.hpp"
+#include "satellites.hpp"
+#include "satellites/jason3_quaternions.hpp"
 #include <cassert>
 
 namespace dso {
@@ -25,6 +27,10 @@ struct IntegrationParameters {
   int degree, order;
   ///< Sun/Moon gravitational parameters
   double GMSun, GMMon;
+  ///< Satellite Macromodel and number of individual flat plates
+  const MacroModelComponent *macromodel{nullptr};
+  int numMacroModelComponents{0};
+  const dso::JasonQuaternionHunter *qhunt{nullptr};
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,

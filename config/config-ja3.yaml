@@ -34,4 +34,5 @@ attitude:
   body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001
 
 filtering:
-  observation-sigma: 5e-1
+  ## m/sec
+  observation-sigma: 5e-3
