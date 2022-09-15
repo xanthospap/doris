@@ -31,6 +31,7 @@ struct IntegrationParameters {
   const MacroModelComponent *macromodel{nullptr};
   int numMacroModelComponents{0};
   const dso::JasonQuaternionHunter *qhunt{nullptr};
+  const double *SatMass{nullptr};
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,

@@ -1,5 +1,6 @@
 #include "orbit_integration.hpp"
 #include "iers2010/iersc.hpp"
+#include "astrodynamics.hpp"
 
 void dso::VariationalEquations(
     double tsec, // TAI
@@ -68,7 +69,8 @@ void dso::VariationalEquations(
         ProjArea += params.macromodel[i].m_surf * ctheta;
       }
     }
-    drag = dso::drag_accel(r, v, ProjArea, CD, Mass, atmdens);
+    const double CD = 2e0;
+    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), atmdens);
   }
 
   // set input parameters (time and spatial)

@@ -398,6 +398,23 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   std::vector<SatBeacon> prevec;
   prevec.reserve(beaconCrdVec.size());
+  
+  // On-board receiver eccentricity, in the satellite-fixed frame
+  // -------------------------------------------------------------------------
+  if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
+    fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
+    return 1;
+  }
+  Eigen::Matrix<double, 3, 1> sat_cog;
+  double sat_mass;
+  // get satellite CoG coordinates in the satellite-fixed RF (with corrections)
+  assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
+      rnx.ref_datetime(), buf, sat_mass, sat_cog));
+  // get satellite ARP coordinates in the satellite-fixed RF
+  Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
+  dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
+  svState.cog_sf = &sat_cog;
+  svState.arp_sf = &l1_pco;
 
   // Setup Integration Parameters for Orbit Integration
   // -------------------------------------------------------------------------
@@ -414,6 +431,7 @@ int main(int argc, char *argv[]) {
   IntegrationParams.numMacroModelComponents =
       dso::MacroModel<dso::SATELLITE::Jason3>::NumPlates;
   IntegrationParams.qhunt = &qhunt;
+  IntegrationParams.SatMass = &sat_mass;
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -468,23 +486,6 @@ int main(int argc, char *argv[]) {
   const double J2 = harmonics.J2();
   const double GM = harmonics.GM();
   const double Re = harmonics.Re();
-
-  // On-board receiver eccentricity, in the satellite-fixed frame
-  // -------------------------------------------------------------------------
-  if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
-    fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
-    return 1;
-  }
-  Eigen::Matrix<double, 3, 1> sat_cog;
-  double sat_mass;
-  // get satellite CoG coordinates in the satellite-fixed RF (with corrections)
-  assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
-      rnx.ref_datetime(), buf, sat_mass, sat_cog));
-  // get satellite ARP coordinates in the satellite-fixed RF
-  Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
-  dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  svState.cog_sf = &sat_cog;
-  svState.arp_sf = &l1_pco;
 
   // Running average and std. deviation of O-C values
   RunningStatistics rstats;
