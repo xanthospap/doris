@@ -8,8 +8,7 @@ namespace dso::utils::celestrak::details {
 
 constexpr const double MissingSwData = std::numeric_limits<double>::min();
 
-// See
-// https://celestrak.org/SpaceData/
+/// See https://celestrak.org/SpaceData/
 /// Flux related data from Celestrack Space Wether (CSV) data
 /// see https://celestrak.org/SpaceData/SpaceWx-format.php
 struct CelestTrakSWFlux {

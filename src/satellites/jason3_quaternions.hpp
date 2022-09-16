@@ -44,28 +44,62 @@ struct JasonPanelQuaternionFile {
     JasonPanelQuaternionFile(const char *fn) noexcept : fin(fn) {}
 };
 
+constexpr const int NumQuaternionsInBuffer = 5;
+
 struct JasonQuaternionHunter {
   JasonBodyQuaternionFile bodyin;
-  JasonBodyQuaternion bodyq[2];
+  JasonBodyQuaternion bodyq[NumQuaternionsInBuffer];
 
   JasonQuaternionHunter(const char *body_fn);
+
+  /// @brief Move buffered quaternions to the left, aka left shift. This means
+  /// that the first quaternion will be lost (replaced by the second) and the
+  /// last quaternion will be empty.
+  /// After the call, we will have:
+  /// bodyq[0] <- bodyq[1]
+  /// bodyq[1] <- bodyq[2]
+  /// ...
+  /// bodyq[NumQuaternionsInBuffer-2] <- bodyq[NumQuaternionsInBuffer-1]
+  /// bodyq[NumQuaternionsInBuffer-1]
+  void left_shift() noexcept {
+    // fuck it, consume memory, no loops
+    JasonBodyQuaternion newq[NumQuaternionsInBuffer - 1];
+    std::memcpy(newq, bodyq+1,
+                sizeof(JasonBodyQuaternion) * (NumQuaternionsInBuffer - 1));
+    std::memcpy(bodyq, newq,
+                sizeof(JasonBodyQuaternion) * (NumQuaternionsInBuffer - 1));
+    return;
+  }
+
+  int find_interval(double tai_mjd) const noexcept {
+    int qindex = NumQuaternionsInBuffer - 2;
+    for (int i = qindex; i >= 0; --i) {
+      if (tai_mjd >= bodyq[i].tai_mjd && tai_mjd < bodyq[i + 1].tai_mjd) {
+        return i;
+      }
+    }
+    if (tai_mjd < bodyq[0].tai_mjd)
+      return -1;
+    if (tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd)
+      return NumQuaternionsInBuffer + 1;
+    return -100;
+  }
 
   /// @brief Go through the input file (if needed), to find a suitable, 
   ///        consecutive pair of records such that:
   ///        t>=bodyq[0].t and t<bodyq[1].t
   /// The function operates in a forward manner only (aka goes forward in the
   /// file) and has an effect on where the file streams are placed.
-  /// @param[in] t Requested datetime
+  /// @param[in] t Requested datetime as fractional MJD (TAI)
   /// @return Anything other than 0 signals an error
-  int set_at(const /*dso::datetime<dso::nanoseconds> &t*/double mjd_tai) noexcept;
+  int set_at(double mjd_tai, int &index) noexcept;
 
   /// @brief Get the quaternion for a given datetime instance, using the
   ///        SLERP interpolation method.
-  /// @param[in]  t Requested datetime
+  /// @param[in]  t Requested datetime as fractional MJD (TAI)
   /// @param[out] q The quaternion at time t
   /// @return Always zero
-  int get_at(/*const dso::datetime<dso::nanoseconds> &t*/double mjd_tai,
-             Eigen::Quaternion<double> &q) noexcept;
+  int get_at(double mjd_tai, Eigen::Quaternion<double> &q) noexcept;
 }; // JasonQuaternionHunter
 
 } // dso

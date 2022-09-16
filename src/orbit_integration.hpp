@@ -6,6 +6,7 @@
 #include "planetpos.hpp"
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
+#include "atmosphere.hpp"
 #include <cassert>
 
 namespace dso {
@@ -30,8 +31,12 @@ struct IntegrationParameters {
   ///< Satellite Macromodel and number of individual flat plates
   const MacroModelComponent *macromodel{nullptr};
   int numMacroModelComponents{0};
-  const dso::JasonQuaternionHunter *qhunt{nullptr};
+  dso::JasonQuaternionHunter *qhunt{nullptr};
   const double *SatMass{nullptr};
+  /// Drag-related stuff
+  dso::nrlmsise00::InParams<
+      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
+  dso::Nrlmsise00 *nrlmsise00;
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,

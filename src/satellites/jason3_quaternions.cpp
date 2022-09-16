@@ -19,7 +19,7 @@ int resolve_jason3_body_quaternion_line(
     record.tai_mjd += static_cast<double>(tai_mjd.as_underlying_type());
   } catch (std::exception &e) {
     fprintf(stderr,
-            "[ERROR] Failed resolving date in quaternion file, lineL \'%s\' "
+            "[ERROR] Failed resolving date in quaternion file, line \'%s\' "
             "(traceback: %s)\n",
             line, __func__);
     return 1;
@@ -90,10 +90,15 @@ dso::JasonQuaternionHunter::JasonQuaternionHunter(const char *body_fn)
 int dso::JasonBodyQuaternionFile::get_next(
     dso::JasonBodyQuaternion &record) noexcept {
   char line[LINE_SZ];
-  fin.getline(line, LINE_SZ);
+  if (!fin.getline(line, LINE_SZ)) {
+    fprintf(stderr, "[ERROR] Failed to read line from quaternion file! (traceback: %s)\n", __func__);
+    return 2;
+  }
+  
   // skip commanet lines, if any
   while (line[0] == '#' && fin.good())
     fin.getline(line, LINE_SZ);
+  
   return resolve_jason3_body_quaternion_line(line, record);
 }
 
@@ -101,22 +106,30 @@ int dso::JasonBodyQuaternionFile::get_next(dso::JasonBodyQuaternion *records,
                                            int num_records) noexcept {
   char line[LINE_SZ];
   for (int i = 0; i < num_records; i++) {
-    fin.getline(line, LINE_SZ);
+    if (!fin.getline(line, LINE_SZ)) {
+      fprintf(stderr, "[ERROR] Failed to read line from quaternion file! (traceback: %s)\n", __func__);
+      return 2;
+    }
+
     // skip comment lines, if any
     while (line[0] == '#' && fin.good())
       fin.getline(line, LINE_SZ);
+    
     if (resolve_jason3_body_quaternion_line(line, records[i]))
       return i*10;
   }
+
   return 0;
 }
 
-int dso::JasonQuaternionHunter::set_at(
-    /*const dso::datetime<dso::nanoseconds> &t*/
-    double tai_mjd) noexcept {
-  // first, check if we are ok
-  if (tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd)
+int dso::JasonQuaternionHunter::set_at(double tai_mjd, int &index) noexcept {
+  // first, check if we are ok, i.e. the time requested is within the buffered
+  // interval
+  index = this->find_interval(tai_mjd);
+  assert(index >= 0);
+  if (index < NumQuaternionsInBuffer) {
     return 0;
+  }
 
   // get next quaternion, hopefully we are ok now ...
   dso::JasonBodyQuaternion tmp;
@@ -128,61 +141,84 @@ int dso::JasonQuaternionHunter::set_at(
     return 1;
   }
 
+  // new quternion temporarilly stored in tmp
+#ifdef DEBUG
+  assert(tmp.tai_mjd > bodyq[NumQuaternionsInBuffer - 1].tai_mjd);
+#endif
+
   // check if we are ok with this pair ...
-  if (tai_mjd>= bodyq[1].tai_mjd && tai_mjd < tmp.tai_mjd) {
-    bodyq[0] = bodyq[1];
-    bodyq[1] = tmp;
+  if (tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd &&
+      tai_mjd < tmp.tai_mjd) {
+    //  left shift quaternions and add the new in the last index
+    left_shift();
+    bodyq[NumQuaternionsInBuffer - 1] = tmp;
+    index = NumQuaternionsInBuffer - 2;
 
     return 0;
   } else {
+    if (tai_mjd < bodyq[0].tai_mjd) {
+      fprintf(stderr,
+              "ERROR Requested quaternion for an epoch prior to current "
+              "interval, t=%.15f\n",
+              tai_mjd);
+      fprintf(stderr, "      Current interval spans: %.15f to %.15f\n",
+              bodyq[0].tai_mjd, bodyq[1].tai_mjd);
+      return 1;
+    }
     // else, find a suitable interval ....
     int error = 0;
-    dso::JasonBodyQuaternion tmp2;
+    left_shift();
+    bodyq[NumQuaternionsInBuffer - 1] = tmp;
+
     do {
-      error = bodyin.get_next(tmp2);
-      bodyq[0] = tmp;
-      bodyq[1] = tmp2;
-      tmp = tmp2;
-    } while (!error && !(tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd));
-    return error;
+      error = bodyin.get_next(tmp);
+      left_shift();
+      bodyq[NumQuaternionsInBuffer - 1] = tmp;
+      // bodyq[0] = tmp;
+      // bodyq[1] = tmp2;
+      // tmp = tmp2;
+    } while (!error && !(tai_mjd >= bodyq[NumQuaternionsInBuffer - 2].tai_mjd &&
+                         tai_mjd < bodyq[NumQuaternionsInBuffer - 1].tai_mjd));
+#ifdef DEBUG
+if (error) {
+      fprintf(stderr,
+              "[ERROR] Failed hunting quaternion for epoch: %.15f. Last found "
+              "was for %.15f. error=%d (traceback: %s)\n",
+              tai_mjd, bodyq[NumQuaternionsInBuffer - 1].tai_mjd, error,
+              __func__);
+    }
+  #endif
+    return (error) ? (error) : ((index=NumQuaternionsInBuffer - 2)==-1);
   }
 }
 
-//Eigen::Quaternion<double> slerp(const Eigen::Quaternion<double> &q1,
-//                                const Eigen::Quaternion<double> &q2,
-//                                double t) noexcept {
-//  const double cOmega =
-//      q1.w() * q2.w() + q1.x() * q2.x() + q1.y() * q2.y() + q1.z() * q2.z();
-//  const double Omega = std::acos(cOmega);
-//  const double s1mtO = std::sin((1e0 - t) * Omega);
-//  const double stO = std::sin(t * Omega);
-//  const double sO = std::sin(Omega);
-//  Eigen::Quaternion<double> q = (q1 * s1mtO + q2 * stO) / sO;
-//  return q.normalize();
-//}
-
-int dso::JasonQuaternionHunter::get_at(/*const dso::datetime<dso::nanoseconds> &t*/double tai_mjd,
+int dso::JasonQuaternionHunter::get_at(double tai_mjd,
                                        Eigen::Quaterniond &q) noexcept {
-  if (set_at(tai_mjd))
-    return 1;
+  int index;
+  if (set_at(tai_mjd, index))
+    return 99;
 
 #ifdef DEBUG
-  assert(tai_mjd >= bodyq[0].tai_mjd && tai_mjd < bodyq[1].tai_mjd);
+  assert(index>=0 && index < NumQuaternionsInBuffer-1);
+  assert(tai_mjd >= bodyq[index].tai_mjd && tai_mjd < bodyq[index+1].tai_mjd);
 #endif
 
+  const int i0 = index;
+  const int i1 = index+1;
+  
   //auto dts = bodyq[1].t.delta_sec(bodyq[0].t);
   //const double dt_ab = dts.to_fractional_seconds(); // t2 - t1
   //dts = t.delta_sec(bodyq[0].t);
   //const double dt_at = dts.to_fractional_seconds(); // t - t1
   //const double dt = dt_at / dt_ab;
-  const double dt_ab = bodyq[1].tai_mjd - bodyq[0].tai_mjd;
-  const double dt_at = tai_mjd - bodyq[0].tai_mjd;
+  const double dt_ab = bodyq[i1].tai_mjd - bodyq[i0].tai_mjd;
+  const double dt_at = tai_mjd - bodyq[i0].tai_mjd;
   const double dt = dt_at / dt_ab;
 #ifdef DEBUG
   assert(dt >= 0e0 && dt <= 1e0);
 #endif
   // Eigen way
-  q = bodyq[0].quaternion.slerp(dt, bodyq[1].quaternion);
+  q = bodyq[i0].quaternion.slerp(dt, bodyq[i1].quaternion);
   q.normalize();
   // q = slerp(bodyq[0].quaternion, bodyq[1].quaternion, dt);
   return 0;

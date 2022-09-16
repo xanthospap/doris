@@ -1,5 +1,6 @@
 #include "beacon_tbl.hpp"
 #include "datetime/datetime_write.hpp"
+#include "datetime/utcdates.hpp"
 #include "doris_observation_equations.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
@@ -13,7 +14,6 @@
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
-#include "datetime/dtfund.hpp"
 #include "geodesy/geoconst.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
@@ -432,6 +432,21 @@ int main(int argc, char *argv[]) {
       dso::MacroModel<dso::SATELLITE::Jason3>::NumPlates;
   IntegrationParams.qhunt = &qhunt;
   IntegrationParams.SatMass = &sat_mass;
+  
+  dso::Nrlmsise00 nrlmsise00;
+  IntegrationParams.nrlmsise00 = &nrlmsise00;
+
+  dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag",
+                             "atmo-data-csv", buf);
+  dso::modified_julian_day utc_mjd_fo;
+  const double utc_fday = dso::tai2utc(rnx.time_of_first_obs(), utc_mjd_fo);
+  dso::nrlmsise00::InParams<
+      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>
+      atm_data_feed(buf, utc_mjd_fo, utc_fday * 86400e0);
+  atm_data_feed.params_.set_switches_on();
+  atm_data_feed.params_.use_aparray();
+  atm_data_feed.params_.meters_on();
+  IntegrationParams.AtmDataFeed = &atm_data_feed;
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -505,6 +520,7 @@ int main(int argc, char *argv[]) {
     // receiver clock offset). That is tl1 is approximately TAI.
     // aka proper-time to coordinate-time
     const auto tl1 = it.corrected_l1_epoch();
+    //printf("IMPORTANT RINEX observation(s) for block are onTAI MJD = %.15f\n", tl1.as_mjd());
 
     // current proper time (aka tau)
     const auto tproper = it.proper_time();
@@ -516,8 +532,8 @@ int main(int argc, char *argv[]) {
     // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
     {
-      if (qhunt.get_at(tl1.as_mjd(), q)) {
-        fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+      if (int qerror; (qerror=qhunt.get_at(tl1.as_mjd(), q))) {
+        fprintf(stderr, "ERROR Failed to find quaternion for datetime, error=%d\n", qerror);
         return 1;
       } else {
         ;

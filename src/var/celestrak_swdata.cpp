@@ -146,7 +146,7 @@ int dso::utils::celestrak::details::resolve_csv_line_date(
   if (pec.ec != std::errc{})
     return 1;
 
-  // to datetime ...
+  // to datetime ... (note that this is UTC)
   const dso::datetime<dso::seconds> d(dso::year(year), dso::month(month),
                                       dso::day_of_month(day), dso::seconds(0));
   mjd = d.mjd();
@@ -178,7 +178,7 @@ int dso::utils::celestrak::details::get_next(
   std::memcpy(fp + flux_data_sz - 1, &new_flux, fsz);
 
 #ifdef DEBUG
-  for (int i=0; i<flux_data_sz-1; i++) {
+  for (int i = 0; i < flux_data_sz - 1; i++) {
     assert(flux_data[i].mjd_ + dso::modified_julian_day(1) ==
            flux_data[i + 1].mjd_);
   }
@@ -191,8 +191,7 @@ int dso::utils::celestrak::details::get_next(
 int dso::utils::celestrak::details::parse_csv_for_date(
     dso::modified_julian_day mjd, const char *fncsv,
     dso::utils::celestrak::details::CelestTrakSWFlux *flux_data,
-    std::ifstream::pos_type &fpos,
-    int days_before, int days_after) noexcept {
+    std::ifstream::pos_type &fpos, int days_before, int days_after) noexcept {
 
   // set the fpos at the start of the file and save the variable in fpos2
   const auto fpos2 = fpos;
@@ -242,10 +241,11 @@ int dso::utils::celestrak::details::parse_csv_for_date(
   }
   if (cmjd > start_mjd) {
     // wait! don't give up! if fpos was somethin other than 0, maybe it was
-    // erronuous, and the date exists in the file but is before fpos. try the 
+    // erronuous, and the date exists in the file but is before fpos. try the
     // function once more, with an fpos=0
     if (fpos2)
-      return parse_csv_for_date(mjd,fncsv,flux_data,fpos,days_before,days_after);
+      return parse_csv_for_date(mjd, fncsv, flux_data, fpos, days_before,
+                                days_after);
     return target_prior;
   }
 

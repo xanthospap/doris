@@ -1,6 +1,8 @@
 #include "orbit_integration.hpp"
 #include "iers2010/iersc.hpp"
 #include "astrodynamics.hpp"
+#include "geodesy/geodesy.hpp"
+#include "geodesy/units.hpp"
 
 void dso::VariationalEquations(
     double tsec, // TAI
@@ -13,6 +15,8 @@ void dso::VariationalEquations(
 
   // current mjd, TAI
   const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
+
+  // printf("IMPORTANT triggering Variational equations for TAI MJD = %.15f\n", cmjd);
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> dt2c;
@@ -51,6 +55,7 @@ void dso::VariationalEquations(
   Eigen::Quaternion<double> q;
   if (params.qhunt->get_at(cmjd, q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+    assert(false);
   } else {
     // compute cross-section area
     constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
@@ -70,7 +75,27 @@ void dso::VariationalEquations(
       }
     }
     const double CD = 2e0;
-    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), atmdens);
+    // get atmospheric density, using the UTC date
+    double imjd; 
+    int eid;
+    double utc_fday = std::modf(cmjd, &imjd);
+    const int leap_sec = dso::dat(cmjd, eid);
+    utc_fday -= leap_sec / (86400e0 + (double)eid);
+    if (utc_fday > 1e0) {
+      utc_fday -= 1e0;
+      ++imjd;
+    } else if (utc_fday < 1e0) {
+      utc_fday += 1e0;
+      --imjd;
+    }
+    assert(!params.AtmDataFeed->update_params(imjd, utc_fday*86400e0));
+    const Eigen::Matrix<double, 3, 1> lfh = dso::car2ell<dso::ellipsoid::grs80>(
+        yPhi.block<3, 1>(0, 0)); // ECEF position vector
+    params.AtmDataFeed->params_.glon = dso::rad2deg(lfh(0));
+    params.AtmDataFeed->params_.glat = dso::rad2deg(lfh(1));
+    dso::nrlmsise00::OutParams aout;
+    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), aout.d[5]);
   }
 
   // set input parameters (time and spatial)
