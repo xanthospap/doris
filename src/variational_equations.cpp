@@ -52,6 +52,9 @@ void dso::VariationalEquations(
   // Warning only valid for Jason-3
   // get the quaternion
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
+  Eigen::Matrix<double, 3, 3> ddragdr;
+  Eigen::Matrix<double, 3, 3> ddragdv;
+  Eigen::Matrix<double, 3, 1> ddragdC;
   Eigen::Quaternion<double> q;
   if (params.qhunt->get_at(cmjd, q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
@@ -89,53 +92,47 @@ void dso::VariationalEquations(
       --imjd;
     }
     assert(!params.AtmDataFeed->update_params(imjd, utc_fday*86400e0));
-    const Eigen::Matrix<double, 3, 1> lfh = dso::car2ell<dso::ellipsoid::grs80>(
-        yPhi.block<3, 1>(0, 0)); // ECEF position vector
-    params.AtmDataFeed->params_.glon = dso::rad2deg(lfh(0));
-    params.AtmDataFeed->params_.glat = dso::rad2deg(lfh(1));
+    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), aout.d[5]);
+    const double atmdens = aout.d[5];
+    Eigen::Matrix<double,3,1> drhodr;
+    { // approximate arithmetic derivative w.r.t satellite ECEF position
+      Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
+      double p1,m1;
+      // w.r.t X component
+      unitv << 1e0, 0e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << -1e0, 0e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      // w.r.t Y component
+      unitv << 0e0, 1e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << 0e0, -1e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      // w.r.t Y component
+      unitv << 0e0, 0e0, 1e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << 0e0, 0e0, 1e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+    }
+    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv, ddragdC);
   }
-
-  // set input parameters (time and spatial)
-  // Eigen::Matrix<double, 3, 1> drag_acc = Eigen::Matrix<double, 3, 1>::Zero();
-  // if (include_drag) {
-  //  int msise_mjd;
-  //  double msise_secday;
-  //  setNrlmsise00Params(cmjd, r_geo, msise_mjd, msise_secday,
-  //  params->msise_in);
-  //  //printf("\tparams set for setNrlmsise00Params ...\n");
-  //  // update flux data
-  //  if (params->msise_in->update_params(msise_mjd, msise_secday)) {
-  //    fprintf(stderr, "ERROR. Failed to update flux/Ap data from drag!\n");
-  //  }
-  //  //printf("\tparams updated in hunter ...\n");
-  //  // get density (kg/m^3)
-  //  double density;
-  //  {
-  //    dso::nrlmsise00::OutParams out;
-  //    //params->msise_in->params_.dump_params();
-  //    params->msise->gtd7d(&params->msise_in->params_, &out);
-  //    density = out.d[5];
-  //    //printf("\tdensity value is: %+.15e\n", out.d[5]);
-  //  }
-  //  // we also need to true-to-date matrix (for relavite velocity)
-  //  Eigen::Matrix<double, 3, 3> r_tof;
-  //  {
-  //    double mjd_days;
-  //    const double taif = std::modf(cmjd, &mjd_days);
-  //    const double ttf = taif + (32184e-3 / 86400e0);
-  //    const double mjd_tt = mjd_days + ttf;
-  //    const auto rnpb = iers2010::sofa::pnm06a(dso::mjd0_jd, mjd_tt);
-  //    Eigen::Matrix<double, 3, 3> r_toft(rnpb.data);
-  //    r_tof = r_toft.transpose();
-  //  }
-  //  const auto drag =
-  //      dso::drag_accel(r, v, r_tof, Area_H2C, CD, Mass_H2C, density);
-  //  drag_acc = drag;
-  //  //printf("\tdrag computed, done!\n");
-  //}
 
   // SRP
   // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -159,8 +156,8 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 6, 6> dfdy;
   dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
   dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials;
-  dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
+  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials + ddragdr;
+  dfdy.block<3, 3>(3, 3) = /*Eigen::Matrix<double, 3, 3>::Zero()*/ ddragdv;
 
   // Derivative of combined state vector and state transition matrix
   // dPhi = dfdy * Phi;

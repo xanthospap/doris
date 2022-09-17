@@ -4,9 +4,13 @@
 #include "datetime/dtcalendar.hpp"
 #include "nrlmsise00_const.hpp"
 #include "var_utils.hpp"
+#include "geodesy/geodesy.hpp"
+#include "geodesy/units.hpp"
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <geodesy/ellipsoid.hpp>
+#include "eigen3/Eigen/Eigen"
 #ifdef DEBUG
 #include <cassert>
 #include <cstdio>
@@ -324,6 +328,17 @@ template <> struct InParams<detail::FluxDataFeedType::ST_CSV_SW> {
     params_.doy = ydoy.__doy.as_underlying_type();
     params_.sec = t.sec().to_fractional_seconds();
     return feed_.update(params_);
+  }
+
+  /// @brief Set parameter set spatial input data (longitude, latitude and 
+  /// altitude) from a set of cartesian ECEF coordinates
+  void
+  set_spatial_from_cartesian(const Eigen::Matrix<double, 3, 1> &xyz) noexcept {
+    const Eigen::Matrix<double, 3, 1> lfh =
+        dso::car2ell<dso::ellipsoid::grs80>(xyz);
+    params_.glon = dso::rad2deg(lfh(0)); // longitude in degrees
+    params_.glat = dso::rad2deg(lfh(1)); // latitude in degrees
+    params_.alt  = lfh(2) * 1e-3; // altitude in km
   }
 };
 

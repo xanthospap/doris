@@ -60,3 +60,44 @@ dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
 
   return acc;
 }
+
+Eigen::Matrix<double, 3, 1>
+dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
+                const Eigen::Matrix<double, 3, 1> &vsat,
+                double Area, double CD,
+                double Mass, double atmdens,
+                const Eigen::Matrix<double, 3, 1> &datmdensdr,
+                Eigen::Matrix<double, 3, 3> &daccdr,
+                Eigen::Matrix<double, 3, 3> &daccdv,
+                Eigen::Matrix<double, 3, 1> &daccdC) noexcept {
+  // earth angular velocity vector [rad/sec]
+  constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
+  const Eigen::Matrix<double, 3, 1> omega{omegav};
+
+  // Velocity relative to the Earth's atmosphere
+  const Eigen::Matrix<double, 3, 1> vrel = vsat - omega.cross(rsat);
+  // const auto vabs = vrel.norm();
+
+  // Acceleration
+  Eigen::Matrix<double, 3, 1> acc = -0.5e0 * CD * (Area / Mass) * atmdens *
+                                    vrel.squaredNorm() * vrel.normalized();
+
+  // partials w.r.t drag coefficient (Montenbruck, 7.80)
+  daccdC = -0.5e0 * (Area / Mass) * atmdens * vrel.norm() * vrel;
+
+  // partials w.r.t velocity (Montenbruck, 7.81)
+  daccdv = -0.5e0 * CD * (Area / Mass) * atmdens *
+           (vrel.norm() * Eigen::Matrix<double, 3, 3>::Identity() +
+            vrel * vrel.transpose() / vrel.norm());
+
+  // Partials w.r.t. position vector (Montenbruck, 7.84)
+  const double _data[] = {
+      0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth, 0e0, 0e0, 0e0, 0e0,
+      0e0};
+  const Eigen::Matrix<double, 3, 3> XOmega(_data);
+  daccdr =
+      -0.5e0 * CD * (Area / Mass) * vrel.norm() * vrel * datmdensdr.transpose() -
+      daccdv * XOmega;
+
+  return acc;
+}
