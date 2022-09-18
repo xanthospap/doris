@@ -54,7 +54,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
   Eigen::Matrix<double, 3, 3> ddragdr;
   Eigen::Matrix<double, 3, 3> ddragdv;
-  Eigen::Matrix<double, 3, 1> ddragdC;
+  // Eigen::Matrix<double, 3, 1> ddragdC;
   Eigen::Quaternion<double> q;
   if (params.qhunt->get_at(cmjd, q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
@@ -77,7 +77,6 @@ void dso::VariationalEquations(
         ProjArea += params.macromodel[i].m_surf * ctheta;
       }
     }
-    const double CD = 2e0;
     // get atmospheric density, using the UTC date
     double imjd; 
     int eid;
@@ -131,7 +130,9 @@ void dso::VariationalEquations(
       m1 = aout.d[5];
       drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
     }
-    drag = dso::drag_accel(r, v, ProjArea, CD, *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv, ddragdC);
+    drag = dso::drag_accel(r, v, ProjArea, params.get_drag_coefficient(),
+                           *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
+                           params.ddragdC);
   }
 
   // SRP
@@ -159,10 +160,16 @@ void dso::VariationalEquations(
   dfdy.block<3, 3>(3, 0) = gpartials + tb_partials + ddragdr;
   dfdy.block<3, 3>(3, 3) = /*Eigen::Matrix<double, 3, 3>::Zero()*/ ddragdv;
 
+  // new:: matrix PhiS = [Phi, S], S: size 6x1
+  Eigen::Matrix<double, 6, 6> PhiS;
+  PhiS.block<6,6>(0,0) = Phi;
+  PhiS.block<6,1>(0,6) = /*ddragdC*/ what here??;
+
   // Derivative of combined state vector and state transition matrix
   // dPhi = dfdy * Phi;
-  Eigen::Matrix<double, 6, 7> yPhip;
-  yPhip.block<6, 6>(0, 1) = dfdy * Phi;
+  // Eigen::Matrix<double, 6, 7> yPhip;
+  // yPhip.block<6, 6>(0, 1) = dfdy * Phi;
+  // new compute variational equation system: dfdy * [Phi, S] + A
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;

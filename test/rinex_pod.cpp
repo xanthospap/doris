@@ -466,17 +466,20 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   const int NumParams =
       6                        ///< satellite state
+      + 1                      ///< Drag coefficient
       + rnx.stations().size()  ///< beacon relative frequency offset
       + rnx.stations().size(); ///< wet tropo path dealy (zenith)
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
+  // Drag coefficient set to 2
+  Filter.x(6) = 2e0;
   // initialize the Kalman filter
-  for (int i = 6; i < NumParams; i += 2) {
+  for (int i = 6+1; i < NumParams; i += 2) {
     Filter.x(i) = DfefeN_apriori;     // beacon relative frequency offset
     Filter.x(i + 1) = 1e-1; // apriori tropo wet delay at zenith
   }
   // default sigma for releative frequency offset
   Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
-  for (int i = 6; i < NumParams; i += 2) {
+  for (int i = 6+1; i < NumParams; i += 2) {
     Filter.P(i, i) = DfefeN_apriori_stddev;
     Filter.P(i + 1, i + 1) = 0.5e0;
   }
@@ -484,6 +487,8 @@ int main(int argc, char *argv[]) {
   Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double, 3, 3>::Identity();
   // default sigma for velocity is .5 [m/sec]
   Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+  // default sigma for drag coefficient
+  Filter.P(6,6) = 0.2e0;
 
   // Default observation sigma for a range-rate observable at zenith
   double obs_sigma;
@@ -491,6 +496,10 @@ int main(int argc, char *argv[]) {
                                              "observation-sigma", obs_sigma);
   assert(obs_sigma > 0e0 && obs_sigma < 1e2 && (!error));
   printf("## Note: default observation sigms value: %.3f\n", obs_sigma);
+
+  // Important !! 
+  // set integration parameter estimates to point to the Filter
+  IntegrationParams.estimates = &Filter.x;
 
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
@@ -767,7 +776,7 @@ int main(int argc, char *argv[]) {
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
-            const double cWzd = Filter.x(6 + receiver_count * 2 + 1);
+            const double cWzd = Filter.x(6+1 + receiver_count * 2 + 1);
             [[maybe_unused]] const double Dtropo =
                 (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                 delta_tau.to_fractional_seconds();
@@ -802,13 +811,24 @@ int main(int argc, char *argv[]) {
             if (std::abs(oc) < threshold) {
 
               rstats.update(oc);
+              
+              // State transition matrix (augmented)
+              Eigen::MatrixXd PhiP =
+                  Eigen::MatrixXd::Identity(NumParams, NumParams);
+              PhiP.block<6, 6>(0, 0) = svState.Phi;
 
-              // partials wrt [x,y,z,Vx,Vy,Vz,Lwz, Dfe/feN]
+              // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz, Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
-              dHdX.block<3, 1>(0, 0) =
+              // dz/dy
+              Eigen::Matrix<double,6,1> dzdy = Eigen::Matrix<double,6,1>::Zero();
+              //dHdX.block<3, 1>(0, 0) =
+              dzdy.block<3, 1>(0, 0) =
                   (1e0 / Dtau) * R.transpose() *
                   ((1e0 / pprev_obs->rho()) * pprev_obs->s -
                    (1e0 / rho) * r_enu);
+              // S = dy/dp
+
+              // dz/dq
               dHdX(6 + receiver_number * 2) =
                   -(iers2010::C / feN) * (NdopDt + frT);
               dHdX(6 + receiver_number * 2 + 1) =
@@ -816,10 +836,6 @@ int main(int argc, char *argv[]) {
 
               // Filter time-update
               // ----------------------------------------------------------------
-              // State transition matrix (augmented)
-              Eigen::MatrixXd PhiP =
-                  Eigen::MatrixXd::Identity(NumParams, NumParams);
-              PhiP.block<6, 6>(0, 0) = svState.Phi;
               // already / done
               auto estimates = Filter.x;
               estimates.block<6, 1>(0, 0) = svState.state;

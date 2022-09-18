@@ -1,0 +1,150 @@
+\chapter{State Transition Matrix and Variational Equations}
+\label{ch:state-transition-matrix-and-variational-equations}
+
+The \emph{State Transition Matrix} $\bm{\Phi} (t, t_0 )$, at some specified epoch $t_0$ 
+describes the results of a change of initial values (in the state vector 
+$\bm{y}(t_0) = \begin{bmatrix} \bm{r}(t_0) \bm{v}(t_0) \end{bmatrix}$)
+in a later epoch $t$. The form of the State Transition Matrix, is:
+\begin{equation}
+  \begin{pmatrix}
+    \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+  \end{pmatrix}_{(6 \times 6)}
+  = \bm{\Phi} (t, t_0)
+\end{equation}
+
+Besides initial state, the orbit also depends on a number of parameters, 
+$\bm{p}$, with size $n_p$, that determine the forces acting on the given 
+satellite at a given instant $t$. Such parameters can be, e.g. the drag 
+coefficient $C_D$. The dependence of the orbit on these parameters is 
+described by the so called \emph{Sensitivity Matrix} $\bm{S}(t)$, where:
+\begin{equation}
+  \begin{pmatrix}
+    \frac{\partial \bm{y}(t)}{\partial \bm{p}}
+  \end{pmatrix}_{(6 \times n_p)}
+  = \bm{S} (t)
+\end{equation}
+
+Denoting an observation by $z(t)$, we can also derive the partials of the 
+measurements with respect to the state vector, which is given by the partials
+$ \begin{pmatrix} \frac{\partial \bm{z}}{\partial \bm{y}(t)} \end{pmatrix}_{(1 \times 6)}$
+
+Computation of the observation model also depends on a number of 
+parameters $\bm{q}$, of size $n_q$, such as e.g. relative frequency offsets, 
+wet part of zenith tropospheric delay, etc. The dependance of the predicted 
+observation values on these parameters, is described by the partials:
+$ \begin{pmatrix} \frac{\partial \bm{z}}{\partial \bm{q}} \end{pmatrix}_{(1 \times n_q)}$
+
+Combining the above, we can compute the dependence of an individual measurement 
+$z$ on the initial state vector $\bm{y}(t_0)$, force model parameters $\bm{p}$ 
+and observation model parameters $\bm{q}$ (\cite{Montenbruck2000}):
+\begin{equation}
+  \begin{pmatrix}
+    \frac{\partial \bm{z}}{\partial \bm{y}(t_0)}, 
+    \frac{\partial \bm{z}}{\partial \bm{p}}, 
+    \frac{\partial \bm{z}}{\partial \bm{q}}
+  \end{pmatrix}_{(1 \times (6+n_p+n_q))} = 
+  \begin{pmatrix}
+    \left( \frac{\partial \bm{z}}{\partial \bm{y}(t)} \right)
+    \left( \Phi (t,t_0) \bm{S}(t) \right), 
+    \frac{\partial \bm{z}}{\partial \bm{q}}
+  \end{pmatrix}
+\end{equation}
+
+In applications where accuracy demands are high, the computation of the state 
+transition matrix $\bm{\Phi}(t,t_0)$, must take into account at least the major 
+perturbations. As is the case for perturbed motion, this augmentation make an 
+analytical solution impossible; one has to solve a set of differential equations, 
+the so-called ``\emph{Variational Equation}'' by numerical methods.
+
+The state vector $\bm{y}(t) = \begin{bmatrix} \bm{r}(t) \\ \bm{v}(t) \end{bmatrix}$ 
+obeys the first order differential equation:
+\begin{equation}
+  \frac{d \bm{y}(t)}{dt} = \bm{f}(t,\bm{y}) = 
+    \begin{bmatrix} \bm{v}(t) \\ \bm{a}(t,\bm{r},\bm{v}) \end{bmatrix}
+\end{equation}
+so that:
+\begin{equation}
+  \frac{\partial}{\partial \bm{y}(t_0)}\frac{d\bm{y}(t)}{dt} = 
+    \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t_0)} = 
+    \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t)} 
+      \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+\end{equation}
+
+The state transition matrix
+\begin{equation}
+  \bm{\Phi}(t,t_0) = \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+\end{equation}
+
+may therefore be obtained from:
+\begin{equation}
+  \frac{d}{dt}\bm{\Phi}(t,t_0) = 
+    \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t)}
+      \bm{\Phi}(t,t_0)
+\end{equation}
+
+or
+
+\begin{equation}
+  \frac{d}{dt}\bm{\Phi}(t,t_0) = 
+  \begin{bmatrix}
+    \bm{0}_{(3 \times 3)} & \bm{I}_{(3 \times 3)} \\
+    \frac{\partial \bm{a}(t,\bm{r},\bm{v})}{\partial \bm{r}(t)} &
+      \frac{\partial \bm{a}(t,\bm{r},\bm{v})}{\partial \bm{v}(t)} \\
+  \end{bmatrix}_{(6 \times 6)}
+  \bm{\Phi}(t,t_0)
+\end{equation}
+
+with the initial condition:
+\begin{equation}
+  \bm{\Phi}(t_0,t_0) = \bm{I}_{(6 \times 6)}
+\end{equation}
+
+In an analogous way, we can derive the differential equation of the sensitivity 
+matrix (partial derivatives of the state vector \emph{w.r.t} the force model 
+parameter vector $\bm{p}$):
+\begin{equation}
+  \begin{pmatrix} \frac{d}{dt} \frac{\partial \bm{y}(t)}{\partial \bm{p}} 
+    \end{pmatrix}_{(6 \times 6)} = 
+  \frac{\partial \bm{f}(t,\bm{y}(t), \bm{p})}{\partial \bm{y}(t)} 
+      \frac{\partial \bm{y}(t)}{\partial \bm{p}} + 
+      \frac{\partial \bm{f}(t,\bm{y}(t), \bm{p})}{\partial \bm{p}}
+\end{equation}
+or:
+\begin{equation}
+  \begin{pmatrix} \frac{d}{dt}\bm{S}(t) \end{pmatrix}_{6 \times n_p} = 
+    \begin{pmatrix}
+      \bm{0}_{(3 \times 3)} & \bm{I}_{(3 \times 3)} \\
+      \frac{\partial \bm{a}(t,\bm{r},\bm{v},\bm{p})}{\partial \bm{r}(t)} &
+      \frac{\partial \bm{a}(t,\bm{r},\bm{v},\bm{p})}{\partial \bm{v}(t)}
+   \end{pmatrix}_{(6 \times 6)}
+    \bm{S}(t) + 
+   \begin{pmatrix}
+      \bm{0}_{(3 \times n_p)} \\
+      \frac{\partial \bm{a}(t,\bm{r},\bm{v},\bm{p})}{\partial \bm{p}}
+   \end{pmatrix}_{(6 \times n_p)}
+\end{equation}
+
+with initial conditions $\bm{S}(t_0) = \bm{0}$, since the state vector at $t_0$ 
+does not depend on the force model parameters.
+
+The set of variational equations are formulated by augmenting the differential 
+equation system of the state transition matrix, with the one derived from the 
+sensitivity matrix; hence, we have:
+\begin{equation}
+  \frac{d}{dt} \begin{pmatrix} \bm{\Phi} & \bm{S} \end{pmatrix} = 
+  \begin{pmatrix}
+      \bm{0}_{(3 \times 3)} & \bm{I}_{(3 \times 3)} \\
+      \frac{\partial \bm{a}}{\partial \bm{r}} & \frac{\partial \bm{a}}{\partial \bm{v}} 
+  \end{pmatrix}_{(6 \times 6)}
+  \cdot \begin{pmatrix} \bm{\Phi} & \bm{S} \end{pmatrix} + 
+  \begin{pmatrix}
+      \bm{0}_{(3 \times 6)} & \bm{0}_{(3 \times n_p)} \\
+      \bm{0}_{(3 \times 6)} & \frac{\partial \bm{a}}{\partial \bm{p}} 
+  \end{pmatrix}_{(6 \times (6+n_p))}
+\end{equation}
+More suitable representations of the above differential equation systems can be 
+formulated, when choosing to directly integrate the set of second order 
+differential equations (see e.g. \cite{Montenbruck2000}).
+
+It is important to note, that the variational equations must be integrated 
+simultaneously. 
