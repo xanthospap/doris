@@ -42,7 +42,7 @@ struct IntegrationParameters {
   Eigen::VectorXd *estimates;
 
   double get_drag_coefficient() const noexcept {
-    return estimates->operator()(6+1);
+    return estimates->operator()(6);
   }
 
   IntegrationParameters(int degree_, int order_,

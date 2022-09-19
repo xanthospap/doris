@@ -142,6 +142,7 @@ void dso::VariationalEquations(
       m1 = aout.d[5];
       drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
     }
+    //printf("Note: Using drag coefficient=%.3f\n", params.get_drag_coefficient());
     drag = dso::drag_accel(r, v, ProjArea, params.get_drag_coefficient(),
                            *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
                            ddragdC);

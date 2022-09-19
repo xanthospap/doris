@@ -159,10 +159,13 @@ struct SatelliteState {
     // apply eccentricity (ARP to  CoM)
     static int call_nr = 0;
 
-    // Vector containing state + variational equations size: 6 + 6x6
+    // number of model parameters
+    constexpr const int Np = 1;
+
+    // Vector containing state + variational equations size: 6 + 6x(6+Np)
     // Ref. Frame: inertial
-    Eigen::Matrix<double, 6 + 6 * 6, 1> yPhi =
-        Eigen::Matrix<double, 6 + 6 * 6, 1>::Zero();
+    Eigen::Matrix<double, 6 + 6 * 6 + 6*Np, 1> yPhi =
+        Eigen::Matrix<double, 6 + 6 * 6 + 6*Np, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
     
     // if needed, go from antenna RP to CoM (this is not needed in the first 
@@ -171,11 +174,19 @@ struct SatelliteState {
     if (call_nr) {
       yPhi.block<3, 1>(0, 0) += eccentricity(qlast);
     }
+
+    // set the state transition matrix to identity (initial condition)
     {
       int k = 6;
       for (int col = 1; col < 7; col++)
         for (int row = 0; row < 6; row++)
           yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
+    }
+
+    // set the S matrix to zero (initial condition)
+    {
+      int k = 6 + 6 * 6;
+      while (k<6 + 6 * 6 + 6*Np) yPhi(k++) = 0e0;
     }
 
     // t0 for variational equations (TAI)
@@ -188,7 +199,7 @@ struct SatelliteState {
     integrator.flag() = 1;
 
     // keep solution here (celestial RF at tout)
-    Eigen::VectorXd sol(6 + 6 * 6);
+    Eigen::VectorXd sol(6 + 6 * 6 + 6*Np);
 
     // integrate (in inertial RF), from 0 to tout [sec]
     double tsec = 0e0;
@@ -454,8 +465,9 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6, 1e-12, 1e-12,
-                        &IntegrationParams);
+  constexpr const int Np = 1;
+  dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6 + 6 * Np, 1e-12,
+                        1e-12, &IntegrationParams);
 
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi, w1i, w2i;
@@ -585,6 +597,10 @@ int main(int argc, char *argv[]) {
       }
     }
     ++dummy_counter;
+    //dso::strftime_ymd_hmfs(tl1, dtbuf);
+    //printf("%s (TAI) %.6f %.6f %.6f %.6f %.6f %.6f\n", dtbuf, svState.state(0),
+    //       svState.state(1), svState.state(2), svState.state(3),
+    //       svState.state(4), svState.state(5));
 
     // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
@@ -776,7 +792,8 @@ int main(int argc, char *argv[]) {
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
-            const double cWzd = Filter.x(6+1 + receiver_count * 2 + 1);
+            const double cWzd = Filter.x(6 + 1 + receiver_count * 2 + 1);
+            // printf("## Note, using Lwz = %.5f\n", cWzd);
             [[maybe_unused]] const double Dtropo =
                 (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                 delta_tau.to_fractional_seconds();
@@ -787,7 +804,7 @@ int main(int argc, char *argv[]) {
 
             // we will need the estimated Δf_e / f_eN
             [[maybe_unused]] const double DfefeN =
-                Filter.x(6 + receiver_number * 2);
+                Filter.x(6 + 1 + receiver_number * 2);
 
             // handle range-rate measurement
             // ---------------------------------------------------------
