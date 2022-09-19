@@ -466,7 +466,7 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   const int NumParams =
       6                        ///< satellite state
-      + 1                      ///< Drag coefficient
+      + 1                      ///< Drag coefficient, Cd
       + rnx.stations().size()  ///< beacon relative frequency offset
       + rnx.stations().size(); ///< wet tropo path dealy (zenith)
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
@@ -817,7 +817,7 @@ int main(int argc, char *argv[]) {
                   Eigen::MatrixXd::Identity(NumParams, NumParams);
               PhiP.block<6, 6>(0, 0) = svState.Phi;
 
-              // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz, Dfe/feN]
+              // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               Eigen::Matrix<double,6,1> dzdy = Eigen::Matrix<double,6,1>::Zero();
@@ -829,9 +829,9 @@ int main(int argc, char *argv[]) {
               // S = dy/dp
 
               // dz/dq
-              dHdX(6 + receiver_number * 2) =
+              dHdX(6 + 1 + receiver_number * 2) =
                   -(iers2010::C / feN) * (NdopDt + frT);
-              dHdX(6 + receiver_number * 2 + 1) =
+              dHdX(6 + 1 + receiver_number * 2 + 1) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               // Filter time-update

@@ -38,8 +38,8 @@ struct IntegrationParameters {
   dso::nrlmsise00::InParams<
       dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
   dso::Nrlmsise00 *nrlmsise00;
-  Eigen::Matrix<double,3,1> ddragdC;
-  Eigen::MatrixXd *estimates;
+  //Eigen::Matrix<double,3,1> ddragdC;
+  Eigen::VectorXd *estimates;
 
   double get_drag_coefficient() const noexcept {
     return estimates->operator()(6+1);
