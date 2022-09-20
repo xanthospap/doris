@@ -239,6 +239,12 @@ struct SatelliteState {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
     }
 
+    // must transition S ...
+    {
+      printf("Size of solution vector (VEqn): %ldx%ld\n", sol.rows(), sol.cols());
+      printf("Size of yPhi     vector (VEqn): %ldx%ld\n", yPhi.rows(), yPhi.cols());
+    }
+
     // now the attitude quaternion for mjd_tai is qtarget:
     qlast = qtarget;
 
@@ -749,7 +755,7 @@ int main(int argc, char *argv[]) {
                 pprev_obs->arcnr += 1;
                 // update a-priori value for this beacon zenith wet tropo
                 // delay [m]
-                Filter.x(6 + pprev_obs->count * 2 + 1) = cDtropo.Lwz;
+                Filter.x(6 + 1 + pprev_obs->count * 2 + 1) = cDtropo.Lwz;
               }
               // passed discontinuity, observation ok
               if (pprev_obs->reinitialize)
@@ -763,7 +769,7 @@ int main(int argc, char *argv[]) {
                                             cDiono, cDtropo, cDrel, r_enu));
               // update a-priori value for this beacon zenith wet tropo
               // delay [m]
-              Filter.x(6 + receiver_count * 2 + 1) = cDtropo.Lwz;
+              Filter.x(6 + 1 + receiver_count * 2 + 1) = cDtropo.Lwz;
               // for next beacon count
               ++receiver_count;
             }
@@ -793,7 +799,6 @@ int main(int argc, char *argv[]) {
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
             const double cWzd = Filter.x(6 + 1 + receiver_count * 2 + 1);
-            // printf("## Note, using Lwz = %.5f\n", cWzd);
             [[maybe_unused]] const double Dtropo =
                 (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                 delta_tau.to_fractional_seconds();
@@ -862,11 +867,11 @@ int main(int argc, char *argv[]) {
               Filter.observation_update(Uobs, Utheo, obs_sigma / std::cos(el), dHdX);
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf("%s (TAI) %.4s %d %+15.3f %+15.3f %+15.3f "
-                     "%+12.6f %+12.6f %+12.6f %+12.6f %+10.5e %.3f %.3f %.9f "
+                     "%+12.6f %+12.6f %+12.6f %+10.6f %+12.6f %+10.5e %.3f %.3f %.9f "
                      "%.6f %.6f\n",
                      dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
                      Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
-                     Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
+                     Filter.x(5), Filter.x(6+1), Filter.x(6 + receiver_number * 2 + 1),
                      Filter.x(6 + receiver_number * 2), Uobs, Utheo,
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
               //printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
