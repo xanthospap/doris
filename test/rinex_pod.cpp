@@ -240,10 +240,10 @@ struct SatelliteState {
     }
 
     // must transition S ...
-    {
-      printf("Size of solution vector (VEqn): %ldx%ld\n", sol.rows(), sol.cols());
-      printf("Size of yPhi     vector (VEqn): %ldx%ld\n", yPhi.rows(), yPhi.cols());
-    }
+    //{
+    //  printf("Size of solution vector (VEqn): %ldx%ld\n", sol.rows(), sol.cols());
+    //  printf("Size of yPhi     vector (VEqn): %ldx%ld\n", yPhi.rows(), yPhi.cols());
+    //}
 
     // now the attitude quaternion for mjd_tai is qtarget:
     qlast = qtarget;
@@ -547,10 +547,12 @@ int main(int argc, char *argv[]) {
     // receiver clock offset). That is tl1 is approximately TAI.
     // aka proper-time to coordinate-time
     const auto tl1 = it.corrected_l1_epoch();
-    //printf("IMPORTANT RINEX observation(s) for block are onTAI MJD = %.15f\n", tl1.as_mjd());
 
     // current proper time (aka tau)
     const auto tproper = it.proper_time();
+
+    // first observation of the epoch
+    int first_obs_in_epoch = true;
 
     // a buffer to write datetime strings to
     char dtbuf[64];
@@ -603,10 +605,6 @@ int main(int argc, char *argv[]) {
       }
     }
     ++dummy_counter;
-    //dso::strftime_ymd_hmfs(tl1, dtbuf);
-    //printf("%s (TAI) %.6f %.6f %.6f %.6f %.6f %.6f\n", dtbuf, svState.state(0),
-    //       svState.state(1), svState.state(2), svState.state(3),
-    //       svState.state(4), svState.state(5));
 
     // iterate through the observation set (aka the various beacons with
     // observations for current epoch)
@@ -837,19 +835,18 @@ int main(int argc, char *argv[]) {
               // State transition matrix (augmented)
               Eigen::MatrixXd PhiP =
                   Eigen::MatrixXd::Identity(NumParams, NumParams);
-              PhiP.block<6, 6>(0, 0) = svState.Phi;
+              //PhiP.block<6, 6>(0, 0) = svState.Phi;
 
               // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
-              Eigen::Matrix<double,6,1> dzdy = Eigen::Matrix<double,6,1>::Zero();
-              //dHdX.block<3, 1>(0, 0) =
-              dzdy.block<3, 1>(0, 0) =
+              dHdX.block<3, 1>(0, 0) =
+              // dzdy.block<3, 1>(0, 0) =
                   (1e0 / Dtau) * R.transpose() *
                   ((1e0 / pprev_obs->rho()) * pprev_obs->s -
                    (1e0 / rho) * r_enu);
-              // S = dy/dp
-
+              // dz/dC
+              dHdX(6) = 0e0;
               // dz/dq
               dHdX(6 + 1 + receiver_number * 2) =
                   -(iers2010::C / feN) * (NdopDt + frT);
@@ -859,12 +856,15 @@ int main(int argc, char *argv[]) {
               // Filter time-update
               // ----------------------------------------------------------------
               // already / done
-              auto estimates = Filter.x;
-              estimates.block<6, 1>(0, 0) = svState.state;
-              Filter.time_update(tl1, estimates, PhiP);
+              if (first_obs_in_epoch) {
+                auto estimates = Filter.x;
+                estimates.block<6, 1>(0, 0) = svState.state;
+                Filter.time_update(tl1, estimates, PhiP);
+              }
 
               // Filter measurement update
               Filter.observation_update(Uobs, Utheo, obs_sigma / std::cos(el), dHdX);
+
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf("%s (TAI) %.4s %d %+15.3f %+15.3f %+15.3f "
                      "%+12.6f %+12.6f %+12.6f %+10.6f %+12.6f %+10.5e %.3f %.3f %.9f "
@@ -876,6 +876,9 @@ int main(int argc, char *argv[]) {
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
               //printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
               //       cDrel, pprev_obs->Drel, Drel);
+
+              // update estimates in the sv struct
+              svState.state = Filter.x.block<6,1>(0,0);
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
@@ -911,7 +914,7 @@ int main(int argc, char *argv[]) {
     } // while (beaconobs != it.cblock.end())
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
-        dso::cast_to<dso::seconds, dso::nanoseconds>(dso::seconds(6 * 60 * 60)))
+        dso::cast_to<dso::seconds, dso::nanoseconds>(dso::seconds(12 * 60 * 60)))
       break;
 
   } // for every new data block in the RINEX file
