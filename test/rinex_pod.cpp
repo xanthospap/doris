@@ -112,6 +112,7 @@ struct SatBeacon {
 };
 
 // hold satellite state & time
+template<int Np>
 struct SatelliteState {
   // Satellite's center of gravity w.r.t the satellite-fixed frame
   Eigen::Matrix<double,3,1> *cog_sf{nullptr};
@@ -126,7 +127,7 @@ struct SatelliteState {
   // attitude quaternion 
   Eigen::Quaternion<double> qlast;
 
-  // ECEF to GCRF
+  // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
     // Terrestrial to Celestial transformation matrix and derivative for this
@@ -159,9 +160,6 @@ struct SatelliteState {
     // apply eccentricity (ARP to  CoM)
     static int call_nr = 0;
 
-    // number of model parameters
-    constexpr const int Np = 1;
-
     // Vector containing state + variational equations size: 6 + 6x(6+Np)
     // Ref. Frame: inertial
     Eigen::Matrix<double, 6 + 6 * 6 + 6*Np, 1> yPhi =
@@ -178,7 +176,7 @@ struct SatelliteState {
     // set the state transition matrix to identity (initial condition)
     {
       int k = 6;
-      for (int col = 1; col < 7; col++)
+      for (int col = 1; col < 6+Np; col++)
         for (int row = 0; row < 6; row++)
           yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
     }
@@ -539,8 +537,8 @@ int main(int argc, char *argv[]) {
   // count Ndop observations
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
+
   // for every new data block in the RINEX file (aka every epoch) ...
-  // dso::datetime<dso::nanoseconds> last_ex_target;
   while (!(error = it.next())) {
 
     // the current reference time for the L1 observation (corrected for
@@ -551,11 +549,10 @@ int main(int argc, char *argv[]) {
     // current proper time (aka tau)
     const auto tproper = it.proper_time();
 
-    // first observation of the epoch
-    int first_obs_in_epoch = true;
-
     // a buffer to write datetime strings to
     char dtbuf[64];
+    dso::strftime_ymd_hmfs(tl1, dtbuf);
+    printf("> Processing block at %s (TAI)\n", dtbuf);
 
     // get the attitude/quaternion for this instant;
     // (i.e. 'this instant' is the target time of integration)
@@ -599,11 +596,34 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     } else {
+      //
+      printf("> Corrections in state: Dx:%+.6e Dy:%+.6e Dz:%+.6e DVx:%+.6e DVy:%+.6e DVz:%+.6e\n",
+             svState.state(0) - Filter.x(0), svState.state(1) - Filter.x(1),
+             svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
+             svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
+
+      // update state with previous estimates
+      svState.state = Filter.x.block<6,1>(0,0);
+
       if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
     }
+
+    dso::strftime_ymd_hmfs(tl1, dtbuf);
+    printf("%s (TAI) %.4s %d %+15.3f %+15.3f %+15.3f %+12.6f %+12.6f %+12.6f\n",
+           dtbuf, "intg", 0, svState.state(0), svState.state(1),
+           svState.state(2), svState.state(3), svState.state(4),
+           svState.state(5));
+
+    // update the Kalman filter state
+    Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
+    PhiP.block<6, 6>(0, 0) = svState.Phi;
+    auto estimates = Filter.x;
+    estimates.block<6, 1>(0, 0) = svState.state;
+    Filter.time_update(tl1, estimates, PhiP);
+
     ++dummy_counter;
 
     // iterate through the observation set (aka the various beacons with
@@ -832,19 +852,16 @@ int main(int argc, char *argv[]) {
 
               rstats.update(oc);
               
-              // State transition matrix (augmented)
-              Eigen::MatrixXd PhiP =
-                  Eigen::MatrixXd::Identity(NumParams, NumParams);
-              //PhiP.block<6, 6>(0, 0) = svState.Phi;
-
               // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               dHdX.block<3, 1>(0, 0) =
-              // dzdy.block<3, 1>(0, 0) =
-                  (1e0 / Dtau) * R.transpose() *
+                  /*(1e0 / Dtau) * R.transpose() *
                   ((1e0 / pprev_obs->rho()) * pprev_obs->s -
-                   (1e0 / rho) * r_enu);
+                   (1e0 / rho) * r_enu);*/
+                  R.transpose() *
+                  (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
+                  (1e0 / Dtau);
               // dz/dC
               dHdX(6) = 0e0;
               // dz/dq
@@ -852,15 +869,6 @@ int main(int argc, char *argv[]) {
                   -(iers2010::C / feN) * (NdopDt + frT);
               dHdX(6 + 1 + receiver_number * 2 + 1) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
-
-              // Filter time-update
-              // ----------------------------------------------------------------
-              // already / done
-              if (first_obs_in_epoch) {
-                auto estimates = Filter.x;
-                estimates.block<6, 1>(0, 0) = svState.state;
-                Filter.time_update(tl1, estimates, PhiP);
-              }
 
               // Filter measurement update
               Filter.observation_update(Uobs, Utheo, obs_sigma / std::cos(el), dHdX);
@@ -871,14 +879,14 @@ int main(int argc, char *argv[]) {
                      "%.6f %.6f\n",
                      dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
                      Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
-                     Filter.x(5), Filter.x(6+1), Filter.x(6 + receiver_number * 2 + 1),
+                     Filter.x(5), Filter.x(6), Filter.x(6 + receiver_number * 2 + 1),
                      Filter.x(6 + receiver_number * 2), Uobs, Utheo,
                      tl1.as_mjd(), rstats.mean(), rstats.stddev());
               //printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
               //       cDrel, pprev_obs->Drel, Drel);
 
               // update estimates in the sv struct
-              svState.state = Filter.x.block<6,1>(0,0);
+              // svState.state = Filter.x.block<6,1>(0,0);
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);

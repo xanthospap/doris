@@ -94,6 +94,10 @@
 
 % a macro to write norms
 \newcommand\norm[1]{\lVert#1\rVert}
+% a macro to write derivative at:
+% examples: 1. $f'(x)\at{x=1}$
+%           2. $f'(x)\at[\big]{x=1}$
+\newcommand{\at}[2][]{#1|_{#2}}
 
 % dBm unit
 \DeclareSIUnit{\belmilliwatt}{Bm}
@@ -185,7 +189,7 @@
 %\include{chapters/reference_systems}
 %\include{chapters/technicalities}
 %\include{chapters/variational_equations}
-\include{orbdet}
+\include{chapters/orbdet}
 
 \bibliography{doris}
 

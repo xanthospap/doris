@@ -4,17 +4,6 @@
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 
-/*
- * yPhi:
- *        | r_(3x1) |
- *        | v_(3x1) |
- *
- *
- * yPhiP
- *        |
- *        |
- */
-
 void dso::VariationalEquations(
     double tsec, // TAI
     // state and state transition matrix (inertial RF)
@@ -26,8 +15,6 @@ void dso::VariationalEquations(
 
   // current mjd, TAI
   const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
-
-  // printf("IMPORTANT triggering Variational equations for TAI MJD = %.15f\n", cmjd);
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> dt2c;
@@ -49,8 +36,6 @@ void dso::VariationalEquations(
   gacc = t2c * gacc;
   gpartials = t2c.transpose() * gpartials * t2c;
 
-  // get Sun/Moon gravitational parameters
-
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
   Eigen::Matrix<double, 3, 1> sun_acc;
@@ -62,11 +47,11 @@ void dso::VariationalEquations(
   // Drag
   // Warning only valid for Jason-3
   // get the quaternion
+  /*
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
   Eigen::Matrix<double, 3, 3> ddragdr;
   Eigen::Matrix<double, 3, 3> ddragdv;
   Eigen::Matrix<double, 3, 1> ddragdC;
-  // Eigen::Matrix<double, 3, 1> ddragdC;
   Eigen::Quaternion<double> q;
   if (params.qhunt->get_at(cmjd, q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
@@ -147,6 +132,7 @@ void dso::VariationalEquations(
                            *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
                            ddragdC);
   }
+  */
 
   // SRP
   // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -161,27 +147,18 @@ void dso::VariationalEquations(
   //
 
   // split state transition and S matrix, 
-  // yPhi =  | y, F, S |, size y: 6x1
-  //                           F: 6x6
-  //                           S: 6xNp
+  // yPhi =  | y, F |, size y: 6x1
+  //                        F: 6x6
   // but inside the yPhi matrix, they are aranged in a single row, in a 
   // column-wise fashion, aka:
   // yPhi = [y_0, y_1, ..., y_5, 
   //         F00, F10, ..., F50,
   //         F01, F11, ..., F51,
   //         ...
-  //         F05, F15, ..., F55,
-  //         S00, S01, ..., S05
+  //         F05, F15, ..., F55
 
   // State transition (skip first column which is the state vector)
-  // Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
-  Eigen::Matrix<double, 6, 6> Phi;
-  for (int i=0; i<6; i++) {
-    Phi.block<6,1>(0,i) = Eigen::Matrix<double, 6, 1>(yPhi.data() + 6 + i*6);
-  }
-
-  // dy/da matrix (actually vector)
-  Eigen::Matrix<double, 6, 1> Sigma(yPhi.data() + 6 + 6*6);
+  Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
 
   // derivative of state transition matrix, aka
   // |   0 (3x3)     I (3x3)   |
@@ -191,46 +168,20 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 6, 6> dfdy;
   dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
   dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials + ddragdr;
-  dfdy.block<3, 3>(3, 3) = /*Eigen::Matrix<double, 3, 3>::Zero()*/ ddragdv;
-
-  // new:: matrix PhiS = [Phi, S], S: size 6x1
-  Eigen::Matrix<double, 6, 7> PhiS;
-  PhiS.block<6,6>(0,0) = Phi;
-  PhiS.block<6,1>(0,6) = Sigma;
-
-  // new:: matrix dadp (rightmost part of eqn 1.12)
-  Eigen::Matrix<double, 6, 6+1> dadp = Eigen::Matrix<double, 6, 6+1>::Zero();;
-  dadp.block<3, 1>(3, 6) = ddragdC;
+  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials;
+  dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
 
   // Derivative of combined state vector and state transition matrix
-  // dPhi = dfdy * Phi;
-  // 6+2: because we have two columns, one for the (derivative) of the state 
-  // (first column) and one for the drag coefficient (np=1)
-  Eigen::Matrix<double, 6, 6+2> yPhip; 
-  // yPhip.block<6, 6>(0, 1) = dfdy * Phi;
-  // new compute variational equation system: dfdy * [Phi, S] + A
-  Eigen::Matrix<double, 6, 6+1> VarEqn = dfdy * PhiS + dadp;
-  yPhip.block<6,7>(0,1) = VarEqn;
-
+  Eigen::Matrix<double, 6, 1+6> yPhip;
+  yPhip.block<6,6>(0,1) = dfdy * Phi;
+  
   // state derivative (aka [v,a]), in one (first) column
-  //yPhip.block<3, 1>(0, 0) = v;
-  //yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc;
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag;
+  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc;
 
   // matrix to vector (column-wise)
-  // yPhip : 6x(6+Np)
-  // yPhiP : 6*(6+Np)x1
   yPhiP = Eigen::VectorXd(
       Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
-
-  // printf("Accelerations: \n");
-  // printf("Gravity     Sun          Moon         srp          drag\n");
-  // for (int i=0; i<3; i++) {
-  //   printf("%+12.9f %+12.9f %+12.9f %+12.9f %+12.9f\n", gacc(i), sun_acc(i),
-  //   mon_acc(i), srp(i), drag_acc(i));
-  // }
 
   return;
 }

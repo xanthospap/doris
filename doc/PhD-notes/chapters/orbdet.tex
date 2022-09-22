@@ -1,0 +1,83 @@
+\chapter{Orbit Determination}
+\label{ch:orbit-determination}
+
+\section{Integrator}
+\label{sec:Integrator}
+
+
+\section{Variational Equations}
+\label{sec:variational-equations}
+The variational equations has the signature:
+
+\begin{lstlisting}
+void VariationalEquations(double tsec, const Eigen::VectorXd &yPhi,
+                          Eigen::Ref<Eigen::VectorXd> yPhiP,
+                          dso::IntegrationParameters &params) noexcept;
+\end{lstlisting}
+
+Computes the variational equations, i.e. the derivative of the state vector 
+$\bm{y} = \begin{pmatrix}\bm{r}^T & \bm{v}^T \end{pmatrix}$ and the state 
+transition matrix $\Phi$.
+
+\texttt{tsec} is seconds since reference epoch $t_0$.
+
+\texttt{yPhi} (6+36)-dim vector comprising the state vector $\bm{y}$ and the
+state transition matrix $\Phi$ in column wise storage order, that is:
+$yPhi = \begin{pmatrix}
+    \bm{y}^T &  \Phi ^T _{col0} & \Phi ^T _{col1} & \cdots & \Phi^T _{col6}
+\end{pmatrix}$
+
+\texttt{yPhiP} (6+36)-dim vector comprising the state vector 
+$\dot{\bm{y}}$ and the state transition matrix $\dot{\Phi}$ derivatives, in 
+column wise storage order, that is:
+$yPhiP = \begin{pmatrix}
+    \dot{\bm{y}}^T &  \dot{\Phi} ^T _{col0} & \dot{\Phi} ^T _{col1} & \cdots & \dot{\Phi} ^T _{col6}
+\end{pmatrix}$
+
+\begin{enumerate}
+    \item Add seconds to reference time $t_0$ to get current time $t$
+    
+    \item Construct terretrial to celestial matrix, aka $R^{GCRF}_{ECEF}$ at 
+        $t$ (used throughout to transform state vector).
+    
+    \item Compute gravity-induced acceleration and partials, $\bm{a}_g$ and 
+        $\frac{\partial \bm{a}_g}{\partial \bm{r}}$. Note that 
+        $\frac{\partial \bm{a}_g}{\partial \bm{v}} = \bm{0}$.
+    
+    \item Compute third body perturbation accelerations and partials for 
+        Sun and Moon, aka $\bm{a}_{sun}$, $\bm{a}_{moon}$ and 
+        $\frac{\partial \bm{a}_{tbp}}{\partial \bm{r}}$. Note that 
+        $\frac{\partial \bm{a}_{tbp}}{\partial \bm{v}} = \bm{0}$.
+    
+    \item Extract state transition matrix (from \texttt{yPhi}):
+        \begin{equation}
+            \Phi = 
+            \begin{pmatrix}
+                yPhi[1:7, 1:7]
+            \end{pmatrix}
+        \end{equation}
+    
+    \item Construct the derivative of the state transition matrix:
+        \begin{equation}
+            \dot{\Phi} = 
+            \begin{pmatrix}
+                \bm{0}_{(3 \times 3)} & \bm{I}_{(3 \times 3)} \\
+                \frac{\partial \bm{a}_g}{\partial \bm{r}} + 
+                    \frac{\partial \bm{a}_{tbp}}{\partial \bm{r}} & \bm{0}_{(3 \times 3)}
+            \end{pmatrix}
+        \end{equation}
+    
+    \item construct $yPhip = \dot{\Phi} \Phi$
+    
+    \item augment the above matrix with the state partials 
+        \begin{equation}
+            yPhiP = 
+            \begin{pmatrix} 
+                \dot{\bm{y}} & \dot{\Phi} \Phi 
+            \end{pmatrix}  = 
+            \begin{pmatrix} 
+                \begin{pmatrix} \bm{v} & \bm{a}_g + \bm{a}_{sun} + \bm{a}_{moon} \end{pmatrix}^T 
+                & \dot{\Phi} \Phi
+            \end{pmatrix}
+        \end{equation}
+\end{enumerate}
