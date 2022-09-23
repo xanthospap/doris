@@ -1,6 +1,78 @@
 \chapter{Orbit Determination}
 \label{ch:orbit-determination}
 
+\section{Orbit Determination via DORIS}
+\label{sec:pod}
+Let's say we have a DORIS RINEX file with the first (block of) observations 
+taken at some time $t_i$ (in TAI). We search through a corresponding sp3 file, 
+to get the state of the satellite at an epoch as close as possible to $t_i$; 
+Let's call this epoch $t_0$ and the satellite state at this epoch (extracted 
+from the sp3) as $\bm{y}_0$.
+
+Starting from initial conditions $\bm{y}_0 \text{ at } t_0$, we use the integrator 
+(\ref{sec:Integrator}) to get the state and state transition matrix at $t_i$, 
+that is we compute 
+$\bm{y}(t=t_i) = \begin{pmatrix} \bm{r}^T(t=t_i) & \bm{v}^T(t=t_i) \end{pmatrix}$ 
+and $\Phi _i$.
+
+We will use an Extended Kalman Filter to perform the orbit determination. The 
+filter's parameter vector will be the satellite state, plus two parameters per 
+beacon for the zenith tropospheric wet delay ($L^w_z$) and the relative frequency 
+offset ($\Delta f$), that is:
+$\bm{X}=
+    \begin{pmatrix}
+        r_x & r_y & r_z & \dot{r}_x & \dot{r}_y & \dot{r}_z 
+        \begin{pmatrix} L^w_z & \frac{\Delta f_e}{f_{eN}} \end{pmatrix}_{beacon_1} & 
+        \begin{pmatrix} L^w_z & \frac{\Delta f_e}{f_{eN}} \end{pmatrix}_{beacon_2} &
+        \cdots 
+    \end{pmatrix}^T$
+with size=$6+2 \times \text{ num of beacons}$
+
+Now start filtering for the current epoch (in the RINEX file) $t_i$. For each 
+beacon in the current block:
+\begin{enumerate}
+    \item If this is the first observation for this beacon, store measurements 
+        and exit. If we already have previous measurements for the beacon (so 
+        that we can compute the Doppler count), formulate the observation 
+        equation, using the two quantities:
+        \begin{equation}
+            \begin{aligned}
+              V_{observed} &= \frac{c}{f_{eN}} 
+                \left( f_{eN} - f_{rT} - \frac{N_{DOP}}{\Delta _{\tau_r}} \right)
+                + \Delta _{V_{IONO}} + \Delta _{V_{REL_C}} \\
+              V_{theoretical} &= \frac{\rho(t_i) - \rho(t_{i-1})}{\Delta _{\tau_r}} + \Delta _{V_{TROPO}} 
+                - \frac{c}{f_{eN}} \left( \frac{N_{DOP}}{\Delta _{\tau_r}} + f_{rT} \right) 
+                \frac{\Delta f_e}{f_{eN}}
+            \end{aligned}
+          \end{equation}
+        so that $z_i = V_{observed}$
+    \item Now compute the partials of the observation w.r.t. the the vector $\bm{X}$, that is 
+        \begin{equation}
+          \bm{H}_i = \frac{\partial z_i}{\partial \bm{X}} = \frac{\partial V_{theoretical}}{\partial \bm{X}} = 
+          \begin{pmatrix} 
+            \begin{pmatrix}\frac{\partial z_i}{\partial \bm{r}}\end{pmatrix}^T_{(3 \times 1)} \\
+            \begin{pmatrix}\frac{\partial z_i}{\partial \bm{v}}\end{pmatrix}^T_{(3 \times 1)} \\
+            \begin{pmatrix}\frac{\partial z_i}{\partial L^w_z} & \frac{\partial z_i}{\partial \frac{\Delta f_e}{f_{eN}}}\end{pmatrix}^T_{(2 \times 1)} \\
+            \begin{pmatrix}\frac{\partial z_i}{\partial L^w_z} & \frac{\partial z_i}{\partial \frac{\Delta f_e}{f_{eN}}}\end{pmatrix}^T_{(2 \times 1)} \\
+            \cdots
+          \end{pmatrix} 
+          \end{equation}
+        , which is given by:
+        \begin{equation}
+            \bm{H}_i = \frac{\partial z_i}{\partial \bm{X}} = 
+            \begin{pmatrix} 
+                \begin{pmatrix}
+                     \bm{R} \cdot \left[ \bm{s}_{t_i} / \norm{\bm{s}_{t_i}} - 
+                     \bm{s}_{t_{i-1}} / \norm{\bm{s}_{t_{i-1}}} \right] / \Delta _{\tau_r} \end{pmatrix}^T_{(3 \times 1)} \\
+                 \bm{0}_{(3 \times 1)} \\
+                 \begin{pmatrix} -(C / f_{eN}) * (N_{DOP} / \Delta _{\tau_r}  + f_{rT}) & (L^w_z\at{t_i} - L^w_z\at{t_{i-1}}) / \Delta _{\tau_r} \end{pmatrix}^T_{(2 \times 1)} \\
+                 \cdots
+            \end{pmatrix}
+        \end{equation}
+        where $\bm{s}_{t_i}$ is the topocentric satellite-beacon vector and 
+        $\bm{R}$ is the topocentric-to-ECEF rotation matrix.
+\end{enumerate}
+
 \section{Integrator}
 \label{sec:Integrator}
 
@@ -24,8 +96,8 @@ where:
 Via this structure, we can ``integrate'' the state, solving a first order 
 initial value problem. The signature to perfom the integrations is:
 \begin{lstlisting}
-  int de(double &t, double tout, const Eigen::VectorXd &y0,                     
-         Eigen::VectorXd &yout) noexcept;
+  int de(double &t, double tout, const VectorXd &y0,                     
+         VectorXd &yout) noexcept;
 \end{lstlisting}
 where:
 \begin{itemize}
@@ -62,9 +134,9 @@ the state transition matrix.
 The variational equations has the signature:
 
 \begin{lstlisting}
-void VarEquations(double tsec, const Eigen::VectorXd &yPhi,
-                  Eigen::Ref<Eigen::VectorXd> yPhiP,
-                  dso::IntegrationParameters &params) noexcept;
+void VarEquations(double tsec, const VectorXd &yPhi,
+                  VectorXd yPhiP,
+                  IntegrationParameters &params) noexcept;
 \end{lstlisting}
 
 Computes the variational equations, i.e. the derivative of the state vector 
