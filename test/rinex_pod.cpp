@@ -147,15 +147,16 @@ struct SatelliteState {
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
   Eigen::Matrix<double, 3, 1>
-  eccentricity(const Eigen::Quaternion<double> &q) noexcept {
+  eccentricity([[maybe_unused]]const Eigen::Quaternion<double> &q) noexcept {
+    return Eigen::Matrix<double, 3, 1>::Zero();
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
-    return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
-                    : (Eigen::Matrix<double, 3, 1>::Zero());
+    //return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
+    //                : (Eigen::Matrix<double, 3, 1>::Zero());
   }
 
   int integrate(double mjd_target, dso::SGOde &integrator,
-                [[maybe_unused]] const Eigen::Quaternion<double> qtarget) noexcept {
+                const Eigen::Quaternion<double> qtarget) noexcept {
     // count calls; this is only needed because the first call should
     // consider the satellite coordinates as CoM coordinates, and not
     // apply eccentricity (ARP to  CoM)
@@ -220,7 +221,7 @@ struct SatelliteState {
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
     
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
-    // sol.block<3, 1>(0, 0) -= eccentricity(qtarget);
+    sol.block<3, 1>(0, 0) -= eccentricity(qtarget);
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -233,7 +234,7 @@ struct SatelliteState {
     }
 
     // now the attitude quaternion for mjd_tai is qtarget:
-    // qlast = qtarget;
+    qlast = qtarget;
 
     ++call_nr;
     return 0;
@@ -539,24 +540,24 @@ int main(int argc, char *argv[]) {
     // get the attitude/quaternion for this instant;
     // (i.e. 'this instant' is the target time of integration)
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
-    {
-      if (int qerror; (qerror=qhunt.get_at(tl1.as_mjd(), q))) {
-        fprintf(stderr, "ERROR Failed to find quaternion for datetime, error=%d\n", qerror);
-        return 1;
-      } else {
-        ;
-        //printf("Quaternion matched for date %.9f = [%.6f %.6f %.6f %.6f], "
-        //       "between %.9f and %.9f\n",
-        //       tl1.as_mjd(), q.w(), q.x(), q.y(), q.z(),
-        //       qhunt.bodyq[0].t.as_mjd(), qhunt.bodyq[1].t.as_mjd());
-        //printf("Grid qaternions: -> [%.6f %.6f %.6f %.6f]\n",
-        //       qhunt.bodyq[0].quaternion.w(), qhunt.bodyq[0].quaternion.x(),
-        //       qhunt.bodyq[0].quaternion.y(), qhunt.bodyq[0].quaternion.z());
-        //printf("                 -> [%.6f %.6f %.6f %.6f]\n",
-        //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
-        //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
-      }
-    }
+    //{
+    //  if (int qerror; (qerror=qhunt.get_at(tl1.as_mjd(), q))) {
+    //    fprintf(stderr, "ERROR Failed to find quaternion for datetime, error=%d\n", qerror);
+    //    return 1;
+    //  } else {
+    //    ;
+    //    //printf("Quaternion matched for date %.9f = [%.6f %.6f %.6f %.6f], "
+    //    //       "between %.9f and %.9f\n",
+    //    //       tl1.as_mjd(), q.w(), q.x(), q.y(), q.z(),
+    //    //       qhunt.bodyq[0].t.as_mjd(), qhunt.bodyq[1].t.as_mjd());
+    //    //printf("Grid qaternions: -> [%.6f %.6f %.6f %.6f]\n",
+    //    //       qhunt.bodyq[0].quaternion.w(), qhunt.bodyq[0].quaternion.x(),
+    //    //       qhunt.bodyq[0].quaternion.y(), qhunt.bodyq[0].quaternion.z());
+    //    //printf("                 -> [%.6f %.6f %.6f %.6f]\n",
+    //    //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
+    //    //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
+    //  }
+    //}
 
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
@@ -578,17 +579,6 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     } else {
-      
-      //printf("> Corrections in state: Dx:%+.6e Dy:%+.6e Dz:%+.6e DVx:%+.6e DVy:%+.6e DVz:%+.6e\n",
-      //       svState.state(0) - Filter.x(0), svState.state(1) - Filter.x(1),
-      //       svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
-      //       svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
-
-      #ifdef FILTER_ON
-      // update state with previous estimates
-      svState.state = Filter.x.block<6,1>(0,0);
-      #endif
-
       if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
@@ -839,19 +829,18 @@ int main(int argc, char *argv[]) {
                   (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                   (1e0 / Dtau);
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
-              // dz/dC
-              // dHdX(6) = 0e0;
-              // dz/dq
+              // dz/dDf
               dHdX(6 + receiver_number * 2) =
                   -(iers2010::C / feN) * (NdopDt + frT);
+              // dz/dLwet
               dHdX(6 + receiver_number * 2 + 1) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
-                /*Eigen::MatrixXd*/ PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
-                PhiP.block<6, 6>(0, 0) = svState.Phi;
-                /*auto*/ estimates = Filter.x;
-                estimates.block<6, 1>(0, 0) = svState.state;
-                Filter.time_update(tl1, estimates, PhiP);
+                ///*Eigen::MatrixXd*/ PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
+                //PhiP.block<6, 6>(0, 0) = svState.Phi;
+                ///*auto*/ estimates = Filter.x;
+                //estimates.block<6, 1>(0, 0) = svState.state;
+                //Filter.time_update(tl1, estimates, PhiP);
                 
                 // Filter measurement update
                 Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el), dHdX);
