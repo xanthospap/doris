@@ -4,15 +4,67 @@
 \section{Integrator}
 \label{sec:Integrator}
 
+The integrator has the following constructor:
+\begin{lstlisting}
+  SGOde(ODEfun f, int neqn, double rerr, double aerr,                         
+        dso::IntegrationParameters *params = nullptr)
+\end{lstlisting}
+
+where:
+\begin{itemize}
+    \item \label{it:odefun} \texttt{f} is the (vector) function $\bm{f}$ that 
+        computes the partial derivatives (at some point $t$)
+    \item \texttt{neqn} is the number of equations in $\bm{f}$
+    \item \texttt{rerr} and \texttt{aerr} are relative and absolute error 
+        tolerances, and
+    \item \texttt{params} is a set of parameters used within $\bm{f}$ to 
+        compute the derivatives (e.g. some reference epoch $t_{ref}$)
+\end{itemize}
+
+Via this structure, we can ``integrate'' the state, solving a first order 
+initial value problem. The signature to perfom the integrations is:
+\begin{lstlisting}
+  int de(double &t, double tout, const Eigen::VectorXd &y0,                     
+         Eigen::VectorXd &yout) noexcept;
+\end{lstlisting}
+where:
+\begin{itemize}
+    \item \texttt{t} is the initial time $t_0$
+    \item \texttt{tout} is the target time of integration (at success, we 
+        should get \texttt{t}=\texttt{tout})
+    \item \texttt{y0} is the vector of initial conditions $\bm{y}_0$
+    \item \texttt{yout} is the solution vector, $\bm{y}_{tout}$
+\end{itemize}
+
+Hence, in a ``real-world scenario'', if we have the satellite state vector 
+$\bm{y}$ at some initial epoch $t_0$, we can extrapolate the state to some 
+future time $t$. To get the state transition matrix $\Phi (t,t_0)$, will can 
+augment the ODE system with the state transition matrix. Initial values for 
+the state transition matrix can be the identity matrix, because 
+$\Phi (t_0,t_0) = \bm{I}$. A call to the function thus, would be:
+\begin{itemize}
+    \item \texttt{t} is $t_0$
+    \item \texttt{tout} is $t$
+    \item \texttt{y0} is 
+    $\begin{pmatrix} \bm{y}^T_{t0} & \bm{I}_{(6 \times 6)} \end{pmatrix} = 
+    \begin{pmatrix} \bm{r}^T_{t_0} & \bm{v}^T_{t_0} & \bm{I}_{(6 \times 6)} \end{pmatrix}$
+\end{itemize}
+and the result would be 
+$\begin{pmatrix} \bm{y}^T_{t} & \Phi(t,t_0)_{(6 \times 6)} \end{pmatrix}$
+The function providing the derivatives would be (some form of) the 
+variatiational equation system (\ref{sec:variational-equations}) and the number 
+of equations to solve for would be \texttt{neqn} = $6$ for the state + $6 \times 6$ for 
+the state transition matrix.
+
 
 \section{Variational Equations}
 \label{sec:variational-equations}
 The variational equations has the signature:
 
 \begin{lstlisting}
-void VariationalEquations(double tsec, const Eigen::VectorXd &yPhi,
-                          Eigen::Ref<Eigen::VectorXd> yPhiP,
-                          dso::IntegrationParameters &params) noexcept;
+void VarEquations(double tsec, const Eigen::VectorXd &yPhi,
+                  Eigen::Ref<Eigen::VectorXd> yPhiP,
+                  dso::IntegrationParameters &params) noexcept;
 \end{lstlisting}
 
 Computes the variational equations, i.e. the derivative of the state vector 
@@ -38,14 +90,15 @@ $yPhiP = \begin{pmatrix}
     \item Add seconds to reference time $t_0$ to get current time $t$
     
     \item Construct terretrial to celestial matrix, aka $R^{GCRF}_{ECEF}$ at 
-        $t$ (used throughout to transform state vector).
+        $t$ (used in \ref{it:ag} to transform state to ECEF).
     
-    \item Compute gravity-induced acceleration and partials, $\bm{a}_g$ and 
+    \item \label{it:ag} Compute gravity-induced acceleration and partials, 
+        $\bm{a}_g$ and derivaties  
         $\frac{\partial \bm{a}_g}{\partial \bm{r}}$. Note that 
         $\frac{\partial \bm{a}_g}{\partial \bm{v}} = \bm{0}$.
     
-    \item Compute third body perturbation accelerations and partials for 
-        Sun and Moon, aka $\bm{a}_{sun}$, $\bm{a}_{moon}$ and 
+    \item \label{it:atbp} Compute third body perturbation accelerations and 
+        partials for Sun and Moon, aka $\bm{a}_{sun}$, $\bm{a}_{moon}$ and 
         $\frac{\partial \bm{a}_{tbp}}{\partial \bm{r}}$. Note that 
         $\frac{\partial \bm{a}_{tbp}}{\partial \bm{v}} = \bm{0}$.
     
