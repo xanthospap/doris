@@ -5,18 +5,18 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
 #include "filters/ekf.hpp"
+#include "geodesy/geoconst.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include "iers2010/tropo.hpp"
 #include "integrators.hpp"
+#include "satellites/jason3.hpp"
+#include "satellites/jason3_quaternions.hpp"
 #include "sp3/sp3.hpp"
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
-#include "geodesy/geoconst.hpp"
-#include "satellites/jason3.hpp"
-#include "satellites/jason3_quaternions.hpp"
 
 constexpr const int Np = 0;
 
@@ -43,15 +43,15 @@ struct RunningStatistics {
   long unsigned k{1};
 
   void update(double x) noexcept {
-    double new_mean = _mean + (x-_mean) / (double)k;
-    _var += (x-_mean) * (x-new_mean);
+    double new_mean = _mean + (x - _mean) / (double)k;
+    _var += (x - _mean) * (x - new_mean);
     _mean = new_mean;
     ++k;
   }
 
-  double mean() const noexcept {return _mean;}
-  double variance() const noexcept {return _var/(k-1);}
-  double stddev() const noexcept {return std::sqrt(variance());}
+  double mean() const noexcept { return _mean; }
+  double variance() const noexcept { return _var / (k - 1); }
+  double stddev() const noexcept { return std::sqrt(variance()); }
 };
 
 struct TropoDetails {
@@ -116,18 +116,18 @@ struct SatBeacon {
 // hold satellite state & time
 struct SatelliteState {
   // Satellite's center of gravity w.r.t the satellite-fixed frame
-  Eigen::Matrix<double,3,1> *cog_sf{nullptr};
+  Eigen::Matrix<double, 3, 1> *cog_sf{nullptr};
   // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
-  Eigen::Matrix<double,3,1> *arp_sf{nullptr};
+  Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
   // Current datetime in TAI
   double mjd_tai;
   // state vector at t=ttai in ECEF, at DORIS receiver RP (2GHz)
-  Eigen::Matrix<double, 6, 1> state; 
+  Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
-  // attitude quaternion 
+  // attitude quaternion
   Eigen::Quaternion<double> qlast;
-  
+
   // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
@@ -147,11 +147,11 @@ struct SatelliteState {
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
   Eigen::Matrix<double, 3, 1>
-  eccentricity([[maybe_unused]]const Eigen::Quaternion<double> &q) noexcept {
+  eccentricity([[maybe_unused]] const Eigen::Quaternion<double> &q) noexcept {
     return Eigen::Matrix<double, 3, 1>::Zero();
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
-    //return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
+    // return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
     //                : (Eigen::Matrix<double, 3, 1>::Zero());
   }
 
@@ -164,12 +164,12 @@ struct SatelliteState {
 
     // Vector containing state + variational equations size: 6 + 6x(6+Np)
     // Ref. Frame: inertial
-    Eigen::Matrix<double, 6 + 6 * 6 + 6*Np, 1> yPhi =
-        Eigen::Matrix<double, 6 + 6 * 6 + 6*Np, 1>::Zero();
+    Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1> yPhi =
+        Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1>::Zero();
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
-    
-    // if needed, go from antenna RP to CoM (this is not needed in the first 
-    // call, since we integrate starting with the sp3 state which is w.r.t. 
+
+    // if needed, go from antenna RP to CoM (this is not needed in the first
+    // call, since we integrate starting with the sp3 state which is w.r.t.
     // the satellite's CoG)
     if (call_nr) {
       yPhi.block<3, 1>(0, 0) += eccentricity(qlast);
@@ -193,7 +193,7 @@ struct SatelliteState {
     integrator.flag() = 1;
 
     // keep solution here (celestial RF at tout)
-    Eigen::VectorXd sol(6 + 6 * 6 + 6*Np);
+    Eigen::VectorXd sol(6 + 6 * 6 + 6 * Np);
 
     // integrate (in inertial RF), from 0 to tout [sec]
     double tsec = 0e0;
@@ -219,7 +219,7 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> dt2c;
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
-    
+
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
     sol.block<3, 1>(0, 0) -= eccentricity(qtarget);
 
@@ -240,7 +240,6 @@ struct SatelliteState {
     return 0;
   }
 };
-
 
 int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            const Eigen::Matrix<double, 3, 1> &rbeacon,
@@ -396,15 +395,14 @@ int main(int argc, char *argv[]) {
   }
 
   // Attitude Information
-  dso::get_yaml_value_depth2(config, "attitude",
-                                 "body-quaternion", buf);
+  dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
   dso::JasonQuaternionHunter qhunt(buf);
 
   // Previous Observation relating Beacon/Satellite (to compute Ndop)
   // -------------------------------------------------------------------------
   std::vector<SatBeacon> prevec;
   prevec.reserve(beaconCrdVec.size());
-  
+
   // On-board receiver eccentricity, in the satellite-fixed frame
   // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
@@ -438,7 +436,7 @@ int main(int argc, char *argv[]) {
       dso::MacroModel<dso::SATELLITE::Jason3>::NumPlates;
   IntegrationParams.qhunt = &qhunt;
   IntegrationParams.SatMass = &sat_mass;
-  
+
   dso::Nrlmsise00 nrlmsise00;
   IntegrationParams.nrlmsise00 = &nrlmsise00;
 
@@ -477,8 +475,8 @@ int main(int argc, char *argv[]) {
   dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
   // initialize the Kalman filter
   for (int i = 6; i < NumParams; i += 2) {
-    Filter.x(i) = DfefeN_apriori;     // beacon relative frequency offset
-    Filter.x(i + 1) = 1e-1; // apriori tropo wet delay at zenith
+    Filter.x(i) = DfefeN_apriori; // beacon relative frequency offset
+    Filter.x(i + 1) = 1e-1;       // apriori tropo wet delay at zenith
   }
   // default sigma for releative frequency offset
   Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
@@ -498,7 +496,7 @@ int main(int argc, char *argv[]) {
   assert(obs_sigma > 0e0 && obs_sigma < 1e2 && (!error));
   printf("## Note: default observation sigms value: %.3f\n", obs_sigma);
 
-  // Important !! 
+  // Important !!
   // set integration parameter estimates to point to the Filter
   IntegrationParams.estimates = &Filter.x;
 
@@ -542,8 +540,8 @@ int main(int argc, char *argv[]) {
     Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
     //{
     //  if (int qerror; (qerror=qhunt.get_at(tl1.as_mjd(), q))) {
-    //    fprintf(stderr, "ERROR Failed to find quaternion for datetime, error=%d\n", qerror);
-    //    return 1;
+    //    fprintf(stderr, "ERROR Failed to find quaternion for datetime,
+    //    error=%d\n", qerror); return 1;
     //  } else {
     //    ;
     //    //printf("Quaternion matched for date %.9f = [%.6f %.6f %.6f %.6f], "
@@ -552,10 +550,12 @@ int main(int argc, char *argv[]) {
     //    //       qhunt.bodyq[0].t.as_mjd(), qhunt.bodyq[1].t.as_mjd());
     //    //printf("Grid qaternions: -> [%.6f %.6f %.6f %.6f]\n",
     //    //       qhunt.bodyq[0].quaternion.w(), qhunt.bodyq[0].quaternion.x(),
-    //    //       qhunt.bodyq[0].quaternion.y(), qhunt.bodyq[0].quaternion.z());
+    //    //       qhunt.bodyq[0].quaternion.y(),
+    //    qhunt.bodyq[0].quaternion.z());
     //    //printf("                 -> [%.6f %.6f %.6f %.6f]\n",
     //    //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
-    //    //       qhunt.bodyq[1].quaternion.y(), qhunt.bodyq[1].quaternion.z());
+    //    //       qhunt.bodyq[1].quaternion.y(),
+    //    qhunt.bodyq[1].quaternion.z());
     //  }
     //}
 
@@ -603,9 +603,6 @@ int main(int argc, char *argv[]) {
       // matching the current beacon
       auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
       assert(beacon_it != rnx.stations().cend());
-
-      // DEBUGGING -- only consume TLSB
-      // if (!std::strncmp(beacon_it->m_station_id, "TLSB", 4)) {
 
       // check flags
       if (beaconobs->m_values[l1i].m_flag1 ==
@@ -790,8 +787,8 @@ int main(int argc, char *argv[]) {
                 delta_tau.to_fractional_seconds();
 
             // Relativistic corrections
-            const double Drel = 0e0 *
-                (cDrel - pprev_obs->Drel) / delta_tau.to_fractional_seconds();
+            const double Drel = 0e0 * (cDrel - pprev_obs->Drel) /
+                                delta_tau.to_fractional_seconds();
 
             // we will need the estimated Δf_e / f_eN
             [[maybe_unused]] const double DfefeN =
@@ -811,13 +808,14 @@ int main(int argc, char *argv[]) {
                                  (iers2010::C / feN) * (NdopDt + frT) * DfefeN;
 
             const double oc = Uobs + Utheo;
-            const double threshold = 
-                (rstats.stddev() > 0e0) ? (3e10 * rstats.stddev() / std::sin(el))
-                                        : 1e3;
+            const double threshold =
+                (rstats.stddev() > 0e0)
+                    ? (3e10 * rstats.stddev() / std::sin(el))
+                    : 1e3;
             if (std::abs(oc) < threshold) {
 
               rstats.update(oc);
-              
+
               // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
@@ -836,29 +834,22 @@ int main(int argc, char *argv[]) {
               dHdX(6 + receiver_number * 2 + 1) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
-                ///*Eigen::MatrixXd*/ PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
-                //PhiP.block<6, 6>(0, 0) = svState.Phi;
-                ///*auto*/ estimates = Filter.x;
-                //estimates.block<6, 1>(0, 0) = svState.state;
-                //Filter.time_update(tl1, estimates, PhiP);
-                
-                // Filter measurement update
-                Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el), dHdX);
+              // Filter measurement update
+              Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
+                                        dHdX);
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
-              printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                     "%+10.6f %+10.6f %+10.6f %+9.6f %+7.5e %.3f %.3f %.3f %.9f "
-                     "\n",
-                     dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
-                     Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
-                     Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
-                     Filter.x(6 + receiver_number * 2), Uobs, Utheo, oc,
-                     tl1.as_mjd());
-              //printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
-              //       cDrel, pprev_obs->Drel, Drel);
-
-              // update estimates in the sv struct
-              // svState.state = Filter.x.block<6,1>(0,0);
+              printf(
+                  "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
+                  "%+10.6f %+10.6f %+10.6f %+9.6f %+7.5e %.3f %.3f %.3f %.9f "
+                  "\n",
+                  dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
+                  Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
+                  Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
+                  Filter.x(6 + receiver_number * 2), Uobs, Utheo, oc,
+                  tl1.as_mjd());
+              // printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
+              //        cDrel, pprev_obs->Drel, Drel);
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
@@ -868,12 +859,12 @@ int main(int argc, char *argv[]) {
                       "O-C value %u/%u : %.3f > %.3f\n",
                       dtbuf, beacon_it->m_station_id, ndop_count_rejected,
                       ndop_count, oc, threshold);
-              //fprintf(stderr,
-              //        "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
-              //        "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f "
-              //        "Dfe/feN=%.3e\n",
-              //        feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
-              //        pprev_obs->rho(), DfefeN);
+              // fprintf(stderr,
+              //         "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
+              //         "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f "
+              //         "Dfe/feN=%.3e\n",
+              //         feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
+              //         pprev_obs->rho(), DfefeN);
               ++ndop_count_rejected;
             }
 
@@ -882,7 +873,7 @@ int main(int argc, char *argv[]) {
                               beaconobs->m_values[l2i].m_value, cDiono, cDtropo,
                               cDrel, r_enu);
             ++ndop_count;
-          
+
           } // computing Ndop
 
         } // elevation > limit
@@ -893,8 +884,25 @@ int main(int argc, char *argv[]) {
       ++beaconobs;
     } // while (beaconobs != it.cblock.end())
 
+    // update estimates in the sv struct (after data block processing is over)
+    //printf("Updating satellite state using filter results: %.6f %.6f %.6f %.6f "
+    //       "%.6f %.6f\n",
+    //       svState.state(0), svState.state(1), svState.state(2),
+    //       svState.state(3), svState.state(4), svState.state(5));
+    //printf("                               filter results: %.6f %.6f %.6f %.6f "
+    //       "%.6f %.6f\n",
+    //       Filter.x(0), Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
+    //       Filter.x(5));
+    //printf("                               corrections   : %.6f %.6f %.6f %.6f "
+    //       "%.6f %.6f\n",
+    //       svState.state(0) - Filter.x(0), svState.state(1) - Filter.x(1),
+    //       svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
+    //       svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
+    //svState.state = Filter.x.block<6, 1>(0, 0);
+
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
-        dso::cast_to<dso::seconds, dso::nanoseconds>(dso::seconds(12 * 60 * 60)))
+        dso::cast_to<dso::seconds, dso::nanoseconds>(
+            dso::seconds(12 * 60 * 60)))
       break;
 
   } // for every new data block in the RINEX file
@@ -960,7 +968,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
       sv_state.block<3, 1>(0, 0), sv_state.block<3, 1>(3, 0), GM, J2, Re);
 
   // relativity clock correction, Lemoine 2016
-  Drel_c = .5e0*(Sdelta_clock - Bdelta_clock);
+  Drel_c = .5e0 * (Sdelta_clock - Bdelta_clock);
 
   // TODO relativity correction for travel time
   Drel_r = 0e0;
@@ -972,18 +980,20 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept {
-  //printf("-> station coordinates: %.3f %.3f %.3f\n", bxyz_arp(0), bxyz_arp(1), bxyz_arp(2));
-  // transform cartesian to ellipsoidal (antenna RP)
+  // printf("-> station coordinates: %.3f %.3f %.3f\n", bxyz_arp(0),
+  // bxyz_arp(1), bxyz_arp(2));
+  //  transform cartesian to ellipsoidal (antenna RP)
   const Eigen::Matrix<double, 3, 1> lfh =
       dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
-  //printf("-> station coordinates: %.3f %.3f %.3f\n", dso::rad2deg(lfh(0)), dso::rad2deg(lfh(1)), lfh(2));
-  const Eigen::Matrix<double,3,3> R = dso::topocentric_matrix(lfh);
-  //for (int i=0; i<3; i++) {
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %.6f", R(i,j));
-  //  }
-  //  printf("\n");
-  //}
+  // printf("-> station coordinates: %.3f %.3f %.3f\n", dso::rad2deg(lfh(0)),
+  // dso::rad2deg(lfh(1)), lfh(2));
+  const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(lfh);
+  // for (int i=0; i<3; i++) {
+  //   for (int j=0; j<3; j++) {
+  //     printf(" %.6f", R(i,j));
+  //   }
+  //   printf("\n");
+  // }
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
 }
 

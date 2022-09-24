@@ -47,7 +47,6 @@ void dso::VariationalEquations(
   // Drag
   // Warning only valid for Jason-3
   // get the quaternion
-  /*
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
   Eigen::Matrix<double, 3, 3> ddragdr;
   Eigen::Matrix<double, 3, 3> ddragdv;
@@ -73,6 +72,7 @@ void dso::VariationalEquations(
       if (ctheta > 0e0) {
         ProjArea += params.macromodel[i].m_surf * ctheta;
       }
+      ProjArea += params.macromodel[i].m_surf;
     }
     // get atmospheric density, using the UTC date
     double imjd; 
@@ -92,47 +92,46 @@ void dso::VariationalEquations(
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
     const double atmdens = aout.d[5];
-    Eigen::Matrix<double,3,1> drhodr;
-    { // approximate arithmetic derivative w.r.t satellite ECEF position
-      Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
-      double p1,m1;
-      // w.r.t X component
-      unitv << 1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << -1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-      // w.r.t Y component
-      unitv << 0e0, 1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, -1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-      // w.r.t Y component
-      unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-    }
-    //printf("Note: Using drag coefficient=%.3f\n", params.get_drag_coefficient());
-    drag = dso::drag_accel(r, v, ProjArea, params.get_drag_coefficient(),
-                           *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
-                           ddragdC);
+  //  Eigen::Matrix<double,3,1> drhodr;
+  //  { // approximate arithmetic derivative w.r.t satellite ECEF position
+  //    Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
+  //    double p1,m1;
+  //    // w.r.t X component
+  //    unitv << 1e0, 0e0, 0e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    p1 = aout.d[5];
+  //    unitv << -1e0, 0e0, 0e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    m1 = aout.d[5];
+  //    drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+  //    // w.r.t Y component
+  //    unitv << 0e0, 1e0, 0e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    p1 = aout.d[5];
+  //    unitv << 0e0, -1e0, 0e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    m1 = aout.d[5];
+  //    drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+  //    // w.r.t Y component
+  //    unitv << 0e0, 0e0, 1e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    p1 = aout.d[5];
+  //    unitv << 0e0, 0e0, 1e0;
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    m1 = aout.d[5];
+  //    drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+  //  }
+  //  //printf("Note: Using drag coefficient=%.3f\n", params.get_drag_coefficient());
+    drag = dso::drag_accel(r, v, ProjArea, /*params.get_drag_coefficient()*/2e0,
+                           *(params.SatMass), atmdens/*, drhodr, ddragdr, ddragdv,
+                           ddragdC*/);
   }
-  */
 
   // SRP
   // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -177,7 +176,7 @@ void dso::VariationalEquations(
   
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc;
+  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
