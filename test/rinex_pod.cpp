@@ -115,18 +115,18 @@ struct SatBeacon {
 
 // hold satellite state & time
 struct SatelliteState {
-  // Satellite's center of gravity w.r.t the satellite-fixed frame
-  Eigen::Matrix<double, 3, 1> *cog_sf{nullptr};
-  // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
-  Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
   // Current datetime in TAI
   double mjd_tai;
   // state vector at t=ttai in ECEF, at DORIS receiver RP (2GHz)
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
-  // attitude quaternion
-  Eigen::Quaternion<double> qlast;
+  // Satellite's center of gravity w.r.t the satellite-fixed frame
+  Eigen::Matrix<double, 3, 1> *cog_sf{nullptr};
+  // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
+  Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
+  //
+  dso::JasonQuaternionHunter *qhunt{nullptr};
 
   // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
@@ -148,15 +148,14 @@ struct SatelliteState {
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
   Eigen::Matrix<double, 3, 1>
   eccentricity([[maybe_unused]] const Eigen::Quaternion<double> &q) noexcept {
-    return Eigen::Matrix<double, 3, 1>::Zero();
+    // return Eigen::Matrix<double, 3, 1>::Zero();
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
-    // return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
-    //                : (Eigen::Matrix<double, 3, 1>::Zero());
+    return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
+                    : (Eigen::Matrix<double, 3, 1>::Zero());
   }
 
-  int integrate(double mjd_target, dso::SGOde &integrator,
-                const Eigen::Quaternion<double> qtarget) noexcept {
+  int integrate(double mjd_target, dso::SGOde &integrator) noexcept {
     // count calls; this is only needed because the first call should
     // consider the satellite coordinates as CoM coordinates, and not
     // apply eccentricity (ARP to  CoM)
@@ -171,9 +170,16 @@ struct SatelliteState {
     // if needed, go from antenna RP to CoM (this is not needed in the first
     // call, since we integrate starting with the sp3 state which is w.r.t.
     // the satellite's CoG)
+    #ifndef NO_ATTITUDE
     if (call_nr) {
-      yPhi.block<3, 1>(0, 0) += eccentricity(qlast);
+      Eigen::Quaternion<double> q;
+      if (qhunt->get_at(mjd_tai, q)) {
+        fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+        assert(false);
+      }
+      yPhi.block<3, 1>(0, 0) += eccentricity(q);
     }
+    #endif
 
     // set the state transition matrix to identity (initial condition)
     {
@@ -220,8 +226,17 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
 
+    #ifndef NO_ATTITUDE
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
-    sol.block<3, 1>(0, 0) -= eccentricity(qtarget);
+    {
+      Eigen::Quaternion<double> q;
+      if (qhunt->get_at(mjd_tai, q)) {
+        fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+        assert(false);
+      }
+      sol.block<3, 1>(0, 0) -= eccentricity(q);
+    }
+    #endif
 
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
@@ -232,9 +247,6 @@ struct SatelliteState {
     for (int i = 0; i < 6; i++) {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
     }
-
-    // now the attitude quaternion for mjd_tai is qtarget:
-    qlast = qtarget;
 
     ++call_nr;
     return 0;
@@ -419,6 +431,7 @@ int main(int argc, char *argv[]) {
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
   svState.cog_sf = &sat_cog;
   svState.arp_sf = &l1_pco;
+  svState.qhunt = &qhunt;
 
   // Setup Integration Parameters for Orbit Integration
   // -------------------------------------------------------------------------
@@ -521,6 +534,13 @@ int main(int argc, char *argv[]) {
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
 
+  // report
+  #ifndef NO_ATTITUDE
+    printf("## Attitude information will be used!\n");
+  #else
+    printf("## No attitude information will be used!\n");
+  #endif
+
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
 
@@ -535,34 +555,10 @@ int main(int argc, char *argv[]) {
     // a buffer to write datetime strings to
     char dtbuf[64];
 
-    // get the attitude/quaternion for this instant;
-    // (i.e. 'this instant' is the target time of integration)
-    Eigen::Quaternion<double> q(0e0, 0e0, 0e0, 0e0);
-    //{
-    //  if (int qerror; (qerror=qhunt.get_at(tl1.as_mjd(), q))) {
-    //    fprintf(stderr, "ERROR Failed to find quaternion for datetime,
-    //    error=%d\n", qerror); return 1;
-    //  } else {
-    //    ;
-    //    //printf("Quaternion matched for date %.9f = [%.6f %.6f %.6f %.6f], "
-    //    //       "between %.9f and %.9f\n",
-    //    //       tl1.as_mjd(), q.w(), q.x(), q.y(), q.z(),
-    //    //       qhunt.bodyq[0].t.as_mjd(), qhunt.bodyq[1].t.as_mjd());
-    //    //printf("Grid qaternions: -> [%.6f %.6f %.6f %.6f]\n",
-    //    //       qhunt.bodyq[0].quaternion.w(), qhunt.bodyq[0].quaternion.x(),
-    //    //       qhunt.bodyq[0].quaternion.y(),
-    //    qhunt.bodyq[0].quaternion.z());
-    //    //printf("                 -> [%.6f %.6f %.6f %.6f]\n",
-    //    //       qhunt.bodyq[1].quaternion.w(), qhunt.bodyq[1].quaternion.x(),
-    //    //       qhunt.bodyq[1].quaternion.y(),
-    //    qhunt.bodyq[1].quaternion.z());
-    //  }
-    //}
-
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
     // first get reference state from sp3, for an epoch as close as possible
-    if (!dummy_counter) {
+    if (dummy_counter>-2) {
       if (sp3_iterator.goto_epoch(tl1)) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
@@ -574,12 +570,12 @@ int main(int argc, char *argv[]) {
       svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
       svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
       svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
-      if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
     } else {
-      if (svState.integrate(tl1.as_mjd(), Integrator, q)) {
+      if (svState.integrate(tl1.as_mjd(), Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
@@ -651,7 +647,7 @@ int main(int argc, char *argv[]) {
 
         // Iono-Free phase center, ECEF
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
-            beacon_arp2ion(bxyz_sta, *beacon_it);
+           beacon_arp2ion(bxyz_sta, *beacon_it);
 
         // get azimouth [rad], elevation [rad] and geometric distance [m]
         // (beacon to satellite)
@@ -772,27 +768,27 @@ int main(int argc, char *argv[]) {
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
 
             // Ionospheric path delay in [m/sec]
-            const double Dion = (iers2010::C / feN) *
+            const double Dion = /*(iers2010::C / feN) *
                                 (cDiono - pprev_obs->Diono) /
-                                delta_tau.to_fractional_seconds();
+                                delta_tau.to_fractional_seconds()*/0e0;
 
             // The number/count of the beacon in the Filter
             const int receiver_number = pprev_obs->count;
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
-            const double cWzd = Filter.x(6 + Np + receiver_count * 2 + 1);
-            [[maybe_unused]] const double Dtropo =
-                (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
-                delta_tau.to_fractional_seconds();
+            [[maybe_unused]] const double cWzd = Filter.x(6 + Np + receiver_count * 2 + 1);
+            [[maybe_unused]] const double Dtropo = 0e0;
+                /*(cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
+                delta_tau.to_fractional_seconds();*/
 
             // Relativistic corrections
             const double Drel = 0e0 * (cDrel - pprev_obs->Drel) /
                                 delta_tau.to_fractional_seconds();
 
             // we will need the estimated Δf_e / f_eN
-            [[maybe_unused]] const double DfefeN =
-                Filter.x(6 + Np + receiver_number * 2);
+            [[maybe_unused]] const double DfefeN = 0e0;
+                /*Filter.x(6 + Np + receiver_number * 2);*/
 
             // handle range-rate measurement
             // ---------------------------------------------------------
@@ -816,7 +812,7 @@ int main(int argc, char *argv[]) {
 
               rstats.update(oc);
 
-              // partials wrt [x,y,z,Vx,Vy,Vz,Cd,Lwz,Dfe/feN]
+              // partials wrt [x,y,z,Vx,Vy,Vz,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               dHdX.block<3, 1>(0, 0) =
@@ -835,21 +831,19 @@ int main(int argc, char *argv[]) {
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               // Filter measurement update
-              Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
-                                        dHdX);
+              //Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
+              //                          dHdX);
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf(
                   "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                  "%+10.6f %+10.6f %+10.6f %+9.6f %+7.5e %.3f %.3f %.3f %.9f "
+                  "%+10.6f %+10.6f %+10.6f %+9.6f %+7.5e %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.9f "
                   "\n",
                   dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
                   Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
                   Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
-                  Filter.x(6 + receiver_number * 2), Uobs, Utheo, oc,
+                  Filter.x(6 + receiver_number * 2), feN, frT, Dion, Drel, DfefeN, Uobs, Utheo, oc,
                   tl1.as_mjd());
-              // printf("## Note Drel2=%.3f Drel1=%.3f Drel=%.3f\n",
-              //        cDrel, pprev_obs->Drel, Drel);
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
@@ -902,7 +896,7 @@ int main(int argc, char *argv[]) {
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
         dso::cast_to<dso::seconds, dso::nanoseconds>(
-            dso::seconds(12 * 60 * 60)))
+            dso::seconds(6 * 60 * 60)))
       break;
 
   } // for every new data block in the RINEX file

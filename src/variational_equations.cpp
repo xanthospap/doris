@@ -62,17 +62,20 @@ void dso::VariationalEquations(
     // Velocity relative to the Earth's atmosphere
     const Eigen::Matrix<double, 3, 1> vrel = v - omega.cross(r);
     // normalize
-    const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
+    [[maybe_unused]]const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
     // loop over flat plates of satellite
     double ProjArea = 0e0;
     for (int i=0; i<params.numMacroModelComponents; i++) {
+      #ifndef NO_ATTITUDE
       const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
       const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
       const double ctheta = rv.dot(vr);
       if (ctheta > 0e0) {
         ProjArea += params.macromodel[i].m_surf * ctheta;
       }
+      #else
       ProjArea += params.macromodel[i].m_surf;
+      #endif
     }
     // get atmospheric density, using the UTC date
     double imjd; 
