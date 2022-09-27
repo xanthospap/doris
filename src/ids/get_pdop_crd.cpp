@@ -104,6 +104,10 @@ int dso::extrapolate_sinex_coordinates(
   // clear result size
   result_size = 0;
 
+  // a vector to hold indexes of station_ids that are missing from the SINEX 
+  // file
+  std::vector<int> missing_indexes;
+
   // initialize the sinex instance
   dso::Sinex snx(snx_fn);
 
@@ -113,11 +117,25 @@ int dso::extrapolate_sinex_coordinates(
   // parse the block SITE/ID to collect info for the given sites
   int error = snx.parse_block_site_id(site_vec, num_stations, station_ids);
   if (error || (int)site_vec.size() != num_stations) {
+    if (error) {
     fprintf(stderr,
             "[ERROR] Failed to collect info for given sites; SINEX file is %s "
             "(traceback: %s)\n",
             snx.filename().c_str(), __func__);
     return 1;
+    } else {
+      // report the missing station(s)
+      for (int i=0; i<num_stations; i++) {
+        const char *sid = station_ids[i];
+        const auto it = std::find_if(site_vec.begin(), site_vec.end(),
+                                     [&](const dso::sinex::SiteId& rid) {return !std::strncmp(sid, rid.m_site_code, 4);});
+        if (it == site_vec.end()) {
+          fprintf(stderr, "[WARNING] Failed to find station %.4s in SINEX file %s\n", sid, snx_fn);
+          missing_indexes.push_back(i);
+        }
+      }
+      if (missing_site_is_error) return 2;
+    }
   }
 
   // first declare a vector of SolutionEstimate to hold results
@@ -139,19 +157,25 @@ int dso::extrapolate_sinex_coordinates(
   double pos[3];
   for (int i = 0; i < num_stations; i++) {
     const char *sid = station_ids[i];
-    if (extrapolate_coordinates(sid, est_vec, t, pos)) {
-      fprintf(stderr,
-              "[ERROR] Failed to extrapolate coordinates for site %s from "
-              "SINEX %s (traceback: %s)\n",
-              sid, snx.filename().c_str(), __func__);
-      if (missing_site_is_error)
-        return 1;
-    } else {
-      std::memcpy(result_array[result_size].id, sid, 4 * sizeof(char));
-      result_array[result_size].x = pos[0];
-      result_array[result_size].y = pos[1];
-      result_array[result_size].z = pos[2];
-      ++result_size;
+
+    // only proceed, if station is not missing!
+    if (std::vector<int>::iterator it;
+        (it = std::find_if(missing_indexes.begin(), missing_indexes.end(),
+                           [&](int idx) { return i == idx; })) ==
+        missing_indexes.end()) {
+
+      if (extrapolate_coordinates(sid, est_vec, t, pos)) {
+        fprintf(stderr,
+                "[ERROR] Failed to extrapolate coordinates for site %s from "
+                "SINEX %s (traceback: %s)\n",
+                sid, snx.filename().c_str(), __func__);
+      } else {
+        std::memcpy(result_array[result_size].id, sid, 4 * sizeof(char));
+        result_array[result_size].x = pos[0];
+        result_array[result_size].y = pos[1];
+        result_array[result_size].z = pos[2];
+        ++result_size;
+      }
     }
   }
 

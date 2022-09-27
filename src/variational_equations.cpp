@@ -48,6 +48,7 @@ void dso::VariationalEquations(
   // Warning only valid for Jason-3
   // get the quaternion
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
+  #ifndef NO_ATTITUDE
   Eigen::Matrix<double, 3, 3> ddragdr;
   Eigen::Matrix<double, 3, 3> ddragdv;
   Eigen::Matrix<double, 3, 1> ddragdC;
@@ -66,16 +67,12 @@ void dso::VariationalEquations(
     // loop over flat plates of satellite
     double ProjArea = 0e0;
     for (int i=0; i<params.numMacroModelComponents; i++) {
-      #ifndef NO_ATTITUDE
       const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
       const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
       const double ctheta = rv.dot(vr);
       if (ctheta > 0e0) {
         ProjArea += params.macromodel[i].m_surf * ctheta;
       }
-      #else
-      ProjArea += params.macromodel[i].m_surf;
-      #endif
     }
     // get atmospheric density, using the UTC date
     double imjd; 
@@ -135,6 +132,7 @@ void dso::VariationalEquations(
                            *(params.SatMass), atmdens/*, drhodr, ddragdr, ddragdv,
                            ddragdC*/);
   }
+#endif
 
   // SRP
   // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();

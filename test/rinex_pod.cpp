@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
   beaconCrdVec.reserve(rnx.stations().size());
   // coordinates of beacons (on ground), ECEF/pdop
   if (extrapolate_sinex_coordinates(buf, rnx.stations(), rnx.ref_datetime(),
-                                    beaconCrdVec, true)) {
+                                    beaconCrdVec, false)) {
     fprintf(stderr,
             "ERROR. Failed extracting/extrapolating beacon coordinates\n");
     return 1;
@@ -645,15 +645,15 @@ int main(int argc, char *argv[]) {
         const Eigen::Matrix<double, 3, 1> bxyz_sta =
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
 
-        // Iono-Free phase center, ECEF
+        // Iono-Free phase center, ECEF (changeme)
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
-           beacon_arp2ion(bxyz_sta, *beacon_it);
+            beacon_arp2ion(bxyz_sta, *beacon_it);
 
-        // get azimouth [rad], elevation [rad] and geometric distance [m]
-        // (beacon to satellite)
-        const Eigen::Matrix<double, 3, 1> r_enu =
-            dso::car2top<dso::ellipsoid::grs80>(
-                bxyz_ion, svState.state.block<3, 1>(0, 0));
+            // get azimouth [rad], elevation [rad] and geometric distance [m]
+            // (beacon to satellite)
+            const Eigen::Matrix<double, 3, 1>
+                r_enu = dso::car2top<dso::ellipsoid::grs80>(
+                    bxyz_ion, svState.state.block<3, 1>(0, 0));
         double az, el;
         double rho = dso::top2dae(r_enu, az, el);
 
@@ -763,7 +763,7 @@ int main(int argc, char *argv[]) {
 
             // Doppler count and delta time (proper)
             const double Ndop =
-                beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
+                beaconobs->m_values[l1i].m_value + cDiono - (pprev_obs->Ls1 + pprev_obs->Diono);
             const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
 
