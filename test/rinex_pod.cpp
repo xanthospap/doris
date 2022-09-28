@@ -4,7 +4,7 @@
 #include "doris_observation_equations.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
-#include "filters/ekf.hpp"
+#include "filters/filters.hpp"
 #include "geodesy/geoconst.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
@@ -481,26 +481,35 @@ int main(int argc, char *argv[]) {
 
   // Extended Kalman Filter instance
   // -------------------------------------------------------------------------
-  const int NumParams =
-      6                        ///< satellite state
-      + rnx.stations().size()  ///< beacon relative frequency offset
-      + rnx.stations().size(); ///< wet tropo path dealy (zenith)
-  dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
+  //const int NumParams =
+  //    6                        ///< satellite state
+  //    + rnx.stations().size()  ///< beacon relative frequency offset
+  //    + rnx.stations().size(); ///< wet tropo path dealy (zenith)
+  // dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
+  dso::EkfFilter<Np, dso::BeaconClockModel::None> Filter(rnx.stations().size(),
+                                                    rnx.time_of_first_obs());
+  const int NumParams = Filter.num_params();
+
   // initialize the Kalman filter
-  for (int i = 6; i < NumParams; i += 2) {
-    Filter.x(i) = DfefeN_apriori; // beacon relative frequency offset
-    Filter.x(i + 1) = 1e-1;       // apriori tropo wet delay at zenith
-  }
+  // for (int i = 6; i < NumParams; i += 2) {
+  //   Filter.x(i) = DfefeN_apriori; // beacon relative frequency offset
+  //   Filter.x(i + 1) = 1e-1;       // apriori tropo wet delay at zenith
+  // }
+  Filter.set_rfoff_apriori(DfefeN_apriori);
+
   // default sigma for releative frequency offset
-  Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
-  for (int i = 6; i < NumParams; i += 2) {
-    Filter.P(i, i) = DfefeN_apriori_stddev;
-    Filter.P(i + 1, i + 1) = 0.5e0;
-  }
+  //Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
+  //for (int i = 6; i < NumParams; i += 2) {
+  //  Filter.P(i, i) = DfefeN_apriori_stddev;
+  //  Filter.P(i + 1, i + 1) = 0.5e0;
+  //}
+  Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev);
+  Filter.set_tropo_apriori_sigma(.1e0 * .1e0);
+
   // default sigma for position is 1 [m]
-  Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double, 3, 3>::Identity();
+  // Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double, 3, 3>::Identity();
   // default sigma for velocity is .5 [m/sec]
-  Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+  // Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
 
   // Default observation sigma for a range-rate observable at zenith
   double obs_sigma;
@@ -511,7 +520,7 @@ int main(int argc, char *argv[]) {
 
   // Important !!
   // set integration parameter estimates to point to the Filter
-  IntegrationParams.estimates = &Filter.x;
+  // IntegrationParams.estimates = &Filter.x;
 
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
@@ -581,12 +590,15 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    // update the Kalman filter state
+    // update the Kalman filter estimates for the satellite state vector
     Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
     PhiP.block<6, 6>(0, 0) = svState.Phi;
-    auto estimates = Filter.x;
+    auto estimates = Filter.estimates();
     estimates.block<6, 1>(0, 0) = svState.state;
     Filter.time_update(tl1, estimates, PhiP);
+    #ifdef FIX_ORBIT
+    Filter.P().block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Identity() * 1e-12;
+    #endif
 
     ++dummy_counter;
 
@@ -734,7 +746,8 @@ int main(int argc, char *argv[]) {
                 pprev_obs->arcnr += 1;
                 // update a-priori value for this beacon zenith wet tropo
                 // delay [m]
-                Filter.x(6 + Np + pprev_obs->count * 2 + 1) = cDtropo.Lwz;
+                // Filter.x(6 + Np + pprev_obs->count * 2 + 1) = cDtropo.Lwz;
+                Filter.tropo_estimate(pprev_obs->count) = cDtropo.Lwz;
               }
               // passed discontinuity, observation ok
               if (pprev_obs->reinitialize)
@@ -748,13 +761,18 @@ int main(int argc, char *argv[]) {
                                             cDiono, cDtropo, cDrel, r_enu));
               // update a-priori value for this beacon zenith wet tropo
               // delay [m]
-              Filter.x(6 + Np + receiver_count * 2 + 1) = cDtropo.Lwz;
+              Filter.tropo_estimate(receiver_count) = cDtropo.Lwz;
               // for next beacon count
               ++receiver_count;
+              printf("Note:: first observation for beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_count-1);
             }
 
           } else {
             // compute Ndop and observation equation
+            
+            // The number/count of the beacon in the Filter
+            const int receiver_number = pprev_obs->count;
+            printf("Note:: working with beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_number);
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
@@ -763,32 +781,30 @@ int main(int argc, char *argv[]) {
 
             // Doppler count and delta time (proper)
             const double Ndop =
-                beaconobs->m_values[l1i].m_value + cDiono - (pprev_obs->Ls1 + pprev_obs->Diono);
+                beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
             const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
 
             // Ionospheric path delay in [m/sec]
-            const double Dion = /*(iers2010::C / feN) *
+            const double Dion = (iers2010::C / feN) *
                                 (cDiono - pprev_obs->Diono) /
-                                delta_tau.to_fractional_seconds()*/0e0;
-
-            // The number/count of the beacon in the Filter
-            const int receiver_number = pprev_obs->count;
+                                delta_tau.to_fractional_seconds();
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
-            [[maybe_unused]] const double cWzd = Filter.x(6 + Np + receiver_count * 2 + 1);
-            [[maybe_unused]] const double Dtropo = 0e0;
-                /*(cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
-                delta_tau.to_fractional_seconds();*/
+            // [[maybe_unused]] const double cWzd = Filter.x(6 + Np + receiver_count * 2 + 1);
+            const double cWzd = Filter.tropo_estimate(receiver_number);
+            [[maybe_unused]] const double Dtropo = 
+                (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
+                delta_tau.to_fractional_seconds();
 
             // Relativistic corrections
-            const double Drel = 0e0 * (cDrel - pprev_obs->Drel) /
+            const double Drel = (cDrel - pprev_obs->Drel) /
                                 delta_tau.to_fractional_seconds();
 
             // we will need the estimated Δf_e / f_eN
-            [[maybe_unused]] const double DfefeN = 0e0;
-                /*Filter.x(6 + Np + receiver_number * 2);*/
+            [[maybe_unused]] const double DfefeN = Filter.rfoff_estimate(receiver_number);
+                // Filter.x(6 + Np + receiver_number * 2);
 
             // handle range-rate measurement
             // ---------------------------------------------------------
@@ -806,7 +822,7 @@ int main(int argc, char *argv[]) {
             const double oc = Uobs + Utheo;
             const double threshold =
                 (rstats.stddev() > 0e0)
-                    ? (3e10 * rstats.stddev() / std::sin(el))
+                    ? (3e0 * rstats.stddev() / std::sin(el))
                     : 1e3;
             if (std::abs(oc) < threshold) {
 
@@ -831,18 +847,18 @@ int main(int argc, char *argv[]) {
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               // Filter measurement update
-              //Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
-              //                          dHdX);
+              Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
+                                       dHdX);
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf(
                   "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                  "%+10.6f %+10.6f %+10.6f %+9.6f %+7.5e %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.9f "
+                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.3f %.9f "
                   "\n",
-                  dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.x(0),
-                  Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
-                  Filter.x(5), Filter.x(6 + receiver_number * 2 + 1),
-                  Filter.x(6 + receiver_number * 2), feN, frT, Dion, Drel, DfefeN, Uobs, Utheo, oc,
+                  dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.estimates()(0),
+                  Filter.estimates()(1), Filter.estimates()(2), Filter.estimates()(3), Filter.estimates()(4),
+                  Filter.estimates()(5), Filter.rfoff_estimate(receiver_number),
+                  Filter.tropo_estimate(receiver_number), oc,
                   tl1.as_mjd());
 
             } else {
@@ -892,7 +908,7 @@ int main(int argc, char *argv[]) {
     //       svState.state(0) - Filter.x(0), svState.state(1) - Filter.x(1),
     //       svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
     //       svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
-    //svState.state = Filter.x.block<6, 1>(0, 0);
+    svState.state = Filter.estimates().block<6, 1>(0, 0);
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
         dso::cast_to<dso::seconds, dso::nanoseconds>(

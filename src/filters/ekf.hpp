@@ -18,9 +18,9 @@ template <typename S> struct ExtendedKalmanFilter {
 
   ExtendedKalmanFilter(int num_params) noexcept :
     t(dso::datetime<S>::min()),
-    x(Eigen::VectorXd(num_params)),
-    P(Eigen::MatrixXd(num_params,num_params)),
-    K(Eigen::VectorXd(num_params))
+    x(Eigen::VectorXd::Zero(num_params)),
+    P(Eigen::MatrixXd::Identity(num_params,num_params)),
+    K(Eigen::VectorXd::Zero(num_params))
     {}
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,

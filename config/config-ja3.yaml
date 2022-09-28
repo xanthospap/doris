@@ -1,14 +1,14 @@
 ---
 data:
-  doris-rinex: data/Jason-3/ja3rx22004.001
-  sp3: data/Jason-3/ssaja320.b21363.e22008.DG_.sp3.001
+  doris-rinex: data/Jason-3/ja3rx21004.001
+  sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
   beacon-information: data/beacon_information.tbl
 
 reference-frame:
-  station-coordinates: data/dpod2014_057.snx
+  station-coordinates: data/dpod2014_053.snx
 
 eop-info:
-  eop-file: data/bulb0122
+  eop-file: data/bulb0121
 
 naif-kernels:
   spk: data/jpl/de405.bsp
@@ -32,7 +32,7 @@ force-model:
 attitude:
   mass-cog: data/Jason-3/ja3mass.txt
   #body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001
-  body-quaternion: data/Jason-3/ja3qbody20220103220000_20220105020000.001
+  body-quaternion: data/Jason-3/ja3qbody20210103220000_20210105020000.001
 
 filtering:
   ## m/sec
