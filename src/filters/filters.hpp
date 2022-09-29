@@ -80,17 +80,25 @@ struct EkfFilter<Np, BeaconClockModel::None> {
         return _ekf.P();
     }
 
+    constexpr std::size_t tropo_index(int beacon_nr) const noexcept {
+      return 6 + Np + beacon_nr * 2;
+    }
+
+    constexpr std::size_t rfoff_index(int beacon_nr) const noexcept {
+      return 6 + Np + beacon_nr * 2 + 1;
+    }
+
     double tropo_estimate(int beacon_nr) const noexcept {
-        return _ekf._ekf.x(6 + Np + beacon_nr * 2);
+        return _ekf._ekf.x(tropo_index(beacon_nr));
     }
     double &tropo_estimate(int beacon_nr) noexcept {
-        return _ekf._ekf.x(6 + Np + beacon_nr * 2);
+        return _ekf._ekf.x(tropo_index(beacon_nr));
     }
     double rfoff_estimate(int beacon_nr) const noexcept {
-        return _ekf._ekf.x(6 + Np + beacon_nr * 2 + 1);
+        return _ekf._ekf.x(rfoff_index(beacon_nr));
     }
     double &rfoff_estimate(int beacon_nr) noexcept {
-        return _ekf._ekf.x(6 + Np + beacon_nr * 2 + 1);
+        return _ekf._ekf.x(rfoff_index(beacon_nr));
     }
 
     void time_update(const dso::datetime<dso::nanoseconds> &tk,
@@ -108,10 +116,10 @@ struct EkfFilter<Np, BeaconClockModel::None> {
 #ifdef DEBUG
       assert(beacon_nr >= -1 && beacon_nr < _ekf._num_stations);
 #endif
-      constexpr int start_idx = 6 + Np;
       if (beacon_nr > -1) {
-        _ekf._ekf.x(start_idx + beacon_nr*2) = val;
+        _ekf._ekf.x(tropo_index(beacon_nr)) = val;
       } else {
+        const int start_idx = tropo_index(0);
         constexpr int step = 2;
         int idx = start_idx;
         for (int i = 0; i < _ekf.num_stations(); i++) {
@@ -125,10 +133,10 @@ struct EkfFilter<Np, BeaconClockModel::None> {
 #ifdef DEBUG
       assert(beacon_nr >= -1 && beacon_nr < _ekf._num_stations);
 #endif
-      constexpr int start_idx = 6 + Np;
       if (beacon_nr > -1) {
-        _ekf._ekf.P(start_idx + beacon_nr*2, start_idx + beacon_nr*2) = val;
+        _ekf._ekf.P(tropo_index(beacon_nr), tropo_index(beacon_nr)) = val;
       } else {
+        const int start_idx = tropo_index(0);
         constexpr int step = 2;
         int idx = start_idx;
         for (int i = 0; i < _ekf.num_stations(); i++) {
@@ -142,10 +150,10 @@ struct EkfFilter<Np, BeaconClockModel::None> {
 #ifdef DEBUG
       assert(beacon_nr >= -1 && beacon_nr < _ekf._num_stations);
 #endif
-      constexpr int start_idx = 6 + Np + 1;
       if (beacon_nr > -1) {
-        _ekf._ekf.x(start_idx + beacon_nr*2) = val;
+        _ekf._ekf.x(rfoff_index(beacon_nr)) = val;
       } else {
+        const int start_idx = rfoff_index(0);
         constexpr int step = 2;
         int idx = start_idx;
         for (int i = 0; i < _ekf.num_stations(); i++) {
@@ -159,10 +167,10 @@ struct EkfFilter<Np, BeaconClockModel::None> {
 #ifdef DEBUG
       assert(beacon_nr >= -1 && beacon_nr < _ekf._num_stations);
 #endif
-      constexpr int start_idx = 6 + Np + 1;
       if (beacon_nr > -1) {
-        _ekf._ekf.P(start_idx + beacon_nr*2, start_idx + beacon_nr*2) = val;
+        _ekf._ekf.P(rfoff_index(beacon_nr), rfoff_index(beacon_nr)) = val;
       } else {
+        const int start_idx = rfoff_index(0);
         constexpr int step = 2;
         int idx = start_idx;
         for (int i = 0; i < _ekf.num_stations(); i++) {

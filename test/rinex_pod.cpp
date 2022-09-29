@@ -29,7 +29,7 @@ constexpr const long max_sec_for_new_arc = 5 * 60L;
 // emitter)
 constexpr const double DfefeN_apriori = 0e0;
 // respective default std. deviation
-constexpr const double DfefeN_apriori_stddev = 1e-2;
+constexpr const double DfefeN_apriori_stddev = 1e0;
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -785,27 +785,31 @@ int main(int argc, char *argv[]) {
                 beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
             const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
+            printf("%.3s Lt(i)=%.6f Lt(i-1)=%.6f", beaconobs->id(), beaconobs->m_values[l1i].m_value, pprev_obs->Ls1);
+            printf(" Dt=%.9f", delta_tau.to_fractional_seconds());
 
             // Ionospheric path delay in [m/sec]
             const double Dion = (iers2010::C / feN) *
                                 (cDiono - pprev_obs->Diono) /
                                 delta_tau.to_fractional_seconds();
+            printf(" Dion=%.6f", Dion);
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
-            // [[maybe_unused]] const double cWzd = Filter.x(6 + Np + receiver_count * 2 + 1);
             const double cWzd = Filter.tropo_estimate(receiver_number);
-            [[maybe_unused]] const double Dtropo = 
+            const double Dtropo = 
                 (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                 delta_tau.to_fractional_seconds();
+            printf(" Dtropo=%.6f", Dtropo);
 
             // Relativistic corrections
             const double Drel = (cDrel - pprev_obs->Drel) /
                                 delta_tau.to_fractional_seconds();
+            printf(" Drelc=%.6f", Drel);
 
             // we will need the estimated Δf_e / f_eN
-            [[maybe_unused]] const double DfefeN = Filter.rfoff_estimate(receiver_number);
-                // Filter.x(6 + Np + receiver_number * 2);
+            const double DfefeN = Filter.rfoff_estimate(receiver_number);
+            printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f\n", DfefeN, feN, frT, rho, pprev_obs->rho());
 
             // handle range-rate measurement
             // ---------------------------------------------------------
@@ -823,7 +827,7 @@ int main(int argc, char *argv[]) {
             const double oc = Uobs + Utheo;
             const double threshold =
                 (rstats.count() > 5)
-                    ? (3e0 * rstats.stddev() / std::sin(el))
+                    ? (3e1 * rstats.stddev() / std::sin(el))
                     : 1e3;
             if (std::abs(oc) < threshold) {
 
@@ -841,11 +845,13 @@ int main(int argc, char *argv[]) {
                   (1e0 / Dtau);
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
               // dz/dDf
-              dHdX(6 + receiver_number * 2) =
+              dHdX(Filter.rfoff_index(receiver_number)) =
                   -(iers2010::C / feN) * (NdopDt + frT);
               // dz/dLwet
-              dHdX(6 + receiver_number * 2 + 1) =
+              dHdX(Filter.tropo_index(receiver_number)) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
+
+              const Eigen::VectorXd apriori = Filter.estimates();
 
               // Filter measurement update
               Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
@@ -861,6 +867,15 @@ int main(int argc, char *argv[]) {
                   Filter.estimates()(5), Filter.rfoff_estimate(receiver_number),
                   Filter.tropo_estimate(receiver_number), oc,
                   tl1.as_mjd());
+
+              const Eigen::VectorXd aposteriori = Filter.estimates();
+              printf("Values changed: ");
+              for (int i=0; i<NumParams; i++) {
+                if (std::abs(apriori(i) - aposteriori(i)) > 1e-12) {
+                  printf("DX[%3d] = %.9f ", i, apriori(i) - aposteriori(i)); 
+                }
+              }
+              printf("\n");
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
