@@ -49,6 +49,7 @@ struct RunningStatistics {
     ++k;
   }
 
+  long unsigned count() const noexcept {return k-1;}
   double mean() const noexcept { return _mean; }
   double variance() const noexcept { return _var / (k - 1); }
   double stddev() const noexcept { return std::sqrt(variance()); }
@@ -821,7 +822,7 @@ int main(int argc, char *argv[]) {
 
             const double oc = Uobs + Utheo;
             const double threshold =
-                (rstats.stddev() > 0e0)
+                (rstats.count() > 5)
                     ? (3e0 * rstats.stddev() / std::sin(el))
                     : 1e3;
             if (std::abs(oc) < threshold) {
