@@ -8,6 +8,7 @@
 #include "geodesy/geoconst.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
+#include "iers2010/iers2010.hpp"
 #include "iers2010/iersc.hpp"
 #include "iers2010/tropo.hpp"
 #include "integrators.hpp"
@@ -128,6 +129,8 @@ struct SatelliteState {
   Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
   //
   dso::JasonQuaternionHunter *qhunt{nullptr};
+  // (last computed) ITRF - to - GCRF matrix
+  Eigen::Matrix<double, 3, 3> itrf2gcrf;
 
   // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
@@ -248,6 +251,9 @@ struct SatelliteState {
     for (int i = 0; i < 6; i++) {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
     }
+
+    // copy the Terrestrial to Celestial transformation matrix
+    itrf2gcrf = t2c;
 
     ++call_nr;
     return 0;
@@ -492,25 +498,9 @@ int main(int argc, char *argv[]) {
   const int NumParams = Filter.num_params();
 
   // initialize the Kalman filter
-  // for (int i = 6; i < NumParams; i += 2) {
-  //   Filter.x(i) = DfefeN_apriori; // beacon relative frequency offset
-  //   Filter.x(i + 1) = 1e-1;       // apriori tropo wet delay at zenith
-  // }
   Filter.set_rfoff_apriori(DfefeN_apriori);
-
-  // default sigma for releative frequency offset
-  //Filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
-  //for (int i = 6; i < NumParams; i += 2) {
-  //  Filter.P(i, i) = DfefeN_apriori_stddev;
-  //  Filter.P(i + 1, i + 1) = 0.5e0;
-  //}
   Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev);
-  Filter.set_tropo_apriori_sigma(.1e0 * .1e0);
-
-  // default sigma for position is 1 [m]
-  // Filter.P.block<3, 3>(0, 0) = 1e0 * Eigen::Matrix<double, 3, 3>::Identity();
-  // default sigma for velocity is .5 [m/sec]
-  // Filter.P.block<3, 3>(3, 3) = .5e0 * Eigen::Matrix<double, 3, 3>::Identity();
+  Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
 
   // Default observation sigma for a range-rate observable at zenith
   double obs_sigma;
@@ -591,6 +581,26 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    // Various variables to be used, depending only on the current epoch
+    Eigen::Matrix<double,3,1> rmoon, rsun; // [km], ITRF
+    dso::datetime<dso::nanoseconds> tt (tl1);
+    double utc_fhours;
+    {
+    tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
+    double vec[3];
+    int terror = dso::moon_vector_cspice(tt, vec);
+    rmoon = Eigen::Matrix<double,3,1>(vec); // [km] GCRF
+    terror += dso::sun_vector_cspice(tt, vec);
+    rsun = Eigen::Matrix<double,3,1>(vec); // [km] GCRF
+    assert(!terror);
+    rmoon = svState.itrf2gcrf.transpose() * rmoon; // [km] ITRF
+    rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
+    dso::modified_julian_day mjdi;
+    utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
+    // Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(), mjdf*24e0);
+    // bxyz_sta = bxyz_sta + toff;
+    }
+
     // update the Kalman filter estimates for the satellite state vector
     Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
     PhiP.block<6, 6>(0, 0) = svState.Phi;
@@ -655,8 +665,16 @@ int main(int argc, char *argv[]) {
 
         // we are going to need the beacons ECEF coordinates (note that
         // these are antenna RP coordinates)
-        const Eigen::Matrix<double, 3, 1> bxyz_sta =
+        Eigen::Matrix<double, 3, 1> bxyz_sta =
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
+        
+        // add tidal displacement (dehanttideinel)
+        {
+          Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(
+              bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(),
+              utc_fhours);
+          bxyz_sta = bxyz_sta + toff;
+        }
 
         // Iono-Free phase center, ECEF (changeme)
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
@@ -827,7 +845,7 @@ int main(int argc, char *argv[]) {
             const double oc = Uobs + Utheo;
             const double threshold =
                 (rstats.count() > 5)
-                    ? (3e1 * rstats.stddev() / std::sin(el))
+                    ? (3e5 * rstats.stddev() / std::sin(el))
                     : 1e3;
             if (std::abs(oc) < threshold) {
 
@@ -836,7 +854,7 @@ int main(int argc, char *argv[]) {
               // partials wrt [x,y,z,Vx,Vy,Vz,Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
-              dHdX.block<3, 1>(0, 0) =
+              dHdX.block<3, 1>(0, 0) = (-1e0) * 
                   /*(1e0 / Dtau) * R.transpose() *
                   ((1e0 / pprev_obs->rho()) * pprev_obs->s -
                    (1e0 / rho) * r_enu);*/
@@ -846,9 +864,9 @@ int main(int argc, char *argv[]) {
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
               // dz/dDf
               dHdX(Filter.rfoff_index(receiver_number)) =
-                  -(iers2010::C / feN) * (NdopDt + frT);
+                  (iers2010::C / feN) * (NdopDt + frT);
               // dz/dLwet
-              dHdX(Filter.tropo_index(receiver_number)) =
+              dHdX(Filter.tropo_index(receiver_number)) = (-1e0) * 
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               const Eigen::VectorXd apriori = Filter.estimates();

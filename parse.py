@@ -27,11 +27,9 @@ with open('foo', 'r') as fin:
 
         Vm = (C/fen) * (fen - frt - (l2-l1)/dt)
         Vt = (rt2 - rt1) / dt
-        x1 = foo(Vm, Vt, l2-l1, dt, fen, frt)
-        cor = ion + rel + tro
-        x2 = foo(Vm+ion+rel, Vt+tro, l2-l1, dt, fen, frt)
+        cor = ion + rel # + tro
         res1 = Vm + Vt
         res2 = Vm + Vt + cor
+        x = foo(Vm, Vt, l2-l1, dt, fen, frt)
 
-        #print('{:+9.3f}  {:+9.3f}  {:+7.3f} {:+7.3f} {:.9f} {:.9f}'.format(Vm, Vt, Vm+Vt, Vm+Vt+cor, x1, x2))
-        print('{:+9.3f}  {:+9.3f}  {:+7.3f} {:+7.3f} {:.9f} {:.9f} {:.6f} {:.6f} {:.6f}'.format(Vm, Vt, res1, res2, x1, x2, tro, ion, rel))
+        print('{:+9.3f}  {:+9.3f}  {:+7.3f} {:+7.3f}'.format(Vm, Vt, res1, res2))

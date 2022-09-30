@@ -288,9 +288,10 @@ Note that:
 \begin{equation}
   \begin{split}
     N_{DOP} & = N_e - N_r\\
-            & = f_e \Delta\tau_e - f_r \Delta\tau_r
+            & = f_e \Delta\tau_e - f_r \Delta\tau_r 
   \end{split}
 \end{equation}
+in [\SI{2}{\GHz} carrier \si{\cycles}].
 
 \subsection{Observation Equation}
 \label{ssec:observation-equation}
@@ -299,13 +300,13 @@ Following \cite{lemoine-2016}, we use the following observation equation:
   \begin{aligned}
     V_{observed} &= \frac{c}{f_{eN}} 
       \left( f_{eN} - f_{rT} - \frac{N_{DOP}}{\Delta _{\tau_r}} \right)
-      + \Delta _{V_{IONO}} + \Delta _{V_{REL_C}} \\
+      + \Delta _{V_{IONO}} + \Delta _{V_{REL_C}}\\
     V_{theoretical} &= \frac{\rho_2 - \rho_1}{\Delta _{\tau_r}} + \Delta _{V_{TROPO}} 
       - \frac{c}{f_{eN}} \left( \frac{N_{DOP}}{\Delta _{\tau_r}} + f_{rT} \right) 
       \frac{\Delta f_e}{f_{eN}}
   \end{aligned}
 \end{equation}
-where $f_{eN}$ is the ``nominal'' emitter frequency (see \ref{sec:beacon-nominal-frequencies}), 
+in [\si{\m \per \s}], where $f_{eN}$ is the ``nominal'' emitter frequency (see \ref{sec:beacon-nominal-frequencies}), 
 $f_{rT}$ is the ``true'' receiver frequency (see \ref{sec:true-nominal-frequencies}), 
 $\frac{\Delta f_e}{f_{eN}}$ is the relative emitter frequency offset  
 (via $f_{eT} = f_{eN} \left( 1 + \frac{\Delta f_e}{f_{eN}} \right)$), 
