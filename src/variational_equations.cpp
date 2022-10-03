@@ -4,6 +4,8 @@
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 
+constexpr const int Np = 1;
+
 void dso::VariationalEquations(
     double tsec, // TAI
     // state and state transition matrix (inertial RF)
@@ -48,7 +50,6 @@ void dso::VariationalEquations(
   // Warning only valid for Jason-3
   // get the quaternion
   Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
-  #ifndef NO_ATTITUDE
   Eigen::Matrix<double, 3, 3> ddragdr;
   Eigen::Matrix<double, 3, 3> ddragdv;
   Eigen::Matrix<double, 3, 1> ddragdC;
@@ -92,47 +93,49 @@ void dso::VariationalEquations(
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
     const double atmdens = aout.d[5];
-  //  Eigen::Matrix<double,3,1> drhodr;
-  //  { // approximate arithmetic derivative w.r.t satellite ECEF position
-  //    Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
-  //    double p1,m1;
-  //    // w.r.t X component
-  //    unitv << 1e0, 0e0, 0e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    p1 = aout.d[5];
-  //    unitv << -1e0, 0e0, 0e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    m1 = aout.d[5];
-  //    drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-  //    // w.r.t Y component
-  //    unitv << 0e0, 1e0, 0e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    p1 = aout.d[5];
-  //    unitv << 0e0, -1e0, 0e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    m1 = aout.d[5];
-  //    drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-  //    // w.r.t Y component
-  //    unitv << 0e0, 0e0, 1e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    p1 = aout.d[5];
-  //    unitv << 0e0, 0e0, 1e0;
-  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
-  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-  //    m1 = aout.d[5];
-  //    drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
-  //  }
+    Eigen::Matrix<double,3,1> drhodr;
+    { // approximate arithmetic derivative w.r.t satellite ECEF position
+      Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
+      double p1,m1;
+      // w.r.t X component
+      unitv << 1e0, 0e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << -1e0, 0e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      // w.r.t Y component
+      unitv << 0e0, 1e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << 0e0, -1e0, 0e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      // w.r.t Z component
+      unitv << 0e0, 0e0, 1e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      p1 = aout.d[5];
+      unitv << 0e0, 0e0, 1e0;
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+      m1 = aout.d[5];
+      drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+    }
   //  //printf("Note: Using drag coefficient=%.3f\n", params.get_drag_coefficient());
-    drag = dso::drag_accel(r, v, ProjArea, /*params.get_drag_coefficient()*/2e0,
-                           *(params.SatMass), atmdens/*, drhodr, ddragdr, ddragdv,
-                           ddragdC*/);
+    //drag = dso::drag_accel(r, v, ProjArea, /*params.get_drag_coefficient()*/2e0,
+    //                       *(params.SatMass), atmdens/*, drhodr, ddragdr, ddragdv,
+    //                       ddragdC*/);
+    drag = dso::drag_accel(r, v, ProjArea, *(params.drag_coef),
+                           *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
+                           ddragdC);
   }
-#endif
 
   // SRP
   // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
@@ -158,7 +161,8 @@ void dso::VariationalEquations(
   //         F05, F15, ..., F55
 
   // State transition (skip first column which is the state vector)
-  Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
+  // Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
+  Eigen::Matrix<double, 6, 6+Np> Phi(yPhi.data() + 6);
 
   // derivative of state transition matrix, aka
   // |   0 (3x3)     I (3x3)   |
@@ -168,12 +172,18 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 6, 6> dfdy;
   dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
   dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
-  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials;
-  dfdy.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
+  dfdy.block<3, 3>(3, 0) = gpartials + tb_partials + ddragdr;
+  dfdy.block<3, 3>(3, 3) = /*Eigen::Matrix<double, 3, 3>::Zero()*/ ddragdv;
+
+  // derivative of sensitivity matrix:
+  // | 0 (3x3) 0 (3x3) |
+  // | 0 (3x3) da/dp   |
+  Eigen::Matrix<double, 6, 6+Np> dfdS = Eigen::Matrix<double, 6, 6+Np>::Zero();
+  dfdS.block<3, 1>(3, 6) = ddragdC;
 
   // Derivative of combined state vector and state transition matrix
-  Eigen::Matrix<double, 6, 1+6> yPhip;
-  yPhip.block<6,6>(0,1) = dfdy * Phi;
+  Eigen::Matrix<double, 6, 1+6+Np> yPhip;
+  yPhip.block<6,6+Np>(0,1) = dfdy * Phi + dfdS;
   
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;

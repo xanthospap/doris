@@ -38,8 +38,7 @@ struct IntegrationParameters {
   dso::nrlmsise00::InParams<
       dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
   dso::Nrlmsise00 *nrlmsise00;
-  //Eigen::Matrix<double,3,1> ddragdC;
-  Eigen::VectorXd *estimates;
+  const double *drag_coef{nullptr};
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,

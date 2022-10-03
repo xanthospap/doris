@@ -92,10 +92,10 @@ struct EkfFilter<Np, BeaconClockModel::None> {
       return 6;
     }
 
-    double drag_coeff() const noexcept {
+    double drag_coef() const noexcept {
       return  _ekf._ekf.x(drag_coef_index());
     }
-    double &drag_coeff() noexcept {
+    double &drag_coef() noexcept {
       return  _ekf._ekf.x(drag_coef_index());
     }
     double tropo_estimate(int beacon_nr) const noexcept {
@@ -188,6 +188,13 @@ struct EkfFilter<Np, BeaconClockModel::None> {
           idx += step;
         }
       }
+    }
+
+    void set_drag_coef_apriori(double val) noexcept {
+      _ekf._ekf.x(drag_coef_index()) = val;
+    }
+    void set_drag_coef_apriori_sigma(double val) noexcept {
+      _ekf._ekf.P(drag_coef_index(), drag_coef_index()) = val;
     }
 
 };

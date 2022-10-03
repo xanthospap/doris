@@ -21,7 +21,9 @@ template <typename S> struct ExtendedKalmanFilter {
     x(Eigen::VectorXd::Zero(num_params)),
     P(Eigen::MatrixXd::Identity(num_params,num_params)),
     K(Eigen::VectorXd::Zero(num_params))
-    {}
+    {
+      printf("--> Constructing filter with num params: %d\n", num_params);
+    }
 
   ExtendedKalmanFilter(const dso::datetime<S> &t0,
                   const Eigen::VectorXd &x0,

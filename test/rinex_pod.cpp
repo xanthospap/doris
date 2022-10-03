@@ -19,7 +19,7 @@
 #include "var_utils.hpp"
 #include <cstdio>
 
-constexpr const int Np = 0;
+constexpr const int Np = 1;
 
 constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
 
@@ -31,6 +31,10 @@ constexpr const long max_sec_for_new_arc = 5 * 60L;
 constexpr const double DfefeN_apriori = 0e0;
 // respective default std. deviation
 constexpr const double DfefeN_apriori_stddev = 1e0;
+
+// a priori value for Drag Coefficient and respective sigma
+constexpr const double DragCoef = 2e0;
+constexpr const double DragCoefSigma = .75e0;
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -123,6 +127,7 @@ struct SatelliteState {
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
+  Eigen::Matrix<double, 6, Np> S;
   // Satellite's center of gravity w.r.t the satellite-fixed frame
   Eigen::Matrix<double, 3, 1> *cog_sf{nullptr};
   // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
@@ -174,7 +179,6 @@ struct SatelliteState {
     // if needed, go from antenna RP to CoM (this is not needed in the first
     // call, since we integrate starting with the sp3 state which is w.r.t.
     // the satellite's CoG)
-    #ifndef NO_ATTITUDE
     if (call_nr) {
       Eigen::Quaternion<double> q;
       if (qhunt->get_at(mjd_tai, q)) {
@@ -183,7 +187,6 @@ struct SatelliteState {
       }
       yPhi.block<3, 1>(0, 0) += eccentricity(q);
     }
-    #endif
 
     // set the state transition matrix to identity (initial condition)
     {
@@ -250,6 +253,13 @@ struct SatelliteState {
     // assign Phi matrix (6x6)
     for (int i = 0; i < 6; i++) {
       Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
+    }
+
+    // assign S matrix (6xNp)
+    if (Np){
+      for (int i=0; i<Np; i++) {
+        S.col(i) = yPhi.block<6, 1>(6 * (i + 1) + 6*6, 0);
+      }
     }
 
     // copy the Terrestrial to Celestial transformation matrix
@@ -501,6 +511,8 @@ int main(int argc, char *argv[]) {
   Filter.set_rfoff_apriori(DfefeN_apriori);
   Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev);
   Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
+  Filter.set_drag_coef_apriori(DragCoef);
+  Filter.set_drag_coef_apriori_sigma(DragCoefSigma * DragCoefSigma);
 
   // Default observation sigma for a range-rate observable at zenith
   double obs_sigma;
@@ -512,6 +524,7 @@ int main(int argc, char *argv[]) {
   // Important !!
   // set integration parameter estimates to point to the Filter
   // IntegrationParams.estimates = &Filter.x;
+  IntegrationParams.drag_coef = &(Filter._ekf._ekf.x(Filter.drag_coef_index()));
 
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
@@ -558,7 +571,7 @@ int main(int argc, char *argv[]) {
     // integrate orbit to here (TAI) TODO
     // svState will contain satellite state for time tl1 in ECEF
     // first get reference state from sp3, for an epoch as close as possible
-    if (dummy_counter>-2) {
+    if (!dummy_counter) {
       if (sp3_iterator.goto_epoch(tl1)) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
@@ -605,6 +618,10 @@ int main(int argc, char *argv[]) {
     auto estimates = Filter.estimates();
     estimates.block<6, 1>(0, 0) = svState.state;
     Filter.time_update(tl1, estimates, PhiP);
+    printf("P C_drag = %.9e\n", Filter._ekf._ekf.P(Filter.drag_coef_index(), Filter.drag_coef_index()));
+    printf("P sat X  = %.9e\n", Filter._ekf._ekf.P(0,0));
+    printf("P tropo[1] %.9e\n", Filter._ekf._ekf.P(Filter.tropo_index(1), Filter.tropo_index(1)));
+    printf("P rfoff[1] %.9e\n", Filter._ekf._ekf.P(Filter.rfoff_index(1), Filter.rfoff_index(1)));
     #ifdef FIX_ORBIT
     Filter.P().block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Identity() * 1e-12;
     #endif
@@ -849,7 +866,7 @@ int main(int argc, char *argv[]) {
 
               rstats.update(oc);
 
-              // partials wrt [x,y,z,Vx,Vy,Vz,Lwz,Dfe/feN]
+              // partials wrt [x,y,z,Vx,Vy,Vz,Np_1, Np_2, ..., Lwz,Dfe/feN]
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               dHdX.block<3, 1>(0, 0) = (-1e0) * 
@@ -860,6 +877,8 @@ int main(int argc, char *argv[]) {
                   (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                   (1e0 / Dtau);
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
+              // dz/dC_drag
+              dHdX(Filter.drag_coef_index()) = 1e0;
               // dz/dDf
               dHdX(Filter.rfoff_index(receiver_number)) =
                   (iers2010::C / feN) * (NdopDt + frT);
@@ -876,12 +895,12 @@ int main(int argc, char *argv[]) {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf(
                   "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.3f %.9f "
+                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.9f "
                   "\n",
                   dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.estimates()(0),
                   Filter.estimates()(1), Filter.estimates()(2), Filter.estimates()(3), Filter.estimates()(4),
                   Filter.estimates()(5), Filter.rfoff_estimate(receiver_number),
-                  Filter.tropo_estimate(receiver_number), oc,
+                  Filter.tropo_estimate(receiver_number), Filter.drag_coef(), oc,
                   tl1.as_mjd());
 
               const Eigen::VectorXd aposteriori = Filter.estimates();
@@ -892,6 +911,8 @@ int main(int argc, char *argv[]) {
                 }
               }
               printf("\n");
+
+              svState.state = Filter.estimates().block<6, 1>(0, 0);
 
             } else {
               dso::strftime_ymd_hmfs(tl1, dtbuf);

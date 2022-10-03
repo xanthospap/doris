@@ -17,6 +17,23 @@ $\bm{X}=
     \end{pmatrix}^T$
 with size=$6+2 \times \text{ num of beacons} = N$
 
+The filter's parameter vector will be the satellite state, plus two parameters per 
+beacon for the zenith tropospheric wet delay ($L^w_z$) and the relative frequency 
+offset ($\Delta f$), plus the $N_p$ orbit parameters (including e.g. the drag 
+coeffiecient $C_{drag}$, etc) that is:
+\begin{equation}
+\bm{X}=
+    \begin{pmatrix}
+        \begin{pmatrix} r_x & r_y & r_z & \dot{r}_x & \dot{r}_y & \dot{r}_z \end{pmatrix}^T_{6 \times 1} \\
+        \begin{pmatrix} C_{drag} & C_{SRP} \end{pmatrix}^T_{N_p \times 1} \\
+        \begin{pmatrix} L^w_z & \frac{\Delta f_e}{f_{eN}} \end{pmatrix}^T_{beacon_1} \\
+        \begin{pmatrix} L^w_z & \frac{\Delta f_e}{f_{eN}} \end{pmatrix}^T_{beacon_2} \\
+        \vdots \\
+        \begin{pmatrix} L^w_z & \frac{\Delta f_e}{f_{eN}} \end{pmatrix}^T_{beacon_m}
+    \end{pmatrix}
+  \end{equation}
+with size=$6 + N_p + 2 \times \text{ num of beacons} = N$
+
 \subsection{Initialization} \label{ssec:Initialization}
 Let's say we have a DORIS RINEX file with the first (block of) observations 
 taken at some time $t_i$ (in TAI). We search through a corresponding sp3 file, 
