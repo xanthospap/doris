@@ -87,7 +87,17 @@ struct EkfFilter<Np, BeaconClockModel::None> {
     constexpr std::size_t rfoff_index(int beacon_nr) const noexcept {
       return 6 + Np + beacon_nr * 2 + 1;
     }
+    constexpr std::size_t drag_coef_index() const noexcept {
+      static_assert(Np>=1);
+      return 6;
+    }
 
+    double drag_coeff() const noexcept {
+      return  _ekf._ekf.x(drag_coef_index());
+    }
+    double &drag_coeff() noexcept {
+      return  _ekf._ekf.x(drag_coef_index());
+    }
     double tropo_estimate(int beacon_nr) const noexcept {
         return _ekf._ekf.x(tropo_index(beacon_nr));
     }

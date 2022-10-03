@@ -597,8 +597,6 @@ int main(int argc, char *argv[]) {
     rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
     dso::modified_julian_day mjdi;
     utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
-    // Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(), mjdf*24e0);
-    // bxyz_sta = bxyz_sta + toff;
     }
 
     // update the Kalman filter estimates for the satellite state vector

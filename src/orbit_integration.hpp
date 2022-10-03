@@ -41,10 +41,6 @@ struct IntegrationParameters {
   //Eigen::Matrix<double,3,1> ddragdC;
   Eigen::VectorXd *estimates;
 
-  double get_drag_coefficient() const noexcept {
-    return estimates->operator()(6);
-  }
-
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
                         const dso::HarmonicCoeffs &harmonics_,
