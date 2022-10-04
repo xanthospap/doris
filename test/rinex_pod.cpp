@@ -860,7 +860,7 @@ int main(int argc, char *argv[]) {
             const double oc = Uobs + Utheo;
             const double threshold =
                 (rstats.count() > 5)
-                    ? (3e5 * rstats.stddev() / std::sin(el))
+                    ? (3e1 * rstats.stddev() / std::sin(el))
                     : 1e3;
             if (std::abs(oc) < threshold) {
 

@@ -34,7 +34,7 @@ struct JasonBodyQuaternionFile {
     ///        the file. Should have size at least num_records
     /// @param[in] num_records Number of records (lines) requested
     /// @return Anything other than 0, denotes an error
-    int get_next(dso::JasonBodyQuaternion *records, int num_records) noexcept;
+    int get_next(JasonBodyQuaternion *records, int num_records) noexcept;
 };
 
 /// @ref
@@ -44,12 +44,17 @@ struct JasonPanelQuaternionFile {
     JasonPanelQuaternionFile(const char *fn) noexcept : fin(fn) {}
 };
 
+/// @brief Number of JasonBodyQuaternion instances buffered in a 
+///        JasonQuaternionHunter instance
 constexpr const int NumQuaternionsInBuffer = 5;
 
 struct JasonQuaternionHunter {
   JasonBodyQuaternionFile bodyin;
   JasonBodyQuaternion bodyq[NumQuaternionsInBuffer];
 
+  /// @brief  Constructor
+  /// @param body_fn Name of the quaternion file, parsed into the instance's 
+  ///        JasonBodyQuaternionFile member variable
   JasonQuaternionHunter(const char *body_fn);
 
   /// @brief Move buffered quaternions to the left, aka left shift. This means
@@ -72,16 +77,20 @@ struct JasonQuaternionHunter {
   }
 
   int find_interval(double tai_mjd) const noexcept {
+    // start searching from the top, aka from last element
     int qindex = NumQuaternionsInBuffer - 2;
     for (int i = qindex; i >= 0; --i) {
       if (tai_mjd >= bodyq[i].tai_mjd && tai_mjd < bodyq[i + 1].tai_mjd) {
         return i;
       }
     }
+    // tai_mjd is out of bounds, prior to first record in buffer
     if (tai_mjd < bodyq[0].tai_mjd)
       return -1;
+    // tai_mjd is out of bounds, after the last record in buffer
     if (tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd)
       return NumQuaternionsInBuffer + 1;
+    // we should never reach this point
     return -100;
   }
 
