@@ -217,7 +217,49 @@ void VarEquations(double tsec, const VectorXd &yPhi,
 
 Computes the variational equations, i.e. the derivative of the state vector 
 $\bm{y} = \begin{pmatrix}\bm{r}^T & \bm{v}^T \end{pmatrix}$ and the state 
-transition matrix $\Phi$.
+transition matrix $\Phi$. In applications with strict accuracy demands, it is 
+desirable to take into account (at least) the major perturbations when computing 
+the state transition matrix $\bm{\Phi}(t,t_0)$. In this case we have to solve 
+for a system of (augmented) differential equations, called ``Variational Equations'', 
+using numerical methods.
+
+\subsection{State Transition Matrix}
+\label{ssec:ode-state-transition-matrix}
+Starting from the satellite state vector:
+\begin{equation}
+  \bm{y}(t) = \begin{pmatrix} \bm{r}(t) \\ \bm{v}(t) \end{pmatrix}
+\end{equation}
+
+we derive the first order ODE:
+\begin{equation}
+  \frac{d}{dt} \bm{y}(t) = \bm{f}(t, \bm{y}) 
+    = \begin{pmatrix} \bm{v}(t) \\ \bm{a}(t,\bm{r}, \bm{v}) \end{pmatrix}
+\end{equation}
+
+so that
+\begin{equation}
+  \frac{\partial}{\partial \bm{y}(t_0)} \frac{d}{dt} \bm{y}(t) = 
+  \frac{\partial \bm{f}(t, \bm{y}(t))}{\partial \bm{y}(t_0)} = 
+  \frac{\partial \bm{f}(t, \bm{y}(t))}{\partial \bm{y}(t)} \cdot 
+  \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+\end{equation}
+
+from which follows (remembering that $\bm{\Phi}(t,t_0) = \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}$):
+\begin{equation}
+  \frac{d}{dt} \bm{\Phi}(t,t_0) = 
+  \frac{\partial \bm{f}(t, \bm{y}(t))}{\partial \bm{y}(t)} \cdot 
+  \bm{\Phi}(t,t_0)
+\end{equation}
+
+or
+\begin{equation}
+  \frac{d}{dt} \bm{\Phi}(t,t_0) = \begin{pmatrix}
+    \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+    \frac{\partial \bm{a}(\bm{r}, \bm{v}, t)}{\partial \bm{r}(t)} & 
+    \frac{\partial \bm{a}(\bm{r}, \bm{v}, t)}{\partial \bm{v}(t)}
+  \end{pmatrix}_{6 \times 6} \cdot \bm{\Phi}(t,t_0)
+\end{equation}
+
 
 \texttt{tsec} is seconds since reference epoch $t_0$.
 
