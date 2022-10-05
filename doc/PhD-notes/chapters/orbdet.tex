@@ -207,13 +207,6 @@ the state transition matrix.
 
 \section{Variational Equations}
 \label{sec:variational-equations}
-The variational equations has the signature:
-
-\begin{lstlisting}
-void VarEquations(double tsec, const VectorXd &yPhi,
-                  VectorXd yPhiP,
-                  IntegrationParameters &params) noexcept;
-\end{lstlisting}
 
 Computes the variational equations, i.e. the derivative of the state vector 
 $\bm{y} = \begin{pmatrix}\bm{r}^T & \bm{v}^T \end{pmatrix}$ and the state 
@@ -260,20 +253,95 @@ or
   \end{pmatrix}_{6 \times 6} \cdot \bm{\Phi}(t,t_0)
 \end{equation}
 
+\subsection{Sensitivity Matrix}
+\label{ssec:ode-sensitivity-matrix}
 
+The orbit is a function of various parameters $p_i, i=1,...,N_p$ that determine 
+the different forces acting on the satellite. This dependence is described by 
+the ``sensitivity matrix'' $\bm{S}(t)$,
+\begin{equation}
+  \begin{pmatrix}
+    \frac{\partial \bm{y}(t)}{\partial \bm{p}}
+  \end{pmatrix}_{6 \times N_p}
+  = \bm{S}(t)
+\end{equation}
+
+Analogous to the differential equation for the state transition matrix, we can 
+derive an ODE system for the sensitivity matrix:
+\begin{equation}
+  \frac{d}{dt}\frac{\partial \bm{y}(t)}{\partial \bm{p}} = 
+  \frac{\partial \bm{f}(t, \bm{y}(t), \bm{p})}{\partial \bm{y}(t)} 
+  \cdot \frac{\partial \bm{y}(t)}{\partial \bm{p}} 
+  + \frac{\partial \bm{f}(t, \bm{y}(t), \bm{p})}{\partial \bm{p}} 
+\end{equation}
+
+or
+\begin{equation}
+  \frac{d}{dt} \bm{S}(t) = 
+  \begin{pmatrix}
+    \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+    \frac{\partial \bm{a}(t, \bm{r}, \bm{v}, \bm{p})}{\partial \bm{r}(t)} & 
+    \frac{\partial \bm{a}(t, \bm{r}, \bm{v}, \bm{p})}{\partial \bm{v}(t)}
+  \end{pmatrix}_{6 \times 6}
+  \cdot \bm{S}(t)
+  + \begin{pmatrix}
+    \bm{0}_{3 \times N_p} \\
+    \frac{\partial \bm{a}(t, \bm{r}, \bm{v}, \bm{p})}{\partial \bm{p}}
+  \end{pmatrix}_{6 \times N_p}
+\end{equation}
+
+with initial value conditions, $\bm{S}(t_0) = \bm{0}_{6 \times N_p}$, since 
+the state vector at $t=t_0$ does not depend on any force model parameter.
+
+\subsection{Variational Equations ODE}
+\label{ssec:ode-variational-equations}
+
+To formulate the (combined) system of \gls{ode} constituting the ``Variational Equations'', 
+we combine the differential equations for the sensitivity matrix and the state 
+transition matrix, to form:
+\begin{equation}
+  \frac{d}{dt} \begin{pmatrix} \bm{\Phi} & \bm{S} \end{pmatrix} 
+  = 
+  \begin{pmatrix} 
+    \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+    \frac{\partial \bm{a}}{\partial \bm{r}} & 
+    \frac{\partial \bm{a}}{\partial \bm{v}}
+  \end{pmatrix}_{6 \times 6} \cdot 
+  \begin{pmatrix} \bm{\Phi} & \bm{S} \end{pmatrix}
+  +
+  \begin{pmatrix} 
+    \bm{0}_{3 \times 6} & \bm{0}_{3 \times N_p} \\
+    \bm{0}_{3 \times 6} & \frac{\partial \bm{a}}{\partial \bm{p}}
+  \end{pmatrix}_{6 \times 6+N_p}
+\end{equation}
+
+
+\subsection{Implementation}
+The variational equations has the signature:
+
+\begin{lstlisting}
+void VarEquations(double tsec, const VectorXd &yPhi,
+                  VectorXd yPhiP,
+                  IntegrationParameters &params) noexcept;
+\end{lstlisting}
 \texttt{tsec} is seconds since reference epoch $t_0$.
 
-\texttt{yPhi} (6+36)-dim vector comprising the state vector $\bm{y}$ and the
-state transition matrix $\Phi$ in column wise storage order, that is:
+\texttt{yPhi} $(6+(6 \times 6) + (6 \times N_p) )$-dim vector comprising the 
+state vector $\bm{y}$, the state transition matrix $\bm{\Phi}$ and the sensitivity 
+matrix $\bm{S}(t)$, in column wise storage order, that is:
 $yPhi = \begin{pmatrix}
-    \bm{y}^T &  \Phi ^T _{col0} & \Phi ^T _{col1} & \cdots & \Phi^T _{col6}
+    \bm{y}^T &  
+    \bm{\Phi} ^T _{col0} & \bm{\Phi} ^T _{col1} & \cdots & \bm{\Phi} ^T _{col5} & 
+    \bm{S} ^T_{col0} \cdots & \bm{S} ^T_{colN_p-1}
 \end{pmatrix}$
 
-\texttt{yPhiP} (6+36)-dim vector comprising the state vector 
-$\dot{\bm{y}}$ and the state transition matrix $\dot{\Phi}$ derivatives, in 
-column wise storage order, that is:
+\texttt{yPhiP} $(6+(6 \times 6) + (6 \times N_p) )$-dim vector comprising the state vector 
+$\dot{\bm{y}}$, the state transition matrix $\dot{\Phi}$ and the sensitivity matrix 
+derivatives, in column wise storage order, that is:
 $yPhiP = \begin{pmatrix}
-    \dot{\bm{y}}^T &  \dot{\Phi} ^T _{col0} & \dot{\Phi} ^T _{col1} & \cdots & \dot{\Phi} ^T _{col6}
+    \dot{\bm{y}}^T &  
+    \dot{\bm{\Phi}} ^T _{col0} & \dot{\bm{\Phi}} ^T _{col1} & \cdots & \dot{\bm{\Phi}} ^T _{col5} & 
+    \dot{\bm{S}} ^T_{col0} \cdots & \dot{\bm{S}} ^T_{colN_p-1}
 \end{pmatrix}$
 
 \begin{enumerate}

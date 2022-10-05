@@ -188,6 +188,7 @@ struct SatelliteState {
       yPhi.block<3, 1>(0, 0) += eccentricity(q);
     }
 
+    // Initial condition for state transition matrix Φ(t0,t0) = I
     // set the state transition matrix to identity (initial condition)
     {
       int k = 6;
@@ -195,6 +196,10 @@ struct SatelliteState {
         for (int row = 0; row < 6; row++)
           yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
     }
+
+    // Initial condition for state transition matrix S(t0) = I
+    // last 6 * Np elements should be zero (already done in initialization of
+    // the matrix)
 
     // t0 for variational equations (TAI)
     integrator.params->mjd_tai = mjd_tai;
