@@ -84,6 +84,9 @@ struct IntegrationParameters {
 Eigen::Matrix<double, 3, 3>
 itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
+Eigen::Matrix<double, 6, 1>
+itrs2gcrs(const Eigen::Matrix<double, 6, 1> &y_itrs, double mjd_tai,
+          const dso::EopLookUpTable &eop_table) noexcept;
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.
