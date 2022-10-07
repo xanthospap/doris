@@ -81,13 +81,35 @@ struct IntegrationParameters {
 ///                     | 0  0 0 |
 ///            (note that the above derivation follows the Celestial-to-
 ///            Terrestrial matrix; we want its transpose).
+#ifdef ABCD
 Eigen::Matrix<double, 3, 3>
 itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
-Eigen::Matrix<double, 6, 1>
-itrs2gcrs(const Eigen::Matrix<double, 6, 1> &y_itrs, double mjd_tai,
-          const dso::EopLookUpTable &eop_table) noexcept;
+#else
+int gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
+            Eigen::Matrix<double, 3, 3> &rc2ti,
+            Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
+Eigen::Matrix<double, 3, 1>
+rcel2ter(const Eigen::Matrix<double, 3, 1> r,
+        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+
+Eigen::Matrix<double, 6, 1>
+ycel2ter(const Eigen::Matrix<double, 6, 1> y,
+        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+
+Eigen::Matrix<double, 3, 1>
+rter2cel(const Eigen::Matrix<double, 3, 1> r,
+        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+
+Eigen::Matrix<double, 6, 1>
+yter2cel(const Eigen::Matrix<double, 6, 1> y,
+        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+#endif
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.
 /// @warning Note that the function asserts that the respectice SPICE kernels

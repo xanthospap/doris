@@ -1,3 +1,4 @@
+#include "eop.hpp"
 #include "orbit_integration.hpp"
 #include "datetime/utcdates.hpp"
 #include "iers2010/iers2010.hpp"
@@ -5,7 +6,7 @@
 #include "eigen3/Eigen/Geometry"
 
 // TODO should have an error status!!!!
-
+#ifdef ABCD
 Eigen::Matrix<double, 3, 3>
 dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept {
@@ -32,6 +33,13 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // Form the celestial-to-intermediate matrix for this TT.
   auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, ttdate.as_mjd());
+  //printf("RC2I\n");
+  //for (int i=0; i<3; i++) {
+  //  for (int j=0; j<3; j++) {
+  //    printf(" %+.6f ", rc2i(i,j));
+  //  }
+  //  printf("\n");
+  //}
   
   // Predict the Earth rotation angle for this UT1.
   const double ut1 = utc + (dut1 / 86400e0) * 1e-3;
@@ -46,6 +54,13 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   
   // Combine to form the celestial-to-terrestrial matrix.
   auto mat = rpom * dso::Mat3x3::RotZ(era) * rc2i;
+  //printf("RC22\n");
+  //for (int i=0; i<3; i++) {
+  //  for (int j=0; j<3; j++) {
+  //    printf(" %+.6f ", tmp(i,j));
+  //  }
+  //  printf("\n");
+  //}
   
   // note that the following will result in an Eigen matrix that is the
   // transpose of mat (Eigen uses Column-Major and Mat3x3 Row-Major)
@@ -59,12 +74,54 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   return t2c;
 }
+#else
+Eigen::Matrix<double, 3, 1> omega_vec() noexcept {
+  const double data[] = {0e0, 0e0, iers2010::OmegaEarth};
+  return Eigen::Matrix<double, 3, 1>(data);
+}
 
-  
+Eigen::Matrix<double, 3, 1>
+dso::rcel2ter(const Eigen::Matrix<double, 3, 1> r,
+                 const Eigen::Matrix<double, 3, 3> &rc2ti,
+                 const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  return (rpom * rc2ti) * r;
+}
+
 Eigen::Matrix<double, 6, 1>
-dso::itrs2gcrs(const Eigen::Matrix<double, 6, 1> &y_itrs, double mjd_tai,
-          const dso::EopLookUpTable &eop_table) noexcept {
-  
+dso::ycel2ter(const Eigen::Matrix<double, 6, 1> y,
+              const Eigen::Matrix<double, 3, 3> &rc2ti,
+              const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  Eigen::Matrix<double, 6, 1> x;
+  x.block<3, 1>(0, 0) = dso::rcel2ter(y.block<3, 1>(0, 0), rc2ti, rpom);
+  x.block<3, 1>(3, 0) = rpom * (rc2ti * y.block<3, 1>(3, 0) -
+                                omega_vec().cross(y.block<3, 1>(0, 0)));
+  return x;
+}
+
+Eigen::Matrix<double, 3, 1>
+dso::rter2cel(const Eigen::Matrix<double, 3, 1> r,
+                 const Eigen::Matrix<double, 3, 3> &rc2ti,
+                 const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  return (rpom * rc2ti).transpose() * r;
+}
+
+Eigen::Matrix<double, 6, 1>
+dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
+              const Eigen::Matrix<double, 3, 3> &rc2ti,
+              const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  Eigen::Matrix<double, 6, 1> x;
+  x.block<3, 1>(0, 0) = dso::rter2cel(y.block<3, 1>(0, 0), rc2ti, rpom);
+  x.block<3, 1>(3, 0) =
+      rc2ti.transpose() * (rpom.transpose() * y.block<3, 1>(3, 0) +
+                          omega_vec().cross(y.block<3, 1>(0, 0)));
+  return x;
+}
+
+// IAU 2006/2000A, CIO based, using X,Y series
+int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
+                   Eigen::Matrix<double, 3, 3> &rc2ti,
+                   Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+
   // TAI MJD to datetime instance
   int imjd = (int)mjd_tai;
   double sec = (mjd_tai - (int)mjd_tai) * 86400e0;
@@ -73,60 +130,70 @@ dso::itrs2gcrs(const Eigen::Matrix<double, 6, 1> &y_itrs, double mjd_tai,
           sec * dso::nanoseconds::template sec_factor<double>());
   dso::datetime<dso::nanoseconds> taidate{dso::modified_julian_day(imjd),
                                           dso::nanoseconds(iSec)};
-  
+
   // TAI to TT
   dso::datetime<dso::nanoseconds> ttdate(taidate);
   ttdate.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
 
-  // call XY06 to get X, Y (series)
-  double X, Y;
-  iers2010::sofa::xy06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
-
-  // call S06 to get s
-  const double s = iers2010::sofa::s06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
-
-  // TODO need to correct the X, Y values (see IERS1010, 5.5.4
-  // Forced motion of the Celestial Intermediate Pole in the GCRS)
-
-  // call C2IXYS to get the GCRS-to-CIRS matrix
-  const Eigen::Matrix<double,3,3> gcrs2cirs = iers2010::sofa::c2ixys_e(X, Y, s);
-
   // Need UTC datetime
   dso::modified_julian_day utc_mjd;
   double utc = dso::tai2utc(taidate, utc_mjd);
-  utc += static_cast<double>(utc_mjd.as_underlying_type());
+  utc += static_cast<double>(utc_mjd.as_underlying_type()); // UTC as mjd
 
   // interpolate/correct EOP values using UTC
-  double xp, yp, dut1;
-  if (int error; (error=eop_table.interpolate(utc, xp, yp, dut1))) {
+  dso::EopRecord eops;
+  if (int error; (error = eop_table.interpolate(utc, eops))) {
     fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
+    return error;
   }
 
+  // X,Y coordinates of celestial intermediate pole from series based
+  // on IAU 2006 precession and IAU 2000A nutation.
+  double X, Y;
+  iers2010::sofa::xy06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
+
+  // The CIO locator s, positioning the Celestial Intermediate Origin on
+  // the equator of the Celestial Intermediate Pole, given the CIP's X,Y
+  // coordinates.  Compatible with IAU 2006/2000A precession-nutation.
+  const double s = iers2010::sofa::s06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
+
+  // Add CIP corrections
+  X += (eops.dx * iers2010::DMAS2R);
+  Y += (eops.dy * iers2010::DMAS2R);
+
+  // Form the celestial to intermediate-frame-of-date matrix given the CIP
+  // X,Y and the CIO locator s.
+  // [TRS] = RPOM * R_3(ERA) * rc2i * [CRS]  = RC2T * [CRS]
+  const Eigen::Matrix<double, 3, 3> rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
+  //printf("RC2I\n");
+  //for (int i=0; i<3; i++) {
+  //  for (int j=0; j<3; j++) {
+  //    printf(" %+.6f ", rc2i(i,j));
+  //  }
+  //  printf("\n");
+  //}
+
   // call ERA00 to get the ERA rotation angle
-  const double ut1 = utc + (dut1 / 86400e0) * 1e-3;
+  const double ut1 = utc + (eops.ut1 / 86400e0) * 1e-3;
   const double era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
 
-  // dso::Mat3x3::RotZ(era) * rc2i;
-  const Eigen::Matrix<double, 3, 3> pnr =
-      Eigen::AngleAxisd(-era, Eigen::Vector3d::UnitZ()) * gcrs2cirs;
+  // Form celestial-terrestrial matrix (no polar motion yet)
+  rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+  //printf("RC22\n");
+  //for (int i=0; i<3; i++) {
+  //  for (int j=0; j<3; j++) {
+  //    printf(" %+.6f ", rc2ti(i,j));
+  //  }
+  //  printf("\n");
+  //}
 
   // Estimate s'
   const double sp = iers2010::sofa::sp00(dso::mjd0_jd, ttdate.as_mjd());
-  
+
   // Form the polar motion matrix (W)
-  const Eigen::Matrix<double, 3, 3> rpom =
-      iers2010::sofa::pom00_e(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
+  rpom = iers2010::sofa::pom00_e(eops.xp * iers2010::DMAS2R,
+                                 eops.yp * iers2010::DMAS2R, sp);
 
-  // split state and position and velocity vectors
-  const Eigen::Matrix<double,3,1> r =  y_itrs.block<3,1>(0,0);
-  const Eigen::Matrix<double,3,1> v =  y_itrs.block<3,1>(3,0);
-  const double _od[] = {0e0, 0e0, iers2010::OmegaEarth};
-  const Eigen::Matrix<double,3,1> omega(_od);
-  
-  // 
-  Eigen::Matrix<double,6,1> y_gcrs;
-  y_gcrs.block<3,1>(0,0) = gcrs2cirs * rpom * r;
-  y_gcrs.block<3,1>(3,0) = gcrs2cirs * (rpom * v + omega.cross(r));
-
-  return y_gcrs;
+  return 0;
 }
+#endif

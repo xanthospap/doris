@@ -109,7 +109,7 @@ def c04_get_final_data(c04fn):
             ## read actual final data
             line = fin.readline()
             while line.strip() != '':
-                ## int values
+                ## int values (year, month, day_of_month, mjd)
                 int_list = [int(d) for d in line.split()[0:4]]
                 ## floating values, should be 10
                 float_list = [ float(f) for f in line.split()[4:]]

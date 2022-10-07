@@ -19,24 +19,70 @@ void dso::VariationalEquations(
   const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
 
   // terretrial to celestial for epoch
+#ifdef ABCD
   Eigen::Matrix<double, 3, 3> dt2c;
   Eigen::Matrix<double, 3, 3> t2c(dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
+#else
+  Eigen::Matrix<double, 3, 3> rc2ti, rpom;
+  assert(!gcrs2itrs(cmjd, params.eopLUT, rc2ti, rpom));
+  // const auto t2c = (rpom * rc2ti).transpose() ;
+#endif
+  //{
+  //  printf("Terrestrial to Celestail Matrix:\n");
+  //  for (int i=0; i<3; i++) {
+  //    for (int j=0; j<3; j++) {
+  //      printf(" %+.6f ", t2c(i,j));
+  //    }
+  //    printf("\n");
+  //  }
+  //}
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
 
-  // compute gravity-induced acceleration
+  // compute gravity-induced acceleration (we need the position vector in ITRF)
   Eigen::Matrix<double, 3, 3> gpartials;
+#ifdef ABCD
   Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
+#else
+  Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2ti, rpom);
+#endif
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params.degree, params.order, *(params.Lagrange_V),
       *(params.Lagrange_W), params.harmonics, gpartials);
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
+  printf(">> ITRF acc: %+.9f %+.9f %+.9f\n", gacc(0), gacc(1), gacc(2));
+#ifdef ABCD
   gacc = t2c * gacc;
   gpartials = t2c.transpose() * gpartials * t2c;
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      printf(" %+.6f ", t2c.transpose()(i,j));
+    }
+    printf("\t\t");
+    for (int j=0; j<3; j++) {
+      printf(" %+.6f ",t2c(i,j));
+    }
+    printf("\n");
+  }
+#else
+  gacc = rter2cel(gacc, rc2ti, rpom);
+  gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      printf(" %+.6f ",(rpom * rc2ti)(i,j));
+    }
+    printf("\t\t");
+    for (int j=0; j<3; j++) {
+      printf(" %+.6f ",(rpom * rc2ti).transpose()(i,j));
+    }
+    printf("\n");
+  }
+#endif
+  printf(">> GCRF acc: %+.9f %+.9f %+.9f\n", gacc(0), gacc(1), gacc(2));
 
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF

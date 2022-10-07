@@ -30,3 +30,29 @@ int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
 
   return 0;
 }
+
+int dso::EopLookUpTable::interpolate(double fmjd_utc, double &dx,
+                                     double &dy) const noexcept {
+  // quick return in case the passed in date is out of bounds ...
+  if (fmjd_utc < *mjd || fmjd_utc >= mjd[sz - 1]) {
+    fprintf(stderr,
+            "[ERROR] Requested interpolation at %.5f but EOP values span [%.5f "
+            "to %.5f] (traceback: %s)\n",
+            fmjd_utc, mjd[0], mjd[sz - 1], __func__);
+    return 1;
+  }
+
+  int status = 0;
+  int index = -1;
+  status += iers2010::interp::lagint(mjd, dxa, sz, fmjd_utc, dx, index);
+  status += iers2010::interp::lagint(mjd, dya, sz, fmjd_utc, dy, index);
+  if (status) {
+    fprintf(stderr,
+            "[ERROR] Failed EOP interpolation; requested mjd %.5f (traceback: "
+            "%s)\n",
+            fmjd_utc, __func__);
+    return 9;
+  }
+
+  return 0;
+}

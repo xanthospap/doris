@@ -5,6 +5,10 @@
 
 namespace dso {
 
+struct EopRecord {
+  double mjd, xp, yp, ut1, dx, dy;
+};
+
 //int interpolate_eop(double fmjd_utc, const double *mjd, const double *xpa,
 //                const double *ypa, const double *ut1a, int sz, double &xp,
 //                double &yp, double &dut1) noexcept;
@@ -21,15 +25,19 @@ struct EopLookUpTable {
   double *mjd{nullptr}, // [UTC]
   *xpa {nullptr},  // [mas]
   *ypa {nullptr},  // [mas]
-  *ut1a{nullptr};  // [msec]
+  *ut1a{nullptr},  // [msec]
+  *dxa{nullptr}, // [mas]
+  *dya{nullptr}; // [mas]
 
   EopLookUpTable(int sz_=10) noexcept :
     sz{sz_},
-    mem_arena(new double[sz_ * 4]),
+    mem_arena(new double[sz_ * 6]),
     mjd(mem_arena),
     xpa(mem_arena + sz_),
     ypa(mem_arena + 2*sz_),
-    ut1a(mem_arena + 3*sz_)
+    ut1a(mem_arena + 3*sz_),
+    dxa(mem_arena + 4*sz_),
+    dya(mem_arena + 5*sz_)
   {}
 
   void resize(int sz_) noexcept {
@@ -38,11 +46,13 @@ struct EopLookUpTable {
       return;
     }
     delete[] mem_arena;
-    mem_arena=new double[sz_ * 4];
+    mem_arena=new double[sz_ * 6];
     mjd =mem_arena;
     xpa =mem_arena + sz_;
     ypa =mem_arena + 2*sz_;
     ut1a=mem_arena + 3*sz_;
+    dxa=mem_arena + 4*sz_;
+    dya=mem_arena + 5*sz_;
   }
 
   ~EopLookUpTable() noexcept {
@@ -81,8 +91,14 @@ struct EopLookUpTable {
 /// @param[out] yp Computed yPole at input fmjd_utc [mas]
 /// @param[out] dut1 Computed UT1-UTC at input fmjd_utc [msec]
 /// @return Anything other than 0 is an error
-  int interpolate(double fmjd_utc, double &xp, double &yp,
+int interpolate(double fmjd_utc, double &xp, double &yp,
                   double &dut1) const noexcept;
+int interpolate(double fmjd_utc, double &dx, double &dy) const noexcept;
+int interpolate(double fmjd_utc, EopRecord &eopr) const noexcept {
+  int error = interpolate(fmjd_utc, eopr.xp, eopr.yp, eopr.ut1);
+  error += interpolate(fmjd_utc, eopr.dx, eopr.dy);
+  return error;
+}
 };// EopLookUpTable
 
 /// @brief EopFile is a (dead simple) file EOP information, just like

@@ -18,6 +18,7 @@
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
+#include <cassert>
 
 constexpr const int Np = 1;
 
@@ -134,12 +135,16 @@ struct SatelliteState {
   Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
   //
   dso::JasonQuaternionHunter *qhunt{nullptr};
+#ifdef ABCD
   // (last computed) ITRF - to - GCRF matrix
   Eigen::Matrix<double, 3, 3> itrf2gcrf;
+#endif
 
   // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
+    //printf(">> (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__,state(0), state(1), state(2), state(3), state(4), state(5));
+#ifdef ABCD
     // Terrestrial to Celestial transformation matrix and derivative for this
     // TAI
     Eigen::Matrix<double, 3, 3> dt2c;
@@ -151,7 +156,16 @@ struct SatelliteState {
     rcel.block<3, 1>(3, 0) =
         t2c * state.block<3, 1>(3, 0) + dt2c * state.block<3, 1>(0, 0);
 
+    //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
     return rcel;
+#else
+  Eigen::Matrix<double, 3, 3> rc2ti, rpom;
+  assert(!gcrs2itrs(mjd_tai, elut, rc2ti, rpom));
+  //Eigen::Matrix<double, 6, 1> rcel = dso::yter2cel(state, rc2ti, rpom);
+  //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
+  //return rcel; //dso::yter2cel(state, rc2ti, rpom);
+  return dso::yter2cel(state, rc2ti, rpom);
+#endif
   }
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
@@ -234,9 +248,14 @@ struct SatelliteState {
 
     // Terrestrial to Celestial transformation matrix and derivative for this
     // TAI
+#ifdef ABCD
     Eigen::Matrix<double, 3, 3> dt2c;
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
+#else
+  Eigen::Matrix<double, 3, 3> rc2ti, rpom;
+  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2ti, rpom));
+#endif
 
     #ifndef NO_ATTITUDE
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
@@ -250,10 +269,14 @@ struct SatelliteState {
     }
     #endif
 
+#ifdef ABCD
     // transform inertial to terrestrial
     state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
     state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                               dt2c.transpose() * sol.block<3, 1>(0, 0);
+#else
+    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2ti, rpom);
+#endif
 
     // assign Phi matrix (6x6)
     for (int i = 0; i < 6; i++) {
@@ -267,8 +290,10 @@ struct SatelliteState {
       }
     }
 
+#ifdef ABCD
     // copy the Terrestrial to Celestial transformation matrix
     itrf2gcrf = t2c;
+#endif
 
     ++call_nr;
     return 0;
@@ -611,8 +636,15 @@ int main(int argc, char *argv[]) {
     terror += dso::sun_vector_cspice(tt, vec);
     rsun = Eigen::Matrix<double,3,1>(vec); // [km] GCRF
     assert(!terror);
+#ifdef ABCD
     rmoon = svState.itrf2gcrf.transpose() * rmoon; // [km] ITRF
     rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
+#else
+    Eigen::Matrix<double, 3, 3> rc2ti, rpom;
+    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2ti, rpom));
+    rmoon = dso::rcel2ter(rmoon, rc2ti, rpom);
+    rsun = dso::rcel2ter(rsun, rc2ti, rpom);
+#endif
     dso::modified_julian_day mjdi;
     utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
     }
@@ -623,10 +655,10 @@ int main(int argc, char *argv[]) {
     auto estimates = Filter.estimates();
     estimates.block<6, 1>(0, 0) = svState.state;
     Filter.time_update(tl1, estimates, PhiP);
-    printf("P C_drag = %.9e\n", Filter._ekf._ekf.P(Filter.drag_coef_index(), Filter.drag_coef_index()));
-    printf("P sat X  = %.9e\n", Filter._ekf._ekf.P(0,0));
-    printf("P tropo[1] %.9e\n", Filter._ekf._ekf.P(Filter.tropo_index(1), Filter.tropo_index(1)));
-    printf("P rfoff[1] %.9e\n", Filter._ekf._ekf.P(Filter.rfoff_index(1), Filter.rfoff_index(1)));
+    //printf("P C_drag = %.9e\n", Filter._ekf._ekf.P(Filter.drag_coef_index(), Filter.drag_coef_index()));
+    //printf("P sat X  = %.9e\n", Filter._ekf._ekf.P(0,0));
+    //printf("P tropo[1] %.9e\n", Filter._ekf._ekf.P(Filter.tropo_index(1), Filter.tropo_index(1)));
+    //printf("P rfoff[1] %.9e\n", Filter._ekf._ekf.P(Filter.rfoff_index(1), Filter.rfoff_index(1)));
     #ifdef FIX_ORBIT
     Filter.P().block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Identity() * 1e-12;
     #endif
@@ -803,7 +835,7 @@ int main(int argc, char *argv[]) {
               Filter.tropo_estimate(receiver_count) = cDtropo.Lwz;
               // for next beacon count
               ++receiver_count;
-              printf("Note:: first observation for beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_count-1);
+              //printf("Note:: first observation for beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_count-1);
             }
 
           } else {
@@ -811,7 +843,7 @@ int main(int argc, char *argv[]) {
             
             // The number/count of the beacon in the Filter
             const int receiver_number = pprev_obs->count;
-            printf("Note:: working with beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_number);
+            //printf("Note:: working with beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_number);
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
@@ -900,7 +932,7 @@ int main(int argc, char *argv[]) {
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf(
                   "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.9f "
+                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.3f %.9f "
                   "\n",
                   dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.estimates()(0),
                   Filter.estimates()(1), Filter.estimates()(2), Filter.estimates()(3), Filter.estimates()(4),
@@ -909,13 +941,13 @@ int main(int argc, char *argv[]) {
                   tl1.as_mjd());
 
               const Eigen::VectorXd aposteriori = Filter.estimates();
-              printf("Values changed: ");
-              for (int i=0; i<NumParams; i++) {
-                if (std::abs(apriori(i) - aposteriori(i)) > 1e-12) {
-                  printf("DX[%3d] = %.9f ", i, apriori(i) - aposteriori(i)); 
-                }
-              }
-              printf("\n");
+              //printf("Values changed: ");
+              //for (int i=0; i<NumParams; i++) {
+              //  if (std::abs(apriori(i) - aposteriori(i)) > 1e-12) {
+              //    printf("DX[%3d] = %.9f ", i, apriori(i) - aposteriori(i)); 
+              //  }
+              //}
+              //printf("\n");
 
               svState.state = Filter.estimates().block<6, 1>(0, 0);
 

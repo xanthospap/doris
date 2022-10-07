@@ -32,7 +32,7 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
     return -1;
   }
 
-  // if needed, resize the EOp table
+  // if needed, resize the EOP table
   int days = end_mjd.as_underlying_type() - start_mjd.as_underlying_type();
   etable.resize(days);
 
@@ -77,7 +77,15 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
         start = end;
         etable.ut1a[sz] = std::strtod(start, &end);
         error += (start == end);
+        
+        start = end;
+        etable.dxa[sz] = std::strtod(start, &end);
+        error += (start == end);
 
+        start = end;
+        etable.dya[sz] = std::strtod(start, &end);
+        error += (start == end);
+        
         ++sz;
       } else if (cmjd >= end_mjd) {
         break;
