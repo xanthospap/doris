@@ -10,10 +10,13 @@
 ## new, merged Bulletin B/C04 file, thus containing final values for more than 
 ## one month!
 ##
+## Update 08/10/2022 - Add values for LOD
+##
 
 import os, sys, datetime
 import argparse
 import requests
+import copy
 from urllib.parse import urlparse
 
 class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
@@ -70,13 +73,73 @@ header = """#1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY
 # Angular unit is milliarcsecond (mas), time unit is millisecond (ms). 
 # Upgraded solution from March 1 2017 - consistent with ITRF 2014.
 # 
-#      DATE     MJD       x       y      UT1-UTC      dX     dY     x err    y err   UT1 err  dX err  dY err
-#   (0 h UTC)            mas     mas       ms         mas    mas     mas      mas      ms     mas     mas
+#      DATE     MJD       x        y       UT1-UTC     dX        dY       x err     y err    UT1 err   dX err    dY err   LOD             sigma           OMEGA           sigma
+#   (0 h UTC)            mas      mas        ms        mas       mas       mas       mas        ms       mas       mas      ms            ms              mas/ms          mas/ms
 """
 
 ## Given a Bulletin B/C04 file, open it and extract the EOP data for the 
-## (final data block)
-def c04_get_final_data(c04fn):
+## final data block, from subsection 3: 
+## 3 - EARTH ANGULAR VELOCITY : DAILY FINAL VALUES OF LOD, OMEGA AT 0hUTC
+def c04_get_final_data_03(c04fn):
+    final_data = []
+    error = 0
+    
+    with open(c04fn, 'r') as fin:
+        line = fin.readline()
+
+        lines_to_match = [
+          '3 - EARTH ANGULAR VELOCITY : DAILY FINAL VALUES OF LOD, OMEGA AT 0hUTC',
+          'LOD : Excess of the Length of day - 86400 s TAI',
+          'OMEGA : Earth angular velocity',
+          'DATE MJD LOD sigma OMEGA sigma'
+          # '(0 h UTC) ms ms mas/ms mas/ms'
+        ]
+        
+        lines_matched = 0;
+        while not line.strip().lower().startswith('(0 h utc)              ms       ms        mas/ms          mas/ms'):
+            if not line:
+                error = 1
+                break
+            if ' '.join(line.strip().split()) in lines_to_match:
+              lines_matched += 1
+            line = fin.readline()
+        
+        if lines_matched != len(lines_to_match) or error:
+          errmsg = 'Failed to extract data block 3 from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
+          raise RuntimeError(errmsg)
+        
+        line = fin.readline() # empty ...
+        assert(line.strip() == '')
+
+        keys = ["year", "month", "day", "mjd", "lod", "lod_sigma", "omega", "omega_sigma"]
+        if not error:
+            ## read actual final data
+            line = fin.readline()
+            while line.strip() != '':
+                d = {}
+                ## int values (year, month, day_of_month, mjd)
+                int_list = [int(d) for d in line.split()[0:4]]
+                ## floating values, should be 4
+                float_list = [ float(f) for f in line.split()[4:]]
+                assert(len(float_list) == 4)
+                ## make dictionary
+                for k,v in zip(keys, int_list+float_list): d[k]=v
+                ## append collected data
+                final_data.append(d)
+                ## next line
+                line = fin.readline()
+ 
+    if not error:
+        return final_data
+    else:
+        errmsg = 'Failed to extract data block 3 from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
+        raise RuntimeError(errmsg)
+
+
+## Given a Bulletin B/C04 file, open it and extract the EOP data for the 
+## final data block, from subsection 1: 
+## "1 - DAILY FINAL VALUES OF x, y, UT1-UTC, dX, dY"
+def c04_get_final_data_01(c04fn):
     final_data = []
     error = 0
     
@@ -99,37 +162,62 @@ def c04_get_final_data(c04fn):
             line = fin.readline()
         
         if lines_matched != len(lines_to_match) or error:
-          errmsg = 'Failed to extract data from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
+          errmsg = 'Failed to extract data block 1 from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
           raise RuntimeError(errmsg)
         
         line = fin.readline() # empty ...
         assert(line.strip() == '')
 
+        keys = ["year", "month", "day", "mjd", "x", "y", "ut1-utc", "dX", "dY", "x_sigma", "y_sigma", "ut1-utc_sigma", "dX_sigma", "dY_sigma"]
         if not error:
             ## read actual final data
             line = fin.readline()
             while line.strip() != '':
+                d = {}
                 ## int values (year, month, day_of_month, mjd)
                 int_list = [int(d) for d in line.split()[0:4]]
                 ## floating values, should be 10
                 float_list = [ float(f) for f in line.split()[4:]]
                 assert(len(float_list) == 10)
+                ## make dictionary
+                for k,v in zip(keys, int_list+float_list): d[k]=v
                 ## append collected data
-                final_data.append(int_list + float_list)
+                final_data.append(d)
                 ## next line
                 line = fin.readline()
  
     if not error:
         return final_data
     else:
-        errmsg = 'Failed to extract data from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
+        errmsg = 'Failed to extract data block 1 from Bulletin B/C04 file {:} (error #{:})'.format(c04fn, error)
         raise RuntimeError(errmsg)
+
+def get_dlist_record_for(mjd, dlist):
+  for d in dlist:
+    if d['mjd'] == mjd: return copy.deepcopy(d)
+  return None
+
+def c04_get_final_data(c04fn):
+  eop_data = []
+  ## first collect block 1 data
+  block1_eop = c04_get_final_data_01(c04fn)
+  ## collect block 3 data
+  block3_eop = c04_get_final_data_03(c04fn)
+  ## merge based on datetime (mjd)
+  for d1 in block1_eop:
+    d3 = get_dlist_record_for(d1['mjd'], block3_eop)
+    ## drop duplicate records from d3 (e.g. year, month, etc ...)
+    for k in d1.keys(): d3.pop(k, None)
+    ## append key/value pair and add to result list
+    for k, v in d3.items(): d1[k] = v
+    eop_data.append(d1)
+  return eop_data
 
 ## Given a Bulletin B/C04 file, open it and extract the time interval 
 ## (start/stop datetimes) of the final data block.
 def c04_date_span(c04fn):
   ## get the datetimes of the final data in the given file
-  dates = [ datetime.datetime.strptime('{:}-{:02d}-{:02d}'.format(d[0],d[1],d[2]), '%Y-%m-%d') for d in c04_get_final_data(c04fn) ]
+  dates = [ datetime.datetime.strptime('{:}-{:02d}-{:02d}'.format(d['year'],d['month'],d['day']), '%Y-%m-%d') for d in c04_get_final_data(c04fn) ]
   ## assert they are sorted
   assert(sorted(dates) == dates)
   ## return first and last
@@ -152,17 +240,35 @@ def c04_dict_to_sorted_list(c04_dict):
             if len(lst) == 1: ct = vals['t0']
     return lst
 
-## write out a list of IERS Bulletin B/C04 final data, in the order they are 
-## passed in
+## write out a list (of dicts) of IERS Bulletin B/C04 final data
 def c04_cat(outfn, *c04fns):
-  with open(outfn, 'w') as fout:
-    print(header, end='', file=fout)
-    for cfn in c04fns:
-      fdata = c04_get_final_data(cfn)
-      for line in fdata:
-        wlst = [ '{:4d}{:>4d}{:>4d}{:>8d}'.format(line[0], line[1], line[2], line[3]) ]
-        flst = [ '{:8.3f}{:9.3f}{:10.4f}{:9.3f}{:7.3f}{:9.3f}{:9.3f}{:10.4f}{:7.3f}{:7.3f}'.format(*line[4:])]
-        print(*(wlst + flst), file=fout)
+  #with open(outfn, 'w') as fout:
+  fout = open(outfn, 'w') if outfn else sys.stdout
+
+  print(header, end='', file=fout)
+  for i,cfn in enumerate(c04fns):
+    fdata = c04_get_final_data(cfn)
+    for j,line in enumerate(fdata):
+      wlst = [ '{:4d}{:>4d}{:>4d}{:>8d}'.format(line['year'], line['month'], line['day'], line['mjd']) ]
+      print(*(wlst), end='', file=fout)
+      
+      keys = ["x", "y", "ut1-utc", "dX", "dY", "x_sigma", "y_sigma", "ut1-utc_sigma", "dX_sigma", "dY_sigma"]
+      for k in keys:
+        print('{:+10.4f}'.format(line[k]), end='', file=fout)
+      print(' ', end='', file=fout)
+      
+      keys = ["lod", "lod_sigma", "omega", "omega_sigma"]
+      for k in keys:
+        print('{:+15.12f} '.format(line[k]), end='', file=fout)
+      
+      if i==len(c04fns)-1 and j==len(fdata)-1:
+        pass
+      else:
+        print('', file=fout) ## aka newline 
+      # flst = [ '{:8.3f}{:9.3f}{:10.4f}{:9.3f}{:7.3f}{:9.3f}{:9.3f}{:10.4f}{:7.3f}{:7.3f}'.format(*line[4:])]
+
+  if fout is not sys.stdout:
+    fout.close()
 
 def merge_c04_files(outfn, c04_dict):
   c04_list = c04_dict_to_sorted_list(c04_dict)
@@ -233,7 +339,7 @@ if __name__ == '__main__':
         dummy_it += 1
 
     ## what file are we writing in?
-    outfile = 'bulletinb.merged' if not args.save_as else args.save_as
+    outfile = None if not args.save_as else args.save_as
 
     ## merge files to one
     merge_c04_files(outfile, files_to_merge)
