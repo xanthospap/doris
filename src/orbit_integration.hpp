@@ -87,27 +87,32 @@ itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
 #else
 int gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
-            Eigen::Matrix<double, 3, 3> &rc2ti,
+            Eigen::Matrix<double, 3, 3> &rc2i,
+            double &era,
             Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 3, 1>
 rcel2ter(const Eigen::Matrix<double, 3, 1> r,
-        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rc2i,
+        const double era,
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 6, 1>
 ycel2ter(const Eigen::Matrix<double, 6, 1> y,
-        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rc2i,
+        const double era,
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 3, 1>
 rter2cel(const Eigen::Matrix<double, 3, 1> r,
-        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rc2i,
+        const double era,
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 6, 1>
 yter2cel(const Eigen::Matrix<double, 6, 1> y,
-        const Eigen::Matrix<double, 3, 3> &rc2ti,
+        const Eigen::Matrix<double, 3, 3> &rc2i,
+        const double era,
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 #endif
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an

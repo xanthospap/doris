@@ -159,12 +159,13 @@ struct SatelliteState {
     //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
     return rcel;
 #else
-  Eigen::Matrix<double, 3, 3> rc2ti, rpom;
-  assert(!gcrs2itrs(mjd_tai, elut, rc2ti, rpom));
+  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+  double era;
+  assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom));
   //Eigen::Matrix<double, 6, 1> rcel = dso::yter2cel(state, rc2ti, rpom);
   //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
   //return rcel; //dso::yter2cel(state, rc2ti, rpom);
-  return dso::yter2cel(state, rc2ti, rpom);
+  return dso::yter2cel(state, rc2i, era, rpom);
 #endif
   }
 
@@ -253,8 +254,9 @@ struct SatelliteState {
     Eigen::Matrix<double, 3, 3> t2c =
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
 #else
-  Eigen::Matrix<double, 3, 3> rc2ti, rpom;
-  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2ti, rpom));
+  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+  double era;
+  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom));
 #endif
 
     #ifndef NO_ATTITUDE
@@ -275,7 +277,7 @@ struct SatelliteState {
     state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                               dt2c.transpose() * sol.block<3, 1>(0, 0);
 #else
-    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2ti, rpom);
+    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, rpom);
 #endif
 
     // assign Phi matrix (6x6)
@@ -640,10 +642,11 @@ int main(int argc, char *argv[]) {
     rmoon = svState.itrf2gcrf.transpose() * rmoon; // [km] ITRF
     rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
 #else
-    Eigen::Matrix<double, 3, 3> rc2ti, rpom;
-    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2ti, rpom));
-    rmoon = dso::rcel2ter(rmoon, rc2ti, rpom);
-    rsun = dso::rcel2ter(rsun, rc2ti, rpom);
+    Eigen::Matrix<double, 3, 3> rc2i, rpom;
+    double era;
+    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom));
+    rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
+    rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
 #endif
     dso::modified_julian_day mjdi;
     utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
@@ -1002,7 +1005,7 @@ int main(int argc, char *argv[]) {
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
         dso::cast_to<dso::seconds, dso::nanoseconds>(
-            dso::seconds(6 * 60 * 60)))
+            dso::seconds(12 * 60 * 60)))
       break;
 
   } // for every new data block in the RINEX file

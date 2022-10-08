@@ -4,6 +4,7 @@
 #include "iers2010/iers2010.hpp"
 #include "iers2010/iau.hpp"
 #include "eigen3/Eigen/Geometry"
+#include <iers2010/iersc.hpp>
 
 // TODO should have an error status!!!!
 #ifdef ABCD
@@ -79,47 +80,70 @@ Eigen::Matrix<double, 3, 1> omega_vec() noexcept {
   const double data[] = {0e0, 0e0, iers2010::OmegaEarth};
   return Eigen::Matrix<double, 3, 1>(data);
 }
+Eigen::Matrix<double, 3, 3> omega_mat() noexcept {
+  const double data[] = {0e0, -1e0, 0e0, 1e0, 0e0, 0e0, 0e0, 0e0, 0e0};
+  return Eigen::Matrix<double, 3, 3>(data) * iers2010::OmegaEarth;
+}
 
 Eigen::Matrix<double, 3, 1>
 dso::rcel2ter(const Eigen::Matrix<double, 3, 1> r,
-                 const Eigen::Matrix<double, 3, 3> &rc2ti,
+                 const Eigen::Matrix<double, 3, 3> &rc2i,
+            const double era,
                  const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
   return (rpom * rc2ti) * r;
 }
 
 Eigen::Matrix<double, 6, 1>
 dso::ycel2ter(const Eigen::Matrix<double, 6, 1> y,
-              const Eigen::Matrix<double, 3, 3> &rc2ti,
+              const Eigen::Matrix<double, 3, 3> &rc2i,
+              const double era,
               const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
   Eigen::Matrix<double, 6, 1> x;
-  x.block<3, 1>(0, 0) = dso::rcel2ter(y.block<3, 1>(0, 0), rc2ti, rpom);
-  x.block<3, 1>(3, 0) = rpom * (rc2ti * y.block<3, 1>(3, 0) -
-                                omega_vec().cross(y.block<3, 1>(0, 0)));
+  x.block<3, 1>(0, 0) = dso::rcel2ter(y.block<3, 1>(0, 0), rc2i, era, rpom);
+  x.block<3, 1>(3, 0) = dso::rcel2ter(y.block<3, 1>(3, 0), rc2i, era, rpom);
+
+  const double data[] = {0e0, -1e0, 0e0, 1e0, 0e0, 0e0, 0e0, 0e0, 0e0};
+  //return Eigen::Matrix<double, 3, 3>(data);// * iers2010::OmegaEarth;
+
+  const auto rc2ti = (iers2010::OmegaEarth * Eigen::Matrix<double, 3, 3>(data) *
+                      Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ())) *
+                     rc2i;
+  x.block<3, 1>(3, 0) += (rpom * rc2ti) * y.block<3, 1>(0, 0);
   return x;
 }
 
 Eigen::Matrix<double, 3, 1>
 dso::rter2cel(const Eigen::Matrix<double, 3, 1> r,
-                 const Eigen::Matrix<double, 3, 3> &rc2ti,
+                 const Eigen::Matrix<double, 3, 3> &rc2i,
+                 const double era,
                  const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+  const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
   return (rpom * rc2ti).transpose() * r;
 }
 
 Eigen::Matrix<double, 6, 1>
 dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
-              const Eigen::Matrix<double, 3, 3> &rc2ti,
+              const Eigen::Matrix<double, 3, 3> &rc2i,
+              const double era,
               const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
   Eigen::Matrix<double, 6, 1> x;
-  x.block<3, 1>(0, 0) = dso::rter2cel(y.block<3, 1>(0, 0), rc2ti, rpom);
-  x.block<3, 1>(3, 0) =
-      rc2ti.transpose() * (rpom.transpose() * y.block<3, 1>(3, 0) +
-                          omega_vec().cross(y.block<3, 1>(0, 0)));
+  x.block<3, 1>(0, 0) = dso::rter2cel(y.block<3, 1>(0, 0), rc2i, era, rpom);
+  x.block<3, 1>(3, 0) = dso::rter2cel(y.block<3, 1>(3, 0), rc2i, era, rpom);
+
+  const double data[] = {0e0, -1e0, 0e0, 1e0, 0e0, 0e0, 0e0, 0e0, 0e0};
+
+  const auto rc2ti = (iers2010::OmegaEarth * Eigen::Matrix<double, 3, 3>(data) *
+                      Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ())) *
+                     rc2i;
+  x.block<3, 1>(3, 0) += (rpom * rc2ti).transpose() * y.block<3, 1>(0, 0);
   return x;
 }
 
 // IAU 2006/2000A, CIO based, using X,Y series
 int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
-                   Eigen::Matrix<double, 3, 3> &rc2ti,
+                   Eigen::Matrix<double, 3, 3> &rc2i,
+                   double &era,
                    Eigen::Matrix<double, 3, 3> &rpom) noexcept {
 
   // TAI MJD to datetime instance
@@ -164,7 +188,8 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   // Form the celestial to intermediate-frame-of-date matrix given the CIP
   // X,Y and the CIO locator s.
   // [TRS] = RPOM * R_3(ERA) * rc2i * [CRS]  = RC2T * [CRS]
-  const Eigen::Matrix<double, 3, 3> rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
+  /*const Eigen::Matrix<double, 3, 3>*/ 
+  rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
   //printf("RC2I\n");
   //for (int i=0; i<3; i++) {
   //  for (int j=0; j<3; j++) {
@@ -175,10 +200,10 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // call ERA00 to get the ERA rotation angle
   const double ut1 = utc + (eops.ut1 / 86400e0) * 1e-3;
-  const double era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
+  /*const double*/ era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
 
   // Form celestial-terrestrial matrix (no polar motion yet)
-  rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+  //rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
   //printf("RC22\n");
   //for (int i=0; i<3; i++) {
   //  for (int j=0; j<3; j++) {
