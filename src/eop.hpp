@@ -6,7 +6,7 @@
 namespace dso {
 
 struct EopRecord {
-  double mjd, xp, yp, ut1, dx, dy;
+  double mjd, xp, yp, ut1, dx, dy, lod, omega;
 };
 
 //int interpolate_eop(double fmjd_utc, const double *mjd, const double *xpa,
@@ -22,22 +22,26 @@ struct EopLookUpTable {
   int sz{0};
   double *mem_arena{nullptr};
   ///< arrays of EOP values extracted from C04
-  double *mjd{nullptr}, // [UTC]
-  *xpa {nullptr},  // [mas]
-  *ypa {nullptr},  // [mas]
-  *ut1a{nullptr},  // [msec]
-  *dxa{nullptr}, // [mas]
-  *dya{nullptr}; // [mas]
+  double *mjd{nullptr}, // [UTC], start index = 0
+  *xpa {nullptr},   // [mas], start index = 1
+  *ypa {nullptr},   // [mas], start index = 2
+  *ut1a{nullptr},   // [msec], start index = 3
+  *dxa{nullptr},    // [mas], start index = 4
+  *dya{nullptr},    // [mas], start index = 5
+  *loda{nullptr},   // [msec], start index = 6
+  *omegaa{nullptr}; // [mas/ms], start index = 7
 
   EopLookUpTable(int sz_=10) noexcept :
     sz{sz_},
-    mem_arena(new double[sz_ * 6]),
+    mem_arena(new double[sz_ * 8]),
     mjd(mem_arena),
     xpa(mem_arena + sz_),
     ypa(mem_arena + 2*sz_),
     ut1a(mem_arena + 3*sz_),
     dxa(mem_arena + 4*sz_),
-    dya(mem_arena + 5*sz_)
+    dya(mem_arena + 5*sz_),
+    loda(mem_arena + 6*sz_),
+    omegaa(mem_arena + 7*sz_)
   {}
 
   void resize(int sz_) noexcept {
@@ -46,19 +50,23 @@ struct EopLookUpTable {
       return;
     }
     delete[] mem_arena;
-    mem_arena=new double[sz_ * 6];
+    mem_arena=new double[sz_ * 8];
     mjd =mem_arena;
     xpa =mem_arena + sz_;
     ypa =mem_arena + 2*sz_;
     ut1a=mem_arena + 3*sz_;
     dxa=mem_arena + 4*sz_;
     dya=mem_arena + 5*sz_;
+    loda=mem_arena + 6*sz_;
+    omegaa=mem_arena + 7*sz_;
   }
 
   ~EopLookUpTable() noexcept {
     if (mem_arena) delete[] mem_arena;
     sz = 0;
   }
+
+  void regularize() noexcept;
 
 /// @brief Interpolate and correct to get the xPole, Ypole and DUT1 values at 
 ///   a given date
@@ -92,13 +100,16 @@ struct EopLookUpTable {
 /// @param[out] dut1 Computed UT1-UTC at input fmjd_utc [msec]
 /// @return Anything other than 0 is an error
 int interpolate(double fmjd_utc, double &xp, double &yp,
-                  double &dut1) const noexcept;
+                  double &dut1, double &corlod) const noexcept;
+
 int interpolate(double fmjd_utc, double &dx, double &dy) const noexcept;
+
 int interpolate(double fmjd_utc, EopRecord &eopr) const noexcept {
-  int error = interpolate(fmjd_utc, eopr.xp, eopr.yp, eopr.ut1);
+  int error = interpolate(fmjd_utc, eopr.xp, eopr.yp, eopr.ut1, eopr.lod);
   error += interpolate(fmjd_utc, eopr.dx, eopr.dy);
   return error;
 }
+int interpolate2(double fmjd_utc, EopRecord &eopr) const noexcept;
 };// EopLookUpTable
 
 /// @brief EopFile is a (dead simple) file EOP information, just like

@@ -85,6 +85,25 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
         start = end;
         etable.dya[sz] = std::strtod(start, &end);
         error += (start == end);
+
+        // next 5 columns are the respective sigma values
+        for (int i=0; i<5; i++) {
+          start = end;
+          [[maybe_unused]] const double sigma = std::strtod(start, &end);
+          error += (start == end);
+        }
+
+        start = end;
+        etable.loda[sz] = std::strtod(start, &end);
+        error += (start == end);
+        
+        start = end;
+        [[maybe_unused]] const double sigma = std::strtod(start, &end);
+        error += (start == end);
+        
+        start = end;
+        etable.omegaa[sz] = std::strtod(start, &end);
+        error += (start == end);
         
         ++sz;
       } else if (cmjd >= end_mjd) {
@@ -97,6 +116,8 @@ int dso::EopFile::parse(dso::modified_julian_day start_mjd,
                 "(traceback: %s)\n",
                 line, filename, __func__);
         return -1;
+      } else {
+        printf(">> Line resolved, nr %d/%d\n", sz, days);
       }
     }
   }

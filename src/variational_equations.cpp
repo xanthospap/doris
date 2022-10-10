@@ -24,8 +24,8 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> t2c(dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
 #else
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era;
-  assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom));
+  double era,xlod;
+  assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
   // const auto t2c = (rpom * rc2ti).transpose() ;
 #endif
   //{

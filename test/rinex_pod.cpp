@@ -160,12 +160,12 @@ struct SatelliteState {
     return rcel;
 #else
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era;
-  assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom));
+  double era, lod;
+  assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom, lod));
   //Eigen::Matrix<double, 6, 1> rcel = dso::yter2cel(state, rc2ti, rpom);
   //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
   //return rcel; //dso::yter2cel(state, rc2ti, rpom);
-  return dso::yter2cel(state, rc2i, era, rpom);
+  return dso::yter2cel(state, rc2i, era, lod, rpom);
 #endif
   }
 
@@ -255,8 +255,8 @@ struct SatelliteState {
         dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
 #else
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era;
-  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom));
+  double era, lod;
+  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
 #endif
 
     #ifndef NO_ATTITUDE
@@ -277,7 +277,7 @@ struct SatelliteState {
     state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
                               dt2c.transpose() * sol.block<3, 1>(0, 0);
 #else
-    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, rpom);
+    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, lod, rpom);
 #endif
 
     // assign Phi matrix (6x6)
@@ -396,6 +396,9 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
+#ifdef NEW_EOP
+    eop_lut.regularize();
+#endif
   }
 
   // Gravity
@@ -643,8 +646,8 @@ int main(int argc, char *argv[]) {
     rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
 #else
     Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    double era;
-    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom));
+    double era,lod;
+    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
     rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
     rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
 #endif

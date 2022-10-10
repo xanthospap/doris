@@ -89,7 +89,12 @@ itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 int gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
             Eigen::Matrix<double, 3, 3> &rc2i,
             double &era,
+#ifdef NEW_EOP
+            Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
+#else
             Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+#endif
+
 
 Eigen::Matrix<double, 3, 1>
 rcel2ter(const Eigen::Matrix<double, 3, 1> r,
@@ -101,6 +106,9 @@ Eigen::Matrix<double, 6, 1>
 ycel2ter(const Eigen::Matrix<double, 6, 1> y,
         const Eigen::Matrix<double, 3, 3> &rc2i,
         const double era,
+#ifdef NEW_EOP
+              double xlod,
+#endif
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 3, 1>
@@ -113,6 +121,9 @@ Eigen::Matrix<double, 6, 1>
 yter2cel(const Eigen::Matrix<double, 6, 1> y,
         const Eigen::Matrix<double, 3, 3> &rc2i,
         const double era,
+#ifdef NEW_EOP
+              double xlod,
+#endif
         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 #endif
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
