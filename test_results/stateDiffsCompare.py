@@ -1,7 +1,6 @@
 #! /usr/bin/python
 
 import datetime
-from re import A
 import sys
 import math
 import numpy as np

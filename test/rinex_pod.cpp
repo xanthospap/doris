@@ -66,6 +66,9 @@ struct TropoDetails {
   double Lwz, mfw;
   double sum() const noexcept { return Lhz * mfh + Lwz * mfw; }
   double sum(double Lwz_) const noexcept { return Lhz * mfh + Lwz_ * mfw; }
+  void dump(double Lwz_) const noexcept {
+    printf("##TRP Tropo details: %.6f * %.6f + (%.6f or %.6f) * %.6f\n", Lhz, mfh, Lwz, Lwz_, mfw);
+  }
 };
 
 struct SatBeacon {
@@ -538,13 +541,25 @@ int main(int argc, char *argv[]) {
   //    + rnx.stations().size()  ///< beacon relative frequency offset
   //    + rnx.stations().size(); ///< wet tropo path dealy (zenith)
   // dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
+#ifdef RANDOM_RFO
   dso::EkfFilter<Np, dso::BeaconClockModel::None> Filter(rnx.stations().size(),
                                                     rnx.time_of_first_obs());
+#else
+  printf("Note: We are estimating linear relative frequency offsets!\n");
+  dso::EkfFilter<Np, dso::BeaconClockModel::Linear> Filter(rnx.stations().size(),
+                                                    rnx.time_of_first_obs());
+#endif
   const int NumParams = Filter.num_params();
 
   // initialize the Kalman filter
+#ifdef RANDOM_RFO
   Filter.set_rfoff_apriori(DfefeN_apriori);
   Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev);
+#else
+  Filter.set_rfoff_apriori(DfefeN_apriori, 0e0);
+  Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev,
+                                 DfefeN_apriori_stddev * DfefeN_apriori_stddev);
+#endif
   Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
   Filter.set_drag_coef_apriori(DragCoef);
   Filter.set_drag_coef_apriori_sigma(DragCoefSigma * DragCoefSigma);
@@ -738,11 +753,11 @@ int main(int argc, char *argv[]) {
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
             beacon_arp2ion(bxyz_sta, *beacon_it);
 
-            // get azimouth [rad], elevation [rad] and geometric distance [m]
-            // (beacon to satellite)
-            const Eigen::Matrix<double, 3, 1>
-                r_enu = dso::car2top<dso::ellipsoid::grs80>(
-                    bxyz_ion, svState.state.block<3, 1>(0, 0));
+        // get azimouth [rad], elevation [rad] and geometric distance [m]
+        // (beacon to satellite)
+        const Eigen::Matrix<double, 3, 1> r_enu =
+            dso::car2top<dso::ellipsoid::grs80>(
+                bxyz_ion, svState.state.block<3, 1>(0, 0));
         double az, el;
         double rho = dso::top2dae(r_enu, az, el);
 
@@ -884,8 +899,13 @@ int main(int argc, char *argv[]) {
             printf(" Drelc=%.6f", Drel);
 
             // we will need the estimated Δf_e / f_eN
+#ifdef RANDOM_RFO
             const double DfefeN = Filter.rfoff_estimate(receiver_number);
-            printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f\n", DfefeN, feN, frT, rho, pprev_obs->rho());
+#else
+            const double DfefeN = Filter.rfoff_estimate(receiver_number, tl1);
+#endif
+            printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f [%.6f %.6f %.6f]\n",
+                   DfefeN, feN, frT, rho, pprev_obs->rho(), bxyz_ion(0), bxyz_ion(1), bxyz_ion(2));
 
             // handle range-rate measurement
             // ---------------------------------------------------------
@@ -913,20 +933,27 @@ int main(int argc, char *argv[]) {
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               dHdX.block<3, 1>(0, 0) = (-1e0) * 
-                  /*(1e0 / Dtau) * R.transpose() *
-                  ((1e0 / pprev_obs->rho()) * pprev_obs->s -
-                   (1e0 / rho) * r_enu);*/
                   R.transpose() *
                   (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                   (1e0 / Dtau);
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
               // dz/dC_drag
               dHdX(Filter.drag_coef_index()) = 1e0;
+#ifdef RANDOM_RFO
               // dz/dDf
               dHdX(Filter.rfoff_index(receiver_number)) =
                   (iers2010::C / feN) * (NdopDt + frT);
+#else
+              const int _idx = Filter.rfoff_index(receiver_number);
+              // dz/dDf -- a term
+              dHdX(_idx) =
+                  (iers2010::C / feN) * (NdopDt + frT);
+              // dz/dDf -- a term
+              dHdX(_idx+ 1) = Filter.deltat(tl1) *
+                  (iers2010::C / feN) * (NdopDt + frT);
+#endif
               // dz/dLwet
-              dHdX(Filter.tropo_index(receiver_number)) = (-1e0) * 
+              dHdX(Filter.tropo_index(receiver_number)) = /*(-1e0) * */
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               const Eigen::VectorXd apriori = Filter.estimates();
@@ -936,15 +963,29 @@ int main(int argc, char *argv[]) {
                                        dHdX);
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
-              printf(
-                  "%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                  "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.3f %.9f "
-                  "\n",
-                  dtbuf, beacon_it->m_station_id, pprev_obs->arcnr, Filter.estimates()(0),
-                  Filter.estimates()(1), Filter.estimates()(2), Filter.estimates()(3), Filter.estimates()(4),
-                  Filter.estimates()(5), Filter.rfoff_estimate(receiver_number),
-                  Filter.tropo_estimate(receiver_number), Filter.drag_coef(), oc,
-                  tl1.as_mjd());
+              printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
+                     "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.9f "
+                     "\n",
+                     dtbuf, beacon_it->m_station_id, pprev_obs->arcnr,
+                     Filter.estimates()(0), Filter.estimates()(1),
+                     Filter.estimates()(2), Filter.estimates()(3),
+                     Filter.estimates()(4), Filter.estimates()(5),
+#ifdef RANDOM_RFO
+                     Filter.rfoff_estimate(receiver_number),
+#else
+                     Filter.rfoff_estimate(receiver_number, tl1),
+#endif
+                     Filter.tropo_estimate(receiver_number), Filter.drag_coef(),
+                     oc, tl1.as_mjd());
+
+              printf("%.4s",beacon_it->m_station_id);
+              cDtropo.dump(cWzd);
+              pprev_obs->Dtropo.dump(cWzd);
+
+              // compute osculating elements from state vector
+              // dso::OrbitalElemets keplerian;
+              //int state2elements(const Eigen::Matrix<double, 6, 1> &Y,
+              //     OrbitalElements &elements, double GM) noexcept;
 
               const Eigen::VectorXd aposteriori = Filter.estimates();
               //printf("Values changed: ");
