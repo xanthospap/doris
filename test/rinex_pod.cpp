@@ -1122,20 +1122,10 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept {
-  // printf("-> station coordinates: %.3f %.3f %.3f\n", bxyz_arp(0),
-  // bxyz_arp(1), bxyz_arp(2));
   //  transform cartesian to ellipsoidal (antenna RP)
   const Eigen::Matrix<double, 3, 1> lfh =
       dso::car2ell<dso::ellipsoid::grs80>(bxyz_arp);
-  // printf("-> station coordinates: %.3f %.3f %.3f\n", dso::rad2deg(lfh(0)),
-  // dso::rad2deg(lfh(1)), lfh(2));
   const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(lfh);
-  // for (int i=0; i<3; i++) {
-  //   for (int j=0; j<3; j++) {
-  //     printf(" %.6f", R(i,j));
-  //   }
-  //   printf("\n");
-  // }
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
 }
 

@@ -111,6 +111,33 @@ beacon reference point, we procced as follows:
     \end{equation}
 \end{enumerate}
 
+\subsubsection{2GHz \& Iono-Free Phase Center}
+\label{sssec:2ghz-ionofree-pco}
+During the analysis of DORIS observations, we normally have to reduce 
+observations to/from the 2GHz or the ionosphere-free phase center, from the 
+nominal beacon phase center.
+
+To get to the iono-free phase center from the beacon antenna reference point, 
+we use (\cite{lemoine-2016}, Sec. 2.5.7, Eq. 20):
+\begin{equation}
+  \bm{r}_{iono-free} = \bm{r}_{2GHz} + \frac{\bm{r}_{2GHz} 
+    - \bm{r}_{400MHz}}{\gamma -1}
+  \label{eq:ionf-pco}
+\end{equation}
+
+where $\bm{r}_{2GHz}$ and $\bm{r}_{400MHz}$ are the eccentricities of the 
+2GHz and the 400MHz carriers respectively from the beacon antena phase center 
+(given eg at \cite{DORISGSM}, Sec. 5.2.1).
+
+Note that in \ref{eq:ionf-pco}, the eccentricity vector $\bm{r}_{iono-free}$ 
+is in a topocentric RF. Hence, to compute the ECEF coordinates of the 
+iono-free phase center, given that we have the ECEF coordinates of the beacon's 
+reference point $\bm{r}_{arp}$ (see \ref{ssec:beacon_coordinates}), we use:
+\begin{equation}
+  \bm{r}^{ecef}_{iono-free} = \bm{r}_{arp} + \bm{R}^T \cdot \bm{r}_{iono-free}
+\end{equation}
+where $\bm{R}$ is the cartesian-to-topocentric rotation matrix, computed 
+
 \subsection{Coordinate \& Proper Time}
 \label{ssec:coordinate-proper-time}
 We use TAI as coordinate time; to transform RINEX observation time (given in 
