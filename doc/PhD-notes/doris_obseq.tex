@@ -46,6 +46,8 @@
 \usetikzlibrary{positioning}
 \usetikzlibrary{mindmap,trees}
 \usetikzlibrary{arrows.meta,shapes,shadows,backgrounds}
+%%% Warning! local package, should be available
+\usepackage{annotate-equations}
 
 \tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
 \tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
@@ -168,33 +170,22 @@
 %\newacronym{}{}{}
 %\newacronym{}{}{}
 
-\title{PhD Memo and Notes}
+\title{Notes on DORIS Observation Equation Model}
 \author{Xanthos}
 \date{\today}
 
 \begin{document}
 
-\begin{titlepage}
+%\begin{titlepage}
 \maketitle
-\end{titlepage}
+%\end{titlepage}
 
 %\frontmatter
 \tableofcontents
 \listoffigures
 \listoftables
 
-%\include{chapters/doris_theory}
-%\include{chapters/doris_rinex}
-%\include{chapters/ground_segment}
-%\include{chapters/satellite_orbits}
-%\include{chapters/orbit_intergators}
-%\include{chapters/orbit_modeling}
-%\include{chapters/time_scales}
-%\include{chapters/reference_systems}
-%\include{chapters/technicalities}
-%\include{chapters/variational_equations}
-%\include{chapters/orbdet}
-\include{chapters/troposphere}
+\include{chapters/doris_obseqmodel}
 
 \bibliography{doris}
 

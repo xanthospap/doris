@@ -1,0 +1,125 @@
+\section{Introduction}
+\label{sec:doris-introduction}
+
+For the DORIS observatrion equation model, we use the formula described in 
+\cite{lemoine-2016}, Eq. 17:
+\begin{subequations} \label{eq:lem13}
+    \begin{align}
+        v_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
+          \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + 
+          \Delta v_{IONO} \label{eq:lem13a} \\
+        v_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} 
+          (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + 
+          \Delta v_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + 
+          f_{r_T})}{f_{e_N}} \frac{\Delta f_e}{f_{e_N}} \label{eq:lem13b}
+    \end{align}
+\end{subequations}
+
+where $v_{measured}$ and $v_{theo}$ represent the relative velocity between  
+the emitter and the receiver as measured and computed respectively.
+
+\subsection{Nominal Receiver \& Emitter Frequencies}
+\label{ssec:nominal-frequencies}
+In the observation equation model \ref{eq:lem13} we distinguish between 
+\emph{nominal} and \emph{true} receiver/emitter frequencies, to account for 
+the fact that in ``real world'' these two are not actually equal.
+
+\subsubsection{Emitter/Beacon Nominal Frequencies, $f_{e_N}$}
+\label{sssec:beacon-nominal-frequencies}
+
+%\begin{subequations} \label{eq:lem13}
+%    \begin{align}
+%        v_{measured} & = \frac{c}{ \colorbox{blue!20}{$f_{e_N}$} } (\colorbox{blue!20}{$f_{e_N}$} - f_{r_T} -
+%          \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + 
+%          \Delta v_{IONO} \label{eq:lem13a} \\
+%        v_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} 
+%          (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + 
+%          \Delta v_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + 
+%          f_{r_T})}{\colorbox{blue!20}{$f_{e_N}$}} 
+%          \tikz[baseline]{\node[fill=yellow!20,anchor=base] (df) {$\frac{\Delta f_e}{f_{e_N}}$}; }
+%          \label{eq:lem13b}
+%    \end{align}
+%\end{subequations}
+%\begin{tikzpicture}[overlay]
+%\end{tikzpicture}
+
+RINEX file headers, contain values of the \emph{station frequency shift 
+factor} $k$ for each of the beacons involved (\cite{DORISRNX3}, Sec. 6.16). 
+These are used to compute the ``nominal'' frequencies of the beacon/emitter. 
+(usually, this shift factor is just $0$, but it can be an integer 
+$k \neq 0$). The frequencies are computed as (\cite{DORISRNX3}, Sec. 6.16):
+\begin{equation}
+  \begin{aligned}
+    L_{2GHz}   &= 543 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) \\
+    L_{400MHz} &= 107 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) 
+  \end{aligned}
+\end{equation}
+where $F_0 = 5e6 \text{ Hz}$ the USO frequency. These value, are the ones 
+labelled as $f_{e_N}$ in \ref{eq:lem13}.
+
+The \emph{true proper frequency} of the emitter $f_{e_T}$, can be computed 
+from:
+\begin{equation}
+  f_{e_T} = f_{e_N} \cdot \left( 1 + \frac{\Delta f_e}{f_{e_N}} \right)
+\end{equation}
+but the quantity $\Delta f_e / f_{e_N}$ is not know a-priori and has to be 
+estimated during the processing.
+
+\subsection{Receiver True Proper Frequency $f_{r_T}$}
+\label{ssec:receiver-true-proper-frequency}
+In equation \ref{eq:lem13}, $f_{r_T}$ is the \emph{true proper frequency of 
+the receiver} with nominal value 
+\begin{equation}
+  f_{r_T} = f_{r_N} \cdot \left( 1 + \frac{\Delta f_r}{f_{r_N}} \right)
+\end{equation}
+where $f_{r_N}$ is the ``nominal'' frequency value.
+
+In practice the value $\Delta f_r / f_{r_N}$, called the \emph{relative 
+frequency offset} of the receiver, is given in the RINEX files for each epoch 
+(under the observable tagged \texttt{F}). Note that these values are scaled to 
+$10^{-11}$ (\cite{DORISRNX3}, Sec. 6.11), so that for a given epoch $t_i$, the 
+true frequency is
+\begin{equation}
+  f_{r_T}\at{t=t_i} = f_{r_N} \cdot \left( 1 + F_{t_i} \cdot 10^{-11} \right)
+\end{equation}
+where $F_{t_i}$ is the relative frequency offset value recovered from the RINEX 
+file.
+
+In our implementation, we use ``smoothed'' values of RINEX-provided 
+$\Delta f_r / f_{r_N}$ estimates. In a first step/pass we use a linear model 
+to filter all the values in the RINEX file (as suggested by \cite{lemoine-2016}, 
+Sec. 2.5.4). We then use this linear model to compute relative frequency offset 
+values when needed. 
+
+\subsection{Beacon Coordinates}
+\label{ssec:beacon_coordinates}
+Coordinates for the DORIS Network sites, are extracted from the \texttt{dpod*} 
+SINEX files (\cite{Moreaux2020}). To get the coordinates of the sites at the 
+beacon reference point, we procced as follows:
+\begin{enumerate}
+  \item extrapolate coordinates (in the DPOD, ECEF reference frame) at the 
+    requested epoch, $\bm{r}\sp{\prime}$
+  \item get site eccentricity $\Delta h$ from the respective IDS-distributed 
+    log file,
+  \item compute the cartesian-to-topocentric rotation matrix $\bm{R}(\bm{r})$,
+  \item add the topocentric eccentricity vector to get the antenna reference
+    point coordinates for the beacon:
+    \begin{equation}
+      \bm{r} \equiv \bm{r}^{dpod}_{ARP} = 
+        \bm{r}\sp{\prime} + \bm{R}^T \cdot 
+          \begin{pmatrix} 0 & 0 & \Delta h \end{pmatrix}^T
+    \end{equation}
+\end{enumerate}
+
+\subsection{Coordinate \& Proper Time}
+\label{ssec:coordinate-proper-time}
+We use TAI as coordinate time; to transform RINEX observation time (given in 
+proper time $\tau$) to coordinate time $t$, we use the \emph{receiver clock 
+offset} values, extracted from the RINEX file (one value per observation block).
+
+Hence, if an observation block is taged at proper time $\tau _i$ at the RINEX 
+file, and the receiver clock offset for this block is $\Delta \tau _i$ (again from 
+RINEX), then the coordinate time of the event in TAI is:
+\begin{equation}
+  t^{TAI}_i = \tau _i + \Delta \tau _i
+\end{equation}

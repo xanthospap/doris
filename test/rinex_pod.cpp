@@ -676,10 +676,6 @@ int main(int argc, char *argv[]) {
     auto estimates = Filter.estimates();
     estimates.block<6, 1>(0, 0) = svState.state;
     Filter.time_update(tl1, estimates, PhiP);
-    //printf("P C_drag = %.9e\n", Filter._ekf._ekf.P(Filter.drag_coef_index(), Filter.drag_coef_index()));
-    //printf("P sat X  = %.9e\n", Filter._ekf._ekf.P(0,0));
-    //printf("P tropo[1] %.9e\n", Filter._ekf._ekf.P(Filter.tropo_index(1), Filter.tropo_index(1)));
-    //printf("P rfoff[1] %.9e\n", Filter._ekf._ekf.P(Filter.rfoff_index(1), Filter.rfoff_index(1)));
     #ifdef FIX_ORBIT
     Filter.P().block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Identity() * 1e-12;
     #endif
@@ -864,7 +860,6 @@ int main(int argc, char *argv[]) {
             
             // The number/count of the beacon in the Filter
             const int receiver_number = pprev_obs->count;
-            //printf("Note:: working with beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_number);
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
@@ -1213,7 +1208,7 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
   std::vector<dso::gpt3_result> g3out;
 
   // call gpt3_fast to get parameters; store them at g3out
-  if (dso::gpt3_fast(t, ellipsoidal, 1, grid, g3out)) {
+  if (dso::gpt3_fast(t, ellipsoidal, 0, grid, g3out)) {
     fprintf(stderr, "[ERROR] Failed to compute gpt3!\n");
     return 20;
   }

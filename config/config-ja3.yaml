@@ -36,4 +36,4 @@ attitude:
 
 filtering:
   ## m/sec
-  observation-sigma: .5e0
+  observation-sigma: .5e-1

@@ -1,3 +1,4 @@
+#include "iers2010/tropo.hpp"
 #include "beacon_tbl.hpp"
 #include "datetime/datetime_write.hpp"
 #include "datetime/utcdates.hpp"
@@ -10,15 +11,14 @@
 #include "geodesy/units.hpp"
 #include "iers2010/iers2010.hpp"
 #include "iers2010/iersc.hpp"
-#include "iers2010/tropo.hpp"
 #include "integrators.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include "sp3/sp3.hpp"
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
 
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
@@ -28,9 +28,13 @@ struct TropoDetails {
   double Lwz, mfw;
   double sum() const noexcept { return Lhz * mfh + Lwz * mfw; }
   double sum(double Lwz_) const noexcept { return Lhz * mfh + Lwz_ * mfw; }
-  void dump() const noexcept {
-    printf(": %.6f * %.6f + %.6f * %.6f = %.6f\n", Lhz,
-           mfh, Lwz, mfw, sum());
+  void dump(FILE *fp, double el_deg) const noexcept {
+    fprintf(fp, " %.6f %.6f %.6f %.6f %.6f %.1f\n", Lhz, mfh, Lwz, mfw, sum(),
+            el_deg);
+  }
+  void dump(double el_deg) const noexcept {
+    printf(" %.6f %.6f %.6f %.6f %.6f %.1f\n", Lhz, mfh, Lwz, mfw, sum(),
+           el_deg);
   }
 };
 
@@ -39,20 +43,42 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept;
 
 int main(int argc, char *argv[]) {
-  
+
   // check input
   if (argc != 2) {
     fprintf(stderr, "USAGE: %s [YAML CONFIG]\n", argv[0]);
     return 1;
   }
 
-  Eigen::Matrix<double,3,1> xyz;
-  xyz << 2890643.937260e0, 1310312.136289e0, 5513963.193492e0;
+  // Eigen::Matrix<double,3,1> xyz;
+  // xyz << 2890643.937260e0, 1310312.136289e0, 5513963.193492e0;
+  std::vector<Eigen::Matrix<double, 3, 1>> xyzs(6);
+  // TERRE-ADELIE - ANTARCTICA,
+  // https://ids-doris.org/network/sitelogs/station.html?code=TERRE-ADELIE
+  xyzs[0] << -1940878.515e0, 1628473.041e0, -5833723.413e0;
+  //// NY-ALESUND II - NORWAY,
+  /// https://ids-doris.org/network/sitelogs/station.html?code=NY-ALESUND%20II
+  xyzs[1] << 1201300.046e0, 251874.435e0, 6238000.324e0;
+  //// DIONYSOS - GREECE,
+  /// https://ids-doris.org/network/sitelogs/station.html?code=DIONYSOS
+  xyzs[2] << 4595212.468e0, 2039473.691e0, 3912617.891e0;
+  //// KOUROU - FRANCE (French Guiana),
+  /// https://ids-doris.org/network/sitelogs/station.html?code=KOUROU
+  xyzs[3] << 3855260.440e0, -5049735.535e0, 563056.590e0;
+  //// ASCENSION - UNITED KINGDOM,
+  /// https://ids-doris.org/network/sitelogs/station.html?code=ASCENSION
+  xyzs[4] << 6121154.081e0, -1563976.723e0, -872606.019e0;
+  //// WETTZELL - GERMANY,
+  /// https://ids-doris.org/network/sitelogs/station.html?code=WETTZELL
+  xyzs[5] << 4075559.776e0, 931580.241e0, 4801621.584e0;
+  [[maybe_unused]] const char *names[] = {"Terre-Adelie", "Ny-Alesund",
+                                          "Dionysos",     "Kourou",
+                                          "Ascension",    "Wetttzell"};
 
   // resolve the yaml config file and get the root node
   const YAML::Node config = YAML::LoadFile(argv[1]);
   char buf[256];
-  
+
   // Troposphere
   // -------------------------------------------------------------------------
   // read-in the grid file. That is all for now
@@ -60,17 +86,43 @@ int main(int argc, char *argv[]) {
   dso::Gpt3Grid gpt3_grid(buf);
   TropoDetails cDtropo;
 
-  const Datetime t1 = Datetime(dso::year(2021), dso::month(1),
-                               dso::day_of_month(1), dso::nanoseconds(0));
-  const Datetime t2 = Datetime(dso::year(2022), dso::month(1),
-                               dso::day_of_month(1), dso::nanoseconds(0));
-  for (auto t = t1; t < t2; t.add_seconds(dso::nanoseconds(30L*1'000'000'000L))) {
-    if (get_tropo(t, xyz, dso::deg2rad(30e0), gpt3_grid, cDtropo)) {
-      return 3;
+  int it = 0;
+  for (const Eigen::Matrix<double, 3, 1> &xyz : xyzs) {
+
+    for (int elevation = 10; elevation < 90; elevation += 10) {
+      // open output file
+      FILE *fp;
+      char fout[64];
+      std::strcpy(fout, names[it]);
+      std::strcat(fout, "-tropo.el");
+      sprintf(fout + std::strlen(fout), "%02d", elevation);
+
+      fp = fopen(fout, "w");
+      printf("Writing output to file: %s\n", fout);
+      //fprintf(fp, "%s %s %s %s %s %s %s %s %s\n", "Date", "Time", "Mjd", "Lhz", "mfh",
+      //        "Lwz", "mfw", "Dtrop", "Elevation");
+      fprintf(fp, "%s %s %s %s %s %s %s\n", "Mjd", "Lhz", "mfh",
+              "Lwz", "mfw", "Dtrop", "Elevation");
+
+      const Datetime t1 = Datetime(dso::year(2021), dso::month(1),
+                                   dso::day_of_month(1), dso::nanoseconds(0));
+      const Datetime t2 = Datetime(dso::year(2022), dso::month(1),
+                                   dso::day_of_month(1), dso::nanoseconds(0));
+      for (auto t = t1; t < t2;
+           t.add_seconds(dso::nanoseconds(3600L * 1'000'000'000L))) {
+        const double zd = dso::deg2rad(90 - elevation);
+        if (get_tropo(t, xyz, zd, gpt3_grid, cDtropo)) {
+          return 3;
+        }
+        // dso::strftime_ymd_hmfs(t, buf);
+        // fprintf(fp, "%s %.9f ", buf, t.as_mjd());
+        fprintf(fp, "%.9f ", t.as_mjd());
+        cDtropo.dump(fp, (double)elevation);
+      }
+
+      fclose(fp);
     }
-    dso::strftime_ymd_hmfs(t, buf);
-    printf("%s %.9f ", buf, t.as_mjd());
-    cDtropo.dump();
+    ++it;
   }
 
   return 0;
