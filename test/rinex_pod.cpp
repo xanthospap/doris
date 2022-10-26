@@ -19,6 +19,7 @@
 #include "var_utils.hpp"
 #include <cstdio>
 #include <cassert>
+#include "astrodynamics.hpp"
 
 constexpr const int Np = 1;
 
@@ -1041,6 +1042,33 @@ int main(int argc, char *argv[]) {
     //       svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
     //       svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
     svState.state = Filter.estimates().block<6, 1>(0, 0);
+
+    // transform to keplerian elements, just for printing
+    Eigen::Matrix<double, 6, 1> inertial_state;
+#ifdef ABCD
+    Eigen::Matrix<double, 3, 3> dt2c;
+    Eigen::Matrix<double, 3, 3> t2c =
+        dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
+#else
+  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+  double era, lod;
+  assert(!gcrs2itrs(tl1.as_mjd(), Integrator.params->eopLUT, rc2i, era, rpom,
+                    lod));
+#endif
+#ifdef ABCD
+    // transform terrestrial to inertial
+    inertial_state.block<3, 1>(0, 0) = t2c * svState.state.block<3, 1>(0, 0);
+    inertial_state.block<3, 1>(3, 0) = t2c * svState.state.block<3, 1>(3, 0) +
+                              dt2c * svState.state.block<3, 1>(0, 0);
+#else
+    inertial_state = dso::yter2cel(svState.state.block<6, 1>(0, 0), rc2i, era, lod, rpom);
+#endif
+    dso::OrbitalElements kepler = dso::state2elements(GM,inertial_state);
+    printf("OE: %s (TAI) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", dtbuf,
+           dso::rad2deg(kepler.semimajor()),
+           dso::rad2deg(kepler.eccentricity()),
+           dso::rad2deg(kepler.inclination()), dso::rad2deg(kepler.Omega()),
+           dso::rad2deg(kepler.omega()), dso::rad2deg(kepler.mean_anomaly()));
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
         dso::cast_to<dso::seconds, dso::nanoseconds>(
