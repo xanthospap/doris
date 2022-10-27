@@ -477,16 +477,20 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
     return 1;
   }
-  Eigen::Matrix<double, 3, 1> sat_cog;
+  Eigen::Matrix<double, 3, 1> sat_cog, l3_pco;
   double sat_mass;
+  {
   // get satellite CoG coordinates in the satellite-fixed RF (with corrections)
   assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
       rnx.ref_datetime(), buf, sat_mass, sat_cog));
   // get satellite ARP coordinates in the satellite-fixed RF
   Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
   dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
+  // compute the iono-free phase center
+  l3_pco = l1_pco + (l2_pco - l1_pco) / (dso::GAMMA_FACTOR-1e0);
+  }
   svState.cog_sf = &sat_cog;
-  svState.arp_sf = &l1_pco;
+  svState.arp_sf = &/*l1_pco*/l3_pco;
   svState.qhunt = &qhunt;
 
   // Setup Integration Parameters for Orbit Integration
@@ -875,8 +879,12 @@ int main(int argc, char *argv[]) {
             printf("%.3s Lt(i)=%.6f Lt(i-1)=%.6f", beaconobs->id(), beaconobs->m_values[l1i].m_value, pprev_obs->Ls1);
             printf(" Dt=%.9f", delta_tau.to_fractional_seconds());
 
+            // we will need the true emitter frequency, feT = feN * (1 + Dfe)
+            const double feT =
+                feN * (1e0 + Filter.rfoff_estimate(receiver_number, tl1));
+
             // Ionospheric path delay in [m/sec]
-            const double Dion = (iers2010::C / feN) *
+            const double Dion = (iers2010::C / feT) *
                                 (cDiono - pprev_obs->Diono) /
                                 delta_tau.to_fractional_seconds();
             printf(" Dion=%.6f", Dion);
@@ -949,7 +957,7 @@ int main(int argc, char *argv[]) {
                   (iers2010::C / feN) * (NdopDt + frT);
 #endif
               // dz/dLwet
-              dHdX(Filter.tropo_index(receiver_number)) = /*(-1e0) * */
+              dHdX(Filter.tropo_index(receiver_number)) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
 
               const Eigen::VectorXd apriori = Filter.estimates();
@@ -1147,6 +1155,9 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 }
 
 // TODO this should only be done once, for all stations!
+/// @param[in] bxyz_arp Beacon ECEF coordinates at ARP
+/// @param[in] beacon   The beacon
+/// @return ECEF coordinates of the beacon's iono-free phase center
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
                const dso::BeaconStation &beacon) noexcept {
@@ -1221,19 +1232,23 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
   Eigen::Matrix<double, 3, 1> bell = dso::car2ell<dso::ellipsoid::grs80>(bxyz);
   std::vector<std::array<double, 3>> ellipsoidal(
       1, std::array<double, 3>{bell(0), bell(1), bell(2)});
+  // note: ellipsoidal = longitude, latitude, h_ell
 
   // store GPT3 results here
   std::vector<dso::gpt3_result> g3out;
 
-  // call gpt3_fast to get parameters; store them at g3out
+  // call gpt3_fast to get parameters; store them at g3out (including temporal
+  // variations)
   if (dso::gpt3_fast(t, ellipsoidal, 0, grid, g3out)) {
     fprintf(stderr, "[ERROR] Failed to compute gpt3!\n");
     return 20;
   }
 
-  // use VMF3 to compute mapping functions
+  // use VMF3 to compute mapping functions (with height correction)
   double mfh, mfw;
-  if (dso::vmf3(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), zd, mfh, mfw)) {
+  // if (dso::vmf3(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), zd, mfh, mfw)) {
+  if (dso::vmf3_ht(g3out[0].ah, g3out[0].aw, t, bell(1), bell(0), bell(2), zd,
+                   mfh, mfw)) {
     fprintf(stderr, "Failed to compute VMF3\n");
     return 30;
   }
