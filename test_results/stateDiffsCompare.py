@@ -113,5 +113,5 @@ else:
     subtitle = ''
 fig.suptitle('Sp3 - Integrator Diffs\n{}'.format(subtitle), fontsize=16)
 
-plt.savefig(sys.argv[2] + '.pdf')
+plt.savefig(sys.argv[2] + '.png', transparent=True)
 plt.show()
