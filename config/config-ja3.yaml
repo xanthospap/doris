@@ -32,7 +32,6 @@ force-model:
 attitude:
   mass-cog: data/Jason-3/ja3mass.txt
   body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001
-  #body-quaternion: data/Jason-3/ja3qbody20210103220000_20210105020000.001
 
 filtering:
   ## m/sec

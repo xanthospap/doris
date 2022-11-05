@@ -1,0 +1,35 @@
+\chapter{Orbit Determination using DORIS \& Extended Kalman Filter}
+
+Notes:
+\begin{itemize}
+  \item we are going to use the symbol $t$ to denote time epochs in the 
+    TAI time-scale
+\end{itemize}
+
+\begin{enumerate}
+  \item Parse the input DORIS RINEX file and get the first epoch, $t_{R_0}$
+
+  \item Parse the input Sp3 file; get the state vector for the epoch $t_0$, 
+    closest to but not exceeding $t_{R_0}$
+
+  \item Use the integrator to extrapolate the state vector from $t_0$ to 
+    $t_{R_0}$. We now have the state at $t_{R_0}$, aka $\bm{y}(t=t_{R_0})$
+
+  \item Iterate through the RINEX measurements for the instant $t_{R_0}$; 
+    for each beacon, construct the observation equation if a previous 
+    observation exists, or store measurement info, if this is the first 
+    encounter with the beacon (no Doppler count available)
+
+  \item For each beacon that we have Doppler count (and hence can form the 
+    observation equation), procced to filtering. The parameters estimated are:
+    \begin{equation}
+      \begin{pmatrix} x \\ y \\ z \\ 
+        v_x \\ v_y \\ v_z 
+        \\ C_{drag}
+        \\ L_{b1}^{wet} \\ \frac{\Delta f_0}{f_{e_{b1}}}
+        \\ L_{b2}^{wet} \\ \frac{\Delta f_0}{f_{e_{b2}}}
+        \\ vdots 
+      \end{pmatrix}
+    \end{equation}
+
+\end{enumerate}

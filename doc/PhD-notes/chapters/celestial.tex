@@ -1,0 +1,126 @@
+\chapter{Celestial Reference System and \gls{eop}}
+\label{ch:celestial-rf-and-eop}
+
+The transformation used to relate the \gls{itrs} to the \gls{gcrs} at a 
+given date $t$, can be written as (\cite{iers2010}):
+\begin{equation}
+    \bm{r}_{GCRS} = \bm{Q}(t) \cdot \bm{R}(t) \cdot \bm{W}(t) \cdot \bm{r}_{ITRS}
+    \label{eq:iers1051}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\bm{Q}(t)$ is the transformation matrix arising from the
+    (celestial) \textbf{polar motion} in the celestial reference system,
+    \item $\bm{R}(t)$ is the transformation matrix accounting for 
+    \textbf{Earth rotation} around the axis ascociated with the pole, and
+    \item $\bm{W}(t)$ accounts for \textbf{polar motion}
+\end{itemize}
+
+Note that the paremeter $t$ used in \ref{eq:iers1051} is given by:
+\begin{equation}
+    t = \left( TT - 2000 \text{ January } 1d 12h TT \right)
+    \text{ in days } / 36525
+\end{equation}
+where $2000 \text{ January 1d 12h TT} = \text{ Julian Date } 2451545.0 \text{ TT}$.
+
+\ul{Here, we follow the approach compliant with the \emph{IAU 2000/2006} 
+resolutions}. Hence, the quantities to be used in the matrix $\bm{Q}(t)$ in 
+\ref{eq:iers1051} must be based on the \emph{IAU 2006} precession and the 
+\emph{IAU 2000A} or \emph{IAU 2000B} (depending on required precision).
+
+\section{Terrestrial to Celestial Transformation}
+\label{sec:ter2cel-trans}
+
+Currently, IERS recommends two procedures for transforming between the 
+Terrestrial and Celestial reference frames, called the ``equinox based'' 
+and the ``\gls{cio} based'', differing in the origin of the \gls{cip} 
+equator. For further details on the ``equinox based'' transformation, see 
+e.g. \cite{iers2010} and \cite{esaa13}. In the following we will discuss the 
+``\gls{cio} based'' transformation, since
+\begin{displayquote}
+    only the CIO based
+procedure can be in agreement with IAU 2000 Resolution B1.8, which requires the use of the “non-
+rotating origin” in both the GCRS and the ITRS as well as the position of the CIP in the GCRS
+and in the ITRS.
+\end{displayquote}, \cite{iers2010}.
+
+Each of the three rotation matrices in \ref{eq:iers1051}, represents a series 
+of elementary rotations, a product of the rotation matrices $R_x(\theta)$, 
+$R_y(\theta)$ and $R_z(\theta)$, with positive angle about the $x-$, $y-$ and 
+$z-$axis. The position of the \gls{cip} (in both \gls{itrs} and \gls{gcrs}) is 
+provided by the \gls{cip} unit vector components $x$ and $y$, called 
+``coordinates'' of the \gls{cip}.
+
+\subsection{Polar Motion Matrix $W(t)$}
+\label{ssec:polar-motion-matrix}
+The rotation of the Earth is represented by the diurnal rotation around a
+refernce axis, called the \gls{cip}. The \gls{cip} does not coincide with 
+the axis of figure of the Earth, but slowly moves (in a terrestrial reference 
+frame) (\cite{esaa13}). This motion of the terrestrial reference frame 
+with respect to the \gls{cip} is known as \emph{polar motion}. Note that the 
+\gls{cip} is not the instantenuous axis of rotation but the axis around which the 
+diurnal rotation of earth is applied (in the celestial to terrestrial 
+transformation). Polar motion is typically determined from \gls{vlbi} 
+observation, as except from the principal periods of 365 days (annual wobble) 
+and 428 days (Chandler wobble), it is also affected by unpredictable geophysical 
+forces.
+
+According to IAU 2006 Resolution B2, the system at date $t$ as realized 
+from the \gls{itrs} by applying the transformation $\bm{W}(t)$ is the 
+\gls{tirs}. It uses the \gls{cip} as its $z$-axis and the \gls{tio} as 
+its $x$-axis (\cite{iers2010}). This matrix gives the position of the 
+terrestrial reference frame with respect to the \gls{tio}.
+
+The $\bm{W}$ matrix can be expressed as (\cite{iers2010}):
+\begin{equation}
+    \bm{W}(t) = \bm{R}_z(-s') \cdot \bm{R}_y(x_p) \cdot \bm{R}(y_p)
+    \label{eq:iers1053}
+\end{equation},
+where $s'$ is the ``\gls{tio} locator'' and $x_p$, $y_p$ are the 
+``polar coordinates'' of the \gls{cip} in the \gls{itrs}. The latter values, 
+if not estimated, should be the ones published by the \gls{iers}, corrected for 
+the effect of ocean tides and forced terms (aka ``libration''), with periods 
+less than two days in space (\cite{iers2010}), so that:
+\begin{equation}
+    \begin{pmatrix} x_p & y_p \end{pmatrix} = 
+    \begin{pmatrix} x & y \end{pmatrix}_{IERS} + 
+    \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{ocean\text{ }tides} + 
+    \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{libration} 
+\end{equation}
+
+
+\begin{itemize}
+    \item The subdaily variations are not part of the polar motion values 
+    reported to and distributed by the \gls{iers} and are therefore to be 
+    added after interpolation (\cite{iers2010}). To perform this correction, 
+    two seperate effects are taken into account,
+\end{itemize}
+
+\section{Implementation}
+\label{eop-implementation}
+
+\subsubsection{\gls{eop} Information}
+\Gls{eop} information for formulating the Celestial-to-Terrestrial transformation 
+matrix, is extracted from the \gls{iers} \texttt{C04} files (\cite{Bizouard2019}).
+These files contain tabulated \gls{eop} values at 0\textsuperscript{h} \gls{utc}. 
+
+These files can be read into an \texttt{dso::EopLookUpTable} instance, using 
+the function \texttt{dso::parse\_iers\_C04}.
+
+According to \cite{Bradley2016850}:
+\begin{displayquote}
+    Prior to the interpolation of DUT1 and LOD, the tabulated values
+    should be smoothed through regularization to enhance the
+    interpolation accuracy. Regularization is the removal of
+    zonal tidal variations with frequencies ranging from 5 days
+    to 18.6 years.
+\end{displayquote}
+
+
+\begin{figure}
+\centering
+\input{tikz/alcatel-antenna.tex}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}

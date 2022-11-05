@@ -1,126 +1,112 @@
 #include "eop.hpp"
+#include <charconv>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 
-constexpr const std::size_t MAX_LINE_CHARS = 512;
+constexpr const std::size_t MAX_LINE_CHARS = 256;
 
-dso::EopFile::EopFile(const char *fn) {
-  assert(std::strlen(fn) < 256);
-  std::strcpy(filename, fn);
+const char *next_num(const char *line) noexcept {
+  const char *ptr = line;
+  while (*ptr && *ptr == ' ')
+    ++ptr;
+  return ptr;
 }
 
-dso::EopFile::EopFile(dso::EopFile &&other) noexcept {
-  std::strcpy(filename, other.filename);
-}
+/// Example : https://datacenter.iers.org/data/224/eopc04_14_IAU2000.62-now.txt
+/// Format of data:
+/// FORMAT(3(I4),I7,2(F11.6),2(F12.7),2(F11.6),2(F11.6),2(F11.7),2(F12.6))
+/*  Date      MJD      x          y        UT1-UTC       LOD         dX dY x Err
+y Err   UT1-UTC Err  LOD Err     dX Err       dY Err "          "           s s
+"         "           "          "          s         s            "           "
+     (0h UTC)
 
-dso::EopFile &dso::EopFile::operator=(dso::EopFile &&other) noexcept {
-  std::strcpy(filename, other.filename);
-  return *this;
-}
-
-int dso::EopFile::parse(dso::modified_julian_day start_mjd,
+1962   1   1  37665  -0.012700   0.213000   0.0326338   0.0017230   0.000000
+0.000000   0.030000   0.030000  0.0020000  0.0014000    0.004774    0.002000
+1962   1   2  37666  -0.015900   0.214100   0.0320547   0.0016690   0.000000
+0.000000   0.030000   0.030000  0.0020000  0.0014000    0.004774    0.002000
+struct EopRecord {
+  double mjd, xp, yp, ut1, dx, dy, lod, omega;
+};
+*/
+int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
                         dso::modified_julian_day end_mjd,
-                        dso::EopLookUpTable &etable) noexcept {
+                        dso::EopLookUpTable &eoptable) noexcept {
   // open file
-  std::ifstream fin(filename);
+  std::ifstream fin(c04fn);
   if (!fin.is_open()) {
     fprintf(stderr,
-            "[ERROR] Failed opening Eop file %s (traceback: "
+            "[ERROR] Failed opening EOP (C04) file %s (traceback: "
             "%s)\n",
-            filename, __func__);
-    return -1;
+            c04fn, __func__);
+    return 1;
   }
 
-  // if needed, resize the EOP table
+  // if needed, resize the EOP table, interval is [start.end)
   int days = end_mjd.as_underlying_type() - start_mjd.as_underlying_type();
-  etable.resize(days);
+  eoptable.resize(days);
 
   char line[MAX_LINE_CHARS];
   int sz = 0;
-  // skip any line starting with '#'
+
   while (fin.getline(line, MAX_LINE_CHARS)) {
     const char *start;
-    char *end;
-    if (*line != '#') {
-      // DATE     MJD       x       y      UT1-UTC      dX     dY     x err    y
-      // err   UT1 err  dX err  dY err (0 h UTC)         mas     mas       ms
-      // mas mas     mas      mas      ms     mas     mas
-
+    const char *end;
+    long imjd;
+    if (*line && (*line != ' ' && *line != '#')) {
       // skip the data (YYYY MM DD) which is 12 chars length
       // get the mjd
-      long mjd = std::strtol(line + 12, &end, 10);
-      if (mjd == 0 || end == line + 12) {
+      start = next_num(line + 12);
+      end = line + std::strlen(line);
+      auto fcr = std::from_chars(start, end, imjd);
+      if (fcr.ec != std::errc() || fcr.ptr == start) {
         fprintf(stderr,
-                "[ERROR] Failed resolving EOP line [%s]. Eop file is %s "
-                "(traceback: %s)\n",
-                line, filename, __func__);
-        return -1;
+                "[ERROR] Failed resolving EOP line [%s]. EOP file is %s "
+                "(traceback: %s/err=A)\n",
+                line, c04fn, __func__);
+        return 1;
       }
 
-      const dso::modified_julian_day cmjd(mjd);
+      const dso::modified_julian_day cmjd(imjd);
       int error = 0;
 
       // if the date is ok, collect data
       if (cmjd >= start_mjd && cmjd < end_mjd) {
         error = 0;
-        etable.mjd[sz] = static_cast<double>(mjd);
-
-        start = end;
-        etable.xpa[sz] = std::strtod(start, &end);
-        error += (start == end);
-
-        start = end;
-        etable.ypa[sz] = std::strtod(start, &end);
-        error += (start == end);
-
-        start = end;
-        etable.ut1a[sz] = std::strtod(start, &end);
-        error += (start == end);
-        
-        start = end;
-        etable.dxa[sz] = std::strtod(start, &end);
-        error += (start == end);
-
-        start = end;
-        etable.dya[sz] = std::strtod(start, &end);
-        error += (start == end);
-
-        // next 5 columns are the respective sigma values
-        for (int i=0; i<5; i++) {
-          start = end;
-          [[maybe_unused]] const double sigma = std::strtod(start, &end);
-          error += (start == end);
+        *(eoptable.mjd(sz)) = static_cast<double>(imjd);
+        double data[6];
+        for (int i = 0; i < 6; i++) {
+          start = next_num(fcr.ptr);
+          fcr = std::from_chars(start, end, data[i]);
+          if (fcr.ec != std::errc() || fcr.ptr == start) {
+            // fprintf(stderr, "[ERROR] i=%d, line=\"%s\"\n", i, start);
+            ++error;
+          }
         }
 
-        start = end;
-        etable.loda[sz] = std::strtod(start, &end);
-        error += (start == end);
-        
-        start = end;
-        [[maybe_unused]] const double sigma = std::strtod(start, &end);
-        error += (start == end);
-        
-        start = end;
-        etable.omegaa[sz] = std::strtod(start, &end);
-        error += (start == end);
-        
+        if (error) {
+          fprintf(stderr,
+                  "[ERROR] Failed resolving EOP line [%s]. EOP file is %s "
+                  "(traceback: %s/err=B)\n",
+                  line, c04fn, __func__);
+          return 2;
+        }
+
+        // assign (watch the order)
+        *(eoptable.xp(sz)) = data[0];
+        *(eoptable.yp(sz)) = data[1];
+        *(eoptable.dut(sz)) = data[2];
+        *(eoptable.lod(sz)) = data[3];
+        *(eoptable.dx(sz)) = data[4];
+        *(eoptable.dy(sz)) = data[5];
+
         ++sz;
       } else if (cmjd >= end_mjd) {
         break;
       }
 
-      if (error) {
-        fprintf(stderr,
-                "[ERROR] Failed resolving EOP line [%s]. Eop file is %s "
-                "(traceback: %s)\n",
-                line, filename, __func__);
-        return -1;
-      } else {
-        printf(">> Line resolved, nr %d/%d\n", sz, days);
-      }
-    }
-  }
+    } // if (line[0] != ' ') ...
+  } // end reading lines
 
   // we were supposed to collect:
   return !(days == sz);

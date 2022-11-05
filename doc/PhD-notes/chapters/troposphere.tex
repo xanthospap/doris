@@ -1,0 +1,15 @@
+\chapter{Troposphere}
+\label{ch:troposphere}
+
+%\begin{figure}
+  %\centering
+  %\input{tikz/sample-dtropo.tex}
+  \begin{tikzpicture}
+    \begin{axis}
+      \addplot[mark=o,mark size=0.2pt] table [x = {Mjd}, y = {Dtrop}] {tikz/tables/Terre-Adelie-tropo.el10};
+      %\addplot[mark = *,mark size=0.6pt] table [x = {Mjd}, y = {Dtrop}] {tikz/tables/Terre-Adelie-tropo.el20};
+    \end{axis}
+  \end{tikzpicture}
+  %\caption{DORIS System Description}
+  %\label{fig:doris-system-description}
+%\end{figure}

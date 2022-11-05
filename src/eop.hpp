@@ -2,70 +2,261 @@
 #define __DSO__IERS_BULLTEIN_PARSERS_HPP__
 
 #include "datetime/dtcalendar.hpp"
+#include <cstring>
 
 namespace dso {
 
+/// @brief A simple record of EOP values
 struct EopRecord {
-  double mjd, xp, yp, ut1, dx, dy, lod, omega;
+  double mjd, xp, yp, ut1, lod, dx, dy, omega;
 };
 
-//int interpolate_eop(double fmjd_utc, const double *mjd, const double *xpa,
-//                const double *ypa, const double *ut1a, int sz, double &xp,
-//                double &yp, double &dut1) noexcept;
-
-/// @brief A struct to hold EOP information
-/// @tparam Capacity The max size of the member arrays. Not to be confused
-///         with the actual size of the arrays, which is sz. Elements 
-///         with indexes in Capacity-sz are invalid.
-struct EopLookUpTable {
-  ///< actual size of arrays (<= Capacity)
+/// @brief A class to hold EOP information ordered by Mjd
+///        The elements of the EOP/MJD arrays are always stored in 
+///        chronological order.
+class EopLookUpTable {
+private:
+  ///< Actual size of arrays aka number of epochs
   int sz{0};
+  ///< Capacity of memmory, not the same as the actual number of epochs stored!
+  int capacity{0};
   double *mem_arena{nullptr};
   ///< arrays of EOP values extracted from C04
-  double *mjd{nullptr}, // [UTC], start index = 0
-  *xpa {nullptr},   // [mas], start index = 1
-  *ypa {nullptr},   // [mas], start index = 2
-  *ut1a{nullptr},   // [msec], start index = 3
-  *dxa{nullptr},    // [mas], start index = 4
-  *dya{nullptr},    // [mas], start index = 5
-  *loda{nullptr},   // [msec], start index = 6
-  *omegaa{nullptr}; // [mas/ms], start index = 7
+  double *mjda{nullptr}, ///< [UTC], start index = 0
+  *xpa {nullptr},   ///< [", arcsec], start index = 1
+  *ypa {nullptr},   ///< [", arcsec], start index = 2
+  *ut1a{nullptr},   ///< [sec], start index = 3
+  *dxa{nullptr},    ///< [", arcsec], start index = 4
+  *dya{nullptr},    ///< [", arcsec], start index = 5
+  *loda{nullptr},   ///< [sec/day], start index = 6
+  *omegaa{nullptr}; ///< [?], start index = 7
 
-  EopLookUpTable(int sz_=10) noexcept :
-    sz{sz_},
-    mem_arena(new double[sz_ * 8]),
-    mjd(mem_arena),
-    xpa(mem_arena + sz_),
-    ypa(mem_arena + 2*sz_),
-    ut1a(mem_arena + 3*sz_),
-    dxa(mem_arena + 4*sz_),
-    dya(mem_arena + 5*sz_),
-    loda(mem_arena + 6*sz_),
-    omegaa(mem_arena + 7*sz_)
+public:
+  int size() const noexcept {return sz;}
+
+  double *mjd(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return mjda+i; 
+  }
+  double *xp(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return xpa+i; 
+  }
+  double *yp(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return ypa+i; 
+  }
+  double *dut(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return ut1a+i; 
+  }
+  double *dx(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return dxa+i; 
+  }
+  double *dy(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return dya+i; 
+  }
+  double *lod(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return loda+i; 
+  }
+  double *omega(int i = 0) noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return omegaa+i; 
+  }
+  const double *mjd(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return mjda+i; 
+  }
+  const double *xp(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return xpa+i; 
+  }
+  const double *yp(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return ypa+i; 
+  }
+  const double *dut(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return ut1a+i; 
+  }
+  const double *dx(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return dxa+i; 
+  }
+  const double *dy(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return dya+i; 
+  }
+  const double *lod(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return loda+i; 
+  }
+  const double *omega(int i = 0) const noexcept {
+#ifdef DEBUG
+    assert(i>=0 && i<sz);
+#endif
+    return omegaa+i; 
+  }
+
+  /// @brief Default constructor (uses a capacity of 10 elements)
+  EopLookUpTable(int _capacity=10) noexcept :
+    sz{_capacity},
+    capacity{_capacity},
+    mem_arena(new double[_capacity * 8]),
+    mjda(mem_arena),
+    xpa(mem_arena + _capacity),
+    ypa(mem_arena + 2*_capacity),
+    ut1a(mem_arena + 3*_capacity),
+    dxa(mem_arena + 4*_capacity),
+    dya(mem_arena + 5*_capacity),
+    loda(mem_arena + 6*_capacity),
+    omegaa(mem_arena + 7*_capacity)
   {}
 
+  /// @brief Resize; alocation/dealocation depends on capacity
   void resize(int sz_) noexcept {
-    if (sz_ < sz) {
+    // no need to dealocate/alocate; just change the effective size
+    if (sz_ < capacity) {
       sz = sz_;
       return;
+    } else {
+      // requested size (sz_) > current capacity. need to allocate memory!
+      delete[] mem_arena;
+      sz = sz_;
+      capacity = sz_;
+      mem_arena = new double[capacity * 8];
+      mjda = mem_arena;
+      xpa = mem_arena + capacity;
+      ypa = mem_arena + 2 * capacity;
+      ut1a = mem_arena + 3 * capacity;
+      dxa = mem_arena + 4 * capacity;
+      dya = mem_arena + 5 * capacity;
+      loda = mem_arena + 6 * capacity;
+      omegaa = mem_arena + 7 * capacity;
     }
-    delete[] mem_arena;
-    mem_arena=new double[sz_ * 8];
-    mjd =mem_arena;
-    xpa =mem_arena + sz_;
-    ypa =mem_arena + 2*sz_;
-    ut1a=mem_arena + 3*sz_;
-    dxa=mem_arena + 4*sz_;
-    dya=mem_arena + 5*sz_;
-    loda=mem_arena + 6*sz_;
-    omegaa=mem_arena + 7*sz_;
   }
 
+  /// @brief destructor
   ~EopLookUpTable() noexcept {
     if (mem_arena) delete[] mem_arena;
-    sz = 0;
+    sz = capacity = 0;
   }
 
+  /// @brief Move constructor
+  EopLookUpTable(EopLookUpTable &&eopt) noexcept
+      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena{eopt.mem_arena},
+        mjda{eopt.mjda}, xpa{eopt.xpa}, ypa{eopt.ypa}, ut1a{eopt.ut1a},
+        dxa{eopt.dxa}, dya{eopt.dya}, loda{eopt.loda}, omegaa{eopt.omegaa} {
+    eopt.sz = eopt.capacity = 0;
+    eopt.mem_arena = nullptr;
+  }
+
+  /// @brief Assignment operator
+  EopLookUpTable &operator=(const EopLookUpTable &eopt) noexcept {
+    if (this != &eopt) {
+      if (sz != eopt.sz) {
+        this->resize(eopt.sz);
+      }
+      mjda = (double *)std::memcpy(mem_arena, eopt.mem_arena, sz);
+      xpa = (double *)std::memcpy(mem_arena + 1 * capacity,
+                                  eopt.mem_arena + 1 * eopt.capacity, sz);
+      ypa = (double *)std::memcpy(mem_arena + 2 * capacity,
+                                  eopt.mem_arena + 2 * eopt.capacity, sz);
+      ut1a = (double *)std::memcpy(mem_arena + 3 * capacity,
+                                   eopt.mem_arena + 3 * eopt.capacity, sz);
+      dxa = (double *)std::memcpy(mem_arena + 4 * capacity,
+                                  eopt.mem_arena + 4 * eopt.capacity, sz);
+      dya = (double *)std::memcpy(mem_arena + 5 * capacity,
+                                  eopt.mem_arena + 5 * eopt.capacity, sz);
+      loda = (double *)std::memcpy(mem_arena + 6 * capacity,
+                                   eopt.mem_arena + 6 * eopt.capacity, sz);
+      omegaa = (double *)std::memcpy(mem_arena + 7 * capacity,
+                                     eopt.mem_arena + 7 * eopt.capacity, sz);
+    }
+    return *this;
+  }
+  
+  /// @brief Move assignment operator
+  EopLookUpTable &operator=(EopLookUpTable &&eopt) noexcept {
+    if (this != &eopt) {
+      // just move elements ...
+      sz = eopt.sz;
+      capacity = eopt.sz;
+      mem_arena = eopt.mem_arena;
+      mjda = eopt.mjda;
+      xpa = eopt.xpa;
+      ypa = eopt.ypa;
+      ut1a = eopt.ut1a;
+      dxa = eopt.dxa;
+      dya = eopt.dya;
+      loda = eopt.loda;
+      omegaa = eopt.omegaa;
+      // leave move-from instance blank
+      eopt.sz = 0;
+      eopt.capacity = 0;
+      eopt.mem_arena = nullptr;
+    }
+    return *this;
+  }
+
+  /// @brief Copy constructor. The created copy will have a capacity and size 
+  ///        (both) equal to eopt's size.
+  EopLookUpTable(const EopLookUpTable &eopt) noexcept
+      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena(new double[capacity * 8]),
+        mjda((double *)std::memcpy(mem_arena, eopt.mem_arena, sz)),
+        xpa((double *)std::memcpy(mem_arena + 1 * capacity,
+                                  eopt.mem_arena + 1 * eopt.capacity, sz)),
+        ypa((double *)std::memcpy(mem_arena + 2 * capacity,
+                                  eopt.mem_arena + 2 * eopt.capacity, sz)),
+        ut1a((double *)std::memcpy(mem_arena + 3 * capacity,
+                                   eopt.mem_arena + 3 * eopt.capacity, sz)),
+        dxa((double *)std::memcpy(mem_arena + 4 * capacity,
+                                  eopt.mem_arena + 4 * eopt.capacity, sz)),
+        dya((double *)std::memcpy(mem_arena + 5 * capacity,
+                                  eopt.mem_arena + 5 * eopt.capacity, sz)),
+        loda((double *)std::memcpy(mem_arena + 6 * capacity,
+                                   eopt.mem_arena + 6 * eopt.capacity, sz)),
+        omegaa((double *)std::memcpy(mem_arena + 7 * capacity,
+                                     eopt.mem_arena + 7 * eopt.capacity, sz)) {}
+
+  /// @brief Compute the effect of zonal Earth tides on the rotation of the 
+  ///        Earth (using iers2010::rg_zont2 on UT1-UTC, LOD and 
+  ///        Omega) and subtract it from the respective elements in the 
+  ///        instance (hence this value will change the ut1a, loda and omegaa 
+  ///        arrays. This will result on the so-called "regularized" EOPs.
   void regularize() noexcept;
 
 /// @brief Interpolate and correct to get the xPole, Ypole and DUT1 values at 
@@ -115,7 +306,8 @@ int interpolate2(double fmjd_utc, EopRecord &eopr) const noexcept;
 /// @brief EopFile is a (dead simple) file EOP information, just like
 ///        IERS Bulletin B/C04 files. It's actually a translation of such 
 ///        files, but holding only EOP data for dates of choice.
-class EopFile {
+///        To create such a file, see the script: fetch_iers_c04.py
+/*class EopFile {
   ///< filename
   char filename[256];
 
@@ -154,7 +346,29 @@ public:
   int parse(dso::modified_julian_day start, dso::modified_julian_day end,
             EopLookUpTable &eoptable) noexcept;
 }; // EopFile
+*/
 
+/// @brief Extract data EOP from an EopFile for given dates
+///        The function will extract EOP for the time interval: [start,end) 
+///        off of this instance. 
+///        The data will be stored in the passed in arrays, which must be
+///        of size >= end - start
+///
+/// @warning Asserts that data in the file are in chronological order.
+///
+/// @param[in]  start MJD for start date (included)
+/// @param[in]  end   MJD for end date (not included)
+/// @param[out] eoptable An EopLookUpTable. If needed, it will be resized to 
+///             the size requested (aka end-start) and will hold the 
+///             following:
+///             mjd   Array of resolved MJDs 
+///             xpa   Array of x pole (EOP) in milliarcsecond [mas]
+///             ypa   Array of y pole (EOP) in milliarcsecond [mas]
+///             ut1a  Array of UT1-UTC values in millisecond [ms]
+/// @return Anything other than 0 denotes an error
+int parse_iers_C04(const char *c04fn, dso::modified_julian_day start,
+                   dso::modified_julian_day end,
+                   EopLookUpTable &eoptable) noexcept;
 } // dso
 
 #endif

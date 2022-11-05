@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
 ##
-## Fetch IERS Bulletin B/C04 file(s) for a given date. 
-## Note that an IERS Bulletin B/C04 file cantains final values for up to one
+## Fetch IERS C04 file(s) for a given date. 
+## Note that an IERS C04 file cantains final values for up to one
 ## month (prior to publication) and preliminery values for up to one month 
 ## after this. This script will download the respective file for the given 
 ## date. If the date is within N days of the start of preliminery values, then
 ## it will also download the next (following) file concatenate the two to a
-## new, merged Bulletin B/C04 file, thus containing final values for more than 
+## new, merged C04 file, thus containing final values for more than 
 ## one month!
 ##
 ## Update 08/10/2022 - Add values for LOD
@@ -26,7 +26,7 @@ class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
 parser = argparse.ArgumentParser(
     formatter_class=myFormatter,
     description=
-    'Download IERS Bulletin B/C04 file(s) for a given date and if needed create a new, merged one.',
+    'Download IERS C04 file(s) for a given date and if needed create a new, merged one.',
     epilog=('''National Technical University of Athens,
     Dionysos Satellite Observatory\n
     Send bug reports to:

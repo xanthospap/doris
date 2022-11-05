@@ -9,16 +9,16 @@ int dso::EopLookUpTable::interpolate2(double fmjd_utc,
   double corlod;
   int error = this->interpolate(fmjd_utc, eopr.xp, eopr.yp, eopr.ut1, corlod);
 
-  double lod;
+  double clod;
   int index = -1;
-  if (iers2010::interp::lagint(mjd, loda, sz, fmjd_utc, lod, index)) {
+  if (iers2010::interp::lagint(mjd(), lod(), sz, fmjd_utc, clod, index)) {
     fprintf(stderr,
             "[ERROR] Failed EOP interpolation; requested mjd %.5f (traceback: "
             "%s)\n",
             fmjd_utc, __func__);
     return 9;
   }
-  eopr.lod = lod + corlod;
+  eopr.lod = clod + corlod;
 
   double futc_day, imjd, ftt_day;
   dso::modified_julian_day tt_mjd;
@@ -44,14 +44,14 @@ int dso::EopLookUpTable::interpolate2(double fmjd_utc,
   return error;
 }
 
-int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
+int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xpole, double &ypole,
                                      double &dut1,
                                      double &corlod) const noexcept {
 
   // apply corrections; first use INTERP to interpolate x,y,ut1 values for
   // the given date (in [mas], [msec])
-  if (iers2010::interp_pole(mjd, xpa, ypa, ut1a, sz, fmjd_utc, xp, yp, dut1,
-                            corlod))
+  if (iers2010::interp_pole(mjd(), xp(), yp(), dut(), sz, fmjd_utc, xpole,
+                            ypole, dut1, corlod))
     return 1;
   
   // account for variations in polar motion (Dx,Dy) ocean-tides; results in
@@ -61,8 +61,8 @@ int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
     return 2;
 
   // transform to [mas] [msec]
-  xp += dxp * 1e-3;
-  yp += dyp * 1e-3;
+  xpole += dxp * 1e-3;
+  ypole += dyp * 1e-3;
   dut1 += dut2 * 1e-3;
 
   // account for libration effects; results in [μas]
@@ -70,27 +70,27 @@ int dso::EopLookUpTable::interpolate(double fmjd_utc, double &xp, double &yp,
     return 3;
 
   // transform to [mas]
-  xp += dxp * 1e-3;
-  yp += dyp * 1e-3;
+  xpole += dxp * 1e-3;
+  ypole += dyp * 1e-3;
 
   return 0;
 }
 
-int dso::EopLookUpTable::interpolate(double fmjd_utc, double &dx,
-                                     double &dy) const noexcept {
+int dso::EopLookUpTable::interpolate(double fmjd_utc, double &dxi,
+                                     double &dyi) const noexcept {
   // quick return in case the passed in date is out of bounds ...
-  if (fmjd_utc < *mjd || fmjd_utc >= mjd[sz - 1]) {
+  if (fmjd_utc < *mjd() || fmjd_utc >= *mjd(sz - 1)) {
     fprintf(stderr,
             "[ERROR] Requested interpolation at %.5f but EOP values span [%.5f "
             "to %.5f] (traceback: %s)\n",
-            fmjd_utc, mjd[0], mjd[sz - 1], __func__);
+            fmjd_utc, *mjd(0), *mjd(sz - 1), __func__);
     return 1;
   }
 
   int status = 0;
   int index = -1;
-  status += iers2010::interp::lagint(mjd, dxa, sz, fmjd_utc, dx, index);
-  status += iers2010::interp::lagint(mjd, dya, sz, fmjd_utc, dy, index);
+  status += iers2010::interp::lagint(mjd(), dx(), sz, fmjd_utc, dxi, index);
+  status += iers2010::interp::lagint(mjd(), dy(), sz, fmjd_utc, dyi, index);
   if (status) {
     fprintf(stderr,
             "[ERROR] Failed EOP interpolation; requested mjd %.5f (traceback: "
@@ -105,14 +105,12 @@ int dso::EopLookUpTable::interpolate(double fmjd_utc, double &dx,
 void dso::EopLookUpTable::regularize() noexcept {
   double futc_day, imjd, ftt_day;
   dso::modified_julian_day tt_mjd;
+  
   for (int i=0; i<sz; i++) {
-    
     // MJD is UTC at 0h 0min 0sec of day; transform to TT date
-    futc_day = std::modf(mjd[i], &imjd);
+    futc_day = std::modf(*mjd(i), &imjd);
     ftt_day = dso::utc2tai(dso::modified_julian_day(imjd), futc_day, tt_mjd);
     ftt_day += 32184e-3 / 86400e0;
-    //const double mjd_tt =
-    //    ftt_day + static_cast<double>(tt_mjd.as_underlying_type());
 
     // TT as Julian centuries since J2000
     const double jd =
@@ -120,16 +118,15 @@ void dso::EopLookUpTable::regularize() noexcept {
     const double jc2000 = (jd - dso::j2000_jd) / 36525e0 + ftt_day / 36525e0;
     
     // compute the effects of zonal Earth tides on the rotation of the Earth.
-    // Mind the units!!
     double dut1, // [seconds]
-      dlod,     // [seconds / day]
-      domega;   // [radians / second]
+      dlod,      // [seconds / day]
+      domega;    // [radians / second]
     iers2010::rg_zont2(jc2000, dut1, dlod, domega);
 
     // subtract the effect from the EOP values
-    ut1a[i] -= dut1 * 1e-3; // [milliseconds]
-    loda[i] -= dlod * 1e-3; // [milliseconds]
-    omegaa[i] -= domega * iers2010::DR2AS; // [mas/msec]
+    *(dut(i)) -= dut1; // [seconds]
+    *(lod(i)) -= dlod; // [seconds/day]
+    *(omega(i)) -= domega; // [?]
   }
   return;
 }

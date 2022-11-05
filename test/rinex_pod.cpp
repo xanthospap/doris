@@ -392,11 +392,10 @@ int main(int argc, char *argv[]) {
             argv[1]);
     return 1;
   } else {
-    dso::EopFile eopin(buf);
     const int ref_mjd = rnx.ref_datetime().as_mjd();
     const int start = ref_mjd - 4;
-    const int end = ref_mjd + 4;
-    if (eopin.parse(start, end, eop_lut)) {
+    const int end = ref_mjd + 5;
+    if (parse_iers_C04(buf, start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
