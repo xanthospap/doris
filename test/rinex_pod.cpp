@@ -15,7 +15,7 @@
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include "sp3/sp3.hpp"
-#include "sp3/sv_interpolate.hpp" /* debug mode */
+#include "sp3/sv_0nterpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
 #include <cassert>
@@ -395,13 +395,12 @@ int main(int argc, char *argv[]) {
     const int ref_mjd = rnx.ref_datetime().as_mjd();
     const int start = ref_mjd - 4;
     const int end = ref_mjd + 5;
-    if (parse_iers_C04(buf, start, end, eop_lut)) {
+    // parse C04 EOPs and convert time-stamps to TAI (not UTC)
+    if (parse_iers_C04(buf, start, end, eop_lut, true)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
-#ifdef NEW_EOP
     eop_lut.regularize();
-#endif
   }
 
   // Gravity

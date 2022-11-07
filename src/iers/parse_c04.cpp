@@ -1,4 +1,5 @@
 #include "eop.hpp"
+#include "datetime/utcdates.hpp"
 #include <charconv>
 #include <cstdio>
 #include <cstring>
@@ -49,6 +50,8 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
   char line[MAX_LINE_CHARS];
   int sz = 0;
 
+  constexpr const int utc2tt = true;
+
   while (fin.getline(line, MAX_LINE_CHARS)) {
     const char *start;
     const char *end;
@@ -73,7 +76,16 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
       // if the date is ok, collect data
       if (cmjd >= start_mjd && cmjd < end_mjd) {
         error = 0;
-        *(eoptable.mjd(sz)) = static_cast<double>(imjd);
+        // do we need to transform the given UTC date to TAI?
+        if (utc2tt) {
+          dso::modified_julian_day tai_mjd;
+          const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
+          const double tt_fday = tai_fday + (32.184e0/86400e0);
+          *(eoptable.mjd(sz)) =
+              tt_fday + static_cast<double>(tai_mjd.as_underlying_type());
+        } else {
+          *(eoptable.mjd(sz)) = static_cast<double>(imjd);
+        }
         double data[6];
         for (int i = 0; i < 6; i++) {
           start = next_num(fcr.ptr);

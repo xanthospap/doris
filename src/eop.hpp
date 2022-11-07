@@ -8,21 +8,25 @@ namespace dso {
 
 /// @brief A simple record of EOP values
 struct EopRecord {
-  double mjd, xp, yp, ut1, lod, dx, dy, omega;
+  double mjd, xp, yp, dut, lod, dx, dy, omega;
 };
 
 /// @brief A class to hold EOP information ordered by Mjd
-///        The elements of the EOP/MJD arrays are always stored in 
-///        chronological order.
+///        The elements of the EOP/MJD arrays are always stored in
+///        chronological order. Note that notmally, (i.e. if the instance has
+///        been constructed by a call to dso::parse_iers_C04) the mjd array is
+///        in TT (whereas the IERS-distributed C04 files contain date 
+///        information in UTC).
 class EopLookUpTable {
 private:
   ///< Actual size of arrays aka number of epochs
   int sz{0};
   ///< Capacity of memmory, not the same as the actual number of epochs stored!
   int capacity{0};
+  ///< Memmory pool
   double *mem_arena{nullptr};
   ///< arrays of EOP values extracted from C04
-  double *mjda{nullptr}, ///< [UTC], start index = 0
+  double *mjda{nullptr}, ///< [TT], start index = 0
   *xpa {nullptr},   ///< [", arcsec], start index = 1
   *ypa {nullptr},   ///< [", arcsec], start index = 2
   *ut1a{nullptr},   ///< [sec], start index = 3
@@ -177,9 +181,10 @@ public:
 
   /// @brief Move constructor
   EopLookUpTable(EopLookUpTable &&eopt) noexcept
-      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena{eopt.mem_arena},
-        mjda{eopt.mjda}, xpa{eopt.xpa}, ypa{eopt.ypa}, ut1a{eopt.ut1a},
-        dxa{eopt.dxa}, dya{eopt.dya}, loda{eopt.loda}, omegaa{eopt.omegaa} {
+      : sz{eopt.sz}, capacity{eopt.sz},
+        mem_arena{eopt.mem_arena}, mjda{eopt.mjda}, xpa{eopt.xpa},
+        ypa{eopt.ypa}, ut1a{eopt.ut1a}, dxa{eopt.dxa}, dya{eopt.dya},
+        loda{eopt.loda}, omegaa{eopt.omegaa} {
     eopt.sz = eopt.capacity = 0;
     eopt.mem_arena = nullptr;
   }
@@ -235,7 +240,8 @@ public:
   /// @brief Copy constructor. The created copy will have a capacity and size 
   ///        (both) equal to eopt's size.
   EopLookUpTable(const EopLookUpTable &eopt) noexcept
-      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena(new double[capacity * 8]),
+      : sz{eopt.sz}, capacity{eopt.sz},
+        mem_arena(new double[capacity * 8]),
         mjda((double *)std::memcpy(mem_arena, eopt.mem_arena, sz)),
         xpa((double *)std::memcpy(mem_arena + 1 * capacity,
                                   eopt.mem_arena + 1 * eopt.capacity, sz)),
@@ -259,94 +265,35 @@ public:
   ///        arrays. This will result on the so-called "regularized" EOPs.
   void regularize() noexcept;
 
-/// @brief Interpolate and correct to get the xPole, Ypole and DUT1 values at 
-///   a given date
-///
-/// The function will perform the following:
-///   1. first use INTERP to interpolate x,y,ut1 values for the given date.
-///   INTERP is recommended to interpolate the IERS polar motion and Universal 
-///   Time products and account for the semidiurnal/diurnal variations in the 
-///   Earths orientation. This procedure makes use of a Lagrangian 
-///   interpolation scheme and applies the integral Ray model (71 tidal waves) 
-///   and Brzezinski-Mathews-Bretagnon-Capitaine-Bizouard model (10 lunisolar 
-///   waves) of the semidiurnal/diurnal variations in the Earth's orientation 
-///   as recommended in the IERS 2000 Conventions (McCarthy, 2002). see
-///   https://hpiers.obspm.fr/iers/models/interp.readme
-///   2. Use ORTHO_EOP to ccount for variations in polar motion (Dx,Dy) 
-///   due to ocean-tides
-///   3. Use PMSDNUT2 to account for libration effects
-/// See IERS Conventions 2010, Petit et al., Chapter 5.5
-///
-/// @note INTERP (aka iers2010::interp_pole` uses a window of 4 points to
-///       interpolate. That means we should have data for at least one day 
-///       before fmjd_utc and tow days after it.
-/// 
-/// @note Asserts instance sz is at least 4 and units are [mas] and [msec]. 
-///       That is INTERP uses a window of 4 data points.
-///
-/// @param[in] fmjd_utc Interpolation epoch; must be at the samte time-scale 
-///            as the mjd input array
-/// @param[out] xp Computed xPole at input fmjd_utc [mas]
-/// @param[out] yp Computed yPole at input fmjd_utc [mas]
-/// @param[out] dut1 Computed UT1-UTC at input fmjd_utc [msec]
-/// @return Anything other than 0 is an error
-int interpolate(double fmjd_utc, double &xp, double &yp,
-                  double &dut1, double &corlod) const noexcept;
-
-int interpolate(double fmjd_utc, double &dx, double &dy) const noexcept;
-
-int interpolate(double fmjd_utc, EopRecord &eopr) const noexcept {
-  int error = interpolate(fmjd_utc, eopr.xp, eopr.yp, eopr.ut1, eopr.lod);
-  error += interpolate(fmjd_utc, eopr.dx, eopr.dy);
-  return error;
-}
-int interpolate2(double fmjd_utc, EopRecord &eopr) const noexcept;
-};// EopLookUpTable
-
-/// @brief EopFile is a (dead simple) file EOP information, just like
-///        IERS Bulletin B/C04 files. It's actually a translation of such 
-///        files, but holding only EOP data for dates of choice.
-///        To create such a file, see the script: fetch_iers_c04.py
-/*class EopFile {
-  ///< filename
-  char filename[256];
-
-public:
-  /// @brief Constructor from filename
-  EopFile(const char *fn);
-  /// @brief Copy not allowed
-  EopFile(const EopFile &other) = delete;
-  /// @brief Move allowed
-  EopFile(EopFile &&other) noexcept;
-  /// @brief Assignment not allowed
-  EopFile &operator=(const EopFile &other) = delete;
-  /// @brief Move assignment allowed
-  EopFile &operator=(EopFile &&other) noexcept;
-  /// @brief Destructor
-  ~EopFile() noexcept {};
-
-  /// @brief Extract data EOP from an EopFile for given dates
-  ///        The function will extract EOP for the time interval: [start,end) 
-  ///        off of this instance. 
-  ///        The data will be stored in the passed in arrays, which must be
-  ///        of size >= end - start
+  /// @brief Interpolate and correct to get EOP/ERP parameters at given date
   ///
-  /// @warning Asserts that data in the file are in chronological order.
+  /// See IERS Conventions 2010, Petit et al., Chapter 5.5
   ///
-  /// @param[in]  start MJD for start date (included)
-  /// @param[in]  end   MJD for end date (not included)
-  /// @param[out] eoptable An EopLookUpTable. If needed, it will be resized to 
-  ///             the size requested (aka end-start) and will hold the 
-  ///             following:
-  ///             mjd   Array of resolved MJDs 
-  ///             xpa   Array of x pole (EOP) in milliarcsecond [mas]
-  ///             ypa   Array of y pole (EOP) in milliarcsecond [mas]
-  ///             ut1a  Array of UT1-UTC values in millisecond [ms]
+  /// @param[in] fmjd_tt Interpolation epoch given as mjd [TT]
+  /// @param[out] eopr EOP/ERP parameters at requested epoch, as computed by
+  ///            Lagrangian interpolation and the removal of ocen-tide effects
+  ///            (iers2010::interp::pmut1_oceans) and libration
+  ///            (iers2010::interp::pm_gravi) effects.
+  /// @return Anything other than 0 is an error
+  int interpolate(double fmjd_tt, EopRecord &eopr,
+                  int order = 5) const noexcept;
+
+  /// @brief Interpolate EOP/ERPs at time ffmjd_tt using Lgrangian
+  /// interpolation
+  ///        of given order
+  /// @param fmjd_tt Point to interpolate at [MJD] TT
+  /// @param eopr Interpolation results stored in an EopRecord instance;
+  /// note
+  ///             that omega (Earth rotation rate) values are NOT
+  ///             used/interpolated
+  /// @param order Order of the Lagrangian interpolation (that is the
+  /// window, aka
+  ///             used points is order+1). This parameter should be an odd
+  ///             integer
   /// @return Anything other than 0 denotes an error
-  int parse(dso::modified_julian_day start, dso::modified_julian_day end,
-            EopLookUpTable &eoptable) noexcept;
-}; // EopFile
-*/
+  int interpolate_lagrange(double fmjd_tt, EopRecord &eopr,
+                           int order = 5) const noexcept;
+};// EopLookUpTable
 
 /// @brief Extract data EOP from an EopFile for given dates
 ///        The function will extract EOP for the time interval: [start,end) 
@@ -356,19 +303,24 @@ public:
 ///
 /// @warning Asserts that data in the file are in chronological order.
 ///
-/// @param[in]  start MJD for start date (included)
-/// @param[in]  end   MJD for end date (not included)
+/// @param[in]  start MJD for start date (included) [UTC]
+/// @param[in]  end   MJD for end date (not included) [UTC]
 /// @param[out] eoptable An EopLookUpTable. If needed, it will be resized to 
 ///             the size requested (aka end-start) and will hold the 
 ///             following:
-///             mjd   Array of resolved MJDs 
-///             xpa   Array of x pole (EOP) in milliarcsecond [mas]
-///             ypa   Array of y pole (EOP) in milliarcsecond [mas]
-///             ut1a  Array of UT1-UTC values in millisecond [ms]
+///             mjd   Array of resolved MJDs [TT]
+///             xpa   Array of x pole (EOP) in arcseconds [arcsec]
+///             ypa   Array of y pole (EOP) in arcseconds [arcsec]
+///             ut1a  Array of UT1-UTC values in seconds [sec]
+///             loda  Array of LOD values in seconds/day [sec]
+/// @note  EOP files contain UTC time-stamps. In this function, the the 
+///        time-tags (mjd array) will be converted to TT before appended to 
+///        the mjd array, hence the mjd array in the eoptable instance will be 
+///        in MJD/TT.
 /// @return Anything other than 0 denotes an error
 int parse_iers_C04(const char *c04fn, dso::modified_julian_day start,
-                   dso::modified_julian_day end,
-                   EopLookUpTable &eoptable) noexcept;
+                   dso::modified_julian_day end, EopLookUpTable &eoptable
+                   ) noexcept;
 } // dso
 
 #endif

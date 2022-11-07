@@ -155,11 +155,7 @@ dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
 int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
                    Eigen::Matrix<double, 3, 3> &rc2i,
                    double &era,
-#ifdef NEW_EOP
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
-#else
-                   Eigen::Matrix<double, 3, 3> &rpom) noexcept {
-#endif
 
   // TAI MJD to datetime instance
   int imjd = (int)mjd_tai;
@@ -179,21 +175,15 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   double utc = dso::tai2utc(taidate, utc_mjd);
   utc += static_cast<double>(utc_mjd.as_underlying_type()); // UTC as mjd
 
-  // interpolate/correct EOP values using UTC
+  // interpolate/correct EOP values using TT
   dso::EopRecord eops;
-#ifdef NEW_EOP
   if (int error; (error = eop_table.interpolate2(utc, eops))) {
-#else
-  if (int error; (error = eop_table.interpolate(utc, eops))) {
-#endif
     fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
     return error;
   }
 
-#ifdef NEW_EOP
   // assign interpolated LOD value
   xlod = eops.lod;
-#endif
 
   // X,Y coordinates of celestial intermediate pole from series based
   // on IAU 2006 precession and IAU 2000A nutation.
