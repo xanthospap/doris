@@ -69,13 +69,13 @@ int dso::EopLookUpTable::interpolate(double tt_fmjd,
   eopr.xp += cx;
   eopr.yp += cy;
 
+  eopr.mjd = tt_fmjd; // TT MJD
+
   return 0;
 }
 
   void dso::EopLookUpTable::regularize() noexcept {
-    double futc_day, imjd, ftt_day;
     dso::modified_julian_day tt_mjd;
-
     double imjd;
     for (int i = 0; i < sz; i++) {
       // TT as Julian centuries since J2000 (try to keep accuracy)

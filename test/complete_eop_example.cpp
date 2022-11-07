@@ -41,5 +41,22 @@ int main(int argc, char *argv[]) {
            *eops.dx(i), *eops.dy(i));
   }
 
+  // interpolate for a range of 5 days, every 30 seconds
+  dso::datetime<dso::nanoseconds> t_end(dso::year(2021), dso::month(1),
+                                    dso::day_of_month(5),
+                                    dso::nanoseconds(0));
+  dso::EopRecord eopr;
+  while (t < t_end) {
+    if (eops.interpolate(t.as_mjd(), eopr)) {
+      fprintf(stderr, "ERROR. Failed to interpolate at t=%.6f MJD\n", t.as_mjd());
+      return 9;
+    }
+    printf("mjd %.9f xp %+10.8f yp %+10.8f dut1 %+10.8f lod %+10.8f dx %+10.8f "
+           "dy %+10.8f\n",
+           eopr.mjd, eopr.xp, eopr.yp, eopr.dut, eopr.lod, eopr.dx, eopr.dy);
+    t.add_seconds(dso::seconds(30));
+  }
+
+
   return 0;
 }

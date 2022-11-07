@@ -15,7 +15,7 @@
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include "sp3/sp3.hpp"
-#include "sp3/sv_0nterpolate.hpp" /* debug mode */
+#include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cstdio>
 #include <cassert>

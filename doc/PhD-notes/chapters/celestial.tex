@@ -88,7 +88,11 @@ less than two days in space (\cite{iers2010}), so that:
     \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{ocean\text{ }tides} + 
     \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{libration} 
 \end{equation}
-
+Handling of ocean tides and forced terms is performed similar to the \gls{iers}-
+published \texttt{INTERP.F}\footnote{available from IERS at \url{https://hpiers.obspm.fr/iers/models/interp.f}} routine. 
+In principle, the same result should be obtained by computing the respective 
+corrections from calling \texttt{RG\_ZONT2.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/RG_ZONT2.F}, provided by A. Brzezinski.} 
+and \texttt{PMSDNUT2.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/PMSDNUT2.F}, provided by A. Brzezinski.}.
 
 \begin{itemize}
     \item The subdaily variations are not part of the polar motion values 

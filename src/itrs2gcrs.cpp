@@ -177,7 +177,7 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // interpolate/correct EOP values using TT
   dso::EopRecord eops;
-  if (int error; (error = eop_table.interpolate2(utc, eops))) {
+  if (int error; (error = eop_table.interpolate(ttdate.as_mjd(), eops))) {
     fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
     return error;
   }
@@ -213,7 +213,7 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   //}
 
   // call ERA00 to get the ERA rotation angle
-  const double ut1 = utc + (eops.ut1 / 86400e0) * 1e-3;
+  const double ut1 = utc + (eops.dut / 86400e0) * 1e-3;
   /*const double*/ era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
 
   // Form celestial-terrestrial matrix (no polar motion yet)
