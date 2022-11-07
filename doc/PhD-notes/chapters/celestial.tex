@@ -94,12 +94,24 @@ In principle, the same result should be obtained by computing the respective
 corrections from calling \texttt{RG\_ZONT2.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/RG_ZONT2.F}, provided by A. Brzezinski.} 
 and \texttt{PMSDNUT2.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/PMSDNUT2.F}, provided by A. Brzezinski.}.
 
-\begin{itemize}
-    \item The subdaily variations are not part of the polar motion values 
-    reported to and distributed by the \gls{iers} and are therefore to be 
-    added after interpolation (\cite{iers2010}). To perform this correction, 
-    two seperate effects are taken into account,
-\end{itemize}
+\begin{figure}
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{eop-00to22}
+         \caption{\glspl{eop} extracted from \texttt{C04} file}
+         \label{fig:erp-00to22}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{eop-daily}
+         \caption{\glspl{eop} interpolated values (see \ref{fig:handling-eop})}
+         \label{fig:erp-00to22}
+     \end{subfigure}
+\caption{\gls{eop} information from \gls{iers} \texttt{C04} data files.}
+\label{fig:erp-plots}
+\end{figure}
 
 \section{Implementation}
 \label{eop-implementation}
