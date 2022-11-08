@@ -170,11 +170,6 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   dso::datetime<dso::nanoseconds> ttdate(taidate);
   ttdate.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
 
-  // Need UTC datetime
-  dso::modified_julian_day utc_mjd;
-  double utc = dso::tai2utc(taidate, utc_mjd);
-  utc += static_cast<double>(utc_mjd.as_underlying_type()); // UTC as mjd
-
   // interpolate/correct EOP values using TT
   dso::EopRecord eops;
   if (int error; (error = eop_table.interpolate(ttdate.as_mjd(), eops))) {
@@ -204,34 +199,21 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   // [TRS] = RPOM * R_3(ERA) * rc2i * [CRS]  = RC2T * [CRS]
   /*const Eigen::Matrix<double, 3, 3>*/ 
   rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
-  //printf("RC2I\n");
-  //for (int i=0; i<3; i++) {
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ", rc2i(i,j));
-  //  }
-  //  printf("\n");
-  //}
 
-  // call ERA00 to get the ERA rotation angle
-  const double ut1 = utc + (eops.dut / 86400e0) * 1e-3;
-  /*const double*/ era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
+  // call ERA00 to get the ERA rotation angle (need UT1 datetime)
+  dso::modified_julian_day utc_mjd;
+  const double utc = dso::tai2utc(taidate, utc_mjd); // fractional part
+  double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
+  ut1 += static_cast<double>(utc_mjd.as_underlying_type()); // UTC as mjd
+  era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
 
-  // Form celestial-terrestrial matrix (no polar motion yet)
-  //rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
-  //printf("RC22\n");
-  //for (int i=0; i<3; i++) {
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ", rc2ti(i,j));
-  //  }
-  //  printf("\n");
-  //}
-
-  // Estimate s'
+  // Estimate s' [radians]
   const double sp = iers2010::sofa::sp00(dso::mjd0_jd, ttdate.as_mjd());
 
-  // Form the polar motion matrix (W)
-  rpom = iers2010::sofa::pom00_e(eops.xp * iers2010::DMAS2R,
-                                 eops.yp * iers2010::DMAS2R, sp);
+  // Form the polar motion matrix (W); note that we need angular units in 
+  // radians
+  rpom = iers2010::sofa::pom00_e(dso::arcsec2rad(eops.xp),
+                                 dso::arcsec2rad(eops.yp), sp);
 
   return 0;
 }

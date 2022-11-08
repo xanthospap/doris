@@ -15,7 +15,7 @@ struct EopRecord {
 ///        The elements of the EOP/MJD arrays are always stored in
 ///        chronological order. Note that notmally, (i.e. if the instance has
 ///        been constructed by a call to dso::parse_iers_C04) the mjd array is
-///        in TT (whereas the IERS-distributed C04 files contain date 
+///        in TT (whereas the IERS-distributed C04 files contain date
 ///        information in UTC).
 class EopLookUpTable {
 private:
@@ -27,128 +27,122 @@ private:
   double *mem_arena{nullptr};
   ///< arrays of EOP values extracted from C04
   double *mjda{nullptr}, ///< [TT], start index = 0
-  *xpa {nullptr},   ///< [", arcsec], start index = 1
-  *ypa {nullptr},   ///< [", arcsec], start index = 2
-  *ut1a{nullptr},   ///< [sec], start index = 3
-  *dxa{nullptr},    ///< [", arcsec], start index = 4
-  *dya{nullptr},    ///< [", arcsec], start index = 5
-  *loda{nullptr},   ///< [sec/day], start index = 6
-  *omegaa{nullptr}; ///< [?], start index = 7
+      *xpa{nullptr},     ///< [", arcsec], start index = 1
+      *ypa{nullptr},     ///< [", arcsec], start index = 2
+      *ut1a{nullptr},    ///< [sec], start index = 3
+      *dxa{nullptr},     ///< [", arcsec], start index = 4
+      *dya{nullptr},     ///< [", arcsec], start index = 5
+      *loda{nullptr},    ///< [sec/day], start index = 6
+      *omegaa{nullptr};  ///< [?], start index = 7
 
 public:
-  int size() const noexcept {return sz;}
+  int size() const noexcept { return sz; }
 
   double *mjd(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return mjda+i; 
+    return mjda + i;
   }
   double *xp(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return xpa+i; 
+    return xpa + i;
   }
   double *yp(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return ypa+i; 
+    return ypa + i;
   }
   double *dut(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return ut1a+i; 
+    return ut1a + i;
   }
   double *dx(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return dxa+i; 
+    return dxa + i;
   }
   double *dy(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return dya+i; 
+    return dya + i;
   }
   double *lod(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return loda+i; 
+    return loda + i;
   }
   double *omega(int i = 0) noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return omegaa+i; 
+    return omegaa + i;
   }
   const double *mjd(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return mjda+i; 
+    return mjda + i;
   }
   const double *xp(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return xpa+i; 
+    return xpa + i;
   }
   const double *yp(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return ypa+i; 
+    return ypa + i;
   }
   const double *dut(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return ut1a+i; 
+    return ut1a + i;
   }
   const double *dx(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return dxa+i; 
+    return dxa + i;
   }
   const double *dy(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return dya+i; 
+    return dya + i;
   }
   const double *lod(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return loda+i; 
+    return loda + i;
   }
   const double *omega(int i = 0) const noexcept {
 #ifdef DEBUG
-    assert(i>=0 && i<sz);
+    assert(i >= 0 && i < sz);
 #endif
-    return omegaa+i; 
+    return omegaa + i;
   }
 
   /// @brief Default constructor (uses a capacity of 10 elements)
-  EopLookUpTable(int _capacity=10) noexcept :
-    sz{_capacity},
-    capacity{_capacity},
-    mem_arena(new double[_capacity * 8]),
-    mjda(mem_arena),
-    xpa(mem_arena + _capacity),
-    ypa(mem_arena + 2*_capacity),
-    ut1a(mem_arena + 3*_capacity),
-    dxa(mem_arena + 4*_capacity),
-    dya(mem_arena + 5*_capacity),
-    loda(mem_arena + 6*_capacity),
-    omegaa(mem_arena + 7*_capacity)
-  {}
+  EopLookUpTable(int _capacity = 10) noexcept
+      : sz{_capacity}, capacity{_capacity},
+        mem_arena(new double[_capacity * 8]), mjda(mem_arena),
+        xpa(mem_arena + _capacity), ypa(mem_arena + 2 * _capacity),
+        ut1a(mem_arena + 3 * _capacity), dxa(mem_arena + 4 * _capacity),
+        dya(mem_arena + 5 * _capacity), loda(mem_arena + 6 * _capacity),
+        omegaa(mem_arena + 7 * _capacity) {}
 
   /// @brief Resize; alocation/dealocation depends on capacity
   void resize(int sz_) noexcept {
@@ -175,16 +169,16 @@ public:
 
   /// @brief destructor
   ~EopLookUpTable() noexcept {
-    if (mem_arena) delete[] mem_arena;
+    if (mem_arena)
+      delete[] mem_arena;
     sz = capacity = 0;
   }
 
   /// @brief Move constructor
   EopLookUpTable(EopLookUpTable &&eopt) noexcept
-      : sz{eopt.sz}, capacity{eopt.sz},
-        mem_arena{eopt.mem_arena}, mjda{eopt.mjda}, xpa{eopt.xpa},
-        ypa{eopt.ypa}, ut1a{eopt.ut1a}, dxa{eopt.dxa}, dya{eopt.dya},
-        loda{eopt.loda}, omegaa{eopt.omegaa} {
+      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena{eopt.mem_arena},
+        mjda{eopt.mjda}, xpa{eopt.xpa}, ypa{eopt.ypa}, ut1a{eopt.ut1a},
+        dxa{eopt.dxa}, dya{eopt.dya}, loda{eopt.loda}, omegaa{eopt.omegaa} {
     eopt.sz = eopt.capacity = 0;
     eopt.mem_arena = nullptr;
   }
@@ -213,7 +207,7 @@ public:
     }
     return *this;
   }
-  
+
   /// @brief Move assignment operator
   EopLookUpTable &operator=(EopLookUpTable &&eopt) noexcept {
     if (this != &eopt) {
@@ -237,11 +231,10 @@ public:
     return *this;
   }
 
-  /// @brief Copy constructor. The created copy will have a capacity and size 
+  /// @brief Copy constructor. The created copy will have a capacity and size
   ///        (both) equal to eopt's size.
   EopLookUpTable(const EopLookUpTable &eopt) noexcept
-      : sz{eopt.sz}, capacity{eopt.sz},
-        mem_arena(new double[capacity * 8]),
+      : sz{eopt.sz}, capacity{eopt.sz}, mem_arena(new double[capacity * 8]),
         mjda((double *)std::memcpy(mem_arena, eopt.mem_arena, sz)),
         xpa((double *)std::memcpy(mem_arena + 1 * capacity,
                                   eopt.mem_arena + 1 * eopt.capacity, sz)),
@@ -258,10 +251,10 @@ public:
         omegaa((double *)std::memcpy(mem_arena + 7 * capacity,
                                      eopt.mem_arena + 7 * eopt.capacity, sz)) {}
 
-  /// @brief Compute the effect of zonal Earth tides on the rotation of the 
-  ///        Earth (using iers2010::rg_zont2 on UT1-UTC, LOD and 
-  ///        Omega) and subtract it from the respective elements in the 
-  ///        instance (hence this value will change the ut1a, loda and omegaa 
+  /// @brief Compute the effect of zonal Earth tides on the rotation of the
+  ///        Earth (using iers2010::rg_zont2 on UT1-UTC, LOD and
+  ///        Omega) and subtract it from the respective elements in the
+  ///        instance (hence this value will change the ut1a, loda and omegaa
   ///        arrays. This will result on the so-called "regularized" EOPs.
   void regularize() noexcept;
 
@@ -269,7 +262,8 @@ public:
   ///
   /// See IERS Conventions 2010, Petit et al., Chapter 5.5
   ///
-  /// @param[in] fmjd_tt Interpolation epoch given as mjd [TT]
+  /// @param[in] fmjd_tt Interpolation epoch given as mjd [TT] (assuming that
+  ///            the calling instance's mjd array is in TT)
   /// @param[out] eopr EOP/ERP parameters at requested epoch, as computed by
   ///            Lagrangian interpolation and the removal of ocen-tide effects
   ///            (iers2010::interp::pmut1_oceans) and libration
@@ -293,11 +287,11 @@ public:
   /// @return Anything other than 0 denotes an error
   int interpolate_lagrange(double fmjd_tt, EopRecord &eopr,
                            int order = 5) const noexcept;
-};// EopLookUpTable
+}; // EopLookUpTable
 
 /// @brief Extract data EOP from an EopFile for given dates
-///        The function will extract EOP for the time interval: [start,end) 
-///        off of this instance. 
+///        The function will extract EOP for the time interval: [start,end)
+///        off of this instance.
 ///        The data will be stored in the passed in arrays, which must be
 ///        of size >= end - start
 ///
@@ -305,22 +299,22 @@ public:
 ///
 /// @param[in]  start MJD for start date (included) [UTC]
 /// @param[in]  end   MJD for end date (not included) [UTC]
-/// @param[out] eoptable An EopLookUpTable. If needed, it will be resized to 
-///             the size requested (aka end-start) and will hold the 
+/// @param[out] eoptable An EopLookUpTable. If needed, it will be resized to
+///             the size requested (aka end-start) and will hold the
 ///             following:
 ///             mjd   Array of resolved MJDs [TT]
 ///             xpa   Array of x pole (EOP) in arcseconds [arcsec]
 ///             ypa   Array of y pole (EOP) in arcseconds [arcsec]
 ///             ut1a  Array of UT1-UTC values in seconds [sec]
 ///             loda  Array of LOD values in seconds/day [sec]
-/// @note  EOP files contain UTC time-stamps. In this function, the the 
-///        time-tags (mjd array) will be converted to TT before appended to 
-///        the mjd array, hence the mjd array in the eoptable instance will be 
+/// @note  EOP files contain UTC time-stamps. In this function, the the
+///        time-tags (mjd array) will be converted to TT before appended to
+///        the mjd array, hence the mjd array in the eoptable instance will be
 ///        in MJD/TT.
 /// @return Anything other than 0 denotes an error
 int parse_iers_C04(const char *c04fn, dso::modified_julian_day start,
-                   dso::modified_julian_day end, EopLookUpTable &eoptable
-                   ) noexcept;
-} // dso
+                   dso::modified_julian_day end,
+                   EopLookUpTable &eoptable) noexcept;
+} // namespace dso
 
 #endif
