@@ -550,7 +550,7 @@ int main(int argc, char *argv[]) {
   error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                              "observation-sigma", obs_sigma);
   assert(obs_sigma > 0e0 && obs_sigma < 1e2 && (!error));
-  printf("## Note: default observation sigms value: %.3f\n", obs_sigma);
+  printf("## Note: default observation sigma value: %.3f\n", obs_sigma);
 
   // Important !!
   // set integration parameter estimates to point to the Filter
@@ -577,6 +577,7 @@ int main(int argc, char *argv[]) {
   // count Ndop observations
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
+  unsigned flaged_obs = 0;
 
   // report
   #ifndef NO_ATTITUDE
@@ -647,6 +648,7 @@ int main(int argc, char *argv[]) {
     }
 
     // update the Kalman filter estimates for the satellite state vector
+    // TODO
     Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
     PhiP.block<6, 6>(0, 0) = svState.Phi;
     auto estimates = Filter.estimates();
@@ -693,17 +695,8 @@ int main(int argc, char *argv[]) {
         if (pprev_obs != prevec.end()) {
           pprev_obs->reinitialize = 1;
         }
-        // printf("\t\t#Note! Observation has flags:
-        // L1[%c%c]/L2[%c%c]/W1[%c%c]/W2[%c%c]; skipped!\n",
-        //        beaconobs->m_values[l1i].m_flag1,
-        //        beaconobs->m_values[l1i].m_flag2,
-        //        beaconobs->m_values[l2i].m_flag1,
-        //        beaconobs->m_values[l2i].m_flag2,
-        //        beaconobs->m_values[w1i].m_flag1,
-        //        beaconobs->m_values[w1i].m_flag2,
-        //        beaconobs->m_values[w2i].m_flag1,
-        //        beaconobs->m_values[w2i].m_flag2
-        //        );
+
+        ++flaged_obs;
 
       } else {
         // flags ok, continue with processing ...

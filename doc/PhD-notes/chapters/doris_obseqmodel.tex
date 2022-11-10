@@ -280,3 +280,83 @@ and the \emph{iono-free} phase center:
 where the superscript $satf$ denotes the \emph{satellite-fixed} body/reference 
 frame. On-board satellite antenna phase center offset values can be found in 
 \cite{DorisSatModels}.
+
+\subsubsection{RINEX Observation Flags}
+\label{sssec:rnx-flags}
+An observation is rendered as ``non-usable'', if any of the below holds true:
+\begin{itemize}
+  \item flag1 or flag2 of the L\SI{2}{\giga\hertz} carrier is set to \texttt{1}
+  \item flag1 or flag2 of the L\SI{400}{\mega\hertz} carrier is set to \texttt{1}
+  \item flag1 of the Power (\texttt{W}) observation on either the L\SI{2}{\giga\hertz} 
+    or the L\SI{400}{\mega\hertz} carrier is set to \texttt{1} (restart mode)
+\end{itemize}
+
+\section{Processing SetUp}
+
+\subsubsection{General SetUp}
+\begin{itemize}
+  \item Elevation cut-off angle \ang{10}
+  \item Setup new satellite arc if previous observation (of the beacon) is more 
+    than \SI{5}{\min} away
+\end{itemize}
+
+\subsubsection{Filter SetUp}
+\begin{itemize}
+  \item A-priori information for $\Delta f_e / f_{e_N}$: $0.0 \pm 1.0$
+  \item A-priori information for drag coefficient $C_{d}$: $2.0 \pm .75$
+\end{itemize}
+
+\subsubsection{EOP Information}
+EOP information is extracted/interpolated from IERS \texttt{C04} files.
+
+\subsubsection{Earth Gravity}
+Using gravity model \texttt{GOCO02s} (icgem format), up to degre/order 90.
+
+\subsubsection{Beacon Information}
+Reference coordinates extracted from \texttt{dpod2014\_053.snx}. Antenna 
+Reference Point (eccentricity) extracted from respective IDS log files, and 
+added to the extrapolated cartesian coordinates (see 
+\ref{ssec:beacon_coordinates}).
+
+\subsubsection{Satellite Information}
+Centre of Gravity (CoG) coordinates, in the SV-fixed RF, are extracted from the 
+file \texttt{ja3mass.txt}. Phase centre coordinates (in the SV-fixed RF) for the 
+two frequencies are extracted from the file \texttt{DORISSatelliteModels.pdf} and 
+converted to \emph{iono-free} pco as:
+\begin{equation}
+  \bm{r}_{iono-free-pco} = \bm{r}_{2GHz,PCO} + (\bm{r}_{400MHz,PCO} - \bm{r}_{2GHz,PCO}) / (\gamma - 1)
+\end{equation}
+with all $\bm{r}$ vectors wrt the the SV-fixed RF.
+
+\subsubsection{Atmospheric Drag}
+To compute atmospheric density, we are using the \texttt{NRLMSISE00} model, 
+using flux data from CelesTrack.
+
+\subsubsection{Third Body Attraction/Perturbations}
+Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
+
+\subsubsection{Algorithm}
+\begin{enumerate}
+  \item Setup auxiliary infromation, data files, filter, etc ...
+
+  \item Parse the RINEX file header
+
+  \item For every observation block in the RINEX file:
+    \begin{enumerate}
+      \item Transform proper time $\tau _i$ to TAI $t_i$ using the receiver-clock-offset 
+        value reported in the RINEX
+      \item Integrate orbit to $t_i$ (results are state vector $\bm{X}_{t_i}$ and state 
+        transition matrix $\bm{\Phi}_{t_i}$)
+      \item Perform the Kalman filter time-update, aka compute new $P$ matrix as 
+        \begin{equation}
+          P^- _{t_i} = \bm{\Phi} \cdot P^+ _{t_{i-1}} \cdot \bm{\Phi}^T
+        \end{equation}
+        where $\bm{\Phi} = \begin{pmatrix} \bm{\Phi}_{6\times 6} & \bm{0} \\ \bm{0} & \bm{I} \end{pmatrix}$
+        \item For every observation set in the current block:
+          \begin{enumerate}
+            \item Check observation flags reported in the RINEX file (see \ref{sssec:rnx-flags}). 
+              If the observation is un-usable, then mark a discontinuity (for the beacon) and procceed 
+              to next observation. If flags are ok, continue.
+          \end{enumerate}
+      \end{enumerate}
+\end{enumerate}
