@@ -1,21 +1,21 @@
 \begin{tikzpicture}
 	\node (A) at (0,0) 
-		[minimum height=2.5em, minimum width=10em, fill=blue!10,rounded corners, drop shadow] 
+		[draw=black, minimum height=2.5em, minimum width=10em, fill=gray!10,rounded corners, drop shadow] 
 		{EOP C04 (published by \gls{iers})};
 	
 	\node (AtB) at (0,-3) 
-		[minimum height=2.5em, minimum width=10em, fill=red!10,rounded corners, drop shadow]
+		[draw=black, minimum height=2.5em, minimum width=10em, fill=red!10,rounded corners, drop shadow]
 		{\begin{minipage}{.5\textwidth}\begin{itemize}
 		\item ``regularize''\footnote{(remove zonal Earth tide effect in $\Delta UT$ and LOD via \texttt{RG\_ZONT2})}
 		\item \gls{utc} to \gls{tt}
 		\end{itemize}\end{minipage}};
 		
 	\node (B) at (0,-6.0) 
-		[minimum height=2.5em, minimum width=10em, fill=blue!10,rounded corners, drop shadow] 
+		[draw=black, minimum height=2.5em, minimum width=10em, fill=gray!10,rounded corners, drop shadow] 
 		{\texttt{EopLookUpTable}};
 
 	\node (BtI) at (0,-10) 
-		[minimum height=2.5em, minimum width=10em, fill=red!10,rounded corners, drop shadow]
+		[draw=black, minimum height=2.5em, minimum width=10em, fill=red!10,rounded corners, drop shadow]
 		{\begin{minipage}{.6\textwidth}\begin{itemize}
 		\item Lagrangian inmterpolation (5\textsuperscript{th} order)
 		\item compute effects of zonal Earth tides \& add to $\Delta UT$ and LOD (via \texttt{RG\_ZONT2})
@@ -24,7 +24,7 @@
 		\end{itemize}\end{minipage}};
 	
 	\node (I) at (-8,-8)
-		[minimum height=2.5em, minimum width=10em, fill=blue!10,rounded corners, drop shadow]
+		[draw=black, minimum height=2.5em, minimum width=10em, fill=gray!10,rounded corners, drop shadow]
 		{Interpolate};
 
 	\draw[-Latex,thick] (A.south) -- (AtB.north);

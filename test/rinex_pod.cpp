@@ -139,44 +139,19 @@ struct SatelliteState {
   Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
   //
   dso::JasonQuaternionHunter *qhunt{nullptr};
-#ifdef ABCD
-  // (last computed) ITRF - to - GCRF matrix
-  Eigen::Matrix<double, 3, 3> itrf2gcrf;
-#endif
 
   // transform state vector state from ECEF to GCRF
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
-    //printf(">> (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__,state(0), state(1), state(2), state(3), state(4), state(5));
-#ifdef ABCD
-    // Terrestrial to Celestial transformation matrix and derivative for this
-    // TAI
-    Eigen::Matrix<double, 3, 3> dt2c;
-    Eigen::Matrix<double, 3, 3> t2c = dso::itrs2gcrs(mjd_tai, elut, dt2c);
-
-    // transform geocentric state to inertial to propagate orbit
-    Eigen::Matrix<double, 6, 1> rcel;
-    rcel.block<3, 1>(0, 0) = t2c * state.block<3, 1>(0, 0);
-    rcel.block<3, 1>(3, 0) =
-        t2c * state.block<3, 1>(3, 0) + dt2c * state.block<3, 1>(0, 0);
-
-    //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
-    return rcel;
-#else
-  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era, lod;
-  assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom, lod));
-  //Eigen::Matrix<double, 6, 1> rcel = dso::yter2cel(state, rc2ti, rpom);
-  //printf("<< (%s) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", __func__, rcel(0), rcel(1), rcel(2), rcel(3), rcel(4), rcel(5));
-  //return rcel; //dso::yter2cel(state, rc2ti, rpom);
-  return dso::yter2cel(state, rc2i, era, lod, rpom);
-#endif
+    Eigen::Matrix<double, 3, 3> rc2i, rpom;
+    double era, lod;
+    assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom, lod));
+    return dso::yter2cel(state, rc2i, era, lod, rpom);
   }
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
   Eigen::Matrix<double, 3, 1>
   eccentricity([[maybe_unused]] const Eigen::Quaternion<double> &q) noexcept {
-    // return Eigen::Matrix<double, 3, 1>::Zero();
     // assuming that the quaternion acts as:
     // X_sat-fixed = Q * X_sat-gcrs
     return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
@@ -253,17 +228,12 @@ struct SatelliteState {
 
     // Terrestrial to Celestial transformation matrix and derivative for this
     // TAI
-#ifdef ABCD
-    Eigen::Matrix<double, 3, 3> dt2c;
-    Eigen::Matrix<double, 3, 3> t2c =
-        dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
-#else
-  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era, lod;
-  assert(!gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
-#endif
+    Eigen::Matrix<double, 3, 3> rc2i, rpom;
+    double era, lod;
+    assert(
+        !gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
 
-    #ifndef NO_ATTITUDE
+#ifndef NO_ATTITUDE
     // if needed, go from CoM to antenna RP (sol must be in GCRS)
     {
       Eigen::Quaternion<double> q;
@@ -273,16 +243,9 @@ struct SatelliteState {
       }
       sol.block<3, 1>(0, 0) -= eccentricity(q);
     }
-    #endif
-
-#ifdef ABCD
-    // transform inertial to terrestrial
-    state.block<3, 1>(0, 0) = t2c.transpose() * sol.block<3, 1>(0, 0);
-    state.block<3, 1>(3, 0) = t2c.transpose() * sol.block<3, 1>(3, 0) +
-                              dt2c.transpose() * sol.block<3, 1>(0, 0);
-#else
-    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, lod, rpom);
 #endif
+
+    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, lod, rpom);
 
     // assign Phi matrix (6x6)
     for (int i = 0; i < 6; i++) {
@@ -295,11 +258,6 @@ struct SatelliteState {
         S.col(i) = yPhi.block<6, 1>(6 * (i + 1) + 6*6, 0);
       }
     }
-
-#ifdef ABCD
-    // copy the Terrestrial to Celestial transformation matrix
-    itrf2gcrf = t2c;
-#endif
 
     ++call_nr;
     return 0;
@@ -331,12 +289,25 @@ beacon_coordinates(const char *_4charid,
 int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
               const dso::Gpt3Grid &grid, TropoDetails &Dtrop) noexcept;
+int get_tropo_vmf(const char *site, const dso::datetime<dso::nanoseconds> &t,
+              const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
+              dso::SiteVMF3Feed& feed, TropoDetails &Dtrop) noexcept;
 
 Eigen::Matrix<double, 3, 1>
 range_rate(const Eigen::Matrix<double, 3, 1> &s_t0,
            const Eigen::Matrix<double, 3, 1> &rsta,
            const Eigen::Matrix<double, 3, 1> &rsat, double dt,
            double &rr_computed, Eigen::Matrix<double, 6, 1> &drrdrv) noexcept;
+
+std::vector<const char *>
+beaconcrs2cchar_vec(const std::vector<dso::BeaconCoordinates> &bcv) noexcept {
+  std::vector<const char *> site_names;
+  site_names.reserve(bcv.size());
+  for (auto it = bcv.begin(); it != bcv.end(); ++it) {
+    site_names.push_back(it->id);
+  }
+  return site_names;
+}
 
 int main(int argc, char *argv[]) {
   // check input
@@ -423,12 +394,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Troposphere
-  // -------------------------------------------------------------------------
-  // read-in the grid file. That is all for now
-  dso::get_yaml_value_depth3(config, "troposphere", "gpt3", "grid", buf);
-  dso::Gpt3Grid gpt3_grid(buf);
-
   // Station/Beacon coordinates
   // -------------------------------------------------------------------------
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
@@ -461,6 +426,17 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Troposphere
+  // -------------------------------------------------------------------------
+  // read-in the grid file. That is all for now
+  /* for gpt3/vmf3 
+  dso::get_yaml_value_depth3(config, "troposphere", "gpt3", "grid", buf);
+  dso::Gpt3Grid gpt3_grid(buf);
+  */
+  dso::get_yaml_value_depth3(config, "troposphere", "vmf3", "grid", buf);
+  auto site_names_vec = beaconcrs2cchar_vec(beaconCrdVec);
+  dso::SiteVMF3Feed feed(buf, site_names_vec);
+
   // Attitude Information
   dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
   dso::JasonQuaternionHunter qhunt(buf);
@@ -479,17 +455,18 @@ int main(int argc, char *argv[]) {
   Eigen::Matrix<double, 3, 1> sat_cog, l3_pco;
   double sat_mass;
   {
-  // get satellite CoG coordinates in the satellite-fixed RF (with corrections)
-  assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
-      rnx.ref_datetime(), buf, sat_mass, sat_cog));
-  // get satellite ARP coordinates in the satellite-fixed RF
-  Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
-  dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
-  // compute the iono-free phase center
-  l3_pco = l1_pco + (l2_pco - l1_pco) / (dso::GAMMA_FACTOR-1e0);
+    // get satellite CoG coordinates in the satellite-fixed RF (with
+    // corrections)
+    assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
+        rnx.ref_datetime(), buf, sat_mass, sat_cog));
+    // get satellite ARP coordinates in the satellite-fixed RF
+    Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
+    dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
+    // compute the iono-free phase center
+    l3_pco = l1_pco + (l2_pco - l1_pco) / (dso::GAMMA_FACTOR - 1e0);
   }
   svState.cog_sf = &sat_cog;
-  svState.arp_sf = &/*l1_pco*/l3_pco;
+  svState.arp_sf = &/*l1_pco*/ l3_pco;
   svState.qhunt = &qhunt;
 
   // Setup Integration Parameters for Orbit Integration
@@ -649,29 +626,24 @@ int main(int argc, char *argv[]) {
     }
 
     // Various variables to be used, depending only on the current epoch
-    Eigen::Matrix<double,3,1> rmoon, rsun; // [km], ITRF
-    dso::datetime<dso::nanoseconds> tt (tl1);
+    Eigen::Matrix<double, 3, 1> rmoon, rsun; // [km], ITRF
+    dso::datetime<dso::nanoseconds> tt(tl1);
     double utc_fhours;
     {
-    tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
-    double vec[3];
-    int terror = dso::moon_vector_cspice(tt, vec);
-    rmoon = Eigen::Matrix<double,3,1>(vec); // [km] GCRF
-    terror += dso::sun_vector_cspice(tt, vec);
-    rsun = Eigen::Matrix<double,3,1>(vec); // [km] GCRF
-    assert(!terror);
-#ifdef ABCD
-    rmoon = svState.itrf2gcrf.transpose() * rmoon; // [km] ITRF
-    rsun = svState.itrf2gcrf.transpose() * rsun; // [km] ITRF
-#else
-    Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    double era,lod;
-    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
-    rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
-    rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
-#endif
-    dso::modified_julian_day mjdi;
-    utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
+      tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
+      double vec[3];
+      int terror = dso::moon_vector_cspice(tt, vec);
+      rmoon = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
+      terror += dso::sun_vector_cspice(tt, vec);
+      rsun = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
+      assert(!terror);
+      Eigen::Matrix<double, 3, 3> rc2i, rpom;
+      double era, lod;
+      assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
+      rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
+      rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
+      dso::modified_julian_day mjdi;
+      utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
     }
 
     // update the Kalman filter estimates for the satellite state vector
@@ -742,7 +714,7 @@ int main(int argc, char *argv[]) {
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
         
         // add tidal displacement (dehanttideinel)
-        {
+        if (1==2) {
           Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(
               bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(),
               utc_fhours);
@@ -807,10 +779,15 @@ int main(int argc, char *argv[]) {
 
           // tropospheric correction
           TropoDetails cDtropo;
-          if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid,
+          /*if (get_tropo(tl1, bxyz_ion, dso::DPI / 2e0 - el, gpt3_grid,
                         cDtropo)) {
             return 3;
-          }
+          }*/
+          char __siteid5[5] = {'\0'};
+          std::memcpy(__siteid5, beacon_it->m_station_id, 4 * sizeof(char));
+          if (!get_tropo_vmf(__siteid5, tl1, bxyz_ion, dso::DPI / 2e0 - el, feed,
+                            cDtropo)) 
+          {
 
           // relativistic correction
           double Drel_c, Drel_r;
@@ -981,24 +958,6 @@ int main(int argc, char *argv[]) {
                      Filter.tropo_estimate(receiver_number), Filter.drag_coef(),
                      oc, tl1.as_mjd());
 
-              printf("%.4s",beacon_it->m_station_id);
-              cDtropo.dump(cWzd);
-              pprev_obs->Dtropo.dump(cWzd);
-
-              // compute osculating elements from state vector
-              // dso::OrbitalElemets keplerian;
-              //int state2elements(const Eigen::Matrix<double, 6, 1> &Y,
-              //     OrbitalElements &elements, double GM) noexcept;
-
-              const Eigen::VectorXd aposteriori = Filter.estimates();
-              //printf("Values changed: ");
-              //for (int i=0; i<NumParams; i++) {
-              //  if (std::abs(apriori(i) - aposteriori(i)) > 1e-12) {
-              //    printf("DX[%3d] = %.9f ", i, apriori(i) - aposteriori(i)); 
-              //  }
-              //}
-              //printf("\n");
-
               svState.state = Filter.estimates().block<6, 1>(0, 0);
 
             } else {
@@ -1009,12 +968,6 @@ int main(int argc, char *argv[]) {
                       "O-C value %u/%u : %.3f > %.3f\n",
                       dtbuf, beacon_it->m_station_id, ndop_count_rejected,
                       ndop_count, oc, threshold);
-              // fprintf(stderr,
-              //         "feN=%.3f, frT=%.3f, Ndop=%.3f, Dtau=%.6f Dion=%.3f "
-              //         "Drel=%.3f Dtropo=%.3f rho(t2)=%.3f rho(t1)=%.3f "
-              //         "Dfe/feN=%.3e\n",
-              //         feN, frT, Ndop, Dtau, Dion, Drel, Dtropo, rho,
-              //         pprev_obs->rho(), DfefeN);
               ++ndop_count_rejected;
             }
 
@@ -1026,6 +979,11 @@ int main(int argc, char *argv[]) {
 
           } // computing Ndop
 
+        } // tropo correction (grid) found 
+        else { 
+          fprintf(stderr, "Skipping observation, cannot copute tropospheric correction!\n");
+        }
+
         } // elevation > limit
 
       } // flags ok
@@ -1034,48 +992,24 @@ int main(int argc, char *argv[]) {
       ++beaconobs;
     } // while (beaconobs != it.cblock.end())
 
-    // update estimates in the sv struct (after data block processing is over)
-    //printf("Updating satellite state using filter results: %.6f %.6f %.6f %.6f "
-    //       "%.6f %.6f\n",
-    //       svState.state(0), svState.state(1), svState.state(2),
-    //       svState.state(3), svState.state(4), svState.state(5));
-    //printf("                               filter results: %.6f %.6f %.6f %.6f "
-    //       "%.6f %.6f\n",
-    //       Filter.x(0), Filter.x(1), Filter.x(2), Filter.x(3), Filter.x(4),
-    //       Filter.x(5));
-    //printf("                               corrections   : %.6f %.6f %.6f %.6f "
-    //       "%.6f %.6f\n",
-    //       svState.state(0) - Filter.x(0), svState.state(1) - Filter.x(1),
-    //       svState.state(2) - Filter.x(2), svState.state(3) - Filter.x(3),
-    //       svState.state(4) - Filter.x(4), svState.state(5) - Filter.x(5));
     svState.state = Filter.estimates().block<6, 1>(0, 0);
 
     // transform to keplerian elements, just for printing
-    Eigen::Matrix<double, 6, 1> inertial_state;
-#ifdef ABCD
-    Eigen::Matrix<double, 3, 3> dt2c;
-    Eigen::Matrix<double, 3, 3> t2c =
-        dso::itrs2gcrs(mjd_tai, integrator.params->eopLUT, dt2c);
-#else
-  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era, lod;
-  assert(!gcrs2itrs(tl1.as_mjd(), Integrator.params->eopLUT, rc2i, era, rpom,
-                    lod));
-#endif
-#ifdef ABCD
-    // transform terrestrial to inertial
-    inertial_state.block<3, 1>(0, 0) = t2c * svState.state.block<3, 1>(0, 0);
-    inertial_state.block<3, 1>(3, 0) = t2c * svState.state.block<3, 1>(3, 0) +
-                              dt2c * svState.state.block<3, 1>(0, 0);
-#else
-    inertial_state = dso::yter2cel(svState.state.block<6, 1>(0, 0), rc2i, era, lod, rpom);
-#endif
-    dso::OrbitalElements kepler = dso::state2elements(GM,inertial_state);
-    printf("OE: %s (TAI) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", dtbuf,
-           dso::rad2deg(kepler.semimajor()),
-           dso::rad2deg(kepler.eccentricity()),
-           dso::rad2deg(kepler.inclination()), dso::rad2deg(kepler.Omega()),
-           dso::rad2deg(kepler.omega()), dso::rad2deg(kepler.mean_anomaly()));
+    if (1 == 2) {
+      Eigen::Matrix<double, 6, 1> inertial_state;
+      Eigen::Matrix<double, 3, 3> rc2i, rpom;
+      double era, lod;
+      assert(!gcrs2itrs(tl1.as_mjd(), Integrator.params->eopLUT, rc2i, era,
+                        rpom, lod));
+      inertial_state =
+          dso::yter2cel(svState.state.block<6, 1>(0, 0), rc2i, era, lod, rpom);
+      dso::OrbitalElements kepler = dso::state2elements(GM, inertial_state);
+      printf("OE: %s (TAI) %+.6f %+.6f %+.6f %+.6f %+.6f %+.6f\n", dtbuf,
+             dso::rad2deg(kepler.semimajor()),
+             dso::rad2deg(kepler.eccentricity()),
+             dso::rad2deg(kepler.inclination()), dso::rad2deg(kepler.Omega()),
+             dso::rad2deg(kepler.omega()), dso::rad2deg(kepler.mean_anomaly()));
+    }
 
     if (tl1.delta_sec(rnx.time_of_first_obs()) >
         dso::cast_to<dso::seconds, dso::nanoseconds>(
@@ -1259,6 +1193,50 @@ int get_tropo(const dso::datetime<dso::nanoseconds> &t,
 
   // use Askne and Nordius to approximate wet dealy in zenith
   const double zwd0 = dso::asknewet(g3out[0].e, g3out[0].Tm, g3out[0].la);
+  // apply VMF3 mapping function
+  // const double Dtropo_wet = zwd0 * vmf3_res.mfw;
+
+  Dtrop.Lhz = zhd0;
+  Dtrop.mfh = mfh;
+  Dtrop.Lwz = zwd0;
+  Dtrop.mfw = mfw;
+
+  return 0;
+}
+
+int get_tropo_vmf(const char *site, const dso::datetime<dso::nanoseconds> &t,
+              const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
+              dso::SiteVMF3Feed& feed, TropoDetails &Dtrop) noexcept {
+
+  // validate zenith angle
+  if (!(zd >= 0e0 && zd <= dso::DPI / 2e0)) {
+    fprintf(stderr, "WTF!! Weird zenith angle, is: %.2f\n", dso::rad2deg(zd));
+  }
+  assert(zd >= 0e0 && zd <= dso::DPI / 2e0);
+
+  // ellipsoidal coordinates of the station; store them in an array
+  Eigen::Matrix<double, 3, 1> bell = dso::car2ell<dso::ellipsoid::grs80>(bxyz);
+  // note: ellipsoidal = longitude, latitude, h_ell
+
+  // interpolate for site
+  dso::vmf3_details::SiteVMF3GRMeteoRecord meteo;
+  if (feed.interpolate(site, t, meteo))
+    return 1;
+
+  double mfh, mfw;
+  if (dso::vmf3(meteo.ah, meteo.aw, t, bell(1), bell(0), dso::deg2rad(zd), mfh,
+                mfw)) {
+    fprintf(stderr, "ERROR Failed to compute vmf3!\n");
+    return 1;
+  }
+
+  // use refined saastamnoinen to compute the hydrostatic delay (zenith)
+  const double zhd0 = meteo.zhd;
+  // apply VMF3 mapping function to compute hydrostatic delay at given zenith
+  // const double Dtropo_hydrostatic = zhd0 * vmf3_res.mfh;
+
+  // use Askne and Nordius to approximate wet dealy in zenith
+  const double zwd0 = meteo.zwd;
   // apply VMF3 mapping function
   // const double Dtropo_wet = zwd0 * vmf3_res.mfw;
 

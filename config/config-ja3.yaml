@@ -8,7 +8,7 @@ reference-frame:
   station-coordinates: data/dpod2014_053.snx
 
 eop-info:
-  eop-file: data/bulb0121n
+  eop-file: data/eopc04_14_IAU2000.62-now.txt
 
 naif-kernels:
   spk: data/jpl/de405.bsp
@@ -23,6 +23,8 @@ gravity:
 troposphere:
   gpt3:
     grid: data/gpt3_5.grd
+  vmf3:
+    grid: data/y2021.v3gr_d
 
 force-model:
   atmospheric-drag:
@@ -35,4 +37,4 @@ attitude:
 
 filtering:
   ## m/sec
-  observation-sigma: .5e-1
+  observation-sigma: .5e0

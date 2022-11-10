@@ -20,6 +20,10 @@ int dso::EopLookUpTable::interpolate_lagrange(
       iers2010::interp::lagint(mjd(), dy(), sz, tt_fmjd, eopr.dy, index, order);
   status += iers2010::interp::lagint(mjd(), lod(), sz, tt_fmjd, eopr.lod, index,
                                      order);
+  status += iers2010::interp::lagint(mjd(), dx(), sz, tt_fmjd, eopr.dx, index,
+                                     order);
+  status += iers2010::interp::lagint(mjd(), dy(), sz, tt_fmjd, eopr.dy, index,
+                                     order);
 
   if (status) {
     fprintf(stderr,
@@ -28,6 +32,9 @@ int dso::EopLookUpTable::interpolate_lagrange(
             tt_fmjd, __func__);
     return 1;
   }
+
+  // remember to assign date to the filled-in instance
+  eopr.mjd = tt_fmjd;
 
   return 0;
 }

@@ -29,10 +29,18 @@ resolutions}. Hence, the quantities to be used in the matrix $\bm{Q}(t)$ in
 \ref{eq:iers1051} must be based on the \emph{IAU 2006} precession and the 
 \emph{IAU 2000A} or \emph{IAU 2000B} (depending on required precision).
 
+\begin{figure}
+\centering
+\input{tikz/bcrs-itrs.tikz}
+\caption{Schematic representation of the ``\gls{cio}-based'' procedure to 
+  transform between the \gls{gcrs} and \gls{itrs}.}
+\label{fig:gcrs-to-itrs}
+\end{figure}
+
 \section{Terrestrial to Celestial Transformation}
 \label{sec:ter2cel-trans}
 
-Currently, IERS recommends two procedures for transforming between the 
+Currently, \gls{iers} recommends two procedures for transforming between the 
 Terrestrial and Celestial reference frames, called the ``equinox based'' 
 and the ``\gls{cio} based'', differing in the origin of the \gls{cip} 
 equator. For further details on the ``equinox based'' transformation, see 
@@ -40,9 +48,9 @@ e.g. \cite{iers2010} and \cite{esaa13}. In the following we will discuss the
 ``\gls{cio} based'' transformation, since
 \begin{displayquote}
     only the CIO based
-procedure can be in agreement with IAU 2000 Resolution B1.8, which requires the use of the “non-
-rotating origin” in both the GCRS and the ITRS as well as the position of the CIP in the GCRS
-and in the ITRS.
+procedure can be in agreement with IAU 2000 Resolution B1.8, which requires 
+the use of the ``non-rotating origin'' in both the \gls{gcrs}and the \gls{itrs} 
+as well as the position of the \gls{cip} in the \gls{gcrs} and in the \gls{itrs}.
 \end{displayquote}, \cite{iers2010}.
 
 Each of the three rotation matrices in \ref{eq:iers1051}, represents a series 
@@ -161,7 +169,7 @@ Note that according to \cite{Bradley2016850}:
 This ``regularization'' is implemented in the \gls{eop} interpolation proccess, 
 see \ref{fig:handling-eop}.
 
-\subsection{Celestial Motion Matrix $R(t)$}
+\subsection{Celestial Motion Matrix $Q(t)$}
 \label{ssec:celestial-motion-matrix}
 The \gls{cio} based transformation matrix arising from the motion of the \gls{cip} 
 in the \gls{gcrs} (i.e. relating \gls{cirs} and \gls{gcrs}), can be expressed as
@@ -198,6 +206,34 @@ with $\alpha = 1/(1+\cos{d})$ , which can also be written, with an accuracy of
 $X$ and $Y$ coordinates can be given by developments as function of time in the 
 \si{\micro\larcsecond} level, based on the IAU 2006 precession and IAU 2000A
 nutation (\cite{CapitaineAndWallace2006})\footnote{Implemented in the \gls{sofa} (\cite{SOFA20210125}) supplied \texttt{iauXy06} function.}
+The IAU 2006/2000A developments are as follows (\cite{iers2010}):
+\begin{equation}
+  \label{eq:tn36516a}
+  \begin{aligned}
+  X &= \SI{-0.01661700}{\arcsecond} + \SI{2004.19189800}{\arcsecond} t - \SI{0.429782900}{\arcsecond} t^2 \\
+  &- \SI{0.1986183400}{\arcsecond}t^3 + \SI{0.00000757800}{\arcsecond} t^4 + \SI{0.000005928500}{\arcsecond} t^5 \\
+  &+ \sum_{i} \left[ (a_{s,0})_i \sin \theta + (a_{c,0})_i \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (a_{s,1})_i t \sin \theta + (a_{c,1})_i t \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (a_{s,2})_i t^2 \sin \theta + (a_{c,2})_i t^2 \cos \theta \right] \\ 
+  &+ \cdots \\
+  \end{aligned}
+\end{equation}
+and
+\begin{equation}
+  \label{eq:tn36516b}
+  \begin{aligned}
+  Y &= -\SI{0.00695100}{\arcsecond} - \SI{0.02589600}{\arcsecond} t - \SI{22.407274700}{\arcsecond} t^2 \\
+  &+ \SI{0.0019005900}{\arcsecond} t^3 + \SI{0.00111252600}{\arcsecond} t^4 + \SI{0.000000135800}{\arcsecond} t^5 \\
+  &+ \sum_{i} \left[ (b_{s,0})_i \sin \theta     + (b_{c,0})_i \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (b_{s,1})_i t \sin \theta   + (b_{c,1})_i t \cos \theta \right] \\ 
+  &+ \sum_{i} \left[ (b_{s,2})_i t^2 \sin \theta + (b_{c,2})_i t^2 \cos \theta \right] \\ 
+  &+ \cdots \\
+  \end{aligned}
+\end{equation}
+
+where $\theta$ is a function of the fundamental lunisolar and planetary arguments\footnote{Furter information and computation formulas for the fundamental arguments, can be found in \cite{ires2010}, e.g. Chapter 5.7}. Complete 
+list of coefficients for \ref{eq:tn36516a} and \ref{eq:tn36516b} is provided 
+by \gls{iers}. 
 
 As \gls{vlbi} observations have shown that there are deficiencies in the 
 IAU 2006/2000A precession-nutation model of the order of \SI{0.2}{\milli\larcsecond}, 
@@ -228,6 +264,9 @@ thus enabling to re-write \ref{eq:iers10510} as:
 \end{equation}
 where $\bm{Q}_{IAU}$ represents the $\bm{Q}(t)$ matrix based on the IAU 2006/2000 
 precession-nutation model.
+
+The ``\gls{cio} locator'' $s$, providing the position of the \gls{cio} in the 
+\gls{gcrs} can also be computed using a developement described in \cite{Capitaineetal2003a}\footnote{\gls{sofa} (\cite{SOFA20210125}) supplies an implementation of the formula named \texttt{iauS06} function}.
 
 \begin{figure}
      \centering

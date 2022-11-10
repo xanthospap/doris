@@ -77,7 +77,9 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 }
 #else
 
-double OmegaEarth(double xlod) noexcept { return  iers2010::OmegaEarth * (1e0 - xlod / 86400e3); }
+double OmegaEarth(double xlod) noexcept {
+  return iers2010::OmegaEarth * (1e0 - xlod / 86400e0);
+}
 
 Eigen::Matrix<double, 3, 1>
 dso::rcel2ter(const Eigen::Matrix<double, 3, 1> r,
@@ -187,17 +189,16 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // The CIO locator s, positioning the Celestial Intermediate Origin on
   // the equator of the Celestial Intermediate Pole, given the CIP's X,Y
-  // coordinates.  Compatible with IAU 2006/2000A precession-nutation.
+  // coordinates. Compatible with IAU 2006/2000A precession-nutation.
   const double s = iers2010::sofa::s06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
 
-  // Add CIP corrections
-  X += (eops.dx * iers2010::DMAS2R);
-  Y += (eops.dy * iers2010::DMAS2R);
+  // Add CIP corrections (arcsec to radians)
+  X += dso::arcsec2rad(eops.dx);
+  Y += dso::arcsec2rad(eops.dy);
 
   // Form the celestial to intermediate-frame-of-date matrix given the CIP
   // X,Y and the CIO locator s.
   // [TRS] = RPOM * R_3(ERA) * rc2i * [CRS]  = RC2T * [CRS]
-  /*const Eigen::Matrix<double, 3, 3>*/ 
   rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
 
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)

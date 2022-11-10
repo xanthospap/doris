@@ -11,7 +11,7 @@ namespace dso {
 /// @brief This structure is meant to hold beacon coordinates and std.
 /// deviations
 struct BeaconCoordinates {
-  char id[4];
+  char id[5]={'\0'};
   ///< x,y,z (cartesian) coordinate components in [m]
   double x, y, z;
   ///< std. deviation values of the above components in [m^2]
