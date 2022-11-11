@@ -150,6 +150,7 @@ struct SatelliteState {
   }
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
+  // aka dx = CoG - ARP in GCRF
   Eigen::Matrix<double, 3, 1>
   eccentricity([[maybe_unused]] const Eigen::Quaternion<double> &q) noexcept {
     // assuming that the quaternion acts as:
@@ -165,12 +166,16 @@ struct SatelliteState {
     static int call_nr = 0;
 
     // Vector containing state + variational equations size: 6 + 6x(6+Np)
+    // Stored in plain format, one column at a time
     // Ref. Frame: inertial
     Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1> yPhi =
         Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1>::Zero();
+
+    // transform state from ECEF to GCRF (satellite ARP)
     yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
 
-    // if needed, go from antenna RP to CoM (this is not needed in the first
+#ifndef NO_ATTITUDE
+    // if needed, go from antenna RP to CoG (this is not needed in the first
     // call, since we integrate starting with the sp3 state which is w.r.t.
     // the satellite's CoG)
     if (call_nr) {
@@ -179,11 +184,15 @@ struct SatelliteState {
         fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
         assert(false);
       }
+      // GCRF: from satellite ARP to CoG
       yPhi.block<3, 1>(0, 0) += eccentricity(q);
     }
+#endif
 
     // Initial condition for state transition matrix Φ(t0,t0) = I
     // set the state transition matrix to identity (initial condition)
+    // Note that the matrix is stored in plain format, one column at a time
+    // First column contains the state, skip it.
     {
       int k = 6;
       for (int col = 1; col < 6; col++)
@@ -205,9 +214,10 @@ struct SatelliteState {
     integrator.flag() = 1;
 
     // keep solution here (celestial RF at tout)
+    // As yPhi, this is in plain format, one column at a time
     Eigen::VectorXd sol(6 + 6 * 6 + 6 * Np);
 
-    // integrate (in inertial RF), from 0 to tout [sec]
+    // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
     integrator.de(tsec, tout, yPhi, sol);
 
@@ -226,15 +236,8 @@ struct SatelliteState {
     // everything seems ok, update state and time
     mjd_tai = tout_mjd;
 
-    // Terrestrial to Celestial transformation matrix and derivative for this
-    // TAI
-    Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    double era, lod;
-    assert(
-        !gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
-
 #ifndef NO_ATTITUDE
-    // if needed, go from CoM to antenna RP (sol must be in GCRS)
+    // if needed, go from CoM to antenna ARP (sol must be in GCRS)
     {
       Eigen::Quaternion<double> q;
       if (qhunt->get_at(mjd_tai, q)) {
@@ -245,6 +248,11 @@ struct SatelliteState {
     }
 #endif
 
+    // Transform state back to ECEF (from GCRF), wrt the satellite ARP
+    Eigen::Matrix<double, 3, 3> rc2i, rpom;
+    double era, lod;
+    assert(
+        !gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
     state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, lod, rpom);
 
     // assign Phi matrix (6x6)
@@ -253,7 +261,7 @@ struct SatelliteState {
     }
 
     // assign S matrix (6xNp)
-    if (Np){
+    if (Np) {
       for (int i=0; i<Np; i++) {
         S.col(i) = yPhi.block<6, 1>(6 * (i + 1) + 6*6, 0);
       }
@@ -466,7 +474,7 @@ int main(int argc, char *argv[]) {
     l3_pco = l1_pco + (l2_pco - l1_pco) / (dso::GAMMA_FACTOR - 1e0);
   }
   svState.cog_sf = &sat_cog;
-  svState.arp_sf = &/*l1_pco*/ l3_pco;
+  svState.arp_sf = &l3_pco;
   svState.qhunt = &qhunt;
 
   // Setup Integration Parameters for Orbit Integration
@@ -601,8 +609,7 @@ int main(int argc, char *argv[]) {
     // a buffer to write datetime strings to
     char dtbuf[64];
 
-    // integrate orbit to here (TAI) TODO
-    // svState will contain satellite state for time tl1 in ECEF
+    // integrate orbit to here (TAI)
     // first get reference state from sp3, for an epoch as close as possible
     if (!dummy_counter) {
       if (sp3_iterator.goto_epoch(tl1)) {
@@ -627,29 +634,37 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    // Various variables to be used, depending only on the current epoch
-    Eigen::Matrix<double, 3, 1> rmoon, rsun; // [km], ITRF
-    dso::datetime<dso::nanoseconds> tt(tl1);
-    double utc_fhours;
-    {
-      tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
-      double vec[3];
-      int terror = dso::moon_vector_cspice(tt, vec);
-      rmoon = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
-      terror += dso::sun_vector_cspice(tt, vec);
-      rsun = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
-      assert(!terror);
-      Eigen::Matrix<double, 3, 3> rc2i, rpom;
-      double era, lod;
-      assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
-      rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
-      rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
-      dso::modified_julian_day mjdi;
-      utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
-    }
+    // We now have the state vector svState.state in ECEF coordinates wrt
+    // the satellite antenna RP. The state vector referes to svState.tai_mjd.
+    // We also have the state transition matrix ready
 
-    // update the Kalman filter estimates for the satellite state vector
-    // TODO
+    // needed for tides ...
+    // Various variables to be used, depending only on the current epoch
+    //Eigen::Matrix<double, 3, 1> rmoon, rsun; // [km], ITRF
+    //dso::datetime<dso::nanoseconds> tt(tl1);
+    //double utc_fhours;
+    //{
+    //  tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
+    //  double vec[3];
+    //  int terror = dso::moon_vector_cspice(tt, vec);
+    //  rmoon = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
+    //  terror += dso::sun_vector_cspice(tt, vec);
+    //  rsun = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
+    //  assert(!terror);
+    //  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+    //  double era, lod;
+    //  assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
+    //  rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
+    //  rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
+    //  dso::modified_julian_day mjdi;
+    //  utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
+    //}
+
+    // Kalman filter time update:
+    // estimates: the state part is updated using the result of integration;
+    //            the rest of the (estimated) parameters remain the same
+    // P matrix : Update using the state transition matrix (result of orbit
+    //            integration)
     Eigen::MatrixXd PhiP = Eigen::MatrixXd::Identity(NumParams, NumParams);
     PhiP.block<6, 6>(0, 0) = svState.Phi;
     auto estimates = Filter.estimates();
@@ -712,12 +727,12 @@ int main(int argc, char *argv[]) {
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
         
         // add tidal displacement (dehanttideinel)
-        if (1==2) {
-          Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(
-              bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(),
-              utc_fhours);
-          bxyz_sta = bxyz_sta + toff;
-        }
+        //if (1==2) {
+        //  Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(
+        //      bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(),
+        //      utc_fhours);
+        //  bxyz_sta = bxyz_sta + toff;
+        //}
 
         // Iono-Free phase center, ECEF (changeme)
         const Eigen::Matrix<double, 3, 1> bxyz_ion =
@@ -858,7 +873,7 @@ int main(int argc, char *argv[]) {
             const double Dion = (iers2010::C / feN) *
                                 (cDiono - pprev_obs->Diono) /
                                 delta_tau.to_fractional_seconds();
-            printf(" Dion=%.6f", Dion);
+            printf(" Dion=%.9f", Dion);
 
             // Tropospheric delay in [m/sec]
             // get current estimate of Wet Zenith delay
@@ -866,12 +881,12 @@ int main(int argc, char *argv[]) {
             const double Dtropo = 
                 (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
                 delta_tau.to_fractional_seconds();
-            printf(" Dtropo=%.6f", Dtropo);
+            printf(" Dtropo=%.9f", Dtropo);
 
             // Relativistic corrections
             const double Drel = (cDrel - pprev_obs->Drel) /
                                 delta_tau.to_fractional_seconds();
-            printf(" Drelc=%.6f", Drel);
+            printf(" Drelc=%.9f", Drel);
 
             // we will need the estimated Δf_e / f_eN
 #ifdef RANDOM_RFO
@@ -885,8 +900,6 @@ int main(int argc, char *argv[]) {
             // handle range-rate measurement
             // ---------------------------------------------------------
             const double Dtau = delta_tau.to_fractional_seconds();
-            const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(
-                dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
             // Warning! Uobs and Utheo have oposite signs, aka Uobs ~= -Utheo
             const double Uobs =
                 (iers2010::C / feN) * (feN - frT - NdopDt) + Dion + Drel;
@@ -904,10 +917,15 @@ int main(int argc, char *argv[]) {
 
               rstats.update(oc);
 
+              const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(
+                  dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
+
               // partials wrt [x,y,z,Vx,Vy,Vz,Np_1, Np_2, ..., Lwz,Dfe/feN]
+              // we actually need the partials of -Utheo (not Utheo), so
+              // remember to change signs at the end
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
-              dHdX.block<3, 1>(0, 0) = (-1e0) * 
+              dHdX.block<3, 1>(0, 0) =
                   R.transpose() *
                   (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                   (1e0 / Dtau);
@@ -920,16 +938,19 @@ int main(int argc, char *argv[]) {
                   (iers2010::C / feN) * (NdopDt + frT);
 #else
               const int _idx = Filter.rfoff_index(receiver_number);
-              // dz/dDf -- a term
+              // dz/dDf -- a term in y = a + b*t
               dHdX(_idx) =
-                  (iers2010::C / feN) * (NdopDt + frT);
-              // dz/dDf -- a term
-              dHdX(_idx+ 1) = Filter.deltat(tl1) *
+                  - (iers2010::C / feN) * (NdopDt + frT);
+              // dz/dDf -- b term
+              dHdX(_idx+ 1) = - Filter.deltat(tl1) *
                   (iers2010::C / feN) * (NdopDt + frT);
 #endif
               // dz/dLwet
               dHdX(Filter.tropo_index(receiver_number)) =
                   (cDtropo.mfw - pprev_obs->Dtropo.mfw) / Dtau;
+
+              // change signs in the vector
+              dHdX *= -1e0;
 
               const Eigen::VectorXd apriori = Filter.estimates();
 

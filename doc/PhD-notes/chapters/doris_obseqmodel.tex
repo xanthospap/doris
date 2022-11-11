@@ -11,8 +11,8 @@ For the DORIS observatrion equation model, we use the formula described in
         v_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
           \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + 
           \Delta v_{IONO} \label{eq:lem13a} \\
-        v_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} 
-          (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + 
+        v_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} +
+%         (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + 
           \Delta v_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + 
           f_{r_T})}{f_{e_N}} \frac{\Delta f_e}{f_{e_N}} \label{eq:lem13b}
     \end{align}
@@ -178,6 +178,7 @@ that is:
 \begin{equation}
   \frac{\partial v_{theo}}{\partial zd_{w}} = \frac{mf_{w}\at[\big]{t=t_i} 
     - mf_{w}\at[\big]{t=t_{i-1}}}{\Delta \tau}
+  \label{eq:partials-zwd}
 \end{equation}
 
 \subsection{Ionospheric Correction}
@@ -324,6 +325,27 @@ An observation is rendered as ``non-usable'', if any of the below holds true:
     or the L\SI{400}{\mega\hertz} carrier is set to \texttt{1} (restart mode)
 \end{itemize}
 
+\subsubsection{Jason3 Quaternions}
+\label{sssec:ja3-quaternions}
+Currently we are only using the \emph{body-quaternion} files for Jason-3 
+satellite. When we request a quaternion for a given epoch $t$, then we interpolate 
+using the \texttt{slerp} method. 
+
+We assume that the recorded quaternions, act in the sense:
+\begin{equation}
+  \bm{x}_{sv-fixed} = q(t_i) \otimes \bm{x}_{gcrs}
+\end{equation}
+
+The most often operation used involving the quaternions, is transforming the 
+satellite position vector from satellite's center of gravity (CoG) to the 
+DORIS antenna reference point (ARP). If the satellite CoG vector in the GCRS 
+is $\bm{x}^{cog}_{gcrs}$, then the vector to the ARP is:
+\begin{equation}
+  \bm{x}^{arp}_{gcrs} = \tilde{q}(t_i) \otimes (\bm{x}^{arp}_{sv} - \bm{x}^{cog}_{sv})
+\end{equation}
+where $\tilde{q}$ is the conjugate of $q$ and the subscript $sv$ denotes vectors 
+wrt the satellite-fixed reference frame.
+
 \section{Processing SetUp}
 
 \subsubsection{General SetUp}
@@ -394,9 +416,9 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
             \item Check observation flags reported in the RINEX file (see \ref{sssec:rnx-flags}). 
               If the observation is un-usable, then mark a discontinuity (for the beacon) and procceed 
               to next observation (goto \ref{every-observation}). If flags are ok, continue.
-            \item Compute the Iono-Free Phase Center of the beacon using \ref{eq:arp-to-if-pc} (see \ref{sssec:2ghz-ionofree-pco}) 
-              to get $\bm{r}^{ecef}_{iono-free}$
-            \item Transform the satellite-to-beacon vector from ITRF to topocentric coordinates, 
+            \item Compute the Iono-Free Phase Center of the beacon using \ref{eq:arp-to-if-pc} 
+              (see \ref{sssec:2ghz-ionofree-pco}) to get $\bm{r}^{ecef}_{iono-free}$
+            \item \label{cmp-rho} Transform the satellite-to-beacon vector from ITRF to topocentric coordinates, 
               and compute azimouth $Az$, elevation $El$ and range $s$ (use $\bm{X}^{ecef}_{iono-free,t_i}$ and 
               $\bm{r}^{ecef}_{iono-free}$ so that the vector is wrt the Iono-Free 
               Phase center at both ends).
@@ -428,6 +450,49 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
                 \item $\Delta v_{TRO}$ from \ref{eq:dtrop-diff}
                 \item $\Delta v_{REC}$ from \ref{eq:drel-diff}
               \end{itemize}
+            \item Compute observed value $v_{measured}$ (range-rate) via \ref{eq:lem13a}
+            \item Compute ``model'' value $v_{theo}$ via \ref{eq:lem13b}. Note that the ranges $\rho _2$ and 
+              $\rho _1$ are the norms of the topocentric beacon-to-satellite vectors computed in 
+              step \ref{cmp-rho} at current and previous measurement, aka $\rho _2 \equiv \bm{s}_{t_i}$ 
+              and $\rho _2 \equiv \bm{s}_{t_{i-1}}$. The term $\frac{\Delta f_e}{f_{e_N}}$ is the 
+              best current estimate (from the filter)
+            \item Compute the residual value $u = v_{measured} - v_{theo}$ and 
+              perform a ``harsh'' $3\sigma$ test. If $ |u| > 3 \sigma / \sin{El}$ 
+              goto \ref{every-observation}, else continue
+            \item Compute partials wrt the estimated parameters:
+              \begin{itemize}
+                \item partials wrt satellite position vector: 
+                \begin{equation} 
+                  \frac{\partial v_{theo}}{\partial \bm{X}^{ecef}_{iono-free,t_i}} = 
+                    \bm{R}^T \cdot \frac{1}{\Delta \tau} \begin{pmatrix} 
+                      \frac{\bm{s}_{t_i}}{\norm{\bm{s}_{t_i}}} - \frac{\bm{s}_{t_{i-1}}}{\norm{\bm{s}_{t_{i-1}}}}
+                      \end{pmatrix}
+                \end{equation}
+                where $\bm{R}$ is the cartesian-to-topocentric matrix and $\bm{s}$ being the 
+                beacon-to-satellite topocentric vector
+                \item partials wrt satellite velocity: 
+                \begin{equation} 
+                  \frac{\partial v_{theo}}{\partial \bm{v}^{ecef}_{iono-free,t_i}} = \bm{0}
+                \end{equation}
+                \item partials wrt drag coefficient:
+                \begin{equation}
+                  \frac{\partial v_{theo}}{\partial C_{drag}} = 1
+                \end{equation}
+                \item partials wrt emmiter relative frequency offset: note that 
+                $\Delta f_e / f_{e_N}$ is modeled as a linear model, hence
+                $\Delta f_e / f_{e_N}\at{t_i} \equiv \Delta F(t_i) = F_1 + F_2 \cdot (t_i - t_0)$, so that
+                \begin{equation}
+                  \begin{aligned}
+                    \frac{\partial v_{theo}}{\partial F_1} &= 
+                      -\frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}}\\
+                    \frac{\partial v_{theo}}{\partial F_2} &= 
+                      -\delta \tau \cdot \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} 
+                  \end{aligned}
+                \end{equation}
+                \item partials wrt zenith wet delay from \ref{eq:partials-zwd}
+              \end{itemize}
+            \item Perform filter measurement update, weighting the observation with 
+              $\sigma _{obs} = \sigma_0 / \cos{El}$
           \end{enumerate}
       \end{enumerate}
 \end{enumerate}
