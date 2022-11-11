@@ -128,7 +128,7 @@ struct SatBeacon {
 struct SatelliteState {
   // Current datetime in TAI
   double mjd_tai;
-  // state vector at t=ttai in ECEF, at DORIS receiver RP (2GHz)
+  // state vector at t=tai in ECEF, at DORIS receiver RP (Iono-Free)
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
@@ -137,10 +137,10 @@ struct SatelliteState {
   Eigen::Matrix<double, 3, 1> *cog_sf{nullptr};
   // Satellite's 2GHz receiver ARP w.r.t the satellite-fixed frame
   Eigen::Matrix<double, 3, 1> *arp_sf{nullptr};
-  //
+  // Body-quaternion hunter
   dso::JasonQuaternionHunter *qhunt{nullptr};
 
-  // transform state vector state from ECEF to GCRF
+  // transform state vector state from ECEF to GCRF for mjd_tai
   Eigen::Matrix<double, 6, 1>
   celestial(const dso::EopLookUpTable &elut) const noexcept {
     Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -577,7 +577,8 @@ int main(int argc, char *argv[]) {
   // count Ndop observations
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
-  unsigned flaged_obs = 0;
+  unsigned flaged_obs = 0; // number of observations with 'bad' flags
+  unsigned num_obs = 0; // observation count, regardless if usable or not
 
   // report
   #ifndef NO_ATTITUDE
@@ -665,6 +666,9 @@ int main(int argc, char *argv[]) {
     auto beaconobs = it.cblock.begin();
     while (beaconobs != it.cblock.end()) {
 
+      // increase observation count
+      ++num_obs;
+
       // an iterator to the RINEX's stations vector (aka a BeaconStation)
       // matching the current beacon
       auto beacon_it = rnx.beacon_internal_id2BeaconStation(beaconobs->id());
@@ -696,6 +700,7 @@ int main(int argc, char *argv[]) {
           pprev_obs->reinitialize = 1;
         }
 
+        // increase observation count for flagged observations
         ++flaged_obs;
 
       } else {
@@ -719,7 +724,7 @@ int main(int argc, char *argv[]) {
             beacon_arp2ion(bxyz_sta, *beacon_it);
 
         // get azimouth [rad], elevation [rad] and geometric distance [m]
-        // (beacon to satellite)
+        // (beacon to satellite, Iono-Free PC at both ends)
         const Eigen::Matrix<double, 3, 1> r_enu =
             dso::car2top<dso::ellipsoid::grs80>(
                 bxyz_ion, svState.state.block<3, 1>(0, 0));
@@ -794,7 +799,6 @@ int main(int argc, char *argv[]) {
           //    aka pprev_obs == prevec.end()
           // 2. We are starting a new arc (aka start_new_arc==1)
           // 3. Previous observation was marked
-          // (pprev_obs->reinitialize==1)
           if (pprev_obs == prevec.end() || pprev_obs->reinitialize ||
               start_new_arc) {
             if (pprev_obs != prevec.end()) {
@@ -808,7 +812,6 @@ int main(int argc, char *argv[]) {
                 pprev_obs->arcnr += 1;
                 // update a-priori value for this beacon zenith wet tropo
                 // delay [m]
-                // Filter.x(6 + Np + pprev_obs->count * 2 + 1) = cDtropo.Lwz;
                 Filter.tropo_estimate(pprev_obs->count) = cDtropo.Lwz;
               }
               // passed discontinuity, observation ok
@@ -826,7 +829,6 @@ int main(int argc, char *argv[]) {
               Filter.tropo_estimate(receiver_count) = cDtropo.Lwz;
               // for next beacon count
               ++receiver_count;
-              //printf("Note:: first observation for beacon %.3s; assigned count=%d\n", beaconobs->id(), receiver_count-1);
             }
 
           } else {
@@ -849,11 +851,11 @@ int main(int argc, char *argv[]) {
             printf(" Dt=%.9f", delta_tau.to_fractional_seconds());
 
             // we will need the true emitter frequency, feT = feN * (1 + Dfe)
-            const double feT =
-                feN * (1e0 + Filter.rfoff_estimate(receiver_number, tl1));
+            //const double feT =
+            //    feN * (1e0 + Filter.rfoff_estimate(receiver_number, tl1));
 
             // Ionospheric path delay in [m/sec]
-            const double Dion = (iers2010::C / feT) *
+            const double Dion = (iers2010::C / feN) *
                                 (cDiono - pprev_obs->Diono) /
                                 delta_tau.to_fractional_seconds();
             printf(" Dion=%.6f", Dion);
@@ -1072,7 +1074,9 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
       sv_state.block<3, 1>(0, 0), sv_state.block<3, 1>(3, 0), GM, J2, Re);
 
   // relativity clock correction, Lemoine 2016
-  Drel_c = .5e0 * (Sdelta_clock - Bdelta_clock);
+  // TODO why the fuck a 0.5 here?
+  // Drel_c = .5e0 * (Sdelta_clock - Bdelta_clock);
+  Drel_c = Sdelta_clock - Bdelta_clock;
 
   // TODO relativity correction for travel time
   Drel_r = 0e0;
@@ -1082,7 +1086,7 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
 
 // TODO this should only be done once, for all stations!
 /// @param[in] bxyz_arp Beacon ECEF coordinates at ARP
-/// @param[in] beacon   The beacon
+/// @param[in] beacon The beacon
 /// @return ECEF coordinates of the beacon's iono-free phase center
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,

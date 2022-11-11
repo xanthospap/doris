@@ -30,22 +30,6 @@ the fact that in ``real world'' these two are not actually equal.
 \subsubsection{Emitter/Beacon Nominal Frequencies, $f_{e_N}$}
 \label{sssec:beacon-nominal-frequencies}
 
-%\begin{subequations} \label{eq:lem13}
-%    \begin{align}
-%        v_{measured} & = \frac{c}{ \colorbox{blue!20}{$f_{e_N}$} } (\colorbox{blue!20}{$f_{e_N}$} - f_{r_T} -
-%          \frac{N_{DOP}}{\Delta\tau_r}) + \Delta u_{REL} + 
-%          \Delta v_{IONO} \label{eq:lem13a} \\
-%        v_{theo} &= \frac{\rho_2 - \rho_1}{\Delta\tau_r} 
-%          (1- \frac{U_e}{c^2} - \frac{{V_e}^2}{2 c^2}) + 
-%          \Delta v_{TROPO} - \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + 
-%          f_{r_T})}{\colorbox{blue!20}{$f_{e_N}$}} 
-%          \tikz[baseline]{\node[fill=yellow!20,anchor=base] (df) {$\frac{\Delta f_e}{f_{e_N}}$}; }
-%          \label{eq:lem13b}
-%    \end{align}
-%\end{subequations}
-%\begin{tikzpicture}[overlay]
-%\end{tikzpicture}
-
 RINEX file headers, contain values of the \emph{station frequency shift 
 factor} $k$ for each of the beacons involved (\cite{DORISRNX3}, Sec. 6.16). 
 These are used to compute the ``nominal'' frequencies of the beacon/emitter. 
@@ -55,6 +39,7 @@ $k \neq 0$). The frequencies are computed as (\cite{DORISRNX3}, Sec. 6.16):
   \begin{aligned}
     L_{2GHz}   &= 543 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) \\
     L_{400MHz} &= 107 \cdot F_0 \left( \frac{3}{4} + \frac{87\cdot k}{5 \cdot 2^{26}} \right) 
+    \label{eq:nominal-freq}
   \end{aligned}
 \end{equation}
 where $F_0 = 5e6 \text{ Hz}$ the USO frequency. These value, are the ones 
@@ -98,6 +83,7 @@ $10^{-11}$ (\cite{DORISRNX3}, Sec. 6.11), so that for a given epoch $t_i$, the
 true frequency is
 \begin{equation}
   f_{r_T}\at{t=t_i} = f_{r_N} \cdot \left( 1 + F_{t_i} \cdot 10^{-11} \right)
+  \label{eq:tpf-rec}
 \end{equation}
 where $F_{t_i}$ is the relative frequency offset value recovered from the RINEX 
 file.
@@ -118,13 +104,14 @@ beacon reference point, we procced as follows:
     requested epoch, $\bm{r}\sp{\prime}$
   \item get site eccentricity $\Delta h$ from the respective IDS-distributed 
     log file,
-  \item compute the cartesian-to-topocentric rotation matrix $\bm{R}(\bm{r})$,
+  \item compute the cartesian-to-topocentric rotation matrix $\bm{R}(\bm{r}\sp{\prime})$,
   \item add the topocentric eccentricity vector to get the antenna reference
     point coordinates for the beacon:
     \begin{equation}
       \bm{r} \equiv \bm{r}^{dpod}_{ARP} = 
         \bm{r}\sp{\prime} + \bm{R}^T \cdot 
           \begin{pmatrix} 0 & 0 & \Delta h \end{pmatrix}^T
+      \label{eq:rg-to-rarp}
     \end{equation}
 \end{enumerate}
 
@@ -172,9 +159,11 @@ tropospheric delay between two measurements (the same ones used to derive the
 Doppler count), given in \si{\m \per \s}. That is:
 \begin{equation}
   \begin{aligned}
-    \Delta v_{TROPO} [\si{\m \per \s}] &= \left( ztd\at{t=t_{i-1}} - ztd\at{t=t_{i}} \right) / \Delta \tau\\
-     &= \left( \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_i} - 
+    \Delta v_{TROPO} [\si{\m \per \s}] 
+      &= \left( ztd\at{t=t_{i-1}} - ztd\at{t=t_{i}} \right) / \Delta \tau\\
+      &= \left( \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_i} - 
         \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_{i-1}} \right) \ \Delta \tau
+    \label{eq:dtrop-diff}
   \end{aligned}
 \end{equation}
 
@@ -227,6 +216,7 @@ $\Delta v_{IONO}$ appearing in \ref{eq:lem13} is:
     \cdot 
     \frac{\delta_{ION}\at[\big]{t=t_{i-1}} 
     - \delta_{ION}\at[\big]{t=t_i}}{\Delta \tau}
+  \label{eq:dion-diff}
 \end{equation}
 
 \begin{itemize}
@@ -264,6 +254,7 @@ iono-free phase center, given that we have the ECEF coordinates of the beacon's
 \gls{arp} $\bm{r}_{arp}$ (see \ref{ssec:beacon_coordinates}), we use:
 \begin{equation}
   \bm{r}^{ecef}_{iono-free} = \bm{r}_{arp} + \bm{R}^T \cdot \bm{r}_{iono-free}
+  \label{eq:arp-to-if-pc}
 \end{equation}
 where $\bm{R}$ is the cartesian-to-topocentric rotation matrix, computed 
 at $\bm{r}_{arp}$.
@@ -280,6 +271,48 @@ and the \emph{iono-free} phase center:
 where the superscript $satf$ denotes the \emph{satellite-fixed} body/reference 
 frame. On-board satellite antenna phase center offset values can be found in 
 \cite{DorisSatModels}.
+
+\subsubsection{Relativistic Correction}
+\label{sssec:relativistic-correction}
+\ref{eq:lem13} contains a relativistic correction term, $\Delta u_{REL}$. This 
+correction is plit into two parts, $\Delta u_{REL_c}$ the part containing the 
+clock correction and $\Delta u_{REL_r}$, containing the effect of the travel 
+path. Here, we are only considering the $\Delta u_{REL_c}$ part.
+
+The correction is computed (for a given obserbation) from the formula:
+\begin{equation}
+  \Delta u_{REL_c} = \frac{1}{c} \left( U_r - U_e + \frac{V^2_r - V^2_e}{2} \right) \si{\m}
+  \label{eq:lem14}
+\end{equation}
+For the receiver part, the respective quantities in \ref{eq:lem14} are given by:
+\begin{equation}
+  \begin{aligned}
+    V^2_r &= \norm{\bm{v}_{ecef}}^2 \\
+    U_r   &= \frac{\mu}{\norm{\bm{r}_{ecef}}} \cdot \left( 1 - 
+      \left(\frac{\alpha}{\norm{\bm{r}_{ecef}}}\right) ^2 \cdot J_2 \cdot
+        \frac{3 \cdot \sin ^2{\phi} -1}{2} \right)
+  \end{aligned}
+  \label{eq:potential-receiver}
+\end{equation}
+where $\bm{r}_{ecef}$ and $\bm{v}_{ecef}$ are the position and velocity of the 
+satellite at the given instant, in the terrestrial RF, aka ITRF.
+
+For the emitter, things are further simplified. We consider $V_e = 0$ and the 
+potential is computed as 
+\begin{equation}
+  U_e = \frac{\mu}{\norm{\bm{r}_{ecef}}}
+  \label{eq:potential-emitter}
+\end{equation}
+where $\bm{r}_{ecef}$ is the position of the beacon in ITRF.
+
+In \ref{eq:lem13}, we need the ``differentiated'' relativistic corrections, thus 
+\begin{equation}
+  \label{eq:drel-diff}
+  \begin{aligned}
+    \Delta v_{REL} &= \frac{1}{c} \left( \left[ U_r - U_e + \frac{V^2_r - V^2_e}{2} \right]\at{t=t_i} - \left[ U_r - U_e + \frac{V^2_r - V^2_e}{2} \right]\at{t=t_{i-1}} \right) \\
+      &= \frac{1}{c} \cdot \left( U_r\at{t_i} - U_r\at{t_{i-1}} +  \frac{V_r\at{t_i}-V_r\at{t_{i-1}}}{2} \right) \si{\m\per\s}
+  \end{aligned}
+\end{equation}
 
 \subsubsection{RINEX Observation Flags}
 \label{sssec:rnx-flags}
@@ -312,11 +345,11 @@ EOP information is extracted/interpolated from IERS \texttt{C04} files.
 \subsubsection{Earth Gravity}
 Using gravity model \texttt{GOCO02s} (icgem format), up to degre/order 90.
 
-\subsubsection{Beacon Information}
-Reference coordinates extracted from \texttt{dpod2014\_053.snx}. Antenna 
-Reference Point (eccentricity) extracted from respective IDS log files, and 
-added to the extrapolated cartesian coordinates (see 
-\ref{ssec:beacon_coordinates}).
+%\subsubsection{Beacon Information}
+%Reference coordinates extracted from \texttt{dpod2014\_053.snx}. Antenna 
+%Reference Point (eccentricity) extracted from respective IDS log files, and 
+%added to the extrapolated cartesian coordinates (see 
+%\ref{ssec:beacon_coordinates}).
 
 \subsubsection{Satellite Information}
 Centre of Gravity (CoG) coordinates, in the SV-fixed RF, are extracted from the 
@@ -338,25 +371,63 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
 \subsubsection{Algorithm}
 \begin{enumerate}
   \item Setup auxiliary infromation, data files, filter, etc ...
+  \begin{itemize}
+    \item Extrapolate coordinates for every beacon to RINEX reference epoch using \ref{eq:rg-to-rarp}, see \ref{ssec:beacon_coordinates}
+  \end{itemize}
 
   \item Parse the RINEX file header
 
   \item For every observation block in the RINEX file:
-    \begin{enumerate}
+    \begin{enumerate}\label{every-block}
       \item Transform proper time $\tau _i$ to TAI $t_i$ using the receiver-clock-offset 
         value reported in the RINEX
       \item Integrate orbit to $t_i$ (results are state vector $\bm{X}_{t_i}$ and state 
-        transition matrix $\bm{\Phi}_{t_i}$)
+        transition matrix $\bm{\Phi}_{t_i}$ in GCRS)
       \item Perform the Kalman filter time-update, aka compute new $P$ matrix as 
         \begin{equation}
           P^- _{t_i} = \bm{\Phi} \cdot P^+ _{t_{i-1}} \cdot \bm{\Phi}^T
         \end{equation}
         where $\bm{\Phi} = \begin{pmatrix} \bm{\Phi}_{6\times 6} & \bm{0} \\ \bm{0} & \bm{I} \end{pmatrix}$
+        \item Compute SV-coordinates of Iono-Free Phse Center, in ITRF aka $\bm{X}^{ecef}_{iono-free,t_i}$
         \item For every observation set in the current block:
-          \begin{enumerate}
+          \begin{enumerate}\label{every-observation}
             \item Check observation flags reported in the RINEX file (see \ref{sssec:rnx-flags}). 
               If the observation is un-usable, then mark a discontinuity (for the beacon) and procceed 
-              to next observation. If flags are ok, continue.
+              to next observation (goto \ref{every-observation}). If flags are ok, continue.
+            \item Compute the Iono-Free Phase Center of the beacon using \ref{eq:arp-to-if-pc} (see \ref{sssec:2ghz-ionofree-pco}) 
+              to get $\bm{r}^{ecef}_{iono-free}$
+            \item Transform the satellite-to-beacon vector from ITRF to topocentric coordinates, 
+              and compute azimouth $Az$, elevation $El$ and range $s$ (use $\bm{X}^{ecef}_{iono-free,t_i}$ and 
+              $\bm{r}^{ecef}_{iono-free}$ so that the vector is wrt the Iono-Free 
+              Phase center at both ends).
+            \item If $El < \text{ minimum Elevation Angle}$ goto \ref{every-observation}; else procceed
+            \item Check if this is the first observation of the beacon, or we have to start 
+              a new arc, i.e. previous observation of the beacons happened more than 
+              \SI{5}{\min} away
+            \item Compute beacon's nominal frequency $f_{e_N}$, via \ref{eq:nominal-freq} 
+            \item Compute ionospheric correction $\Delta I_{t_i}$ (in cycles) using \ref{eq:iono-delay-cycles}
+            \item Compute tropospheric delay for the observation $\Delta T_{t_i}$, 
+              using \ref{eq:tropo-delay}. The value $zd_{wet}$ is the last estimated 
+              value, aka $zd_{wet}\at{t=t_{i-1}}$
+            \item Compute relativistic correction using $\Delta R_{t_i}$ using \ref{eq:lem14}
+              (use \ref{eq:potential-receiver} and \ref{eq:potential-emitter}; values 
+              $\mu$, $\alpha$ and $J_2$ needed to compute \ref{eq:potential-receiver} 
+              are extracted from the gravity model
+            \item Check for discontinuity or start of new arc; if true, then store 
+              observation and goto \ref{every-observation}. Else retrieve last 
+              stored dataset (latest beacon observation)
+            \item Compute the true proper frequency of the receiver, $f_{r_T}\at{t=t_i}$ 
+              using \ref{eq:tpf-rec} (scaled with $10^6$ to get \si{\Hz})
+            \item Compute the Doppler count $NDpod$, by just subtracting the current 
+              \SI{2}{\GHz} carrier observation with the previous one, aka
+              $NDop = L_{\SI{2}{\GHz}}\at{t=t_i} - L_{\SI{2}{\GHz}}\at{t=t_{i-1}}$
+              as recorded in the RINEX file
+            \item Differentiate corrections wrt to (\textbf{proper}) time:
+              \begin{itemize}
+                \item $\Delta v_{ION}$ from \ref{eq:dion-diff}
+                \item $\Delta v_{TRO}$ from \ref{eq:dtrop-diff}
+                \item $\Delta v_{REC}$ from \ref{eq:drel-diff}
+              \end{itemize}
           \end{enumerate}
       \end{enumerate}
 \end{enumerate}
