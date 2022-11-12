@@ -3,6 +3,7 @@
 
 #include "doris_system_info.hpp"
 #include "datetime/dtcalendar.hpp"
+#include "filters/models.hpp"
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
@@ -319,6 +320,13 @@ int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
                                        double sigma_x = 1e-1,
                                        double sigma_vx = 1e-3,
                                        double sigma_z = 1e1) noexcept;
+int fit_relative_frequency_offset(
+    const std::vector<const char *> &fns, int poly_order,
+    dso::LinearModel<double> &fit, bool use_tai = false, int every = 4,
+    const dso::datetime<dso::nanoseconds> &start =
+        dso::datetime<dso::nanoseconds>::min(),
+    const dso::datetime<dso::nanoseconds> &end =
+        dso::datetime<dso::nanoseconds>::max()) noexcept;
 
 /// @brief An iterator to a DorisObsRinex data.
 /// Allows easily iterating of the data block in the RINEX file.
@@ -380,6 +388,7 @@ struct RinexDataBlockIterator {
     }
     return t;
   }
+
   /// @brief Get the L1-reference epoch for the observations, corrected for 
   /// receiver clock offset
   /// @param[out] tl2 Reference epoch for the L2 observation, corrected for:
