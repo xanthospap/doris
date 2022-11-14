@@ -8,7 +8,8 @@ reference-frame:
   station-coordinates: data/dpod2014_053.snx
 
 eop-info:
-  eop-file: data/eopc04_14_IAU2000.62-now.txt
+  # eop-file: data/eopc04_14_IAU2000.62-now.txt
+  eop-file: data/EOP_14_C04_IAU2000A_one_file_1962-now.txt
 
 naif-kernels:
   spk: data/jpl/de405.bsp
@@ -36,5 +37,7 @@ attitude:
   body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001
 
 filtering:
-  ## m/sec
+  ## Units: [m/sec]
   observation-sigma: .5e0
+  ## Units: [degrees]
+  elevation-cut-off: 15e0 ## in degrees

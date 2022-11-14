@@ -23,7 +23,7 @@
 
 constexpr const int Np = 1;
 
-constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
+// constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
 
 // max time difference between two observations to mark a new arc pass [sec]
 constexpr const long max_sec_for_new_arc = 5 * 60L;
@@ -329,6 +329,15 @@ int main(int argc, char *argv[]) {
   char buf[256];
   int error;
 
+  // Elevation Cut-Off Angle in [degrees]
+  // -------------------------------------------------------------------------
+  double EleCutOff;
+  if (dso::get_yaml_value_depth2<double>(config, "filtering", "elevation-cut-off", EleCutOff)) {
+    fprintf(stderr, "ERROR failed to find spk kernel\n");
+    return 1;
+  }
+  printf("# Using elevation cut-off angle = %.3f\n", EleCutOff);
+
   // Load CSPICE/NAIF Kernels (2/3)
   // -------------------------------------------------------------------------
   if (dso::get_yaml_value_depth2(config, "naif-kernels", "spk", buf)) {
@@ -352,14 +361,16 @@ int main(int argc, char *argv[]) {
 
   // Fit a linear Model for the Relative Receiver Offset Values (use proper 
   // time for this).
+#ifdef FIT_RINEX_RFO
   dso::PolynomialModel<dso::datetime<dso::nanoseconds>> rfo_fit(1);
   {
-  if (dso::fit_relative_frequency_offset(buf, rfo_fit, false, 4)) {
-    fprintf(stderr, "ERROR! Failed to fit RFO values!\n");
-    return 2;
+    if (dso::fit_relative_frequency_offset(buf, rfo_fit, false, 4)) {
+      fprintf(stderr, "ERROR! Failed to fit RFO values!\n");
+      return 2;
+    }
   }
-  }
-  
+#endif
+
   // Construct the Doris RINEX instance rnx
   dso::DorisObsRinex rnx(buf);
 
@@ -865,10 +876,13 @@ int main(int argc, char *argv[]) {
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
-            //const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
-            //                   (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+#ifdef FIT_RINEX_RFO
             const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
                                (1e0 + rfo_fit.value_at(tproper) * 1e-11);
+#else
+            const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
+                               (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+#endif
 
             // Doppler count and delta time (proper)
             const double Ndop =
@@ -976,7 +990,7 @@ int main(int argc, char *argv[]) {
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                     "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.12f "
+                     "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.3f %.12f "
                      "\n",
                      dtbuf, beacon_it->m_station_id, pprev_obs->arcnr,
                      Filter.estimates()(0), Filter.estimates()(1),
@@ -988,7 +1002,7 @@ int main(int argc, char *argv[]) {
                      Filter.rfoff_estimate(receiver_number, tl1),
 #endif
                      Filter.tropo_estimate(receiver_number), Filter.drag_coef(),
-                     oc, tl1.as_mjd());
+                     oc, dso::rad2deg(el), tl1.as_mjd());
 
               svState.state = Filter.estimates().block<6, 1>(0, 0);
 

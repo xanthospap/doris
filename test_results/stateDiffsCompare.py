@@ -10,8 +10,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
 
 ## Assuming
-## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res Mjd
-## 0        1           2   3      4   5     8        11   12   14  15
+## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res El Mjd
+## 0        1           2   3      4   5     8        11   12   14  15 16
 def parse(fn):
     dct = {}
     with open(fn, 'r') as fin:
@@ -21,10 +21,10 @@ def parse(fn):
                 t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
             except:
                 t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
-            x,y,z,vx,vy,vz,dff,lw,c,res,mjd = [float(k) for k in l[5:]]
+            x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd = [float(k) for k in l[5:]]
             beacon = l[3]
             arc_nr = int(l[4])
-            dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,mjd]
+            dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd]
     return dct
 
 ## Assuming
@@ -45,7 +45,7 @@ def parse_reference(fn):
 
 def colAsArray(dct,col,fac=1e0,site=None):
     if site:
-      return [ t,vals[col]*fac for t,vals in dct.items() if vals[0]==site]
+      return [ (t,vals[col]*fac) for t,vals in dct.items() if vals[0]==site]
     else:
       return [ vals[col]*fac for _,vals in dct.items() ]
 
@@ -135,37 +135,52 @@ parser.add_argument(
 
 def plot_residuals(fn):
   residuals_index = 11
+  elevation_index = residuals_index + 1
   dct = parse(fn)
   t0 = datetime.datetime.max
   for t in dct:
     if t < t0: t0 = t
 
   t = [ ti for ti in dct ]
-  fig, ax = plt.subplots(2,1)
+  fig, ax = plt.subplots(2,2)
   fac = 1e0
-  ax[0].scatter(t,colAsArray(dct,residuals_index,fac),s=1,color='black')
-  ax[0].set_title('Residuals [m]')
-  ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-  ax[0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
-  ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-  ax[0].grid(True, 'both', 'x')
+  ax[0,0].scatter(t,colAsArray(dct,residuals_index,fac),s=1,color='black')
+  ax[0,0].set_title('Residuals [m]')
+  ax[0,0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[0,0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[0,0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[0,0].grid(True, 'both', 'x')
   # get statistics and remove outliers
   ts,rs=remove_outliers(dct, residuals_index)
-  ax[1].scatter(ts,rs,s=1,color='black')
-  ax[1].set_title('Residuals [m]')
-  ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-  ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=3))
-  ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-  ax[1].grid(True, 'both', 'x')
+  ax[1,0].scatter(ts,rs,s=1,color='black')
+  ax[1,0].set_title('Residuals [m]')
+  ax[1,0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[1,0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[1,0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[1,0].grid(True, 'both', 'x')
   fig.autofmt_xdate()
-  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  #
+  # counts, bins = np.histogram(colAsArray(dct,residuals_index,fac))
+  n_bins = 20
+  ax[0,1].hist(colAsArray(dct,residuals_index,fac), bins=n_bins)
+  # elevation Vs res
+  ax[1,1].scatter(colAsArray(dct,elevation_index,fac),colAsArray(dct,residuals_index,fac),s=1,color='black')
+  #
+  fig.suptitle('DORIS residuals @ {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
 def plot_site(fn, site):
+  site = site.upper()
   dct = parse(fn)
-  t1,dff = colAsArray(dct,8,1e0,site)
-  t2,lwz = colAsArray(dct,9,1e0,site)
-  t = [ ti for ti in dct ]
+  tdff = colAsArray(dct,8,1e0,site)
+  tlwz = colAsArray(dct,9,1e0,site)
+  t1 = [ x[0] for x in tdff ]
+  dff = [ x[1] for x  in tdff ]
+  t2 = [ x[0] for x in tlwz ]
+  lwz = [ x[1] for x  in tlwz ]
+  t0 = min(t1[0],t2[0])
+  if tdff == []:
+      print("No data for site: {:}".format(site), file=sys.stderr)
   fig, ax = plt.subplots(2,1)
   fac = 1e0
   ax[0].scatter(t1,dff,s=1,color='black')
@@ -175,13 +190,13 @@ def plot_site(fn, site):
   ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
   ax[0].grid(True, 'both', 'x')
   ax[1].scatter(t2,lwz,s=1,color='black')
-  ax[1].set_title('Lw Zebith [m]')
+  ax[1].set_title('Lw Zenith [m]')
   ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
   ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=3))
   ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
   ax[1].grid(True, 'both', 'x')
   fig.autofmt_xdate()
-  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  fig.suptitle('Site {:}@{:}\n'.format(site, t0.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
 def plot_state_diffs(fnref, fntest):
@@ -251,3 +266,7 @@ if __name__ == '__main__':
 
     if args.plot_res:
       plot_residuals(args.input)
+
+    if args.sites:
+        for s in args.sites:
+            plot_site(args.input, s)
