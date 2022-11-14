@@ -1,17 +1,36 @@
 #! /usr/bin/python
-
 import datetime
 import sys
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import argparse
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
 
-def t2sec(ts, t0):
-    return [(t-t0).total_seconds() for t in ts]
-
+## Assuming
+## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res Mjd
+## 0        1           2   3      4   5     8        11   12   14  15
 def parse(fn):
+    dct = {}
+    with open(fn, 'r') as fin:
+        for line in fin.readlines():
+            l = line.split()
+            try:
+                t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+            except:
+                t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+            x,y,z,vx,vy,vz,dff,lw,c,res,mjd = [float(k) for k in l[5:]]
+            beacon = l[3]
+            arc_nr = int(l[4])
+            dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,mjd]
+    return dct
+
+## Assuming
+## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz Mjd
+## 0        1           2     5        8
+def parse_reference(fn):
     dct = {}
     with open(fn, 'r') as fin:
         for line in fin.readlines():
@@ -24,30 +43,11 @@ def parse(fn):
             dct[t] = [x,y,z,vx,vy,vz,mjd]
     return dct
 
-def makeDiffs(dct1, dct2):
-    dct = {}
-    for t,vals in dct1.items():
-        if t not in dct2:
-            print('## Warning! failed to find record for date: {:}'.format(t))
-        else:
-            vals2 = dct2[t]
-            if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
-            assert(abs(vals[-1] - vals2[-1]) < 1e-9)
-            diffs = [ abs(x[0]-x[1]) for x in zip(vals,vals2)]
-            dct[t] = diffs
-    return dct
-
-def colAsArray(dct,col,fac=1e0):
-    return [ vals[col]*fac for _,vals in dct.items() ]
-
-def whichCol(component, posvel):
-    return component + int(posvel==1)*3
-
-def whichTitle(component, posvel, fac=1e0):
-    title = ' [{:}m]'.format('k' if fac==1e-3 else '')
-    if posvel == 1:
-        title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
-    return ['X','Y','Z'][component] + title
+def colAsArray(dct,col,fac=1e0,site=None):
+    if site:
+      return [ t,vals[col]*fac for t,vals in dct.items() if vals[0]==site]
+    else:
+      return [ vals[col]*fac for _,vals in dct.items() ]
 
 def reduce(dates, dct):
     dctcp = {}
@@ -59,59 +59,195 @@ def reduce(dates, dct):
     return dctcp
 
 def ColStatistics(dct,col,fac=1e0):
-    array = colAsArray(dct,col,fac)
+    if dct:
+      array = colAsArray(dct,col,fac)
+    else:
+      array = col
     sum = 0e0
     sumSquared = 0e0
     max = -1e99
     min = 1e99
     for value in array:
         sum += value
-        sumSquared += value *value
+        sumSquared += value * value
         if value > max: max = value
         if value < min: min = value
     n = float(len(array))
     return min, max, sum / n, math.sqrt(sumSquared / n)
 
-dct1 = parse(sys.argv[1])
-dct2 = parse(sys.argv[2])
-diffs = makeDiffs(dct1,dct2) if len(dct2) > len(dct1) else makeDiffs(dct2,dct1)
+def remove_outliers(dct, col, fac=1e0):
+  min, max, sumDn, sigma = ColStatistics(dct,col,fac)
+  xs=[];ys=[]
+  for t,vals in dct.items():
+    if abs(vals[col]*fac) < 3e0 * sigma:
+      xs.append(t)
+      ys.append(vals[col]*fac)
+  min, max, sumDn, sigma = ColStatistics(None,ys,fac)
+  xsnew=[];ysnew=[]
+  for entry in zip(xs,ys):
+    if abs(entry[1]*fac) < 3e0 * sigma:
+      xsnew.append(entry[0])
+      ysnew.append(entry[1]*fac)
+  return xsnew,ysnew
 
-t0 = datetime.datetime.max
-for t in dct1:
-  if t < t0: t0 = t
+class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                  argparse.RawTextHelpFormatter):
+    pass
 
-start_sec = 0
+parser = argparse.ArgumentParser(
+    formatter_class=myFormatter,
+    description=
+    'Plot Script for DORIS POD tests',
+    epilog=('''National Technical University of Athens,
+    Dionysos Satellite Observatory\n
+    Send bug reports to:
+    Xanthos Papanikolaou, xanthos@mail.ntua.gr
+    Aug, 2022'''))
 
-fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
-t = [ ti for ti in diffs ]
-for component in range(3):
-    for pv in range(2):
-        fac = 1e-3 if pv == 0 else 1e0 ## noop .... just meters now
-        fac = 1e0
-        index = whichCol(component, pv)
-        
-        axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index,fac),s=1,color='black')
-        
-        axs[component, pv].set_title(whichTitle(component, pv, fac))
-        _, end = axs[component, pv].get_xlim()
-        axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
-        axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
-        
-        minv, maxv, average, rms = ColStatistics(diffs,index,fac)
-        text_x = t[-1] - (t[-1] - t[0]) / 10e0
-        text_y = maxv - (maxv-minv) / 10e0
-        axs[component, pv].text(text_x, text_y, 'Average: {:+.4f}, Rms: {:.4f}'.format(average, rms), style='italic',
-        bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+parser.add_argument(
+    'input',
+    metavar='INPUT',
+    help='File holding results')
 
-        axs[component, pv].grid(True, 'both', 'x')
+parser.add_argument(
+    '-r',
+    '--ref-state',
+    metavar='REF_STATE',
+    dest='ref_state',
+    default=None,
+    required=False,
+    help='File holding reference state')
 
-# plt.tight_layout()
+parser.add_argument(
+    '-s',
+    '--sites',
+    metavar='SITES',
+    dest='sites',
+    nargs='+',
+    default=None,
+    required=False,
+    help='File holding reference state')
 
-if len(sys.argv) > 3:
-    subtitle = ' '.join(sys.argv[3:])
-else:
-    subtitle = ''
-fig.suptitle('Sp3 - Integrator Diffs\n{}'.format(subtitle), fontsize=16)
+parser.add_argument(
+  '--plot-residuals',
+  action='store_true',
+  dest='plot_res')
 
-plt.savefig(sys.argv[2] + '.png', transparent=True)
-plt.show()
+def plot_residuals(fn):
+  residuals_index = 11
+  dct = parse(fn)
+  t0 = datetime.datetime.max
+  for t in dct:
+    if t < t0: t0 = t
+
+  t = [ ti for ti in dct ]
+  fig, ax = plt.subplots(2,1)
+  fac = 1e0
+  ax[0].scatter(t,colAsArray(dct,residuals_index,fac),s=1,color='black')
+  ax[0].set_title('Residuals [m]')
+  ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[0].grid(True, 'both', 'x')
+  # get statistics and remove outliers
+  ts,rs=remove_outliers(dct, residuals_index)
+  ax[1].scatter(ts,rs,s=1,color='black')
+  ax[1].set_title('Residuals [m]')
+  ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[1].grid(True, 'both', 'x')
+  fig.autofmt_xdate()
+  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  plt.show()
+
+def plot_site(fn, site):
+  dct = parse(fn)
+  t1,dff = colAsArray(dct,8,1e0,site)
+  t2,lwz = colAsArray(dct,9,1e0,site)
+  t = [ ti for ti in dct ]
+  fig, ax = plt.subplots(2,1)
+  fac = 1e0
+  ax[0].scatter(t1,dff,s=1,color='black')
+  ax[0].set_title('Df/f [-]')
+  ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[0].grid(True, 'both', 'x')
+  ax[1].scatter(t2,lwz,s=1,color='black')
+  ax[1].set_title('Lw Zebith [m]')
+  ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+  ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+  ax[1].grid(True, 'both', 'x')
+  fig.autofmt_xdate()
+  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  plt.show()
+
+def plot_state_diffs(fnref, fntest):
+  def whichCol(component, posvel):
+      return component + int(posvel==1)*3
+  def whichTitle(component, posvel, fac=1e0):
+      title = ' [{:}m]'.format('k' if fac==1e-3 else '')
+      if posvel == 1:
+          title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
+      return ['X','Y','Z'][component] + title
+  def make_state_diffs(ref_dct, dct):
+      resdct = {}
+      for t,vals in ref_dct.items():
+          if t not in dct:
+              print('## Warning! failed to find record for date: {:}'.format(t))
+          else:
+              vals2 = dct[t][2:8] + [dct[t][-1]]
+              if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
+              assert(abs(vals[-1] - vals2[-1]) < 1e-9)
+              diffs = [ x[0]-x[1] for x in zip(vals,vals2)]
+              resdct[t] = diffs
+      return resdct
+
+  dct1 = parse_reference(fnref)
+  dct2 = parse(fntest)
+  diffs = make_state_diffs(dct1,dct2)
+
+  t0 = datetime.datetime.max
+  for t in dct1:
+    if t < t0: t0 = t
+
+  fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+  t = [ ti for ti in diffs ]
+  ## x-, y-, z-components ...
+  for component in range(3):
+      ## first position, then velocity ...
+      for pv in range(2):
+          # fac = 1e-3 if pv == 0 else 1e0 ## noop .... just meters now
+          fac = 1e0
+          index = whichCol(component, pv)
+          #axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index,fac),s=1,color='black')
+          axs[component, pv].scatter(t,colAsArray(diffs,index,fac),s=1,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv, fac))
+          _, end = axs[component, pv].get_xlim()
+          #axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
+          #axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
+          axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+          axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+          axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+          minv, maxv, average, rms = ColStatistics(diffs,index,fac)
+          text_x = t[-1] - (t[-1] - t[0]) / 10e0
+          text_y = maxv - (maxv-minv) / 10e0
+          axs[component, pv].text(text_x, text_y, 'Average: {:+.4f}, Rms: {:.4f}'.format(average, rms), style='italic',
+          bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          axs[component, pv].grid(True, 'both', 'x')
+  ## Rotate date labels automatically
+  fig.autofmt_xdate()
+  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  plt.show()
+
+if __name__ == '__main__':
+
+    args = parser.parse_args()
+
+    if args.ref_state:
+      plot_state_diffs(args.ref_state, args.input)
+
+    if args.plot_res:
+      plot_residuals(args.input)

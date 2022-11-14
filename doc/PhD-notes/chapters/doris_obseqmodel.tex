@@ -1,7 +1,56 @@
 \tikzstyle{every picture}+=[remember picture]
 \everymath{\displaystyle}
 
-\section{Introduction}
+\section{Questions}
+\begin{enumerate}
+  \item Orbit integration is performed without using (at all) the orbital 
+    elements (numerical integration is performed in GCRS Cartesian coordinates). 
+    Is this approach correct? (we only use state to orbital elements 
+    transformation to check/validate results).
+
+  \item Orbit integration to time $t_i$ results in the extrapolated state 
+    vector and the corresponding state transition matrix $\bm{\Phi}$. The latter 
+    is used to update the filter's var-covar matrix via $\bm{\Phi} \cdot \bm{P} \cdot \bm{\Phi}^T$,
+    but since the integration is performed in GCRS, should we transform the 
+    $\bm{\Phi}$ matrix wrt ECEF?
+
+  \item I use TAI (transformed from proper time using the correction recorded in 
+    the RINEX file) to perform orbit integration; is this correct ? Should i
+    use TCG ? (see \ref{ssec:coordinate-proper-time})
+
+  \item According to \cite{lemoine-2016} (Sec. 2.5.1) a correction of \emph{aberration} 
+    has to ber performed in the observation equation. This is currently not 
+    implemented. How large is its effect? How exactly should it be applied?
+
+  \item Is the formula for the ionospheric correction \ref{eq:dion-diff} (for 
+    the range-rate) correct ?
+
+  \item Ionospheric correction via \ref{eq:iono-delay-cycles} does not take 
+    into account the RINEX record ``\texttt{L2/L1 DATE OFFSET}''. Should it 
+    be taken into account ?
+
+  \item Is the relativistic correction \ref{eq:drel-diff} (for range-rate) 
+    correct ?
+
+  \item Solar radiation pressure is currently ignored. What is the practice 
+    for implementing shadow models (for LEOs) ?
+
+  \item For Jason-3 attitude, we use \emph{body} but not \emph{solar-panel} 
+    quaternions. How do i use the \emph{solar-panel} quaternions ? (see \ref{sssec:ja3-quaternions})
+
+  \item I use the IDS distributed log files to get beacon eccentricities. Is 
+    this good practice ? Should i use the SINEX files ? (see \ref{ssec:beacon_coordinates})
+
+  \item Starting from \ref{eq:lem13}, we need the partials wrt the estimated 
+    parameters. Are \ref{eq:partials-pos} and \ref{eq:partials-vel} correct ?
+
+  \item Is it good practice to use obsevration flags (from RINEX) to mark/exclude 
+    observations ? (see \ref{sssec:rnx-flags})
+
+\end{enumerate}
+
+
+\section{Observation Model Description}
 \label{sec:doris-introduction}
 
 For the DORIS observatrion equation model, we use the formula described in 
@@ -53,17 +102,17 @@ from:
 but the quantity $\Delta f_e / f_{e_N}$ is not know a-priori and has to be 
 estimated during the processing.
 
-We estimate $\Delta f_e / f_{e_N}$ using a \colorbox{blue!20}{linear model using TAI}, 
-aka $\frac{\Delta f_e}{f_{e_N}}\at{t=t_i} = \alpha + \beta \cdot \delta t_{TAI}$
+We estimate $\Delta f_e / f_{e_N}$ using a \colorbox{blue!20}{linear model using proper time}, 
+aka $\frac{\Delta f_e}{f_{e_N}}\at{\tau=\tau _i} = \alpha + \beta \cdot \delta \tau$
 with an a-priori value of 0 and no process noise. For the estimation, we need 
-the partials of the observation equation \ref{eq-lem13b} w.r.t. the $\alpha$ and 
+the partials of the observation equation \ref{eq:lem13b} w.r.t. the $\alpha$ and 
 $\beta$ parameters, which are:
 \begin{equation}
   \begin{aligned}
   \frac{\partial v_{theo}}{\partial \alpha} &= 
     \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} \\
   \frac{\partial v_{theo}}{\partial \beta} &= 
-    \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} \cdot \delta t_{TAI}
+    \frac{c(\frac{N_{DOP}}{\Delta\tau_r} + f_{r_T})}{f_{e_N}} \cdot \delta \tau
   \end{aligned}
 \end{equation}
 
@@ -150,7 +199,7 @@ analysis, \emph{per beacon and per pass}, using an initial value provided by
 Using the mapping function and the zenith delay, we derive the tropospheric 
 delay for an observation at $t=t_i$, given by:
 \begin{equation}
-  ztd [\si{\m}] = zd_{hydrostatic} \cdot mf_{hydrostatic} + zd_{wet}\at{t=t_i} \cdot mf_{wet}
+  \delta _{TRO} [\si{\m}] = zd_{hydrostatic} \cdot mf_{hydrostatic} + zd_{wet}\at{t=t_i} \cdot mf_{wet}
   \label{eq:tropo-delay}
 \end{equation}
 
@@ -160,7 +209,7 @@ Doppler count), given in \si{\m \per \s}. That is:
 \begin{equation}
   \begin{aligned}
     \Delta v_{TROPO} [\si{\m \per \s}] 
-      &= \left( ztd\at{t=t_{i-1}} - ztd\at{t=t_{i}} \right) / \Delta \tau\\
+      &= \left( \delta _{TRO} \at{t=t_{i-1}} - \delta _{TRO} \at{t=t_{i}} \right) / \Delta \tau\\
       &= \left( \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_i} - 
         \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_{i-1}} \right) \ \Delta \tau
     \label{eq:dtrop-diff}
@@ -346,6 +395,36 @@ is $\bm{x}^{cog}_{gcrs}$, then the vector to the ARP is:
 where $\tilde{q}$ is the conjugate of $q$ and the subscript $sv$ denotes vectors 
 wrt the satellite-fixed reference frame.
 
+\subsection{Filtering}
+\label{ssec:filtering}
+The estimated parameter set used in the Kalman filter is:
+\begin{equation}
+  \bm{X} = \begin{pmatrix}
+    \begin{pmatrix} r_x & r_y & r_z & v_x & v_y & v_z \end{pmatrix}^T_{ecef} \\
+    C_{drag} \\
+    \begin{pmatrix} L^z_w & F_0 & F_1 \end{pmatrix}^T_{beacon_1} \\
+    \vdots \\
+    \begin{pmatrix} L^z_w & F_0 & F_1 \end{pmatrix}^T_{beacon_N} \\
+  \end{pmatrix}
+\end{equation}
+where $F_0$ and $F_1$ are the coefficients for modeling the bias and drift of the 
+relative frequency offset of (each) emitter.
+
+We need the partials of \ref{eq:lem13b} wrt $X$:
+\begin{equation}
+  \frac{\partial v_{theo}}{\partial \bm{x}_{ecef}} = \bm{R}^T \left( \frac{\bm{s}}{\norm{\bm{s}}}\at{t=t_i} - \frac{\bm{s}}{\norm{\bm{s}}}\at{t=t_{i-1}} \right) / \Delta \tau
+  \label{eq:partials-pos}
+\end{equation}
+where $\bm{x}_{ecef}$ is the ECEF position of the satellite, $\bm{R}$ is the 
+cartesian-to-topocentric matrix (centered at the beacon site), $\bm{s}$ is the 
+topocentric beacon-to-satellite vector.
+
+For the satellite velocity $\bm{v}_{ecef}$, we have
+\begin{equation}
+  \frac{\partial v_{theo}}{\partial \bm{v}_{ecef}} = \bm{0}
+  \label{eq:partials-vel}
+\end{equation}
+
 \section{Processing SetUp}
 
 \subsubsection{General SetUp}
@@ -353,19 +432,22 @@ wrt the satellite-fixed reference frame.
   \item Elevation cut-off angle \ang{10}
   \item Setup new satellite arc if previous observation (of the beacon) is more 
     than \SI{5}{\min} away
+  \item First satellite state (for reference time of RINEX) extracted from a relevant 
+    sp3 file
+  \item EOP information is extracted/interpolated from IERS \texttt{C04} files.
+  \item Using gravity model \texttt{GOCO02s} (icgem format), up to degre/order 90.
+  \item To compute atmospheric density, we are using the \texttt{NRLMSISE00} model, 
+    using flux data from CelesTrack.
+  \item Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
+  \item Satellite information \texttt{ja3mass.txt} and \texttt{DORISSatelliteModels.pdf} 
 \end{itemize}
 
 \subsubsection{Filter SetUp}
 \begin{itemize}
   \item A-priori information for $\Delta f_e / f_{e_N}$: $0.0 \pm 1.0$
   \item A-priori information for drag coefficient $C_{d}$: $2.0 \pm .75$
+  \item A-priori value for $L^z_w$ computed from Aske \& Nordius (recommended by VMF3) $\pm 0.5 \si{\m}$
 \end{itemize}
-
-\subsubsection{EOP Information}
-EOP information is extracted/interpolated from IERS \texttt{C04} files.
-
-\subsubsection{Earth Gravity}
-Using gravity model \texttt{GOCO02s} (icgem format), up to degre/order 90.
 
 %\subsubsection{Beacon Information}
 %Reference coordinates extracted from \texttt{dpod2014\_053.snx}. Antenna 
@@ -373,22 +455,15 @@ Using gravity model \texttt{GOCO02s} (icgem format), up to degre/order 90.
 %added to the extrapolated cartesian coordinates (see 
 %\ref{ssec:beacon_coordinates}).
 
-\subsubsection{Satellite Information}
-Centre of Gravity (CoG) coordinates, in the SV-fixed RF, are extracted from the 
-file \texttt{ja3mass.txt}. Phase centre coordinates (in the SV-fixed RF) for the 
-two frequencies are extracted from the file \texttt{DORISSatelliteModels.pdf} and 
-converted to \emph{iono-free} pco as:
-\begin{equation}
-  \bm{r}_{iono-free-pco} = \bm{r}_{2GHz,PCO} + (\bm{r}_{400MHz,PCO} - \bm{r}_{2GHz,PCO}) / (\gamma - 1)
-\end{equation}
-with all $\bm{r}$ vectors wrt the the SV-fixed RF.
-
-\subsubsection{Atmospheric Drag}
-To compute atmospheric density, we are using the \texttt{NRLMSISE00} model, 
-using flux data from CelesTrack.
-
-\subsubsection{Third Body Attraction/Perturbations}
-Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
+%\subsubsection{Satellite Information}
+%Centre of Gravity (CoG) coordinates, in the SV-fixed RF, are extracted from the 
+%file \texttt{ja3mass.txt}. Phase centre coordinates (in the SV-fixed RF) for the 
+%two frequencies are extracted from the file \texttt{DORISSatelliteModels.pdf} and 
+%converted to \emph{iono-free} pco as:
+%\begin{equation}
+%  \bm{r}_{iono-free-pco} = \bm{r}_{2GHz,PCO} + (\bm{r}_{400MHz,PCO} - \bm{r}_{2GHz,PCO}) / (\gamma - 1)
+%\end{equation}
+%with all $\bm{r}$ vectors wrt the the SV-fixed RF.
 
 \subsubsection{Algorithm}
 \begin{enumerate}
@@ -399,7 +474,7 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
 
   \item Parse the RINEX file header
 
-  \item For every observation block in the RINEX file:
+  \item \textbf{For every observation block in the RINEX file}:
     \begin{enumerate}\label{every-block}
       \item Transform proper time $\tau _i$ to TAI $t_i$ using the receiver-clock-offset 
         value reported in the RINEX
@@ -411,7 +486,7 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
         \end{equation}
         where $\bm{\Phi} = \begin{pmatrix} \bm{\Phi}_{6\times 6} & \bm{0} \\ \bm{0} & \bm{I} \end{pmatrix}$
         \item Compute SV-coordinates of Iono-Free Phse Center, in ITRF aka $\bm{X}^{ecef}_{iono-free,t_i}$
-        \item For every observation set in the current block:
+        \item \textbf{For every observation set in the current block}:
           \begin{enumerate}\label{every-observation}
             \item Check observation flags reported in the RINEX file (see \ref{sssec:rnx-flags}). 
               If the observation is un-usable, then mark a discontinuity (for the beacon) and procceed 
@@ -492,7 +567,9 @@ Using JPL's \texttt{de405} ephemeris to compute Sun and Moon positions.
                 \item partials wrt zenith wet delay from \ref{eq:partials-zwd}
               \end{itemize}
             \item Perform filter measurement update, weighting the observation with 
-              $\sigma _{obs} = \sigma_0 / \cos{El}$
+              $\sigma _{obs} = \sigma_0 / \cos{El}$. That will result in a new 
+              ``corrected'' satellite state vector $\bm{X}^{ecef}_{iono-free}$; repeat 
+              loop, using this updated state, for the rest of the beacons (aka goto \ref{every-observation})
           \end{enumerate}
       \end{enumerate}
 \end{enumerate}

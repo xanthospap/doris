@@ -344,12 +344,23 @@ int main(int argc, char *argv[]) {
 
   // DORIS RINEX instance
   // -------------------------------------------------------------------------
-  // Construct the Doris RINEX instance rnx
   if (dso::get_yaml_value_depth2(config, "data", "doris-rinex", buf)) {
     fprintf(stderr, "ERROR. Failed parsing data/rinex file from YAML %s\n",
             argv[1]);
     return 1;
   }
+
+  // Fit a linear Model for the Relative Receiver Offset Values (use proper 
+  // time for this).
+  dso::PolynomialModel<dso::datetime<dso::nanoseconds>> rfo_fit(1);
+  {
+  if (dso::fit_relative_frequency_offset(buf, rfo_fit, false, 4)) {
+    fprintf(stderr, "ERROR! Failed to fit RFO values!\n");
+    return 2;
+  }
+  }
+  
+  // Construct the Doris RINEX instance rnx
   dso::DorisObsRinex rnx(buf);
 
   // Initial Orbit
@@ -854,15 +865,18 @@ int main(int argc, char *argv[]) {
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
+            //const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
+            //                   (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
             const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
-                               (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
+                               (1e0 + rfo_fit.value_at(tproper) * 1e-11);
 
             // Doppler count and delta time (proper)
             const double Ndop =
                 beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
             const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
             const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
-            printf("%.3s Lt(i)=%.6f Lt(i-1)=%.6f", beaconobs->id(), beaconobs->m_values[l1i].m_value, pprev_obs->Ls1);
+            printf("%.3s Lt(i)=%.6f Lt(i-1)=%.6f", beaconobs->id(),
+                   beaconobs->m_values[l1i].m_value, pprev_obs->Ls1);
             printf(" Dt=%.9f", delta_tau.to_fractional_seconds());
 
             // we will need the true emitter frequency, feT = feN * (1 + Dfe)
@@ -894,8 +908,10 @@ int main(int argc, char *argv[]) {
 #else
             const double DfefeN = Filter.rfoff_estimate(receiver_number, tl1);
 #endif
-            printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f [%.6f %.6f %.6f]\n",
-                   DfefeN, feN, frT, rho, pprev_obs->rho(), bxyz_ion(0), bxyz_ion(1), bxyz_ion(2));
+            printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f "
+                   "[%.6f %.6f %.6f]\n",
+                   DfefeN, feN, frT, rho, pprev_obs->rho(), bxyz_ion(0),
+                   bxyz_ion(1), bxyz_ion(2));
 
             // handle range-rate measurement
             // ---------------------------------------------------------
@@ -960,7 +976,7 @@ int main(int argc, char *argv[]) {
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
               printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
-                     "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.9f "
+                     "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f %.12f "
                      "\n",
                      dtbuf, beacon_it->m_station_id, pprev_obs->arcnr,
                      Filter.estimates()(0), Filter.estimates()(1),

@@ -321,12 +321,26 @@ int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
                                        double sigma_vx = 1e-3,
                                        double sigma_z = 1e1) noexcept;
 int fit_relative_frequency_offset(
-    const std::vector<const char *> &fns, int poly_order,
-    dso::LinearModel<double> &fit, bool use_tai = false, int every = 4,
+    const std::vector<const char *> &fns,
+    dso::PolynomialModel<dso::datetime<dso::nanoseconds>> &fit,
+    bool use_tai = false, int every = 4,
     const dso::datetime<dso::nanoseconds> &start =
         dso::datetime<dso::nanoseconds>::min(),
     const dso::datetime<dso::nanoseconds> &end =
         dso::datetime<dso::nanoseconds>::max()) noexcept;
+inline int fit_relative_frequency_offset(
+    const char * fns,
+    dso::PolynomialModel<dso::datetime<dso::nanoseconds>> &fit,
+    bool use_tai = false, int every = 4,
+    const dso::datetime<dso::nanoseconds> &start =
+        dso::datetime<dso::nanoseconds>::min(),
+    const dso::datetime<dso::nanoseconds> &end =
+        dso::datetime<dso::nanoseconds>::max()) noexcept
+{
+  std::vector<const char *> v;
+  v.push_back(fns);
+  return fit_relative_frequency_offset(v, fit, use_tai, every, start, end);
+}
 
 /// @brief An iterator to a DorisObsRinex data.
 /// Allows easily iterating of the data block in the RINEX file.
