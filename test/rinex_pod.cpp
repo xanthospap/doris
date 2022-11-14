@@ -361,7 +361,6 @@ int main(int argc, char *argv[]) {
 
   // Fit a linear Model for the Relative Receiver Offset Values (use proper 
   // time for this).
-#ifdef FIT_RINEX_RFO
   dso::PolynomialModel<dso::datetime<dso::nanoseconds>> rfo_fit(1);
   {
     if (dso::fit_relative_frequency_offset(buf, rfo_fit, false, 4)) {
@@ -369,7 +368,6 @@ int main(int argc, char *argv[]) {
       return 2;
     }
   }
-#endif
 
   // Construct the Doris RINEX instance rnx
   dso::DorisObsRinex rnx(buf);
@@ -876,13 +874,10 @@ int main(int argc, char *argv[]) {
 
             // we need to find the true proper frequency of the receiver
             // (aka satellite), f_rT [Hz]
-#ifdef FIT_RINEX_RFO
             const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
                                (1e0 + rfo_fit.value_at(tproper) * 1e-11);
-#else
-            const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
-                               (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
-#endif
+            //const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
+            //                   (1e0 + beaconobs->m_values[fi].m_value * 1e-11);
 
             // Doppler count and delta time (proper)
             const double Ndop =
