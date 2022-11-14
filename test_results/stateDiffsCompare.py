@@ -1,13 +1,52 @@
 #! /usr/bin/python
+
 import datetime
-import sys
+import sys, os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import argparse
+import requests
+from scipy.interpolate import interp1d
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
+import julian
+
+## VMF3 DORIS-site-grid URI
+VMF3_DG = "https://vmf.geo.tuwien.ac.at/trop_products/DORIS/V3GR/V3GR_OP/daily/"
+def daily_vmf3_fn(t):
+    url = VMF3_DG + '/{:4d}/'.format(t.year)
+    fn = '{:4d}{:}.v3gr_d'.format(t.year,t.strftime("%j"))
+    return url, fn
+
+def fetch_vmf3_doris_grid(t):
+    url,fn = daily_vmf3_fn(t)
+    r = requests.get(url+fn, allow_redirects=True)
+    open(fn, 'wb').write(r.content)
+    return
+
+def get_daily_vmf3_for(site, t0, t1, fn):
+    site = site.upper()
+    mjd0 = julian.to_jd(t0, fmt='mjd')
+    mjd1 = julian.to_jd(t1, fmt='mjd')
+    t = []
+    lwz = []
+    with open(fn, 'r') as fin:
+        for line in fin.readlines():
+            if line[0:4] == site:
+                l = line.split()
+                tc = julian.from_jd(float(l[1]), fmt='mjd')
+                if (tc-t0).total_seconds()/3600e0 <= 18 and (t1-tc).total_seconds()/3600e0 <= 18:
+                    t.append(julian.from_jd(float(l[1]), fmt='mjd'))
+                    lwz.append(float(l[5]))
+    return t,lwz
+
+def interpolate(t, v, t0, t1):
+    mjd = [ julian.to_jd(ti, fmt='mjd') for ti in t ]
+    f = interp1d(mjd, v)
+    newx = np.linspace(mjd[0], mjd[-1], num=50, endpoint=True)
+    return [ julian.from_jd(ti, fmt='mjd') for ti in newx ], f(newx)
 
 ## Assuming
 ## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res El Mjd
@@ -178,25 +217,35 @@ def plot_site(fn, site):
   dff = [ x[1] for x  in tdff ]
   t2 = [ x[0] for x in tlwz ]
   lwz = [ x[1] for x  in tlwz ]
-  t0 = min(t1[0],t2[0])
+  tmin = min(t1[0],t2[0])
+  tmax = max(t1[-1], t2[-1])
   if tdff == []:
       print("No data for site: {:}".format(site), file=sys.stderr)
   fig, ax = plt.subplots(2,1)
   fac = 1e0
+
   ax[0].scatter(t1,dff,s=1,color='black')
   ax[0].set_title('Df/f [-]')
   ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
   ax[0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
   ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
   ax[0].grid(True, 'both', 'x')
+
+  _,vmf3fn = daily_vmf3_fn(tmin)
+  if not os.path.isfile(vmf3fn):
+      fetch_vmf3_doris_grid(tmin)
+  tv,lwzv = get_daily_vmf3_for(site, tmin, tmax, vmf3fn)
+  tv,lwzv = interpolate(tv, lwzv, tmin, tmax)
+
   ax[1].scatter(t2,lwz,s=1,color='black')
+  ax[1].scatter(tv,lwzv,s=.5,color='red')
   ax[1].set_title('Lw Zenith [m]')
   ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
   ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=3))
   ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
   ax[1].grid(True, 'both', 'x')
   fig.autofmt_xdate()
-  fig.suptitle('Site {:}@{:}\n'.format(site, t0.strftime('%Y-%m-%d')), fontsize=16)
+  fig.suptitle('Site {:}@{:}\n'.format(site, tmin.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
 def plot_state_diffs(fnref, fntest):
