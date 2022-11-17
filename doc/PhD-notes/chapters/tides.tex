@@ -1,0 +1,80 @@
+\chapter{Tides}
+\label{ch:tides}
+
+\section{Solid Earth Tides}
+\label{sec:solid-earth-tides}
+The changes induced by the solid Earth tides in the free space potential are 
+most conveniently modeled as variations in the standard geopotential 
+coefficients $C_{nm}$ and $S_{nm}$, labled $\Delta C_{nm}$ and $\Delta S_{nm}$ 
+respectively, expressible in terms of the Love number $\lovek$. The effects of 
+ellipticity and of the Coriolis force due to Earth rotation on tidal 
+deformations necessitate the use of three $\lovek$ parameters, $\lovek ^{(0)}_{nm}$ 
+and $\lovek ^{(\pm)}_{nm}$ (except for $n = 2$) to characterize the
+changes produced in the free space potential by tides of spherical harmonic 
+degree and order $(nm)$, whereas only two parameters are needed for $n = 2$ 
+because $\lovek ^{(-)}_{2m} = 0$ due to mass conservation (\cite{iers2010}).
+
+Solid Earth tides within the diurnal tidal band (for which $(n,m) = (2,1)$) are 
+not wholly due to the direct action of the gls{tgp} on the solid Earth; they 
+include the deformations (and associated geopotential changes) arising from 
+other effects of the \gls{tgp}, namely, ocean tides and wobbles of the mantle 
+and the core regions (\cite{iers2010}).
+
+The computation of the tidal contributions to the geopotential coefficients is 
+most efficiently done by a three-step procedure:
+\begin{itemize}
+  \item In Step 1, the $(2m)$ part of the tidal potential is evaluated in the 
+   time domain for each $m$ using lunar and solar ephemerides, and the 
+   corresponding changes $\Delta \bar{C}_{2m}$ and $\Delta \bar{S}_{2m}$ are 
+   computed using frequency independent nominal values $\lovek _{2m}$ for the 
+   respective $\lovek ^{(0)}_{2m}$. The contributions of the degree 3 tides to
+   $\bar{C}_{3m}$ and $\bar{S}_{3m}$ through $\lovek ^{(0)}_{3m}$ and also of 
+   those of the degree 2 tides to $\bar{C}_{4m}$ and $\bar{S}_{4m}$ though 
+   $\lovek ^{(+)}_{2m}$ may be computed by a similar procedure.
+
+   With frequency-independent values $\lovek _{nm}$, changes induced by the 
+   $(nm)$ part of the \gls{tgp} in the \emph{normalized} geopotentials 
+   coefficients of the same degree and order $(nm)$, are given in the time 
+   domain by (\cite{iers2010}):
+   \begin{equation}
+    \Delta \bar{C}_{nm} - \iim \Delta \bar{S}_{nm} = \frac{\lovek _{nm}}{2n+1}
+      \sum^{3}_{j=2} \frac{GM_j}{GM_\Earth} \left( \frac{R_e}{r_j} \right) ^{n+1} 
+      \bar{P}_{nm} \left( \sin \Phi _j \right) e^{-\iim m \lambda _j}
+      \label{eq:iers1066}
+   \end{equation}
+    where:
+    \begin{description}
+      \item $\lovek _{nm}$\footnote{Tables of relevant Love numbers are listed 
+        in \cite{iers2010}, Table 6.3.} is the nominal Love number for degree 
+        $n$ and order $m$, 
+      \item $R_e$ and $GM_{\Earth}$ are the equatorial radius and the 
+        gravitational parameter of the Earth,
+      \item $GM_j$ is the gravitational parameter of the Moon and Sun, for 
+        $j=2$ and $j=3$ respectively,
+      \item $\Phi _j$ is the body-fixed geocentric latitude of the Moon and 
+        Sun ($j$ indexes as above), and
+      \item $\lambda _j$ is the body-fixed (east) logitude of the Moon and 
+        Sun ($j$ indexes as above)
+    \end{description}
+
+    For $n=4$, formula \ref{eq:iers1066} becomes (\cite{iers2010}):
+    \begin{equation}
+    \Delta \bar{C}_{4m} - \iim \Delta \bar{S}_{4m} = \frac{\lovek _{nm}}{5}
+      \sum^{3}_{j=2} \frac{GM_j}{GM_\Earth} \left( \frac{R_e}{r_j} \right) ^{3} 
+      \bar{P}_{2m} \left( \sin \Phi _j \right) e^{-\iim m \lambda _j} \text{ for } m=0,1,2
+      \label{eq:iers1067}
+    \end{equation}
+    to account for the changes in the degree 4 coefficients produced by the 
+    degree 2 tides.
+
+  \item in Step 2 we compute corrections for the deviations of the 
+  $\lovek ^{(0)}_{21}$ from the constant nominal value $\lovek _{21}$ 
+  assumed (for this band) in the first step. Similar corrections need to be 
+  applied to a few of the constituents of the other two bands also.
+\end{itemize}
+
+Steps 1 and 2 can be used to compute the total tidal contribution, including 
+the time independent (permanent) contribution to the geopotential coefficient 
+$\bar{C}_{20}$, which is adequate for a ``conventional tide free'' model. 
+When using a ``zero tide'' model, this permanent part should not be counted 
+twice.

@@ -120,6 +120,7 @@ public:
   /// If the coefficients are alredy un-normalized, this is a no-op.
   /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
   /// See Eq. 3.13 in Chapter 3.2
+  /// TODO this needs to be better, see for example AssociatedLegendreFunctions::normalize
   int denormalize(int order = -1) noexcept;
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.

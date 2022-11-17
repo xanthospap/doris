@@ -276,7 +276,14 @@ spherical harmonics up to degree $N$, as
      \sum_{m=0}^n \left[ \bar{C}_{nm} \cos {m \lambda} + \bar{S}_{nm} \sin{m \lambda} \right] 
      \bar{P}_{nm}( \sin \phi )
 \end{equation}
-with $\bar{S}_{n0} = 0$ and $\bar{C}_{nm}$, $\bar{S}_{nm}$ the normalized 
+with $\bar{S}_{n0} = 0$ and $\bar{C}_{nm}$, $\bar{S}_{nm}$ the normalized
+\footnote{Since the geopotential coefficients $C_{nm}$ and $S_{nm}$ span ten or 
+more orders of magnitude (\cite{Montenbruck2000}), making the computation 
+susceptible to overflow and round-off errors, we usually use the corresponding 
+normalized values. The latter are much more uniform in magnitude, and their 
+size is approximately given by the empirical \emph{Kaula rule} (see 
+\cite{Montenbruck2000} and \cite{Kaula2000}):
+\begin{equation} \bar{C}_{nm} , \bar{S}_{nm} \approx \frac{10^{-5}}{n^2} \end{equation}}
 geopotential coefficients the normalized. $\bar{P}_{nm}$ are the normalized 
 associated Legendre functions, related to the unnormalized ones by:
 \begin{subequations}
@@ -304,7 +311,11 @@ For all \emph{zonal} terms, we have:
 \begin{equation}
   S_{n,0} = 0 \quad C_{n,0} = -J_n
 \end{equation}
-where we use the ``traditional'' notation $J_n$ for \emph{zonal coefficients}.
+where we use the ``traditional'' notation $J_n$ for \emph{zonal coefficients}. 
+All $S_{n0}$ coefficients vanish (due to their definition).
+
+Coefficients for $m<n$ are known as ``\emph{tesseral}'', while when $m=n$, the 
+respective coefficients are called ``\emph{sectorial}''.
 
 
 \subsubsection{Static Geopotential Models}

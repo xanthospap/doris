@@ -21,8 +21,7 @@
 %\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
 \usepackage{geometry}   %% somewhat wider text to allow code
 \usepackage[per-mode=symbol]{siunitx}    %% SI Units
-\usepackage{amsmath,bm} %% for math ...
-\usepackage{amssymb}    %% greek and various toher characters and symbols ...
+\usepackage{amsmath,amssymb,amsthm,bm} %% for math ...
 \usepackage{mathabx}
 \usepackage{mathtools}
 \usepackage[most]{tcolorbox} %% colorboxes for equations
@@ -102,6 +101,12 @@
 % examples: 1. $f'(x)\at{x=1}$
 %           2. $f'(x)\at[\big]{x=1}$
 \newcommand{\at}[2][]{#1|_{#2}}
+% Symbols for Love numbers, h, k, and l
+\newcommand{\lovek}{k}
+\newcommand{\loveh}{h}
+\newcommand{\lovel}{l}
+% Imaginary i
+\newcommand{\iim}{{i\mkern1mu}}
 
 % dBm unit
 \DeclareSIUnit{\belmilliwatt}{Bm}
@@ -171,7 +176,9 @@
 \newacronym{sofa}{SOFA}{Standards Of Fundamental Astronomy}
 \newacronym{fcn}{FCN}{Free Core Nutation}
 \newacronym{ut1}{UT1}{Universal Time}
+\newacronym{tgp}{TGP}{Tide Generating Potential}
 %\newacronym{}{}{}
+
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -188,18 +195,19 @@
 \listoffigures
 \listoftables
 
-\include{chapters/doris_theory}
-\include{chapters/doris_rinex}
-\include{chapters/ground_segment}
+%\include{chapters/doris_theory}
+%\include{chapters/doris_rinex}
+%\include{chapters/ground_segment}
 \include{chapters/satellite_orbits}
-\include{chapters/orbit_intergators}
-\include{chapters/orbit_modeling}
-\include{chapters/time_scales}
-\include{chapters/reference_systems}
+%\include{chapters/orbit_intergators}
+%\include{chapters/orbit_modeling}
+%\include{chapters/time_scales}
+%\include{chapters/reference_systems}
 \include{chapters/celestial}
-\include{chapters/technicalities}
-\include{chapters/variational_equations}
-\include{chapters/orbdet}
+\include{chapters/tides}
+%\include{chapters/technicalities}
+%\include{chapters/variational_equations}
+%\include{chapters/orbdet}
 %\include{chapters/troposphere}
 
 \bibliography{doris}

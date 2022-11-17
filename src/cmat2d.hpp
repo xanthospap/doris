@@ -16,14 +16,47 @@ namespace dso {
 
 ///< Enum class to describe storage type of a 2-d matrix
 enum class MatrixStorageType : char {
-  RowWise,    ///< Row-Wise storage
-  ColumnWise, ///< Column-Wise storage
-  Trapezoid   ///< A trapezoid matrix with row-wise storage
+  RowWise,     ///< Row-Wise storage
+  ColumnWise,  ///< Column-Wise storage
+  Trapezoid,   ///< A trapezoid matrix with row-wise storage
+  LwTriangularRowWise ///< Lower triangular, stored Row-Wise
 };            // MatrixStorageType
 
 /// @brief implementation details depending on storage type, aka
 ///        MatrixStorageType
 template <MatrixStorageType S> struct StorageImplementation {};
+
+/// @brief Implementation details for a 2-d lower triangular matrix, holding 
+///        data in a Row-Wise fashion.
+/// Here we are not interested on the actual data of the matrix, but only the
+/// indexing implementation of the matrix.
+template <> struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
+  int rows;
+  constexpr StorageImplementation(int r) noexcept : rows(r) {};
+  
+  /// @brief Compute number of elements stored
+  constexpr std::size_t num_elements() const noexcept {
+    return rows * (rows + 1) / 2;
+  }
+  
+  /// Return the offset from the begining of the data array, given a row
+  /// number. First row is row 0 (NOT row 1).
+  /// That means that if the data is stored in an array e.g.
+  ///   double *data = new double[num_pts];
+  ///   double *row_3 = data[0] + slice(2);
+  /// will point to the first (0) element of the third row.
+  constexpr int slice(int row) const noexcept {
+    const int N = row - 1;
+    return (N * (N+1) / 2) * (row!=0);
+  }
+  
+  /// @brief Index of element (row, column) in the data array.
+  /// E.g. data[element_offset(1,2)] will return the element in the second
+  /// row, and third column.
+  constexpr int element_offset(int row, int column) const noexcept {
+    return slice(row) + column;
+  }
+}; // StorageImplementation<MatrixStorageType::LwTriangularRowWise>
 
 /// @brief Implementation details for a 2-d trapezoid matrix, holding data in
 ///        a Row-Wise fashion.

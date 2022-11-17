@@ -1,53 +1,53 @@
 \tikzstyle{every picture}+=[remember picture]
 \everymath{\displaystyle}
 
-\section{Questions}
-\begin{enumerate}
-  \item Orbit integration is performed without using (at all) the orbital 
-    elements (numerical integration is performed in GCRS Cartesian coordinates). 
-    Is this approach correct? (we only use state to orbital elements 
-    transformation to check/validate results).
-
-  \item Orbit integration to time $t_i$ results in the extrapolated state 
-    vector and the corresponding state transition matrix $\bm{\Phi}$. The latter 
-    is used to update the filter's var-covar matrix via $\bm{\Phi} \cdot \bm{P} \cdot \bm{\Phi}^T$,
-    but since the integration is performed in GCRS, should we transform the 
-    $\bm{\Phi}$ matrix wrt ECEF?
-
-  \item I use TAI (transformed from proper time using the correction recorded in 
-    the RINEX file) to perform orbit integration; is this correct ? Should i
-    use TCG ? (see \ref{ssec:coordinate-proper-time})
-
-  \item According to \cite{lemoine-2016} (Sec. 2.5.1) a correction of \emph{aberration} 
-    has to ber performed in the observation equation. This is currently not 
-    implemented. How large is its effect? How exactly should it be applied?
-
-  \item Is the formula for the ionospheric correction \ref{eq:dion-diff} (for 
-    the range-rate) correct ?
-
-  \item Ionospheric correction via \ref{eq:iono-delay-cycles} does not take 
-    into account the RINEX record ``\texttt{L2/L1 DATE OFFSET}''. Should it 
-    be taken into account ?
-
-  \item Is the relativistic correction \ref{eq:drel-diff} (for range-rate) 
-    correct ?
-
-  \item Solar radiation pressure is currently ignored. What is the practice 
-    for implementing shadow models (for LEOs) ?
-
-  \item For Jason-3 attitude, we use \emph{body} but not \emph{solar-panel} 
-    quaternions. How do i use the \emph{solar-panel} quaternions ? (see \ref{sssec:ja3-quaternions})
-
-  \item I use the IDS distributed log files to get beacon eccentricities. Is 
-    this good practice ? Should i use the SINEX files ? (see \ref{ssec:beacon_coordinates})
-
-  \item Starting from \ref{eq:lem13}, we need the partials wrt the estimated 
-    parameters. Are \ref{eq:partials-pos} and \ref{eq:partials-vel} correct ?
-
-  \item Is it good practice to use obsevration flags (from RINEX) to mark/exclude 
-    observations ? (see \ref{sssec:rnx-flags})
-
-\end{enumerate}
+%\section{Questions}
+%\begin{enumerate}
+%  \item Orbit integration is performed without using (at all) the orbital 
+%    elements (numerical integration is performed in GCRS Cartesian coordinates). 
+%    Is this approach correct? (we only use state to orbital elements 
+%    transformation to check/validate results).
+%
+%  \item Orbit integration to time $t_i$ results in the extrapolated state 
+%    vector and the corresponding state transition matrix $\bm{\Phi}$. The latter 
+%    is used to update the filter's var-covar matrix via $\bm{\Phi} \cdot \bm{P} \cdot \bm{\Phi}^T$,
+%    but since the integration is performed in GCRS, should we transform the 
+%    $\bm{\Phi}$ matrix wrt ECEF?
+%
+%  \item I use TAI (transformed from proper time using the correction recorded in 
+%    the RINEX file) to perform orbit integration; is this correct ? Should i
+%    use TCG ? (see \ref{ssec:coordinate-proper-time})
+%
+%  \item According to \cite{lemoine-2016} (Sec. 2.5.1) a correction of \emph{aberration} 
+%    has to ber performed in the observation equation. This is currently not 
+%    implemented. How large is its effect? How exactly should it be applied?
+%
+%  \item Is the formula for the ionospheric correction \ref{eq:dion-diff} (for 
+%    the range-rate) correct ?
+%
+%  \item Ionospheric correction via \ref{eq:iono-delay-cycles} does not take 
+%    into account the RINEX record ``\texttt{L2/L1 DATE OFFSET}''. Should it 
+%    be taken into account ?
+%
+%  \item Is the relativistic correction \ref{eq:drel-diff} (for range-rate) 
+%    correct ?
+%
+%  \item Solar radiation pressure is currently ignored. What is the practice 
+%    for implementing shadow models (for LEOs) ?
+%
+%  \item For Jason-3 attitude, we use \emph{body} but not \emph{solar-panel} 
+%    quaternions. How do i use the \emph{solar-panel} quaternions ? (see \ref{sssec:ja3-quaternions})
+%
+%  \item I use the IDS distributed log files to get beacon eccentricities. Is 
+%    this good practice ? Should i use the SINEX files ? (see \ref{ssec:beacon_coordinates})
+%
+%  \item Starting from \ref{eq:lem13}, we need the partials wrt the estimated 
+%    parameters. Are \ref{eq:partials-pos} and \ref{eq:partials-vel} correct ?
+%
+%  \item Is it good practice to use obsevration flags (from RINEX) to mark/exclude 
+%    observations ? (see \ref{sssec:rnx-flags})
+%
+%\end{enumerate}
 
 
 \section{Observation Model Description}
