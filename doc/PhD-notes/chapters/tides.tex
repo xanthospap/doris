@@ -3,6 +3,9 @@
 
 \section{Solid Earth Tides}
 \label{sec:solid-earth-tides}
+
+\subsubsection{Solid Earth Tide Effect on Geopotential}
+\label{sssec:solid-earth-tide-geopotential}
 The changes induced by the solid Earth tides in the free space potential are 
 most conveniently modeled as variations in the standard geopotential 
 coefficients $C_{nm}$ and $S_{nm}$, labled $\Delta C_{nm}$ and $\Delta S_{nm}$ 
@@ -15,7 +18,7 @@ degree and order $(nm)$, whereas only two parameters are needed for $n = 2$
 because $\lovek ^{(-)}_{2m} = 0$ due to mass conservation (\cite{iers2010}).
 
 Solid Earth tides within the diurnal tidal band (for which $(n,m) = (2,1)$) are 
-not wholly due to the direct action of the gls{tgp} on the solid Earth; they 
+not wholly due to the direct action of the \gls{tgp} on the solid Earth; they 
 include the deformations (and associated geopotential changes) arising from 
 other effects of the \gls{tgp}, namely, ocean tides and wobbles of the mantle 
 and the core regions (\cite{iers2010}).
@@ -67,6 +70,16 @@ most efficiently done by a three-step procedure:
     to account for the changes in the degree 4 coefficients produced by the 
     degree 2 tides.
 
+    In Step 1, we compute corrections for 
+    \begin{equation}
+      \Delta \bar{C}_{nm}, \Delta \bar{S}_{nm} \text{ for }
+        \begin{cases}
+          n=2 & m=0,1,2 \\
+          n=3 & m=0,1,2,3 \\
+          n=4 & m=0,1,2\\
+        \end{cases}
+    \end{equation} 
+
   \item in Step 2 we compute corrections for the deviations of the 
   $\lovek ^{(0)}_{21}$ from the constant nominal value $\lovek _{21}$ 
   assumed (for this band) in the first step. Similar corrections need to be 
@@ -78,3 +91,100 @@ the time independent (permanent) contribution to the geopotential coefficient
 $\bar{C}_{20}$, which is adequate for a ``conventional tide free'' model. 
 When using a ``zero tide'' model, this permanent part should not be counted 
 twice.
+
+\subsubsection{Solid Earth Tide Effect on Reference Points}
+\label{sssec:solid-earth-tide-reference-points}
+
+Site displacements caused by tides of spherical harmonic degree and order $(nm)$ 
+are characterized by the Love number $loveh _{nm}$ and the Shida number $\lovel _{nm}$. 
+The effective values of these numbers depend on station latitude and tidal 
+frequency (\cite{WahrEtAl1981}).
+
+Computation of the variations of station coordinates due to solid Earth tides, 
+like that of geopotential variations, is done most efficiently by the use of a 
+two-step procedure (\cite{iers2010}). The evaluations in the first step use 
+the expression in the time domain for the full degree 2 tidal potential or for 
+the parts that pertain to particular bands $(m = 0, 1, \text{ or } 2)$. Nominal 
+values common to all the tidal constituents involved in the potential and to 
+all stations are used for the \emph{Love} and \emph{Shida} numbers $\loveh _{2m}$ 
+and $\lovel _{2m}$ in this step. Along with expressions for the dominant 
+contributions from $\loveh ^{(0)}$ and $\lovel ^{(0)}$ to the tidal displacements,
+relatively small contributions from some of the other parameters are included 
+in Step 1 for reasons of computational efficiency. The displacements caused by 
+the degree 3 tides are also computed in the first step, using constant values 
+for $\loveh _3$ and $\lovel _3$ (\cite{iers2010}).
+
+Corrections to the results of the first step are needed to take account of the 
+frequency-dependent deviations of the \emph{Love} and \emph{Shida} numbers from 
+their respective nominal values, and also to compute the out-of-phase 
+contributions from the zonal tides. Computations of these corrections constitute 
+Step 2. The total displacement due to the tidal potential is the sum of the 
+displacements computed in Steps 1 and 2 (\cite{IERS2010}).
+
+A short overview of the relevant computation formulas follows. More information 
+can be found in \cite{iers2010} and references therein.
+
+\textbf{\ul{In-phase displacement due to degree 2 tides, with nominal values for 
+$\loveh ^{(0)}_{2m}$ and $\lovel ^{(0)}_{2m}$}}.\\
+The displacement vector of the station due to the degree 2 tides is given by 
+(\cite{iers2010}):
+\begin{equation}
+  \Delta \bm{r} = \sum ^{3}_{2} \frac{GM_j R^4_{\Earth}}{GM_{\Earth}R^3_j}
+    \biggl\{ \loveh _2 \hat{r} \left( \frac{3 (\hat{R}_j \cdot \hat{r})^2 -1}{2} \right) 
+      + 3 \lovel _2 (\hat{R}_j \cdot \hat{r}) \left[ \hat{R}_j - (\hat{R}_j \cdot \hat{r}) \hat{r} \right] 
+    \biggl\}
+    \label{eq:iers105}
+\end{equation}
+where \begin{description}
+  \item $GM_j$ is the gravitational parameter for the Moon ($j=2$) and Sun ($j=3$),
+  \item $GM_{\Earth}$ is the gravitational parameter for the Earth,
+  \item $\hat{R}_j, R_j$ is unit vector from the geocenter to Moon or Sun and 
+    the magnitude of that vector,
+  \item $R_{\Earth}$ is the Earth’s equatorial radius,
+  \item $\hat{r}, r$ is the unit vector from the geocenter to the station and 
+    the magnitude of that vector,
+  \item $\loveh _2$ and $\lovel _2$ are the \emph{Lova} and \emph{Shida} numbers 
+    of degree 2
+\end{description}
+
+\textbf{\ul{In-phase displacement due to degree 3 tides, with nominal values for
+$\loveh ^{(0)}_{2m}$ and $\lovel ^{(0)}_{2m}$}}.\\
+
+Only the Moon’s contribution needs to be computed, the term due to the Sun being
+negligible. The transverse part of the displacement does not exceed \SI{0.2}{\mm}, 
+but the radial displacement can reach \SI{1.7}{\mm} (\cite{iers2010}).
+
+The displacement vector due to these tides is then given by (\cite{iers2010}):
+\begin{equation}
+  \begin{aligned}
+  \Delta \bm{r} = \frac{GM_{Moon} R^5_{\Earth}}{GM_{\Earth}R^4_{Moon}} &
+    \biggl\{ \loveh _3 \hat{r} \left( \frac{5}{2} (\hat{R}_{Moon} \cdot \hat{r})^3) -\frac{3}{2} (\hat{R}_{Moon} \cdot \hat{r}) \right) \\
+      & + \lovel _2 \left( \frac{15}{2}(\hat{R}_{Moon} \cdot \hat{r})^2 - \frac{3}{2}\right) \left[ \hat{R}_{Moon} - (\hat{R}_{Moon} \cdot \hat{r}) \hat{r} \right] 
+    \biggl\}
+    \end{aligned}
+    \label{eq:iers106}
+\end{equation}
+
+/* Add formulas here from Section 7.1.1 Effects of the solid Earth tides */
+
+\gls{IERS} publishes a FORTRAN program to perform the Step 1 and Step 2 computations 
+called \texttt{DEHANTTIDEINEL.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter7/software/dehanttideinel}}.
+
+\section{Secular polar motion and the pole tide}
+\label{sec:pole-tides}
+
+Changes in the direction of the Earth's rotation axis with respect to locations 
+on the Earth's surface cause local deformations (\cite{Desai2002}) that result in 
+variations in station coordinates up to a few centimeters.
+
+To perform the corrections of the induced effect, we have to compute the so-called 
+``secular pole'' (\cite{iers2010}, Sec. 7.1.4). Its coordinates, designated by 
+$(x_s, y_s)$ are computed according to (\cite{iers2010}):
+
+\begin{equation}
+  \begin{aligned}
+    x_s &= 55.0 + 1.677 \cdot (t-2000) \text{ in } \si{\milli\larcsecond} \\
+    y_s &=  320.5 + 3.460 \cdot (t-2000) \text{ in } \si{\milli\larcsecond}
+  \end{aligned}
+\end{equation}
+where $t$ is the date in years of 365.25 days.

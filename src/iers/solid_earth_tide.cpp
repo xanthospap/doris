@@ -17,7 +17,23 @@ struct SolidEarthTide {
     const double Re;
     dso::AssociatedLegendreFunctions p;
 
-    int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon, double slon) noexcept {
+    /// @brief Compute the Step-1 effect of Solid Earth Tides, as in
+    ///        IERS2010, Sec. 6.2.1 (Eq. 6.6 and Eq. 6.7)
+    ///        Affects the ΔC_nm and ΔS_nm (correction) coefficients, for
+    ///        (nm) = (20), (3,0), (4,0)
+    ///               (21), (3,1), (4,1)
+    ///               (22), (3,2), (4,2)
+    ///                     (3,3)
+    ///               -----|------|------
+    ///                6.6   6.6    6.7      IERS2010 Equation
+    /// @note It is expected that the Legendre polynomials passed in via the 
+    ///       calling instance, are regularized
+    /// @param[in] Rmoon Distance from geocenter to Moon [m]
+    /// @param[in] Rsun  Distance from geocenter to Sun [m]
+    /// @param[in] mlon  ECEF longitude (from Greenwich) of Moon [rad]
+    /// @param[in] slon  ECEF longitude (from Greenwich) of Sun [rad]
+    int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon,
+                               double slon) noexcept {
       const double RRm = Re/Rmoon;
       const double RRm3 = RRm *RRm *RRm;
       const double RRs = Re / Rsun;
@@ -28,6 +44,10 @@ struct SolidEarthTide {
       const double ssl = std::sin(slon);
       const double cml = std::cos(mlon);
       const double csl = std::cos(slon);
+      const double s2ml = 2e0 * sml * cml;   //std::sin(2e0*mlon);
+      const double s2sl = 2e0 * ssl * ssl;   //std::sin(2e0*slon);
+      const double c2ml = 2e0*cml*cml - 1e0; //std::cos(2e0*mlon);
+      const double c2sl = 2e0*csl*csl - 1e0; //std::cos(2e0*slon);
 
       // n = 2, m = 0
       double fac = (LoveK[0].knm) / (LoveK[0].n * 2 + 1);
@@ -43,10 +63,10 @@ struct SolidEarthTide {
 
       // n = 2, m = 2
       fac = (LoveK[2].knm) / (LoveK[2].n * 2 + 1);
-      const double dc22_moon = fac * (GMme) * (RRm3) * p(2,2) * std::cos(2e0*mlon);
-      const double ds22_moon = fac * (GMme) * (RRm3) * p(2,2) * std::sin(2e0*mlon);
-      const double dc22_sun =  fac * (GMse) * (RRs3) * p(2,2) * std::cos(2e0*slon);
-      const double ds22_sun =  fac * (GMse) * (RRs3) * p(2,2) * std::sin(2e0*slon);
+      const double dc22_moon = fac * (GMme) * (RRm3) * p(2,2) * c2ml;
+      const double ds22_moon = fac * (GMme) * (RRm3) * p(2,2) * s2ml;
+      const double dc22_sun =  fac * (GMse) * (RRs3) * p(2,2) * c2sl;
+      const double ds22_sun =  fac * (GMse) * (RRs3) * p(2,2) * s2sl;
 
       // n = 3, m = 0
       const double RRm4 = RRm3 * RRm;
@@ -64,10 +84,10 @@ struct SolidEarthTide {
 
       // n = 3, m = 2
       fac = (LoveK[5].knm) / (LoveK[5].n * 2 + 1);
-      const double dc32_moon = fac * (GMme) * (RRm4) * p(3,2) * std::cos(2e0*mlon);
-      const double ds32_moon = fac * (GMme) * (RRm4) * p(3,2) * std::sin(2e0*mlon);
-      const double dc32_sun =  fac * (GMse) * (RRs4) * p(3,2) * std::cos(2e0*slon);
-      const double ds32_sun =  fac * (GMse) * (RRs4) * p(3,2) * std::sin(2e0*slon);
+      const double dc32_moon = fac * (GMme) * (RRm4) * p(3,2) * c2ml;
+      const double ds32_moon = fac * (GMme) * (RRm4) * p(3,2) * s2ml;
+      const double dc32_sun =  fac * (GMse) * (RRs4) * p(3,2) * c2sl;
+      const double ds32_sun =  fac * (GMse) * (RRs4) * p(3,2) * s2sl;
       
       // n = 3, m = 3
       fac = (LoveK[6].knm) / (LoveK[6].n * 2 + 1);
@@ -90,10 +110,10 @@ struct SolidEarthTide {
 
       // n = 4, m = 2
       fac = (LoveK[2].knm_Rplus) / 5e0;
-      const double dc42_moon = fac * (GMme) * (RRm3) * p(2,2) * std::cos(2e0*mlon);
-      const double ds42_moon = fac * (GMme) * (RRm3) * p(2,2) * std::sin(2e0*mlon);
-      const double dc42_sun =  fac * (GMse) * (RRs3) * p(2,2) * std::cos(2e0*slon);
-      const double ds42_sun =  fac * (GMse) * (RRs3) * p(2,2) * std::sin(2e0*slon);
+      const double dc42_moon = fac * (GMme) * (RRm3) * p(2,2) * c2ml;
+      const double ds42_moon = fac * (GMme) * (RRm3) * p(2,2) * s2ml;
+      const double dc42_sun =  fac * (GMse) * (RRs3) * p(2,2) * c2sl;
+      const double ds42_sun =  fac * (GMse) * (RRs3) * p(2,2) * s2sl;
       
       return 0;
     }
