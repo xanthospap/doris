@@ -1,3 +1,7 @@
+#include "tides.hpp"
+#include "geodesy/geodesy.hpp"
+#include <cmath>
+
 namespace {
     /// @brief Computes the Lagrange function of order = 2, aka P_2, as
     ///        P2(sinφ) = (3 * sin^2(φ)-1) / 2
@@ -17,7 +21,7 @@ namespace {
 ///              This vector contains the radial and traverse (northwards) 
 ///              elements as: [0,D_traverse,D_radial] in [m]
 /// @return Always 0
-int permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
+int dso::permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
                    std::vector<Eigen::Matrix<double, 3, 1>> &Senu) noexcept 
 {
   if (Senu.capacity() < sites.size())
@@ -31,10 +35,11 @@ int permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
         const double s2lat = std::sin(2e0*lat);
         const double p2 = p2f(slat);
         // apply equations 14b and 14a
-        Senu.push_back(
-            Eigen::Matrix<double, 3, 1>(0e0, 
-                (-0.0252e0 - 0.0001e0*p2) * s2lat), 
-                (-0.1206e0 + 0.0001e0*p2)*p2);
+        Senu.emplace_back(
+            Eigen::Matrix<double, 3, 1>(
+                0e0, 
+                (-0.0252e0 - 0.0001e0*p2) * s2lat, 
+                (-0.1206e0 + 0.0001e0*p2)*p2));
     }
 
     return 0;
