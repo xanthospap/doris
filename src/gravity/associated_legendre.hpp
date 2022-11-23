@@ -12,6 +12,20 @@ struct AssociatedLegendreFunctions {
   AssociatedLegendreFunctions(int order)
       : m_order(order), P(order + 1, order + 1){};
 
+  double &operator()(int n, int m) noexcept {
+#ifdef DEBUG
+    assert(n>=0 && m <= n && n <= order)
+#endif
+    return P(n,m);
+  }
+  
+  double operator()(int n, int m) const noexcept {
+#ifdef DEBUG
+    assert(n>=0 && m <= n && n <= order)
+#endif
+    return P(n,m);
+  }
+
   /// The computation algorithm follow Montenbruck et al, 2012, Section 3.2.4
   /// Starting with P_00 = 1, all polynomials up to the desired degree and
   /// order are first calculated from:

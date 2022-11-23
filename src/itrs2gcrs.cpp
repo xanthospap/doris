@@ -193,8 +193,8 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   const double s = iers2010::sofa::s06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
 
   // Add CIP corrections (arcsec to radians)
-  X += dso::arcsec2rad(eops.dx);
-  Y += dso::arcsec2rad(eops.dy);
+  X += dso::sec2rad(eops.dx);
+  Y += dso::sec2rad(eops.dy);
 
   // Form the celestial to intermediate-frame-of-date matrix given the CIP
   // X,Y and the CIO locator s.
@@ -213,8 +213,8 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 
   // Form the polar motion matrix (W); note that we need angular units in 
   // radians
-  rpom = iers2010::sofa::pom00_e(dso::arcsec2rad(eops.xp),
-                                 dso::arcsec2rad(eops.yp), sp);
+  rpom = iers2010::sofa::pom00_e(dso::sec2rad(eops.xp),
+                                 dso::sec2rad(eops.yp), sp);
 
   return 0;
 }

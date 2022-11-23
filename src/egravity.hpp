@@ -4,6 +4,7 @@
 #include "cmat2d.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "harmonic_coeffs.hpp"
+#include "gravity/associated_legendre.hpp"
 #include "matvec/matvec.hpp"
 #include <cassert>
 #ifdef DEBUG

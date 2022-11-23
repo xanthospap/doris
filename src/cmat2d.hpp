@@ -4,8 +4,8 @@
 #include <algorithm>
 #include <cstring>
 #ifdef DEBUG
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
 #endif
 
 /// @file Naive implementation of 2-Dimensional matrices; note that this
@@ -16,29 +16,31 @@ namespace dso {
 
 ///< Enum class to describe storage type of a 2-d matrix
 enum class MatrixStorageType : char {
-  RowWise,     ///< Row-Wise storage
-  ColumnWise,  ///< Column-Wise storage
-  Trapezoid,   ///< A trapezoid matrix with row-wise storage
+  RowWise,            ///< Row-Wise storage
+  ColumnWise,         ///< Column-Wise storage
+  Trapezoid,          ///< A trapezoid matrix with row-wise storage
   LwTriangularRowWise ///< Lower triangular, stored Row-Wise
-};            // MatrixStorageType
+};                    // MatrixStorageType
 
 /// @brief implementation details depending on storage type, aka
 ///        MatrixStorageType
 template <MatrixStorageType S> struct StorageImplementation {};
 
-/// @brief Implementation details for a 2-d lower triangular matrix, holding 
+/// @brief Implementation details for a 2-d lower triangular matrix, holding
 ///        data in a Row-Wise fashion.
 /// Here we are not interested on the actual data of the matrix, but only the
 /// indexing implementation of the matrix.
-template <> struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
+template <>
+struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
   int rows;
-  constexpr StorageImplementation(int r) noexcept : rows(r) {};
-  
+  constexpr StorageImplementation(int r, [[maybe_unused]] int _) noexcept
+      : rows(r){};
+
   /// @brief Compute number of elements stored
   constexpr std::size_t num_elements() const noexcept {
     return rows * (rows + 1) / 2;
   }
-  
+
   /// Return the offset from the begining of the data array, given a row
   /// number. First row is row 0 (NOT row 1).
   /// That means that if the data is stored in an array e.g.
@@ -47,9 +49,9 @@ template <> struct StorageImplementation<MatrixStorageType::LwTriangularRowWise>
   /// will point to the first (0) element of the third row.
   constexpr int slice(int row) const noexcept {
     const int N = row - 1;
-    return (N * (N+1) / 2) * (row!=0);
+    return (N * (N + 1) / 2) * (row != 0);
   }
-  
+
   /// @brief Index of element (row, column) in the data array.
   /// E.g. data[element_offset(1,2)] will return the element in the second
   /// row, and third column.
@@ -220,7 +222,7 @@ public:
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   double &operator()(int i, int j) noexcept {
 #ifdef DEBUG
-    assert(i<rows() && j < cols());
+    assert(i < rows() && j < cols());
 #endif
     return m_data[m_storage.element_offset(i, j)];
   }
@@ -228,7 +230,7 @@ public:
   /// @brief Element indexing (rows and columns start from 0 --not 1--)
   const double &operator()(int i, int j) const noexcept {
 #ifdef DEBUG
-    assert(i<rows() && j < cols());
+    assert(i < rows() && j < cols());
 #endif
     return m_data[m_storage.element_offset(i, j)];
   }
@@ -238,14 +240,14 @@ public:
   /// offset of the ith row; if data is stored in a column-wise manner, it will
   /// return the index of the first elelement of the ith column
   const double *slice(int i) const noexcept {
-    return m_data+m_storage.slice(i);
+    return m_data + m_storage.slice(i);
   }
 
   /// @brief Row/Column indexing (rows and columns start from 0 --not 1--)
   /// If the data is tored in a Row-Wise manner, this function will return the
   /// offset of the ith row; if data is stored in a column-wise manner, it will
   /// return the index of the first elelement of the ith column
-  double *slice(int i) noexcept { return m_data+m_storage.slice(i); }
+  double *slice(int i) noexcept { return m_data + m_storage.slice(i); }
 
   void fill_with(double val) noexcept {
     std::fill(m_data, m_data + m_storage.num_elements(), val);
@@ -300,6 +302,6 @@ public:
 
 }; // Mat2D
 
-} // dso
+} // namespace dso
 
 #endif
