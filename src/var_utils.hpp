@@ -12,8 +12,7 @@ namespace dso {
 /// @param[in] root The parent node (YAML::Node)
 /// @param[in] key  The key of the child node to return
 /// @return a YAML::Node, child of the root node, specified by key "key"
-inline
-YAML::Node get_yaml_node(const YAML::Node &root, const char *key) {
+inline YAML::Node get_yaml_node(const YAML::Node &root, const char *key) {
   return root.operator[](std::string(key));
 }
 
@@ -108,9 +107,9 @@ int get_yaml_value_depth3(const YAML::Node &root, const char *key1,
 
 /// @brief Specialization of the template <typename T>::get_yaml_value_depth3
 /// function for C-strings
-inline
-int get_yaml_value_depth3(const YAML::Node &root, const char *key1,
-                          const char *key2, const char *key3, char *buf) {
+inline int get_yaml_value_depth3(const YAML::Node &root, const char *key1,
+                                 const char *key2, const char *key3,
+                                 char *buf) {
   const YAML::Node node = get_yaml_node(root, key1);
   return get_yaml_value_depth2(node, key2, key3, buf);
 }

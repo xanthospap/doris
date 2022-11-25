@@ -1,11 +1,11 @@
 #ifndef __IDS_DORIS_SYSTEM_INFO_HPP__
 #define __IDS_DORIS_SYSTEM_INFO_HPP__
 
+#include "antenna_pcv.hpp"
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <stdint.h>
-#include <cmath>
-#include "antenna_pcv.hpp"
 
 namespace dso {
 
@@ -39,13 +39,12 @@ constexpr double USO_F0 = 5e6;
 
 /// @brief Compute the S1 and U2 (aka 2GHz and 400 MHz) nominal frequencies
 ///        for a DORIS beacon
-/// @param[in] shift_factor The beacon's shift factor (e.g. as extracted from 
+/// @param[in] shift_factor The beacon's shift factor (e.g. as extracted from
 ///        the 'STATION REFERENCE' field from a DORIS RINEX file)
 /// @param[out] s1_freq The S1 (aka 2GHz) nominal frequency [Hz]
 /// @param[out] u2_freq The U2 (aka 400MHz) nominal frequency in [Hz]
-inline
-int beacon_nominal_frequency(int shift_factor, double &s1_freq,
-                                       double &u2_freq) noexcept {
+inline int beacon_nominal_frequency(int shift_factor, double &s1_freq,
+                                    double &u2_freq) noexcept {
   const long two26 = std::pow(2, 26);
   constexpr double fac1 = USO_F0 * 0.75e0;
   const double fac2 =
@@ -130,9 +129,8 @@ struct ObservationCode {
   /// @brief Format to string (string length=2+null terminating char)
   /// @param[in] buffer A char array of length >= 3 chars
   /// @return a pointer to the (formatted) buffer string
-  char* to_str(char *buffer) const noexcept;
+  char *to_str(char *buffer) const noexcept;
 }; // ObservationCode
-
 
 /// @brief A station (aka beacon) as defined in RINEX DORIS 3.0 (Issue 1.7)
 struct BeaconStation {
@@ -153,8 +151,8 @@ struct BeaconStation {
   GroundAntennaType type() const;
 
   /// @brief Compute iono-free phase center for this antenna, w.r.t the
-  ///        Antenna's reference point. 
-  /// @return iono-free phase center w.r.t Antenna's reference point [m] 
+  ///        Antenna's reference point.
+  /// @return iono-free phase center w.r.t Antenna's reference point [m]
   ///        such that:
   ///        Iono-Free PC = Antenna RP + iono_free_phase_center()
   /// @see Lemoine etal, 2016, "Precise orbit determination and station
@@ -190,6 +188,6 @@ struct BeaconStation {
   int set_from_rinex_line(const char *line) noexcept;
 }; // BeaconStation
 
-} // dso
+} // namespace dso
 
 #endif

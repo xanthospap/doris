@@ -1,10 +1,11 @@
 #include "icgemio.hpp"
+#include "datetime/dtcalendar.hpp"
+#include "iers2010/iersc.hpp"
 #include <cassert>
+#include <charconv>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <charconv>
-#include <ggdatetime/dtfund.hpp>
 
 ///< approximate max data line length, see
 ///< http://icgem.gfz-potsdam.de/ICGEM-Format-2011.pdf
@@ -18,7 +19,8 @@ bool starts_with(const char *pattern, const char *line) noexcept {
 }
 
 const char *skip_ws(const char *str) noexcept {
-  while (*str && *str==' ') ++str;
+  while (*str && *str == ' ')
+    ++str;
   return str;
 }
 
@@ -26,9 +28,12 @@ int count_columns(const char *line) noexcept {
   const char *c = line;
   int cols = 0;
   while (*c) {
-    while (*c && *c == ' ') ++c;
-    if (*c && *c != ' ') ++cols;
-    while (*c && *c != ' ') ++c;
+    while (*c && *c == ' ')
+      ++c;
+    if (*c && *c != ' ')
+      ++cols;
+    while (*c && *c != ' ')
+      ++c;
   }
   return cols;
 }
@@ -37,25 +42,15 @@ const char *goto_column(const char *line, int colnr) noexcept {
   const char *c = line;
   int cols = 0;
   while (*c) {
-    while (*c && *c == ' ') ++c;
+    while (*c && *c == ' ')
+      ++c;
     if (*c && *c != ' ')
       if (++cols == colnr)
         return c;
-    while (*c && *c != ' ') ++c;
+    while (*c && *c != ' ')
+      ++c;
   }
   return nullptr;
-}
-
-std::size_t coeffs_nr(int l, int m) noexcept {
-  if (l == m) {
-    std::size_t n = l + 1;
-    return (n * (n - 1)) / 2 + n;
-  }
-
-  std::size_t sum = 0;
-  for (int i = 0; i <= l; i++)
-    sum += (i > m) ? (m + 1) : (i + 1);
-  return sum;
 }
 
 int resolve_date(const char *date_str,
@@ -65,25 +60,51 @@ int resolve_date(const char *date_str,
   int year, month, dom, error = 0;
   double fraction, dummy;
   auto rc = std::from_chars(date_str, date_str + 4, year);
-  error += (rc != std::errc{});
+  error += (rc.ec != std::errc{});
   rc = std::from_chars(date_str + 4, date_str + 6, month);
-  error += (rc != std::errc{});
+  error += (rc.ec != std::errc{});
   rc = std::from_chars(date_str + 6, date_str + 8, dom);
-  error += (rc != std::errc{});
+  error += (rc.ec != std::errc{});
   rc = std::from_chars(date_str, date_str + 14, fraction);
   fraction = std::modf(fraction, &dummy);
   const double fnanosec = dso::nanoseconds::sec_factor<double>();
-  if (error) return error;
+  if (error)
+    return error;
   t = dso::datetime<dso::nanoseconds>(
       dso::year(year), dso::month(month), dso::day_of_month(dom),
-      dso::nanoseconds(static_cast<SecIntType>(fraction)));
+      dso::nanoseconds(static_cast<SecIntType>(fnanosec)));
   return 0;
 }
 } // unnamed namespace
 
 /// @warning coeffs should have already been initialized and allocated with
 ///          enough memmory to hold the (to-be-) parsed coefficients.
-int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &t, dso::HarmonicCoeffs *coeffs) noexcept {
+int dso::Icgem::parse_data(int l, int m,
+                           const dso::datetime<dso::nanoseconds> &t,
+                           dso::HarmonicCoeffs *coeffs) noexcept {
+
+  // clear out coeffs
+  coeffs->clear();
+
+  // t in fractional years (needed for TVG terms)
+  const double tyears = t.as_fractional_years();
+
+  // pre-compute angular periods for harmonic coefficients (if any are indeed
+  // found while parsing)
+  double angular_year, sannual, cannual, ssemiannual, csemiannual;
+  {
+    double iyear, fyear;
+    fyear = std::modf(tyears, &iyear);
+    if (!fyear && iyear)
+      fyear = 1e0;
+    const double annual_angle = iers2010::D2PI * fyear;
+    sannual = std::sin(annual_angle);
+    cannual = std::cos(annual_angle);
+    const double semi_annual_angle = 2e0 * iers2010::D2PI * fyear;
+    ssemiannual = std::sin(semi_annual_angle);
+    csemiannual = std::cos(semi_annual_angle);
+    angular_year = fyear;
+  }
 
   int error = 0;
   if (l > max_degree || m > l) {
@@ -109,7 +130,8 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
     error = 1;
   }
 
-  if (error) return error;
+  if (error)
+    return error;
 
   // assign gravity model constants
   coeffs->GM() = earth_gravity_constant;
@@ -118,32 +140,21 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
 
   fin.seekg(data_section_pos);
 
-  // Note (1)
-  // -------------------------------------------------------------------------
-  // for some gfc files (e.g. the EGM2008) it may happen that the values for
-  // C_10 and C_11 are missing; that is because the are nominally zero; here
-  // we will set them to some random value, so that if at the end of parsing
-  // we are missing exactly two values and the C_10 and C_11 have the values
-  // set here, these are the ones not parsed!
-  coeffs->C(1, 0) = -999e0;
-  coeffs->C(1, 1) = -999e0;
-
-  char line[max_data_line], *end, *start;
+  char line[max_data_line]; 
+  const char *start;
   int ll, mm;
   double Clm, Slm;
-  std::size_t coeffs_read = 0, coeffs_to_read = coeffs_nr(l, m);
-  int error = 0;
 
-  fin.getline(line, max_data_line);
-  while (fin.good() && !error && coeffs_read < coeffs_to_read) {
-    
+  while (fin.getline(line, max_data_line) && !error) {
+
+    const auto sz = std::strlen(line);
+
     // gfc lines are for static-gravity field (if L=0=M, no effect ...)
     if (starts_with("gfc ", line)) {
       // expecting columns: degree, order, Clm, Slm, [...]; note that it
       // (seldom) happens that the doubles are written in fortran format ...
       start = line + 4;
-      int ll;
-      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
@@ -152,8 +163,7 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         ++error;
       }
 
-      int mm;
-      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, mm);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
@@ -161,7 +171,7 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
                 line, filename.c_str(), __func__);
         ++error;
       }
-      
+
       // only interested in the coefficients, if degree and order are less than
       // max
       if (ll <= l && mm <= m) {
@@ -185,21 +195,19 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         }
 
         // assign to harmonic coefficients matrix
-        coeffs->C(ll, mm) = Clm;
-        ++coeffs_read;
+        coeffs->C(ll, mm) += Clm;
         if (mm == 0) {
           assert(Slm == 0e0);
         } else {
-          coeffs->S(ll, mm) = Slm;
+          coeffs->S(ll, mm) += Slm;
         }
       }
-    
-    // gfct lines are for tvg field (if L=0=M, no effect ...)
+
+      // gfct lines are for tvg field (if L=0=M, no effect ...)
     } else if (starts_with("gfct", line)) {
       // expecting columns: degree, order, Clm, Slm, [...] and time!
       start = line + 4;
-      int ll;
-      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
@@ -208,8 +216,7 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         return 1;
       }
 
-      int mm;
-      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, mm);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
@@ -246,31 +253,27 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         // tstart - tstop is found in the last two columns, format is:
         // [yyyymmdd.xxxx]
         dso::datetime<dso::nanoseconds> tstart, tend;
-        start = goto_column(line, cols-2);
+        start = goto_column(line, cols - 2);
         if (resolve_date(start, tstart))
           ++error;
-        if (resolve_date(start+14. tend))
+        if (resolve_date(start + 14, tend))
           ++error;
-        
-        if (t>= tstart && t < tend) {
+
+        if (t >= tstart && t < tend) {
           // add drift to harmonic coefficients matrix
-          coeffs->C(ll, mm) = Clm;
-          ++coeffs_read;
+          coeffs->C(ll, mm) += Clm;
           if (mm == 0) {
             assert(Slm == 0e0);
           } else {
-            coeffs->S(ll, mm) = Slm;
+            coeffs->S(ll, mm) += Slm;
           }
         }
       }
-    
-    // trnd lines are for trend/drift (if L=0=M, no effect ...)
+
+      // trnd lines are for trend/drift (if L=0=M, no effect ...)
     } else if (starts_with("trnd", line)) {
-      // expecting that this 'trnd' field should match the current degree and
-      // order of the --already read-- TVG coefficients
       start = line + 4;
-      int ll;
-      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
@@ -279,8 +282,7 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         ++error;
       }
 
-      int mm;
-      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, mm);
       if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
@@ -290,18 +292,18 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
       }
 
       // there are optional fields, could be missing, skip check
-      //if ((ll != tvg_ll) || (mm != tvg_mm)) {
+      // if ((ll != tvg_ll) || (mm != tvg_mm)) {
       //  fprintf(stderr,
-      //          "[ERROR] Reading line of type \'trnd\' but order/degree do not "
-      //          "match with previous TVG coefficients read (%d,%d)!\n",
-      //          ll, mm);
+      //          "[ERROR] Reading line of type \'trnd\' but order/degree do not
+      //          " "match with previous TVG coefficients read (%d,%d)!\n", ll,
+      //          mm);
       //  fprintf(stderr,
       //          "[ERROR] Current TVG degree and order: %d/%d, icgem file: %s "
       //          "(traceback: %s)\n",
       //          tvg_ll, tvg_mm, filename.c_str(), __func__);
       //  return 1;
       //}
-      
+
       // only interested in the coefficients, if degree and order are less than
       // max
       if (ll <= l && mm <= m) {
@@ -330,46 +332,137 @@ int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &
         // tstart - tstop is found in the last two columns, format is:
         // [yyyymmdd.xxxx]
         dso::datetime<dso::nanoseconds> tstart, tend;
-        start = goto_column(line, cols-2);
+        start = goto_column(line, cols - 2);
         if (resolve_date(start, tstart))
           ++error;
-        if (resolve_date(start+14. tend))
+        if (resolve_date(start + 14, tend))
           ++error;
-        
-        if (t>= tstart && t < tend) {
+
+        if (t >= tstart && t < tend) {
+          const double dyears = tyears - tstart.as_fractional_years();
           // assign to harmonic coefficients matrix
-          coeffs->C(ll, mm) = Clm;
-          ++coeffs_read;
+          coeffs->C(ll, mm) += Clm * dyears;
           if (mm == 0) {
             assert(Slm == 0e0);
           } else {
-            coeffs->S(ll, mm) = Slm;
+            coeffs->S(ll, mm) += Slm * dyears;
           }
         }
       }
 
-    fin.getline(line, max_data_line);
-  }
+      // asin/acos lines are for harmonics (if L=0=M, no effect ...)
+    } else if (starts_with("asin", line) || starts_with("acos", line)) {
+      start = line + 4;
+      auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        ++error;
+      }
 
-  if (coeffs_read < coeffs_to_read) {
-    // before reporting an error, see if we are in the case described in
-    // note (1)
-    if (coeffs_to_read - coeffs_read == 2 &&
-        (coeffs->C(1, 0) == coeffs->C(1, 1) && coeffs->C(1, 1) == -999e0)) {
-      printf("[NOTE] The coefficients C(1,0) and C(1,1) are not explicitly "
-             "written in the icgem file: %s\n",
-             filename.c_str());
-      printf("[NOTE] Setting C(1, 0) = C(1, 1) = 0e0\n");
-      coeffs->C(1, 0) = 0e0;
-      coeffs->C(1, 1) = 0e0;
+      ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, mm);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        ++error;
+      }
+
+      // there are optional fields, could be missing, skip check
+      // if ((ll != tvg_ll) || (mm != tvg_mm)) {
+      //  fprintf(stderr,
+      //          "[ERROR] Reading line of type \'asin/acos\' but order/degree
+      //          do not " "match with previous TVG coefficients read
+      //          (%d,%d)!\n", ll, mm);
+      //  fprintf(stderr,
+      //          "[ERROR] Current TVG degree and order: %d/%d, icgem file: %s "
+      //          "(traceback: %s)\n",
+      //          tvg_ll, tvg_mm, filename.c_str(), __func__);
+      //  return 1;
+      //}
+
+      // only interested in the coefficients, if degree and order are less than
+      // max
+      if (ll <= l && mm <= m) {
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Clm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Slm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Slm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        // do not know exactly at which columns we'll find time, count them
+        int cols = count_columns(line);
+
+        // tstart - tstop is found in the last two columns, format is:
+        // [yyyymmdd.xxxx]
+        dso::datetime<dso::nanoseconds> tstart, tend;
+        start = goto_column(line, cols - 3);
+        if (resolve_date(start, tstart))
+          ++error;
+        if (resolve_date(start + 14, tend))
+          ++error;
+        // find the yearly period, aka annual, semi-annual, etc ...
+        double yper;
+        ccres = std::from_chars(goto_column(line, cols-1), line + sz, yper);
+        if (ccres.ec != std::errc{}) ++error;
+        
+        if (t>= tstart && t < tend) {
+          // angular frequency, 2π/T * delta-years
+          if (std::abs(yper - 1e0) < 1e-9) {
+            // Annual signal
+            coeffs->C(ll, mm) += Clm * cannual;
+            if (mm == 0)
+              assert(Slm == 0e0);
+            else
+              coeffs->S(ll, mm) += Slm * sannual;
+          } else if (std::abs(yper - 0.5e0) < 1e-9) {
+            // Semi-Annual signal
+            coeffs->C(ll, mm) += Clm * csemiannual;
+            if (mm == 0)
+              assert(Slm == 0e0);
+            else
+              coeffs->S(ll, mm) += Slm * ssemiannual;
+          } else {
+            // angular frequency
+            const double angular_freq = (iers2010::D2PI * angular_year) / yper;
+            coeffs->C(ll, mm) += Clm * std::cos(angular_freq);
+            if (mm == 0)
+              assert(Slm == 0e0);
+            else
+              coeffs->S(ll, mm) += Slm * std::sin(angular_freq);
+          }
+        }
+      }
+
     } else {
-      fprintf(stderr,
-              "[ERROR] EOF reached before reading all Snm/Cnm coefficients! "
-              "read/expected %lu/%lu; icgem file %s (traceback: %s)\n",
-              coeffs_read, coeffs_to_read, filename.c_str(), __func__);
-      return 2;
+      printf("Skipping line [%s], don't know what to do with it!\n", line);
     }
+
+    // end resolving line
+
+  } // end reading lines
+
+  // check the status
+  if (!fin.good() && fin.eof()) {
+    fin.clear();
+    return error;
   }
 
-  return 0;
+  return -1;
 }

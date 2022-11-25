@@ -1,13 +1,13 @@
 #include "orbit_integration.hpp"
-#include <cmath>
 #include "planetpos.hpp"
+#include <cmath>
 
 void dso::SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
-            double GMSun, double GMMoon, 
-             Eigen::Matrix<double, 3, 1> &sun_acc,
-             Eigen::Matrix<double, 3, 1> &moon_acc,
-             Eigen::Matrix<double, 3, 1> &sun_pos,
-             Eigen::Matrix<double, 3, 3> &mon_partials) noexcept {
+                  double GMSun, double GMMoon,
+                  Eigen::Matrix<double, 3, 1> &sun_acc,
+                  Eigen::Matrix<double, 3, 1> &moon_acc,
+                  Eigen::Matrix<double, 3, 1> &sun_pos,
+                  Eigen::Matrix<double, 3, 3> &mon_partials) noexcept {
 
   // split TAI to integral and fractional part
   double mjd_days;

@@ -5,18 +5,19 @@
 #include <cstdio>
 
 double *dso::HarmonicCoeffs::allocate(int degree, int order) noexcept {
-    if (m_data)
+  if (m_data)
     delete[] m_data;
   m_data = nullptr;
-  if (m_degree)
-    m_data = new double[(m_degree + 1) * (m_degree + 1)];
+  if (degree)
+    m_data = new double[(degree + 1) * (degree + 1)];
   m_degree = degree;
   m_order = order;
   return m_data;
 }
 
 void dso::HarmonicCoeffs::deallocate() noexcept {
-    if (m_data) delete[] m_data;
+  if (m_data)
+    delete[] m_data;
   m_data = nullptr;
   m_degree = 0;
   m_order = 0;
@@ -24,9 +25,9 @@ void dso::HarmonicCoeffs::deallocate() noexcept {
 }
 
 void dso::HarmonicCoeffs::resize(int degree, int order) noexcept {
-      deallocate();
-    allocate(degree, order);
-    return;
+  deallocate();
+  allocate(degree, order);
+  return;
 }
 
 dso::HarmonicCoeffs::HarmonicCoeffs(dso::HarmonicCoeffs &&h) noexcept {
@@ -74,7 +75,8 @@ int compute_fac(int n, int m, double *fac) noexcept {
 }
 
 int dso::HarmonicCoeffs::denormalize(int order) noexcept {
-  if (!normalized()) return 0;
+  if (!normalized())
+    return 0;
 
   if (order < 0)
     order = m_degree;

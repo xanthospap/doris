@@ -41,6 +41,9 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
     return rows * (rows + 1) / 2;
   }
 
+  constexpr int nrows() const noexcept {return rows;}
+  constexpr int ncols() const noexcept {return rows;}
+
   /// Return the offset from the begining of the data array, given a row
   /// number. First row is row 0 (NOT row 1).
   /// That means that if the data is stored in an array e.g.
@@ -69,6 +72,9 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
+  constexpr int nrows() const noexcept {return rows;}
+  constexpr int ncols() const noexcept {return cols;}
+  
   /// @brief Compute number of elements stored
   constexpr std::size_t num_elements() const noexcept {
     if (rows == cols) {
@@ -107,17 +113,6 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
     return (column <= rows) ? (slice(row) + column) : (slice(column) + row);
   }
 
-#ifdef DEBUG
-  void print(const double *data) const noexcept {
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < pts_in_row(i); j++) {
-        printf("%15.10e ", data[element_offset(i, j)]);
-      }
-      printf("\n");
-    }
-    return;
-  }
-#endif
 }; // StorageImplementation<MatrixStorageType::Trapezoid>
 
 /// @brief Implementation details for a 2-d dense matrix, holding data in
@@ -127,6 +122,9 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
 template <> struct StorageImplementation<MatrixStorageType::RowWise> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
+  
+  constexpr int nrows() const noexcept {return rows;}
+  constexpr int ncols() const noexcept {return rows;}
 
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
@@ -147,18 +145,6 @@ template <> struct StorageImplementation<MatrixStorageType::RowWise> {
   ///   double *row_3 = data[0] + slice(2);
   /// will point to the first (0) element of the third row.
   constexpr int slice(int row) const noexcept { return row * cols; }
-
-#ifdef DEBUG
-  void print(const double *data) const noexcept {
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        printf("%15.10e ", data[element_offset(i, j)]);
-      }
-      printf("\n");
-    }
-    return;
-  }
-#endif
 }; // StorageImplementation<MatrixStorageType::RowWise>
 
 /// @brief Implementation details for a 2-d dense matrix, holding data in
@@ -169,6 +155,9 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
+  constexpr int nrows() const noexcept {return rows;}
+  constexpr int ncols() const noexcept {return rows;}
+  
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
 
@@ -189,17 +178,6 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
   /// will point to the first (0) element of the third column.
   constexpr int slice(int col) const noexcept { return col * rows; }
 
-#ifdef DEBUG
-  void print(const double *data) const noexcept {
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        printf("%15.10e ", data[element_offset(i, j)]);
-      }
-      printf("\n");
-    }
-    return;
-  }
-#endif
 }; // StorageImplementation<MatrixStorageType::ColumnWise>
 
 /// @brief A naive implementation of a 2-d dense matrix.
@@ -211,9 +189,9 @@ private:
   double *m_data{nullptr};            ///< the actual data
 
 public:
-  constexpr int rows() const noexcept { return m_storage.rows; }
+  constexpr int rows() const noexcept { return m_storage.nrows(); }
 
-  constexpr int cols() const noexcept { return m_storage.cols; }
+  constexpr int cols() const noexcept { return m_storage.ncols(); }
 
   constexpr long num_elements() const noexcept {
     return m_storage.num_elements();

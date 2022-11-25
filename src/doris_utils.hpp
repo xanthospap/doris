@@ -3,15 +3,15 @@
 
 #include "datetime/dtcalendar.hpp"
 #include "doris_system_info.hpp"
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 namespace dso {
 
 /// @brief This structure is meant to hold beacon coordinates and std.
 /// deviations
 struct BeaconCoordinates {
-  char id[5]={'\0'};
+  char id[5] = {'\0'};
   ///< x,y,z (cartesian) coordinate components in [m]
   double x, y, z;
   ///< std. deviation values of the above components in [m^2]
@@ -102,6 +102,6 @@ template <class T,
   return extrapolate_sinex_coordinates(snxfn, station_ids, t_micro,
                                        result_array, missing_site_is_error);
 }
-} // namespace ids
+} // namespace dso
 
 #endif

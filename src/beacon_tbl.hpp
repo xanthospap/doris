@@ -14,7 +14,8 @@ struct BeaconInformationTableEntry {
   dso::datetime<dso::nanoseconds> from{dso::datetime<dso::nanoseconds>::max()};
   dso::datetime<dso::nanoseconds> to{dso::datetime<dso::nanoseconds>::max()};
   BeaconInformationTableEntry(const char *site, double hgt) noexcept
-      : _height(hgt) {std::memcpy(_4charid,site,4*sizeof(char));
+      : _height(hgt) {
+    std::memcpy(_4charid, site, 4 * sizeof(char));
   }
   BeaconInformationTableEntry(
       const char *site, double hgt,

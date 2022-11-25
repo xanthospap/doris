@@ -1,13 +1,13 @@
 #ifndef __IDS_DORIS_RINEX_HPP__
 #define __IDS_DORIS_RINEX_HPP__
 
-#include "doris_system_info.hpp"
 #include "datetime/dtcalendar.hpp"
+#include "doris_system_info.hpp"
 #include "filters/models.hpp"
+#include <algorithm>
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
-#include <algorithm>
 
 namespace dso {
 
@@ -46,8 +46,8 @@ struct RinexDataRecordHeader {
       m_clock_flag;
   /// @brief Apply the recorded (in RINEX) clock offset to time m_epoch
   void apply_clock_offset() noexcept {
-    dso::nanoseconds off_nsec {static_cast<dso::nanoseconds::underlying_type>( 
-      m_clock_offset * dso::nanoseconds::sec_factor<double>())};
+    dso::nanoseconds off_nsec{static_cast<dso::nanoseconds::underlying_type>(
+        m_clock_offset * dso::nanoseconds::sec_factor<double>())};
     m_epoch.add_seconds(off_nsec);
   }
 }; // RinexDataRecordHeader
@@ -72,10 +72,10 @@ struct BeaconObservations {
   explicit BeaconObservations(int size_hint = 10) noexcept {
     m_values.reserve(size_hint);
   }
-  /// @brief Get the beacon (internal) 3-character ID as a **non-null** 
+  /// @brief Get the beacon (internal) 3-character ID as a **non-null**
   ///        terminating character array
   /// @warning Cannot stress enough, that is **not a null terminating string**
-  const char *id() const noexcept {return m_beacon_id;}
+  const char *id() const noexcept { return m_beacon_id; }
 #ifdef DEBUG
   std::string to_string() const {
     std::string s(m_beacon_id, 3);
@@ -103,66 +103,66 @@ public:
   static constexpr int MAX_RECORD_CHARS{124};
 
 private:
-/// The name of the file
-std::string m_filename;
-/// The infput (file) stream; open at constructor
-std::ifstream m_stream;
-/// RINEX version
-float m_version;
-/// Satellite name
-char m_satellite_name[60];
-/// COSPAR number
-char m_cospar_number[20];
-/// DORIS chain used (chain1 or chain2), exp. “CHAIN1”
-char m_rec_chain[20];
-/// DORIS instrument type; exp. “DGXX”
-char m_rec_type[20];
-/// The software version used on board DORIS/DIODE, exp. “1.00”
-char m_rec_version[20];
-/// The antenna type is “STAREC”
-char m_antenna_type[20];
-/// The antenna number is “DORIS”
-char m_antenna_number[20];
-/// Position of 2 GHz phase center, in the platform reference frame (Units:
-/// Meters, System: ITRS recommended)
-float m_approx_position[3];
-/// The center of mass of the vehicle (for space borne receivers):
-/// CENTER OF MASS: XYZ, defined at the beginning of the mission.
-float m_center_mass[3];
-/// A vector of ObservationCode contained in the RINEX file
-std::vector<ObservationCode> m_obs_codes;
-/// A vector of scale factors corresponding to m_obs_codes (aka they have
-/// the same size with a one-to-one correspondance
-std::vector<int> m_obs_scale_factors;
-/// Datetime of first observation in RINEX
-dso::datetime<dso::nanoseconds> m_time_of_first_obs;
-/// This date corresponds to the day of the first measurement performed on
-/// the first time reference beacon in the DORIS RINEX product, at
-/// 00h 00mn 00s.
-dso::datetime<dso::nanoseconds> m_time_ref_stat;
-/// Constant shift between the date of the 400MHz phase measurement and the
-/// date of the 2GHz phase measurement in microseconds. Positive if the 
-/// measurement of phase 400 MHz is performed after the measurement of phase 
-/// 2 GHz
-double m_l12_date_offset;
-/// Epoch, code, and phase are corrected by applying the realtime-derived 
-/// receiver clock offset: 1=yes, 0=no; default: 0=no
-bool rcv_clock_offs_appl{false};
-/// List of stations/beacons recorded in file
-std::vector<BeaconStation> m_stations;
-/// List of time-reference stations in file (also included in m_stations)
-std::vector<TimeReferenceStation> m_ref_stations;
-/// Mark the 'END OF HEADER' field (next line is record line)
-pos_type m_end_of_head;
-/// Record lines for each beacon (in data record blocks)
-int m_lines_per_beacon;
+  /// The name of the file
+  std::string m_filename;
+  /// The infput (file) stream; open at constructor
+  std::ifstream m_stream;
+  /// RINEX version
+  float m_version;
+  /// Satellite name
+  char m_satellite_name[60];
+  /// COSPAR number
+  char m_cospar_number[20];
+  /// DORIS chain used (chain1 or chain2), exp. “CHAIN1”
+  char m_rec_chain[20];
+  /// DORIS instrument type; exp. “DGXX”
+  char m_rec_type[20];
+  /// The software version used on board DORIS/DIODE, exp. “1.00”
+  char m_rec_version[20];
+  /// The antenna type is “STAREC”
+  char m_antenna_type[20];
+  /// The antenna number is “DORIS”
+  char m_antenna_number[20];
+  /// Position of 2 GHz phase center, in the platform reference frame (Units:
+  /// Meters, System: ITRS recommended)
+  float m_approx_position[3];
+  /// The center of mass of the vehicle (for space borne receivers):
+  /// CENTER OF MASS: XYZ, defined at the beginning of the mission.
+  float m_center_mass[3];
+  /// A vector of ObservationCode contained in the RINEX file
+  std::vector<ObservationCode> m_obs_codes;
+  /// A vector of scale factors corresponding to m_obs_codes (aka they have
+  /// the same size with a one-to-one correspondance
+  std::vector<int> m_obs_scale_factors;
+  /// Datetime of first observation in RINEX
+  dso::datetime<dso::nanoseconds> m_time_of_first_obs;
+  /// This date corresponds to the day of the first measurement performed on
+  /// the first time reference beacon in the DORIS RINEX product, at
+  /// 00h 00mn 00s.
+  dso::datetime<dso::nanoseconds> m_time_ref_stat;
+  /// Constant shift between the date of the 400MHz phase measurement and the
+  /// date of the 2GHz phase measurement in microseconds. Positive if the
+  /// measurement of phase 400 MHz is performed after the measurement of phase
+  /// 2 GHz
+  double m_l12_date_offset;
+  /// Epoch, code, and phase are corrected by applying the realtime-derived
+  /// receiver clock offset: 1=yes, 0=no; default: 0=no
+  bool rcv_clock_offs_appl{false};
+  /// List of stations/beacons recorded in file
+  std::vector<BeaconStation> m_stations;
+  /// List of time-reference stations in file (also included in m_stations)
+  std::vector<TimeReferenceStation> m_ref_stations;
+  /// Mark the 'END OF HEADER' field (next line is record line)
+  pos_type m_end_of_head;
+  /// Record lines for each beacon (in data record blocks)
+  int m_lines_per_beacon;
 
-/// @brief Depending on the number of observables, compute the number of
-/// lines needed to hold a full data record. Each data line can hold up to 5
-/// observable values.
-int lines_per_beacon() const noexcept {
-  int obs = m_obs_codes.size();
-  return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
+  /// @brief Depending on the number of observables, compute the number of
+  /// lines needed to hold a full data record. Each data line can hold up to 5
+  /// observable values.
+  int lines_per_beacon() const noexcept {
+    int obs = m_obs_codes.size();
+    return 1 + (!(obs % 5) ? (obs / 5 - 1) : (obs / 5));
   }
 
   /// @brief read and resolve a RINEX header record.
@@ -173,7 +173,7 @@ public:
   explicit DorisObsRinex(const char *);
 
   /// @brief Destructor
-  ~DorisObsRinex() noexcept;// = default;
+  ~DorisObsRinex() noexcept; // = default;
 
   /// @brief Copy not allowed !
   DorisObsRinex(const DorisObsRinex &) = delete;
@@ -188,7 +188,7 @@ public:
   /// @brief Move assignment operator.
   DorisObsRinex &operator=(DorisObsRinex &&a) noexcept(
       std::is_nothrow_move_assignable<std::ifstream>::value) = default;
-  
+
   /// @brief Given a data record header line, resolve it to a
   ///        RinexDataRecordHeader instance.
   /// @param[in]  line A RINEX data record header line
@@ -235,9 +235,9 @@ public:
 
   int get_observation_code_index(ObservationCode t) const noexcept;
 
-  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return 
+  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return
   ///        the beacon's 4-character station code
-  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX). 
+  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX).
   ///        Only the first three chars will be considered, no null-terminated
   ///        string required (just an array of three chars)
   /// @return A pointer to the instance's m_stations[].m_station_id, which is
@@ -249,14 +249,14 @@ public:
   const char *beacon_internal_id2id(const char *_3charid) const noexcept;
 
   const char *beacon_id2internal_id(const char *_4charid) const noexcept;
-  
-  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return 
+
+  /// @brief Given a beacon 3-char identifier (internal to this RINEX), return
   ///        the corresponding BeaconStation instance (stored in the instance)
-  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX). 
+  /// @param[in] inid The beacon 3-char identifier (internal to this RINEX).
   ///        Only the first three chars will be considered, no null-terminated
   ///        string required (just an array of three chars)
-  /// @return An iterator to the instance's m_stations, set to the 
-  ///        BeaconStation instance with internal (3-char)id equal to the one 
+  /// @return An iterator to the instance's m_stations, set to the
+  ///        BeaconStation instance with internal (3-char)id equal to the one
   ///        given. If no station is matched, the retuned iterator is set to
   ///        m_stations.cend().
   std::vector<BeaconStation>::const_iterator
@@ -269,7 +269,7 @@ public:
                         });
   }
 
-  auto time_of_first_obs() const noexcept {return m_time_of_first_obs;}
+  auto time_of_first_obs() const noexcept { return m_time_of_first_obs; }
 
   int print_metadata() const noexcept;
 
@@ -279,7 +279,7 @@ public:
   /// @param[in] beaconid A 3-char id of the beacon (as identified within this
   ///        RINEX file, e.g. 'D01')
   /// @param[out] k The shift factor for the queried beacon. To actully
-  ///        compute the beacon's nominal frequencies, see 
+  ///        compute the beacon's nominal frequencies, see
   ///        ids::beacon_nominal_frequency
   /// @return If a values other than 0 is returned, the beacon was not found
   ///        (in the RINEX) and k should not be used.
@@ -317,9 +317,8 @@ public:
 }; // DorisObsRinex
 
 int fit_relative_frequency_offset(char **rinex_fns, int num_rinex,
-                                       double sigma_x = 1e-1,
-                                       double sigma_vx = 1e-3,
-                                       double sigma_z = 1e1) noexcept;
+                                  double sigma_x = 1e-1, double sigma_vx = 1e-3,
+                                  double sigma_z = 1e1) noexcept;
 int fit_relative_frequency_offset(
     const std::vector<const char *> &fns,
     dso::PolynomialModel<dso::datetime<dso::nanoseconds>> &fit,
@@ -329,14 +328,12 @@ int fit_relative_frequency_offset(
     const dso::datetime<dso::nanoseconds> &end =
         dso::datetime<dso::nanoseconds>::max()) noexcept;
 inline int fit_relative_frequency_offset(
-    const char * fns,
-    dso::PolynomialModel<dso::datetime<dso::nanoseconds>> &fit,
+    const char *fns, dso::PolynomialModel<dso::datetime<dso::nanoseconds>> &fit,
     bool use_tai = false, int every = 4,
     const dso::datetime<dso::nanoseconds> &start =
         dso::datetime<dso::nanoseconds>::min(),
     const dso::datetime<dso::nanoseconds> &end =
-        dso::datetime<dso::nanoseconds>::max()) noexcept
-{
+        dso::datetime<dso::nanoseconds>::max()) noexcept {
   std::vector<const char *> v;
   v.push_back(fns);
   return fit_relative_frequency_offset(v, fit, use_tai, every, start, end);
@@ -360,7 +357,7 @@ struct RinexDataBlockIterator {
   ///        given its internal, 3-char id (RINEX-specific).
   /// @return An iterator to the BeaconObservations instance (in the instances
   ///        clock vector) holding measuremets for the given beacon. If no
-  ///        measuremets for the beacon are available (in this block), the 
+  ///        measuremets for the beacon are available (in this block), the
   ///        iterator in invalid, aka cblock.end()
   std::vector<BeaconObservations>::iterator
   contains_beacon(const char *_3char_id) noexcept {
@@ -386,7 +383,7 @@ struct RinexDataBlockIterator {
     return cheader.m_epoch;
   }
 
-  /// @brief Get the L1-reference epoch for the observations, corrected for 
+  /// @brief Get the L1-reference epoch for the observations, corrected for
   /// receiver clock offset (if not applied)
   dso::datetime<dso::nanoseconds> corrected_l1_epoch() const noexcept {
     dso::datetime<dso::nanoseconds> t = cheader.m_epoch;
@@ -403,7 +400,7 @@ struct RinexDataBlockIterator {
     return t;
   }
 
-  /// @brief Get the L1-reference epoch for the observations, corrected for 
+  /// @brief Get the L1-reference epoch for the observations, corrected for
   /// receiver clock offset
   /// @param[out] tl2 Reference epoch for the L2 observation, corrected for:
   ///                 1. receiver clock offset, and
@@ -412,6 +409,6 @@ struct RinexDataBlockIterator {
   corrected_l1_epoch(dso::datetime<dso::nanoseconds> &tl2) const noexcept;
 }; // BlockIterator
 
-} // dso
+} // namespace dso
 
 #endif

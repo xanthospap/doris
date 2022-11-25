@@ -16,17 +16,18 @@
 #include <cassert>
 #include <cstdio>
 #endif
+#include <cstring>
 
 namespace dso {
 
 /// @brief Storage and access of Harmonic Coefficients.
-/// We are allocating and using a 2-d array of size (degree+1) * (degree+1) 
-/// (hence not actually using the order of the Coefficients). This make take 
+/// We are allocating and using a 2-d array of size (degree+1) * (degree+1)
+/// (hence not actually using the order of the Coefficients). This make take
 /// up more space than actually needed but is a bit faster.
 /// The struct is 'agnostic' concerning the order of the coefficients. It is
 /// the user's responsibility to use consistent values for order.
 /// As mentioned, internaly the sctructure holds coefficients spanning S/C
-/// from [0-n] and [0-m] for degree and order respectively. Hence, the 
+/// from [0-n] and [0-m] for degree and order respectively. Hence, the
 /// following is perfectly legal and what **should** be done:
 /// int degree = 20;
 /// int order  = 15;
@@ -51,8 +52,8 @@ class HarmonicCoeffs {
 public:
   double _GM{0e0}; ///< gravitational constant times mass of the earth
   double _Re{0e0}; ///< reference radius of the spherical harmonic development
-  bool _cnormalized{true};  ///< coefficients are normaliized (?)
-  int m_degree{0};          ///< maximum degree
+  bool _cnormalized{true}; ///< coefficients are normaliized (?)
+  int m_degree{0};         ///< maximum degree
   int m_order{0};          ///< maximum order
   double *m_data{nullptr}; ///< the actual data/coefficients
 
@@ -64,15 +65,17 @@ public:
 
 public:
   HarmonicCoeffs()
-      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_order(0), m_data(nullptr){};
+      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_order(0),
+        m_data(nullptr){};
 
   HarmonicCoeffs(int n, int m, double GM, double Re)
       : _GM(GM), _Re(Re), _cnormalized(true), m_degree(n), m_order(m) {
-    allocate(n,m);
+    allocate(n, m);
   }
 
-  HarmonicCoeffs(int n) : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n), m_order(n) {
-    allocate(n,n);
+  HarmonicCoeffs(int n)
+      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n), m_order(n) {
+    allocate(n, n);
   }
 
   HarmonicCoeffs(const HarmonicCoeffs &h) = delete;
@@ -85,20 +88,9 @@ public:
 
   ~HarmonicCoeffs() noexcept { deallocate(); }
 
-  /// @brief Resize; check current capacity and only re-allocated data if 
+  /// @brief Resize; check current capacity and only re-allocated data if
   ///        needed. m_degree set to new value.
   void resize(int degree, int order) noexcept;
-
-#ifdef DEBUG
-  void print(double scale = 1e0) noexcept {
-    for (int i = 0; i <= m_degree; i++) {
-      for (int j = 0; j <= m_degree; j++) {
-        printf("%15.10e ", scale * m_data[i][j]);
-      }
-      printf("\n");
-    }
-  }
-#endif
 
   int degree() const noexcept { return m_degree; }
   double GM() const noexcept { return _GM; }
@@ -107,15 +99,18 @@ public:
   double &GM() noexcept { return _GM; }
   double &Re() noexcept { return _Re; }
   bool &normalized() noexcept { return _cnormalized; }
-  double J2() const noexcept {
-    return -m_data[2 * (m_degree + 1)];
-  };
+  double J2() const noexcept { return -m_data[2 * (m_degree + 1)]; };
+  void clear() noexcept {
+    if (m_data)
+    std::memset(m_data, 0, (m_degree + 1)*(m_degree + 1)*sizeof(double));
+  }
 
   /// @brief De-normalize harmonic coefficients.
   /// If the coefficients are alredy un-normalized, this is a no-op.
   /// @ref Montenbruck, Gill, Satellite Orbits, Models Methods Applications;
   /// See Eq. 3.13 in Chapter 3.2
-  /// TODO this needs to be better, see for example AssociatedLegendreFunctions::normalize
+  /// TODO this needs to be better, see for example
+  /// AssociatedLegendreFunctions::normalize
   int denormalize(int order = -1) noexcept;
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
@@ -126,7 +121,8 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree);
 #endif
-     return m_data+(degree*(m_degree+1)); // C(degree,0)-> C(degree, degree)
+    return m_data +
+           (degree * (m_degree + 1)); // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
@@ -137,11 +133,11 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree);
 #endif
-    return m_data+(degree*(degree+1)); // C(degree,0)-> C(degree, degree)
+    return m_data + (degree * (degree + 1)); // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get the C coefficient of degree i and order j
-  double &C(int i, int j) noexcept { 
+  double &C(int i, int j) noexcept {
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
@@ -149,7 +145,7 @@ public:
   }
 
   /// @brief Get the C coefficient of degree i and order j
-  const double &C(int i, int j) const noexcept { 
+  const double &C(int i, int j) const noexcept {
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
@@ -169,7 +165,7 @@ public:
     assert(degree <= m_degree && degree != 0);
 #endif
     // S(degree,1)-> S(degree, degree)
-    return m_data+(m_degree-degree)*(m_degree+2)+1;
+    return m_data + (m_degree - degree) * (m_degree + 2) + 1;
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
@@ -184,16 +180,16 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree && degree != 0);
 #endif
-        // S(degree,1)-> S(degree, degree)
-    return m_data+(m_degree-degree)*(m_degree+2)+1;
+    // S(degree,1)-> S(degree, degree)
+    return m_data + (m_degree - degree) * (m_degree + 2) + 1;
   }
 
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  double &S(int i, int j) noexcept { 
+  double &S(int i, int j) noexcept {
 #ifdef DEBUG
-    assert(i <= m_degree && j <= i && i!=0);
+    assert(i <= m_degree && j <= i && i != 0);
 #endif
     return S_row(i)[j - 1];
   }
@@ -201,15 +197,15 @@ public:
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  const double &S(int i, int j) const noexcept { 
+  const double &S(int i, int j) const noexcept {
 #ifdef DEBUG
-    assert(i <= m_degree && j <= i && i!=0);
+    assert(i <= m_degree && j <= i && i != 0);
 #endif
     return S_row(i)[j - 1];
   }
 
 }; // HarmonicCoeffs
 
-} // dso
+} // namespace dso
 
 #endif

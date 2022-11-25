@@ -14,14 +14,14 @@ struct AssociatedLegendreFunctions {
 
   double &operator()(int n, int m) noexcept {
 #ifdef DEBUG
-    assert(n>=0 && m <= n && n <= order)
+    assert(n>=0 && m <= n && n <= m_order);
 #endif
     return P(n,m);
   }
   
   double operator()(int n, int m) const noexcept {
 #ifdef DEBUG
-    assert(n>=0 && m <= n && n <= order)
+    assert(n>=0 && m <= n && n <= m_order);
 #endif
     return P(n,m);
   }

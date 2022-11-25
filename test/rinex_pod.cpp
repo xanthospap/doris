@@ -416,7 +416,8 @@ int main(int argc, char *argv[]) {
   if (!error)
     error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
   if (!error)
-    error = dso::parse_gravity_model(buf, degree, order, harmonics, true);
+    error = dso::parse_gravity_model(buf, degree, order, rnx.ref_datetime(),
+                                     harmonics, true);
   if (error) {
     fprintf(stderr, "ERROR Failed handling gravity field model!\n");
     return 1;

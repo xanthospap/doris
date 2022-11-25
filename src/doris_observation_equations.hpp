@@ -25,6 +25,6 @@ double relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
                                      const Eigen::Matrix<double, 3, 1> &vecef,
                                      double GM, double J2, double Re) noexcept;
 
-}// dso
+} // namespace dso
 
 #endif

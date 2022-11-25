@@ -1,5 +1,4 @@
 #include "doris_rinex.hpp"
-//#include "datetime/dtcalendar.hpp"
 #include <algorithm>
 #include <numeric>
 
@@ -189,11 +188,11 @@ int dso::fit_relative_frequency_offset(
   printf("Solving LS with b=%ldx%ld and A=%ldx%ld\n", b.rows(), b.cols(), A.rows(), A.cols());
 
   // Solve the LS problem
-  const auto y = (A.transpose() * A).ldlt().solve(A.transpose() * b);
+  const Eigen::VectorXd y = (A.transpose() * A).ldlt().solve(A.transpose() * b);
 
   // assign to the (returned) model
   fit.xref = tref;
-  for (int i=0; i<fit.order()+1; i++)
+  for (int i=0; i<M; i++)
     fit.cf[i] = y(i);
 
   return 0;

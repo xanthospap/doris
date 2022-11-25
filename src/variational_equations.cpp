@@ -1,8 +1,8 @@
-#include "orbit_integration.hpp"
-#include "iers2010/iersc.hpp"
 #include "astrodynamics.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
+#include "iers2010/iersc.hpp"
+#include "orbit_integration.hpp"
 
 constexpr const int Np = 1;
 
@@ -24,7 +24,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> t2c(dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
 #else
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era,xlod;
+  double era, xlod;
   assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
   // const auto t2c = (rpom * rc2ti).transpose() ;
 #endif
@@ -55,36 +55,14 @@ void dso::VariationalEquations(
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
-  //printf(">> ITRF acc: %+.9f %+.9f %+.9f\n", gacc(0), gacc(1), gacc(2));
 #ifdef ABCD
   gacc = t2c * gacc;
   gpartials = t2c.transpose() * gpartials * t2c;
-  //for (int i=0; i<3; i++) {
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ", t2c.transpose()(i,j));
-  //  }
-  //  printf("\t\t");
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ",t2c(i,j));
-  //  }
-  //  printf("\n");
-  //}
 #else
   gacc = rter2cel(gacc, rc2i, era, rpom);
   const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
   gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
-  //for (int i=0; i<3; i++) {
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ",(rpom * rc2ti)(i,j));
-  //  }
-  //  printf("\t\t");
-  //  for (int j=0; j<3; j++) {
-  //    printf(" %+.6f ",(rpom * rc2ti).transpose()(i,j));
-  //  }
-  //  printf("\n");
-  //}
 #endif
-  //printf(">> GCRF acc: %+.9f %+.9f %+.9f\n", gacc(0), gacc(1), gacc(2));
 
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
@@ -112,10 +90,10 @@ void dso::VariationalEquations(
     // Velocity relative to the Earth's atmosphere
     const Eigen::Matrix<double, 3, 1> vrel = v - omega.cross(r);
     // normalize
-    [[maybe_unused]]const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
+    [[maybe_unused]] const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
     // loop over flat plates of satellite
     double ProjArea = 0e0;
-    for (int i=0; i<params.numMacroModelComponents; i++) {
+    for (int i = 0; i < params.numMacroModelComponents; i++) {
       const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
       const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
       const double ctheta = rv.dot(vr);
@@ -124,7 +102,7 @@ void dso::VariationalEquations(
       }
     }
     // get atmospheric density, using the UTC date
-    double imjd; 
+    double imjd;
     int eid;
     double utc_fday = std::modf(cmjd, &imjd);
     const int leap_sec = dso::dat(cmjd, eid);
@@ -136,73 +114,63 @@ void dso::VariationalEquations(
       utc_fday += 1e0;
       --imjd;
     }
-    assert(!params.AtmDataFeed->update_params(imjd, utc_fday*86400e0));
+    assert(!params.AtmDataFeed->update_params(imjd, utc_fday * 86400e0));
     params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
     const double atmdens = aout.d[5];
-    Eigen::Matrix<double,3,1> drhodr;
+    Eigen::Matrix<double, 3, 1> drhodr;
     { // approximate arithmetic derivative w.r.t satellite ECEF position
-      Eigen::Matrix<double,3,1> unitv = Eigen::Matrix<double,3,1>::Zero();
-      double p1,m1;
+      Eigen::Matrix<double, 3, 1> unitv = Eigen::Matrix<double, 3, 1>::Zero();
+      double p1, m1;
       // w.r.t X component
       unitv << 1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       p1 = aout.d[5];
       unitv << -1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       m1 = aout.d[5];
-      drhodr(0) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      drhodr(0) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
       // w.r.t Y component
       unitv << 0e0, 1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       p1 = aout.d[5];
       unitv << 0e0, -1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       m1 = aout.d[5];
-      drhodr(1) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      drhodr(1) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
       // w.r.t Z component
       unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       p1 = aout.d[5];
       unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) + unitv);
+      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+                                                     unitv);
       assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
       m1 = aout.d[5];
-      drhodr(2) = ((p1-atmdens) + (atmdens-m1)) / 2e0;
+      drhodr(2) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
     }
-  //  //printf("Note: Using drag coefficient=%.3f\n", params.get_drag_coefficient());
-    //drag = dso::drag_accel(r, v, ProjArea, /*params.get_drag_coefficient()*/2e0,
-    //                       *(params.SatMass), atmdens/*, drhodr, ddragdr, ddragdv,
-    //                       ddragdC*/);
-    drag = dso::drag_accel(r, v, ProjArea, *(params.drag_coef),
-                           *(params.SatMass), atmdens, drhodr, ddragdr, ddragdv,
-                           ddragdC);
+    drag =
+        dso::drag_accel(r, v, ProjArea, *(params.drag_coef), *(params.SatMass),
+                        atmdens, drhodr, ddragdr, ddragdv, ddragdC);
   }
 
-  // SRP
-  // Eigen::Matrix<double, 3, 1> srp = Eigen::Matrix<double, 3, 1>::Zero();
-  // if (include_srp) {
-  //  dso::Vector3 rV({r(0), r(1), r(2)});
-  //  dso::Vector3 sV({rsun(0), rsun(1), rsun(2)});
-  //  if (utest::montebruck_shadow(rV, sV)) {
-  //    srp = dso::solar_radiation_acceleration(r, rsun, Area_H2C, Mass_H2C,
-  //                                            Cr_H2C);
-  //  }
-  //}
-  //
-
-  // split state transition and S matrix, 
+  // split state transition and S matrix,
   // yPhi =  | y, F |, size y: 6x1
   //                        F: 6x6
-  // but inside the yPhi matrix, they are aranged in a single row, in a 
+  // but inside the yPhi matrix, they are aranged in a single row, in a
   // column-wise fashion, aka:
-  // yPhi = [y_0, y_1, ..., y_5, 
+  // yPhi = [y_0, y_1, ..., y_5,
   //         F00, F10, ..., F50,
   //         F01, F11, ..., F51,
   //         ...
@@ -210,7 +178,7 @@ void dso::VariationalEquations(
 
   // State transition (skip first column which is the state vector)
   // Eigen::Matrix<double, 6, 6> Phi(yPhi.data() + 6);
-  Eigen::Matrix<double, 6, 6+Np> Phi(yPhi.data() + 6);
+  Eigen::Matrix<double, 6, 6 + Np> Phi(yPhi.data() + 6);
 
   // derivative of state transition matrix, aka
   // |   0 (3x3)     I (3x3)   |
@@ -226,13 +194,14 @@ void dso::VariationalEquations(
   // derivative of sensitivity matrix:
   // | 0 (3x3) 0 (3x3) |
   // | 0 (3x3) da/dp   |
-  Eigen::Matrix<double, 6, 6+Np> dfdS = Eigen::Matrix<double, 6, 6+Np>::Zero();
+  Eigen::Matrix<double, 6, 6 + Np> dfdS =
+      Eigen::Matrix<double, 6, 6 + Np>::Zero();
   dfdS.block<3, 1>(3, 6) = ddragdC;
 
   // Derivative of combined state vector and state transition matrix
-  Eigen::Matrix<double, 6, 1+6+Np> yPhip;
-  yPhip.block<6,6+Np>(0,1) = dfdy * Phi + dfdS;
-  
+  Eigen::Matrix<double, 6, 1 + 6 + Np> yPhip;
+  yPhip.block<6, 6 + Np>(0, 1) = dfdy * Phi + dfdS;
+
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
   yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag;

@@ -1,13 +1,13 @@
 #ifndef __ORBIT_INTEGRATION_PARAMETERS_HPP__
 #define __ORBIT_INTEGRATION_PARAMETERS_HPP__
 
+#include "atmosphere.hpp"
 #include "egravity.hpp"
+#include "eigen3/Eigen/Eigen"
 #include "eop.hpp"
 #include "planetpos.hpp"
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
-#include "atmosphere.hpp"
-#include "eigen3/Eigen/Eigen"
 #include <cassert>
 
 namespace dso {
@@ -87,45 +87,32 @@ itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
 #else
 int gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
-            Eigen::Matrix<double, 3, 3> &rc2i,
-            double &era,
-#ifdef NEW_EOP
-            Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
-#else
-            Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+              Eigen::Matrix<double, 3, 3> &rc2i, double &era,
+              Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
 #endif
-
 
 Eigen::Matrix<double, 3, 1>
 rcel2ter(const Eigen::Matrix<double, 3, 1> r,
-        const Eigen::Matrix<double, 3, 3> &rc2i,
-        const double era,
-        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
+         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 6, 1>
 ycel2ter(const Eigen::Matrix<double, 6, 1> y,
-        const Eigen::Matrix<double, 3, 3> &rc2i,
-        const double era,
-#ifdef NEW_EOP
-              double xlod,
-#endif
-        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
+         double xlod,
+         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 3, 1>
 rter2cel(const Eigen::Matrix<double, 3, 1> r,
-        const Eigen::Matrix<double, 3, 3> &rc2i,
-        const double era,
-        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
+         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 6, 1>
 yter2cel(const Eigen::Matrix<double, 6, 1> y,
-        const Eigen::Matrix<double, 3, 3> &rc2i,
-        const double era,
-#ifdef NEW_EOP
-              double xlod,
-#endif
-        const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
-#endif
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
+         double xlod,
+         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.
 /// @warning Note that the function asserts that the respectice SPICE kernels

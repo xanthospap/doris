@@ -1,9 +1,9 @@
 #ifndef __DSO_ELEMENTARY_ASTRODYNAMICS_HPP__
 #define __DSO_ELEMENTARY_ASTRODYNAMICS_HPP__
 
+#include "eigen3/Eigen/Eigen"
 #include "iers2010/iersc.hpp"
 #include "matvec/matvec.hpp"
-#include "eigen3/Eigen/Eigen"
 #include <limits>
 
 namespace utest {
@@ -39,8 +39,8 @@ double vallado_shadow(const dso::Vector3 &r_sat,
 /// @ref Satellite
 double montebruck_shadow(const dso::Vector3 &r_sat,
                          const dso::Vector3 &r_sun) noexcept;
-double montebruck_shadow(const Eigen::Matrix<double,3,1> &r_sat,
-                         const Eigen::Matrix<double,3,1> &r_sun) noexcept;
+double montebruck_shadow(const Eigen::Matrix<double, 3, 1> &r_sat,
+                         const Eigen::Matrix<double, 3, 1> &r_sun) noexcept;
 
 double bernese_shadow(const dso::Vector3 &r_sat,
                       const dso::Vector3 &r_sun) noexcept;
@@ -57,19 +57,19 @@ struct OrbitalElements {
   /// [3]: Longitude of ascending node Ω, [rad], range [0,2π]
   /// [4]: Argument of pericenter, ω, [rad], range [0,2π]
   /// [5]: Mean Anomaly M [rad]
-  double elements[7]={0e0};
-  constexpr double& semimajor()    noexcept {return elements[0];}
-  constexpr double& eccentricity() noexcept {return elements[1];}
-  constexpr double& inclination()  noexcept {return elements[2];}
-  constexpr double& Omega()        noexcept {return elements[3];}
-  constexpr double& omega()        noexcept {return elements[4];}
-  constexpr double& mean_anomaly() noexcept {return elements[5];}
-  constexpr double semimajor()    const noexcept {return elements[0];}
-  constexpr double eccentricity() const noexcept {return elements[1];}
-  constexpr double inclination()  const noexcept {return elements[2];}
-  constexpr double Omega()        const noexcept {return elements[3];}
-  constexpr double omega()        const noexcept {return elements[4];}
-  constexpr double mean_anomaly() const noexcept {return elements[5];}
+  double elements[7] = {0e0};
+  constexpr double &semimajor() noexcept { return elements[0]; }
+  constexpr double &eccentricity() noexcept { return elements[1]; }
+  constexpr double &inclination() noexcept { return elements[2]; }
+  constexpr double &Omega() noexcept { return elements[3]; }
+  constexpr double &omega() noexcept { return elements[4]; }
+  constexpr double &mean_anomaly() noexcept { return elements[5]; }
+  constexpr double semimajor() const noexcept { return elements[0]; }
+  constexpr double eccentricity() const noexcept { return elements[1]; }
+  constexpr double inclination() const noexcept { return elements[2]; }
+  constexpr double Omega() const noexcept { return elements[3]; }
+  constexpr double omega() const noexcept { return elements[4]; }
+  constexpr double mean_anomaly() const noexcept { return elements[5]; }
 };
 int state2elements(const Vector3 &r, const Vector3 &v,
                    OrbitalElements &elements, double GM) noexcept;
@@ -81,11 +81,10 @@ Eigen::Matrix<double, 6, 1> elements2state(double GM, double dt,
                                            const OrbitalElements &elements,
                                            int &error) noexcept;
 
-OrbitalElements state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y
-                        ) noexcept;
+OrbitalElements state2elements(double GM,
+                               const Eigen::Matrix<double, 6, 1> &Y) noexcept;
 Eigen::Matrix<double, 6, 1>
-propagate_state(double GM, const dso::OrbitalElements &Ele,
-                     double dt) noexcept;
+propagate_state(double GM, const dso::OrbitalElements &Ele, double dt) noexcept;
 /// @brief Orbital elements to perifocal coordinates
 /// @param[in]  ele Orbital elements
 /// @param[in]  E   Eccentric anomaly [rad]
@@ -94,11 +93,12 @@ propagate_state(double GM, const dso::OrbitalElements &Ele,
 /// @param[out] r   Resulting velocity in perifocal frame [m]
 /// @see Montenbruck et al, 2000, Eq. 2.43 and Eq. 2.44
 namespace core {
-Eigen::Matrix<double, 6, 1>
-elements2perifocal(double GM, double E, double e, double a) noexcept;
+Eigen::Matrix<double, 6, 1> elements2perifocal(double GM, double E, double e,
+                                               double a) noexcept;
 }
-Eigen::Matrix<double, 6, 1>
-elements2perifocal(double GM, const dso::OrbitalElements &ele, double dt) noexcept;
+Eigen::Matrix<double, 6, 1> elements2perifocal(double GM,
+                                               const dso::OrbitalElements &ele,
+                                               double dt) noexcept;
 Eigen::Matrix<double, 6, 1>
 elements2perifocal(double GM, const dso::OrbitalElements &ele) noexcept;
 /*int elements2perifocal(const OrbitalElements &ele, double E, double GM,
@@ -130,15 +130,13 @@ equatorial2perifocal(const dso::OrbitalElements &ele,
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
                     Vector3 &r, Vector3 &v) noexcept;
 Eigen::Matrix<double, 6, 1>
-propagate_state(double GM, const OrbitalElements &elements,
-                double dt) noexcept;
+propagate_state(double GM, const OrbitalElements &elements, double dt) noexcept;
 inline Eigen::Matrix<double, 6, 1>
 propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0,
-                double dt) noexcept
-{
+                double dt) noexcept {
 
   const auto Elements = state2elements(GM, Y0);
-  return propagate_state(GM,Elements,dt);
+  return propagate_state(GM, Elements, dt);
 }
 
 int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
@@ -147,8 +145,8 @@ int propagate_state(double GM, const Vector3 &r0, const Vector3 &v0, double dt,
 Eigen::Matrix<double, 6, 1>
 propagate_state(double GM, const Eigen::Matrix<double, 6, 1> &Y0, double dt,
                 Eigen::Matrix<double, 6, 6> &dYdY0) noexcept;
-Eigen::Matrix<double,6,6> state_partials(double GM, const dso::OrbitalElements &ele,
-                        double dt) noexcept;
+Eigen::Matrix<double, 6, 6>
+state_partials(double GM, const dso::OrbitalElements &ele, double dt) noexcept;
 
 /// @brief Solve Kepler's equation iteratively via Newton's method.
 /// @param[in] e Orbit eccentricity
@@ -189,11 +187,11 @@ double kepler_vallado(
                            std::numeric_limits<double>::epsilon()) noexcept;
 
 /// @brief Calculate the right ascension α and declination δ from position
-///        vector. The position vector must be given in the (non-rotating) 
+///        vector. The position vector must be given in the (non-rotating)
 ///        geocentric equatorial frame.
 /// @see Orbital Mechanics for Engineering Students, H. D. Curtis, (Fourth
 ///      Edition), Chapter 4.1
-/// @param[in] pos Position vector (x, y, z) in the geocentric equatorial 
+/// @param[in] pos Position vector (x, y, z) in the geocentric equatorial
 ///               frame
 /// @param[out] a Right_ascension the value of right ascension in the range
 ///               0 to 2π (in [rad])
@@ -229,8 +227,8 @@ namespace alternatives {
 int state2kepler_vallado(const double *state, double *kepler_ele,
                          double GM = iers2010::GMe) noexcept;
 int state2kepler_montenbruck(const double *state, double *kepler_ele,
-                         double GM = iers2010::GMe) noexcept;
-}
+                             double GM = iers2010::GMe) noexcept;
+} // namespace alternatives
 
 /// @brief Given orbital elements compute the state vector in the geocentric
 //         equatorial frame of reference.
@@ -278,26 +276,21 @@ int state2kepler_montenbruck(const double *state, double *kepler_ele,
 Vector3 drag_accel(const Vector3 &r, const Vector3 &v, double Area, double mass,
                    double CD, double atmdens) noexcept;
 */
-Eigen::Matrix<double, 3, 1>
-drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                const Eigen::Matrix<double, 3, 1> &vsat,
-                const Eigen::Matrix<double, 3, 3> &rbpn,
-                double Area, double CD,
-                double Mass, double atmdens) noexcept;
-Eigen::Matrix<double, 3, 1>
-drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                const Eigen::Matrix<double, 3, 1> &vsat,
-                double Area, double CD,
-                double Mass, double atmdens) noexcept;
-Eigen::Matrix<double, 3, 1>
-drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                const Eigen::Matrix<double, 3, 1> &vsat,
-                double Area, double CD,
-                double Mass, double atmdens,
-                const Eigen::Matrix<double, 3, 1> &datmdensdr,
-                Eigen::Matrix<double, 3, 3> &daccdr,
-                Eigen::Matrix<double, 3, 3> &daccdv,
-                Eigen::Matrix<double, 3, 1> &daccdC) noexcept;
+Eigen::Matrix<double, 3, 1> drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
+                                       const Eigen::Matrix<double, 3, 1> &vsat,
+                                       const Eigen::Matrix<double, 3, 3> &rbpn,
+                                       double Area, double CD, double Mass,
+                                       double atmdens) noexcept;
+Eigen::Matrix<double, 3, 1> drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
+                                       const Eigen::Matrix<double, 3, 1> &vsat,
+                                       double Area, double CD, double Mass,
+                                       double atmdens) noexcept;
+Eigen::Matrix<double, 3, 1> drag_accel(
+    const Eigen::Matrix<double, 3, 1> &rsat,
+    const Eigen::Matrix<double, 3, 1> &vsat, double Area, double CD,
+    double Mass, double atmdens, const Eigen::Matrix<double, 3, 1> &datmdensdr,
+    Eigen::Matrix<double, 3, 3> &daccdr, Eigen::Matrix<double, 3, 3> &daccdv,
+    Eigen::Matrix<double, 3, 1> &daccdC) noexcept;
 
 /// @brief Acceleration due to Solar Radiation Pressure
 /// This is a simplified model, as described in Montenbruck et al, 2000
@@ -307,10 +300,10 @@ solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
                              double Area, double mass, double C) noexcept;
 Eigen::Matrix<double, 3, 1>
 solar_radiation_acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
-                                  const Eigen::Matrix<double, 3, 1> &rsun,
-                                  double Area, double mass, double C,
-                                  Eigen::Matrix<double, 3, 3> &dadr,
-                                  Eigen::Matrix<double, 3, 1> &dadC) noexcept;
+                             const Eigen::Matrix<double, 3, 1> &rsun,
+                             double Area, double mass, double C,
+                             Eigen::Matrix<double, 3, 3> &dadr,
+                             Eigen::Matrix<double, 3, 1> &dadC) noexcept;
 } // namespace dso
 
 #endif

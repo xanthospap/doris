@@ -4,7 +4,6 @@
 #include "eigen3/Eigen/Eigen"
 #include "integrators/sgode.hpp"
 
-namespace dso {
-}// dso
+namespace dso {} // namespace dso
 
 #endif

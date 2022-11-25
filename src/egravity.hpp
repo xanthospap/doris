@@ -4,9 +4,9 @@
 #include "cmat2d.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "gravity/associated_legendre.hpp"
-#include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
-#include "ggdatetime/dtcalendar.hpp"
+#include "harmonic_coeffs.hpp"
+#include "datetime/dtcalendar.hpp"
 #include <cassert>
 #ifdef DEBUG
 #include <cstdio>
