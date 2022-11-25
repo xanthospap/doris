@@ -19,9 +19,6 @@
 
 namespace dso {
 
-/// @todo Why the fuck did i make this a pointer to pointer? Could be just
-/// one big chunk of memory.
-///
 /// @brief Storage and access of Harmonic Coefficients.
 /// We are allocating and using a 2-d array of size (degree+1) * (degree+1) 
 /// (hence not actually using the order of the Coefficients). This make take 
@@ -56,25 +53,26 @@ public:
   double _Re{0e0}; ///< reference radius of the spherical harmonic development
   bool _cnormalized{true};  ///< coefficients are normaliized (?)
   int m_degree{0};          ///< maximum degree
-  double **m_data{nullptr}; ///< the actual data/coefficients
+  int m_order{0};          ///< maximum order
+  double *m_data{nullptr}; ///< the actual data/coefficients
 
   /// @brief allocate memory to hold the data.
-  double *allocate() noexcept;
+  double *allocate(int degree, int order) noexcept;
 
   /// @brief free memmory used by the structure.
-  int deallocate() noexcept;
+  void deallocate() noexcept;
 
 public:
   HarmonicCoeffs()
-      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_data(nullptr){};
+      : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_order(0), m_data(nullptr){};
 
-  HarmonicCoeffs(int n, double GM, double Re)
-      : _GM(GM), _Re(Re), _cnormalized(true), m_degree(n) {
-    allocate();
+  HarmonicCoeffs(int n, int m, double GM, double Re)
+      : _GM(GM), _Re(Re), _cnormalized(true), m_degree(n), m_order(m) {
+    allocate(n,m);
   }
 
-  HarmonicCoeffs(int n) : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n) {
-    allocate();
+  HarmonicCoeffs(int n) : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n), m_order(n) {
+    allocate(n,n);
   }
 
   HarmonicCoeffs(const HarmonicCoeffs &h) = delete;
@@ -89,7 +87,7 @@ public:
 
   /// @brief Resize; check current capacity and only re-allocated data if 
   ///        needed. m_degree set to new value.
-  void resize(int degree) noexcept;
+  void resize(int degree, int order) noexcept;
 
 #ifdef DEBUG
   void print(double scale = 1e0) noexcept {
@@ -110,10 +108,7 @@ public:
   double &Re() noexcept { return _Re; }
   bool &normalized() noexcept { return _cnormalized; }
   double J2() const noexcept {
-#ifdef DEBUG
-    assert( m_data[2][0]  == this->C(2,0));
-#endif
-    return -m_data[2][0];
+    return -m_data[2 * (m_degree + 1)];
   };
 
   /// @brief De-normalize harmonic coefficients.
@@ -131,7 +126,7 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree);
 #endif
-    return m_data[degree]; // C(degree,0)-> C(degree, degree)
+     return m_data+(degree*(m_degree+1)); // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
@@ -142,7 +137,7 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree);
 #endif
-    return m_data[degree]; // C(degree,0)-> C(degree, degree)
+    return m_data+(degree*(degree+1)); // C(degree,0)-> C(degree, degree)
   }
 
   /// @brief Get the C coefficient of degree i and order j
@@ -173,8 +168,8 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree && degree != 0);
 #endif
-    int off = m_degree - degree;
-    return m_data[off] + off + 1; // S(degree,1)-> S(degree, degree)
+    // S(degree,1)-> S(degree, degree)
+    return m_data+(m_degree-degree)*(m_degree+2)+1;
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
@@ -189,8 +184,8 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree && degree != 0);
 #endif
-    int off = m_degree - degree;
-    return m_data[off] + off + 1; // S(degree,1)-> S(degree, degree)
+        // S(degree,1)-> S(degree, degree)
+    return m_data+(m_degree-degree)*(m_degree+2)+1;
   }
 
   /// @brief Get the S coefficient of degree i and order j

@@ -4,53 +4,54 @@
 #include <cmath>
 #include <cstdio>
 
-double *dso::HarmonicCoeffs::allocate() noexcept {
-  m_data = new double *[m_degree + 1];
-  for (int i = 0; i <= m_degree; i++)
-    m_data[i] = new double[m_degree + 1];
-  return m_data[0];
-}
-
-int dso::HarmonicCoeffs::deallocate() noexcept {
-  if (m_data) {
-    for (int i = 0; i <= m_degree; i++)
-      delete[] m_data[i];
+double *dso::HarmonicCoeffs::allocate(int degree, int order) noexcept {
+    if (m_data)
     delete[] m_data;
-  }
-  return 0;
+  m_data = nullptr;
+  if (m_degree)
+    m_data = new double[(m_degree + 1) * (m_degree + 1)];
+  m_degree = degree;
+  m_order = order;
+  return m_data;
 }
 
-void dso::HarmonicCoeffs::resize(int degree) noexcept {
-    if (degree <= m_degree) {
-      m_degree = degree;
-    } else {
+void dso::HarmonicCoeffs::deallocate() noexcept {
+    if (m_data) delete[] m_data;
+  m_data = nullptr;
+  m_degree = 0;
+  m_order = 0;
+  return;
+}
+
+void dso::HarmonicCoeffs::resize(int degree, int order) noexcept {
       deallocate();
-      m_data = nullptr;
-      m_degree = degree;
-      allocate();
-    }
+    allocate(degree, order);
     return;
 }
 
 dso::HarmonicCoeffs::HarmonicCoeffs(dso::HarmonicCoeffs &&h) noexcept {
   this->deallocate();
   this->m_degree = h.m_degree;
+  this->m_order = h.m_order;
   this->m_data = h.m_data;
   this->_GM = h._GM;
   this->_Re = h._Re;
   this->_cnormalized = h._cnormalized;
   h.m_degree = 0;
+  h.m_order = 0;
   h.m_data = nullptr;
 }
 
 dso::HarmonicCoeffs &
 dso::HarmonicCoeffs::operator=(dso::HarmonicCoeffs &&h) noexcept {
   this->m_degree = h.m_degree;
+  this->m_order = h.m_order;
   this->m_data = h.m_data;
   this->_GM = h._GM;
   this->_Re = h._Re;
   this->_cnormalized = h._cnormalized;
   h.m_degree = 0;
+  h.m_order = 0;
   h.m_data = nullptr;
   return *this;
 }

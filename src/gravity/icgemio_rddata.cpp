@@ -3,15 +3,47 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <charconv>
+#include <ggdatetime/dtfund.hpp>
 
 ///< approximate max data line length, see
 ///< http://icgem.gfz-potsdam.de/ICGEM-Format-2011.pdf
+namespace {
 constexpr std::size_t max_data_line = 512;
 
 bool starts_with(const char *pattern, const char *line) noexcept {
   if (line)
     return !std::strncmp(pattern, line, std::strlen(pattern));
   return false;
+}
+
+const char *skip_ws(const char *str) noexcept {
+  while (*str && *str==' ') ++str;
+  return str;
+}
+
+int count_columns(const char *line) noexcept {
+  const char *c = line;
+  int cols = 0;
+  while (*c) {
+    while (*c && *c == ' ') ++c;
+    if (*c && *c != ' ') ++cols;
+    while (*c && *c != ' ') ++c;
+  }
+  return cols;
+}
+
+const char *goto_column(const char *line, int colnr) noexcept {
+  const char *c = line;
+  int cols = 0;
+  while (*c) {
+    while (*c && *c == ' ') ++c;
+    if (*c && *c != ' ')
+      if (++cols == colnr)
+        return c;
+    while (*c && *c != ' ') ++c;
+  }
+  return nullptr;
 }
 
 std::size_t coeffs_nr(int l, int m) noexcept {
@@ -26,9 +58,32 @@ std::size_t coeffs_nr(int l, int m) noexcept {
   return sum;
 }
 
+int resolve_date(const char *date_str,
+                 dso::datetime<dso::nanoseconds> &t) noexcept {
+  // expected format: t0[yyyymmdd.xxxx]
+  using SecIntType = dso::nanoseconds::underlying_type;
+  int year, month, dom, error = 0;
+  double fraction, dummy;
+  auto rc = std::from_chars(date_str, date_str + 4, year);
+  error += (rc != std::errc{});
+  rc = std::from_chars(date_str + 4, date_str + 6, month);
+  error += (rc != std::errc{});
+  rc = std::from_chars(date_str + 6, date_str + 8, dom);
+  error += (rc != std::errc{});
+  rc = std::from_chars(date_str, date_str + 14, fraction);
+  fraction = std::modf(fraction, &dummy);
+  const double fnanosec = dso::nanoseconds::sec_factor<double>();
+  if (error) return error;
+  t = dso::datetime<dso::nanoseconds>(
+      dso::year(year), dso::month(month), dso::day_of_month(dom),
+      dso::nanoseconds(static_cast<SecIntType>(fraction)));
+  return 0;
+}
+} // unnamed namespace
+
 /// @warning coeffs should have already been initialized and allocated with
 ///          enough memmory to hold the (to-be-) parsed coefficients.
-int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
+int dso::Icgem::parse_data(int l, int m, const dso::datetime<dso::nanoseconds> &t, dso::HarmonicCoeffs *coeffs) noexcept {
 
   int error = 0;
   if (l > max_degree || m > l) {
@@ -77,56 +132,56 @@ int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
   int ll, mm;
   double Clm, Slm;
   std::size_t coeffs_read = 0, coeffs_to_read = coeffs_nr(l, m);
+  int error = 0;
 
   fin.getline(line, max_data_line);
-  while (fin.good() && coeffs_read < coeffs_to_read) {
-    // we are only interested in lines that start with 'gfc' (but not 'gfct')
+  while (fin.good() && !error && coeffs_read < coeffs_to_read) {
+    
+    // gfc lines are for static-gravity field (if L=0=M, no effect ...)
     if (starts_with("gfc ", line)) {
-
       // expecting columns: degree, order, Clm, Slm, [...]; note that it
       // (seldom) happens that the doubles are written in fortran format ...
       start = line + 4;
-      ll = std::strtol(start, &end, 10);
-      if (end == start) {
+      int ll;
+      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
                 "file %s (traceback: %s)\n",
                 line, filename.c_str(), __func__);
-        return 1;
+        ++error;
       }
 
-      start = end;
-      mm = std::strtol(start, &end, 10);
-      if (end == start) {
+      int mm;
+      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      if (ccres.ec != std::errc{}) {
         fprintf(stderr,
                 "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
                 "file %s (traceback: %s)\n",
                 line, filename.c_str(), __func__);
-        return 1;
+        ++error;
       }
-
+      
       // only interested in the coefficients, if degree and order are less than
       // max
       if (ll <= l && mm <= m) {
 
-        start = end;
-        Clm = std::strtod(start, &end);
-        if (end == start) {
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
+        if (ccres.ec != std::errc{}) {
           fprintf(stderr,
                   "[ERROR] Failed parsing Clm parameter in line: [%s]; icgem "
                   "file %s (traceback: %s)\n",
                   line, filename.c_str(), __func__);
-          return 1;
+          ++error;
         }
 
-        start = end;
-        Slm = std::strtod(start, &end);
-        if (end == start) {
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Slm);
+        if (ccres.ec != std::errc{}) {
           fprintf(stderr,
                   "[ERROR] Failed parsing Slm parameter in line: [%s]; icgem "
                   "file %s (traceback: %s)\n",
                   line, filename.c_str(), __func__);
-          return 1;
+          ++error;
         }
 
         // assign to harmonic coefficients matrix
@@ -138,7 +193,160 @@ int dso::Icgem::parse_data(int l, int m, dso::HarmonicCoeffs *coeffs) noexcept {
           coeffs->S(ll, mm) = Slm;
         }
       }
-    }
+    
+    // gfct lines are for tvg field (if L=0=M, no effect ...)
+    } else if (starts_with("gfct", line)) {
+      // expecting columns: degree, order, Clm, Slm, [...] and time!
+      start = line + 4;
+      int ll;
+      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        return 1;
+      }
+
+      int mm;
+      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        ++error;
+      }
+
+      // only interested in the coefficients, if degree and order are less than
+      // max
+      if (ll <= l && mm <= m) {
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Clm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Slm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Slm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        // do not know exactly at which columns we'll find time, count them
+        int cols = count_columns(line);
+
+        // tstart - tstop is found in the last two columns, format is:
+        // [yyyymmdd.xxxx]
+        dso::datetime<dso::nanoseconds> tstart, tend;
+        start = goto_column(line, cols-2);
+        if (resolve_date(start, tstart))
+          ++error;
+        if (resolve_date(start+14. tend))
+          ++error;
+        
+        if (t>= tstart && t < tend) {
+          // add drift to harmonic coefficients matrix
+          coeffs->C(ll, mm) = Clm;
+          ++coeffs_read;
+          if (mm == 0) {
+            assert(Slm == 0e0);
+          } else {
+            coeffs->S(ll, mm) = Slm;
+          }
+        }
+      }
+    
+    // trnd lines are for trend/drift (if L=0=M, no effect ...)
+    } else if (starts_with("trnd", line)) {
+      // expecting that this 'trnd' field should match the current degree and
+      // order of the --already read-- TVG coefficients
+      start = line + 4;
+      int ll;
+      auto ccres = std::from_chars(skip_ws(start), line+sz, ll);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing degree parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        ++error;
+      }
+
+      int mm;
+      ccres = std::from_chars(skip_ws(ccres.ptr), line+sz, mm);
+      if (ccres.ec != std::errc{}) {
+        fprintf(stderr,
+                "[ERROR] Failed parsing order parameter in line: [%s]; icgem "
+                "file %s (traceback: %s)\n",
+                line, filename.c_str(), __func__);
+        ++error;
+      }
+
+      // there are optional fields, could be missing, skip check
+      //if ((ll != tvg_ll) || (mm != tvg_mm)) {
+      //  fprintf(stderr,
+      //          "[ERROR] Reading line of type \'trnd\' but order/degree do not "
+      //          "match with previous TVG coefficients read (%d,%d)!\n",
+      //          ll, mm);
+      //  fprintf(stderr,
+      //          "[ERROR] Current TVG degree and order: %d/%d, icgem file: %s "
+      //          "(traceback: %s)\n",
+      //          tvg_ll, tvg_mm, filename.c_str(), __func__);
+      //  return 1;
+      //}
+      
+      // only interested in the coefficients, if degree and order are less than
+      // max
+      if (ll <= l && mm <= m) {
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Clm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Slm);
+        if (ccres.ec != std::errc{}) {
+          fprintf(stderr,
+                  "[ERROR] Failed parsing Slm parameter in line: [%s]; icgem "
+                  "file %s (traceback: %s)\n",
+                  line, filename.c_str(), __func__);
+          ++error;
+        }
+
+        // do not know exactly at which columns we'll find time, count them
+        int cols = count_columns(line);
+
+        // tstart - tstop is found in the last two columns, format is:
+        // [yyyymmdd.xxxx]
+        dso::datetime<dso::nanoseconds> tstart, tend;
+        start = goto_column(line, cols-2);
+        if (resolve_date(start, tstart))
+          ++error;
+        if (resolve_date(start+14. tend))
+          ++error;
+        
+        if (t>= tstart && t < tend) {
+          // assign to harmonic coefficients matrix
+          coeffs->C(ll, mm) = Clm;
+          ++coeffs_read;
+          if (mm == 0) {
+            assert(Slm == 0e0);
+          } else {
+            coeffs->S(ll, mm) = Slm;
+          }
+        }
+      }
 
     fin.getline(line, max_data_line);
   }

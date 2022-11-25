@@ -3,6 +3,7 @@
 #include <cstdio>
 
 int dso::parse_gravity_model(const char *model_fn, int degree, int order,
+                             const dso::datetime<dso::nanoseconds> &t,
                              dso::HarmonicCoeffs &harmonics,
                              bool denormalize) noexcept {
   dso::Icgem gfc(model_fn);
@@ -24,10 +25,10 @@ int dso::parse_gravity_model(const char *model_fn, int degree, int order,
   }
 
   // resize HarmonicCoeffs to fit input
-  harmonics.resize(degree);
+  harmonics.resize(degree, order);
 
   // parse data; store coefficients to harmonics
-  if (gfc.parse_data(degree, order, &harmonics)) {
+  if (gfc.parse_data(degree, order, t, &harmonics)) {
     fprintf(stderr,
             "[ERROR] Failed to parse harmonic coefficients from file %s "
             "(traceback: %s)\n",

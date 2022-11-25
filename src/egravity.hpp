@@ -3,9 +3,10 @@
 
 #include "cmat2d.hpp"
 #include "eigen3/Eigen/Eigen"
-#include "harmonic_coeffs.hpp"
 #include "gravity/associated_legendre.hpp"
+#include "harmonic_coeffs.hpp"
 #include "matvec/matvec.hpp"
+#include "ggdatetime/dtcalendar.hpp"
 #include <cassert>
 #ifdef DEBUG
 #include <cstdio>
@@ -15,18 +16,19 @@ namespace dso {
 
 /// @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs
 ///        instance
-/// @param[in] model_fn An icegm file, describing a static gravity/geopotential 
+/// @param[in] model_fn An icegm file, describing a static gravity/geopotential
 ///        model
-/// @param[in] degree Max degree for harmonics to extract; should be at 
+/// @param[in] degree Max degree for harmonics to extract; should be at
 ///        maximum equal to the model's max degree
-/// @param[in] order Max order for harmonics to extract; should be at 
+/// @param[in] order Max order for harmonics to extract; should be at
 ///        maximum equal to the model's max order and <= to degree
-/// @param[out] harmonics An dso::HarmonicCoeffs instance to store results. If 
-///        (at input) the instance has wrong size, it will be resized to match 
+/// @param[out] harmonics An dso::HarmonicCoeffs instance to store results. If
+///        (at input) the instance has wrong size, it will be resized to match
 ///        the needs of the requested harmonics
 /// @param[in] denormalize Denormalize coefficients (if normalized)
 /// @return Anything other than 0 denotes an error
 int parse_gravity_model(const char *model_fn, int degree, int order,
+                        const dso::datetime<dso::nanoseconds> &t,
                         dso::HarmonicCoeffs &harmonics,
                         bool denormalize = true) noexcept;
 
@@ -37,9 +39,8 @@ int parse_gravity_model(const char *model_fn, int degree, int order,
 /// @param[in] robj Point mass position vector (e.g. moon)
 /// @return A vector containing the acceleration components
 /// @see e.g. Curtis, Chapter 10.10
-inline Vector3 point_mass_accel(const Vector3& rsat, const Vector3& robj,
-    double GM) noexcept
-{
+inline Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
+                                double GM) noexcept {
   //  Relative position vector of satellite w.r.t. point mass
   auto d = rsat - robj;
   // Acceleration
@@ -47,19 +48,19 @@ inline Vector3 point_mass_accel(const Vector3& rsat, const Vector3& robj,
 }
 
 Eigen::Matrix<double, 3, 1>
-point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
-    const Eigen::Matrix<double, 3, 1>& robj,
-    Eigen::Matrix<double, 3, 3>& partials) noexcept;
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
+                 const Eigen::Matrix<double, 3, 1> &robj,
+                 Eigen::Matrix<double, 3, 3> &partials) noexcept;
 
 Eigen::Matrix<double, 3, 1>
-point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
-    const Eigen::Matrix<double, 3, 1>& robj) noexcept;
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
+                 const Eigen::Matrix<double, 3, 1> &robj) noexcept;
 
 #ifdef DEBUG
 int lagrange_polynomials(
     double x, double y, double z, double R, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::RowWise>& V,
-    dso::Mat2D<dso::MatrixStorageType::RowWise>& W) noexcept;
+    dso::Mat2D<dso::MatrixStorageType::RowWise> &V,
+    dso::Mat2D<dso::MatrixStorageType::RowWise> &W) noexcept;
 #endif
 
 /// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian)
@@ -80,14 +81,13 @@ int lagrange_polynomials(
 ///      ch. 3.2.4, p. 66
 int lagrange_polynomials(
     double x, double y, double z, double Re, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& V,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& W) noexcept;
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
 
 inline int lagrange_polynomials(
-    const Eigen::Matrix<double, 3, 1>& xyz, double Re, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& V,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& W) noexcept
-{
+    const Eigen::Matrix<double, 3, 1> &xyz, double Re, int l, int k,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept {
   const double x = xyz(0);
   const double y = xyz(1);
   const double z = xyz(2);
@@ -118,27 +118,26 @@ inline int lagrange_polynomials(
 ///      ch. 3.2.5, p. 68
 Eigen::Matrix<double, 3, 1>
 grav_potential_accel(int degree, int order, double Re, double GM,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& V,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& W,
-    const dso::HarmonicCoeffs& hc) noexcept;
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc) noexcept;
 
 // Note that if we want the partials, V and W indexes must span [0,degree+2]
 // (hence the actual number should be degree+3)
 Eigen::Matrix<double, 3, 1>
 grav_potential_accel(int degree, int order, double Re, double GM,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& V,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& W,
-    const dso::HarmonicCoeffs& hc,
-    Eigen::Matrix<double, 3, 3>& partials) noexcept;
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc,
+                     Eigen::Matrix<double, 3, 3> &partials) noexcept;
 
 // Here, the values of Re and GM are extracted from the Gravity model, aka
 // the passed in hc instance
 inline Eigen::Matrix<double, 3, 1>
 grav_potential_accel(int degree, int order,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& V,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& W,
-    const dso::HarmonicCoeffs& hc) noexcept
-{
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc) noexcept {
   return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc);
 }
 
@@ -148,13 +147,12 @@ grav_potential_accel(int degree, int order,
 // (hence the actual number should be degree+3).
 inline Eigen::Matrix<double, 3, 1>
 grav_potential_accel(int degree, int order,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& V,
-    const dso::Mat2D<MatrixStorageType::Trapezoid>& W,
-    const dso::HarmonicCoeffs& hc,
-    Eigen::Matrix<double, 3, 3>& partials) noexcept
-{
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &V,
+                     const dso::Mat2D<MatrixStorageType::Trapezoid> &W,
+                     const dso::HarmonicCoeffs &hc,
+                     Eigen::Matrix<double, 3, 3> &partials) noexcept {
   return grav_potential_accel(degree, order, hc.Re(), hc.GM(), V, W, hc,
-      partials);
+                              partials);
 }
 
 // Here, the values of Re and GM are extracted from the Gravity model, aka
