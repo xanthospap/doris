@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
 
   // Gravity
   // -------------------------------------------------------------------------
-  // parse degree and order and the requested gravity model into a
+  // parse degree, order and the requested gravity model into a
   // HarmonicCoeffs instance. Note that to compute potential we will need
   // Lagrange polynomials (later on)
   int degree, order;

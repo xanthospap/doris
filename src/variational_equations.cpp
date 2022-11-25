@@ -17,52 +17,32 @@ void dso::VariationalEquations(
 
   // current mjd, TAI
   const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
+  printf("Performing integration for t=%.12f (TAI)\n", cmjd);
 
   // terretrial to celestial for epoch
-#ifdef ABCD
-  Eigen::Matrix<double, 3, 3> dt2c;
-  Eigen::Matrix<double, 3, 3> t2c(dso::itrs2gcrs(cmjd, params.eopLUT, dt2c));
-#else
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
   assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
-  // const auto t2c = (rpom * rc2ti).transpose() ;
-#endif
-  //{
-  //  printf("Terrestrial to Celestail Matrix:\n");
-  //  for (int i=0; i<3; i++) {
-  //    for (int j=0; j<3; j++) {
-  //      printf(" %+.6f ", t2c(i,j));
-  //    }
-  //    printf("\n");
-  //  }
-  //}
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
+  printf("\tSat. position: %.9f %.9f %.9f (GCRS)\n", r(0), r(1), r(2));
 
   // compute gravity-induced acceleration (we need the position vector in ITRF)
   Eigen::Matrix<double, 3, 3> gpartials;
-#ifdef ABCD
-  Eigen::Matrix<double, 3, 1> r_geo = t2c.transpose() * r;
-#else
   Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
-#endif
+  printf("\tSat. position: %.9f %.9f %.9f (ITRS)\n", r_geo(0), r_geo(1), r_geo(2));
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params.degree, params.order, *(params.Lagrange_V),
       *(params.Lagrange_W), params.harmonics, gpartials);
+  printf("\tGravity Acc: %.9f %.9f %.9f (ITRS)\n", gacc(0), gacc(1), gacc(2));
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
-#ifdef ABCD
-  gacc = t2c * gacc;
-  gpartials = t2c.transpose() * gpartials * t2c;
-#else
   gacc = rter2cel(gacc, rc2i, era, rpom);
   const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
   gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
-#endif
 
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF

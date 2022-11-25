@@ -69,21 +69,18 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
     const dso::HarmonicCoeffs &hc,
     Eigen::Matrix<double, 3, 3> &partials) noexcept {
 
-  // factorial look-up table up to N=120
-  // constexpr const dso::FactorialLookUpTable<long unsigned, 120> FTable;
-  // static_assert((double)FTable.factorial(1) == 1e0);
-
   // acceleration
   double xacc(0e0), yacc(0e0), zacc(0e0);
+  
   // partials
   double daxdx_m0(0e0), daxdy_m0(0e0), daxdz_m0(0e0), daydz_m0(0e0),
       dazdz_m0(0e0);
 
-  double fac = 2e0; /* recursion of (n+2)! / n! */
+  double fac = 2e0; // recursion of (n+2)! / n!
+
   // m = 0 part
   for (int i = 0; i <= degree; i++) {
     const double Cn0 = hc.C(i, 0);
-    /*const double Sn0 = hc.S(i, 0) = 0e0;*/
 
     // acceleration
     zacc -= (i + 1) * Cn0 * V(i + 1, 0);
@@ -100,12 +97,10 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
 
     fac *= ((double)(i + 3) / (double)(i + 1));
   }
-  // printf("\tGravitational potential (m=0)\n");
-  // printf("\t%+15.6f %+15.6f %15.6f\n", xacc, yacc, zacc);
 
   double daxdx_m1(0e0), daxdy_m1(0e0), dazdz_m1(0e0);
   // m = 1 part (only considered for partials)
-  fac = 2e0; /* recursion of (n+1)! / (n-1)! */
+  fac = 2e0; // recursion of (n+1)! / (n-1)!
   for (int i = 1; i <= degree; i++) {
     const double Cn1 = hc.C(i, 1);
     const double Sn1 = hc.S(i, 1);
@@ -184,9 +179,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       }
     }
   }
-  // printf("\tGravitational potential (m>0)\n");
-  // printf("\t%+15.6f %+15.6f %15.6f\n", xacc2, yacc2, zacc2);
-
+  
   // Sum-up acceleration
   xacc += xacc2;
   xacc *= GM / (Re * Re);
@@ -197,8 +190,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   zacc += zacc2;
   zacc *= GM / (Re * Re);
 
-  Eigen::Matrix<double,3,1> acc;
-  acc << xacc, yacc, zacc;
+  Eigen::Matrix<double,3,1> acc(xacc, yacc, zacc);
 
   // Sum-up partial derivatives, column-wise
   partials(0, 0) = daxdx_m0 + daxdx_m1 + daxdx_m2; // dax/dx

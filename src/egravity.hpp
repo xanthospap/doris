@@ -56,13 +56,6 @@ Eigen::Matrix<double, 3, 1>
 point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
                  const Eigen::Matrix<double, 3, 1> &robj) noexcept;
 
-#ifdef DEBUG
-int lagrange_polynomials(
-    double x, double y, double z, double R, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::RowWise> &V,
-    dso::Mat2D<dso::MatrixStorageType::RowWise> &W) noexcept;
-#endif
-
 /// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian)
 /// position vector.
 /// @param[in] x X-component of position vector in meters [m]
