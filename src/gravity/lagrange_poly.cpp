@@ -7,8 +7,6 @@ int dso::lagrange_polynomials(
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept {
 
-  printf("computing Lagrange polynomials\n");
-
   if (k > l) {
     fprintf(stderr,
             "[ERROR] Invalid degree/order given to compute Lagrange "

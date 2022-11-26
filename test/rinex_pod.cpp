@@ -44,6 +44,15 @@ double GMSun, GMMoon;
 // usually using these datetimes ...
 using Datetime = dso::datetime<dso::nanoseconds>;
 
+double crange(const Eigen::Matrix<double, 3, 1> &rbeacon_ecef,
+              const Eigen::Matrix<double, 3, 1> &rsat_ecef,
+              const Eigen::Matrix<double, 3, 1> &rsat_eci,
+              [[maybe_unused]]const dso::datetime<dso::seconds> &ttai) noexcept 
+{
+  return (rsat_ecef - rbeacon_ecef).norm() 
+    + iers2010::OmegaEarth * (rbeacon_ecef.dot(rsat_eci))/iers2010::C;
+}
+
 // @see https://www.johndcook.com/blog/standard_deviation/
 struct RunningStatistics {
   double _mean{0e0}, _var{0e0};

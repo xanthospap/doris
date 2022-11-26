@@ -17,7 +17,6 @@ void dso::VariationalEquations(
 
   // current mjd, TAI
   const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
-  printf("Performing integration for t=%.12f (TAI)\n", cmjd);
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -27,16 +26,19 @@ void dso::VariationalEquations(
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yPhi.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yPhi.block<3, 1>(3, 0);
-  printf("\tSat. position: %.9f %.9f %.9f (GCRS)\n", r(0), r(1), r(2));
+  //printf("\tSat. position: %.9f %.9f %.9f (GCRS)\n", r(0), r(1), r(2));
 
   // compute gravity-induced acceleration (we need the position vector in ITRF)
   Eigen::Matrix<double, 3, 3> gpartials;
   Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
-  printf("\tSat. position: %.9f %.9f %.9f (ITRS)\n", r_geo(0), r_geo(1), r_geo(2));
+  //printf("\tSat. position: %.9f %.9f %.9f (ITRS)\n", r_geo(0), r_geo(1), r_geo(2));
+  //printf("\tcomputing SH to (n,m) = (%d,%d)\n", params.degree,params.order);
+  //printf("\t(-)Zonal C: C_00=%.15e, C_10=%.15e, C_20=%.15e and C_30=%.15e\n", params.harmonics.C(0,0), params.harmonics.C(1,0), params.harmonics.C(2,0), params.harmonics.C(3,0));
+  //printf("\t(-)harmonics at: %p\n", (void*)&(params.harmonics));
   Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
       r_geo, params.degree, params.order, *(params.Lagrange_V),
       *(params.Lagrange_W), params.harmonics, gpartials);
-  printf("\tGravity Acc: %.9f %.9f %.9f (ITRS)\n", gacc(0), gacc(1), gacc(2));
+  //printf("\tGravity Acc: %.9f %.9f %.9f (ITRS)\n", gacc(0), gacc(1), gacc(2));
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!

@@ -133,7 +133,8 @@ public:
 #ifdef DEBUG
     assert(degree <= m_degree);
 #endif
-    return m_data + (degree * (degree + 1)); // C(degree,0)-> C(degree, degree)
+    // C(degree,0)-> C(degree, degree)
+    return m_data + (degree * (m_degree + 1)); 
   }
 
   /// @brief Get the C coefficient of degree i and order j
@@ -141,6 +142,8 @@ public:
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
+    //if (i==1)
+    //printf(">>request for C(%d,%d)\n", i,j);
     return C_row(i)[j];
   }
 
@@ -149,6 +152,8 @@ public:
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
+    //if (i==1)
+    //printf(">>request for C(%d,%d) --const--\n", i,j);
     return C_row(i)[j];
   }
 

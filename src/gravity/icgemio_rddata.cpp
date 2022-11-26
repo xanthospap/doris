@@ -39,14 +39,21 @@ int count_columns(const char *line) noexcept {
 }
 
 const char *goto_column(const char *line, int colnr) noexcept {
+  // printf("going to column #%d, of string [%s]\n", colnr, line);
   const char *c = line;
   int cols = 0;
   while (*c) {
     while (*c && *c == ' ')
       ++c;
-    if (*c && *c != ' ')
-      if (++cols == colnr)
+    if (*c && *c != ' ') {
+      if (++cols == colnr+1) {
+        // printf("founf column: [%s]\n", c);
         return c;
+      } else {
+        // printf("new column: [%s]\n", c);
+        ;
+      }
+    }
     while (*c && *c != ' ')
       ++c;
   }
@@ -70,9 +77,17 @@ int resolve_date(const char *date_str,
   const double fnanosec = dso::nanoseconds::sec_factor<double>();
   if (error)
     return error;
-  t = dso::datetime<dso::nanoseconds>(
-      dso::year(year), dso::month(month), dso::day_of_month(dom),
-      dso::nanoseconds(static_cast<SecIntType>(fnanosec)));
+  try {
+    t = dso::datetime<dso::nanoseconds>(
+        dso::year(year), dso::month(month), dso::day_of_month(dom),
+        dso::nanoseconds(static_cast<SecIntType>(fnanosec)));
+  } catch (std::exception &) {
+    fprintf(stderr,
+            "[ERROR] Failed to resolve datetime field from string: \"%s\" "
+            "(traceback: %s)\n",
+            date_str, __func__);
+    return 1;
+  }
   return 0;
 }
 } // unnamed namespace

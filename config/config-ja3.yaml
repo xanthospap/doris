@@ -17,7 +17,8 @@ naif-kernels:
   lsk: data/jpl/naif0012.tls
 
 gravity:
-  model: data/gfc/GOCO02s.gfc
+  # model: data/gfc/GOCO02s.gfc
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
   degree: 90
   order: 90
 

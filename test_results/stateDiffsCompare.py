@@ -59,7 +59,12 @@ def parse(fn):
             try:
                 t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
             except:
-                t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+                try:
+                  t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+                except:
+                  print("ERROR Failed to read datetime from line \"{:}\", filename={:}".format(line.strip(), fn), file=sys.stderr)
+                  sys.exit(9)
+            print('Parsing line {:}'.format(line.strip()))
             x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd = [float(k) for k in l[5:]]
             beacon = l[3]
             arc_nr = int(l[4])
