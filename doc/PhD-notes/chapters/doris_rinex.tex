@@ -1,7 +1,7 @@
-\chapter{DORIS RINEX}
-\label{ch:doris-rinex}
+\section{DORIS RINEX}
+\label{sec:doris-rinex}
 
-\section{General Format  Description}
+\subsection{General Format  Description}
 The DORIS RINEX format consists of one ASCII file containing both space based 
 and meteorological data collected at DORIS stations and relayed by satellites.
 
@@ -36,7 +36,7 @@ Descriptor & Observation Type & Units \\
 \label{table:doris-rinex-observation-types}
 \end{table}
 
-\section{Receiver Clock Offsets}
+\subsection{Receiver Clock Offsets}
 
 DORIS RINEX contain a ``receiver clock offset'' \(\tau_{r_{offset}}\) (as an 
 optional field) at the header record of every epoch. E.g. the line
@@ -57,11 +57,11 @@ In the first case, the file ends with ``.001'' whereas in the second with ``.010
 More information on the computation of (\(\tau_{r_{offset}}\) are provided in 
 \cite{lemoine-2016}.}
 
-\section{Types of DORIS measurements}
-\label{sec:types-of-doris-measurements}
+\subsection{Types of DORIS measurements}
+\label{ssec:types-of-doris-measurements}
 
-\subsection{Relative Frequency Offset}
-\label{ssec:relative-frequency-offset}
+\subsubsection{Relative Frequency Offset}
+\label{sssec:relative-frequency-offset}
 
 DORIS RINEX files (usually) contain a measurement type labeled ``F'' (should be 
 recorded in the field \verb|SYS/#/OBS TYPES| at the RINEX header). This measurement 
@@ -86,51 +86,3 @@ D03   -826480.354    -2642364.157   148404267.53014 148404098.13114      -115.20
 ...                                                            
 \end{BVerbatim}
 \end{adjustbox}
-
-%\begin{figure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Cryosat-2-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Cryosat}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{HY-2C-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for HY-2C}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Jason-3-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Jason 3}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Saral-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Saral}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Sentinel-3A-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Sentinel 3A}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Sentinel-3B-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Sentinel 3B}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\begin{subfigure}{0.45\textwidth}
-%  \centering
-%  \includegraphics[width=.65\linewidth, angle=-90]{Sentinel-6A-RinexRfo}  
-%  \caption{\scriptsize RINEX receiver relative frequency offset records for Sentinel 6A}
-%  \label{fig:sub-first}
-%\end{subfigure}
-%\caption{Receiver relative frequency offset parsed from DORIS RINEX files}
-%\label{fig:onw-week-rfo}
-%\end{figure}
-%

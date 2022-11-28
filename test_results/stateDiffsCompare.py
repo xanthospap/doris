@@ -64,7 +64,7 @@ def parse(fn):
                 except:
                   print("ERROR Failed to read datetime from line \"{:}\", filename={:}".format(line.strip(), fn), file=sys.stderr)
                   sys.exit(9)
-            print('Parsing line {:}'.format(line.strip()))
+            #print('Parsing line {:}'.format(line.strip()))
             x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd = [float(k) for k in l[5:]]
             beacon = l[3]
             arc_nr = int(l[4])
@@ -274,7 +274,10 @@ def plot_state_diffs(fnref, fntest):
               resdct[t] = diffs
       return resdct
 
-  dct1 = parse_reference(fnref)
+  try:
+    dct1 = parse_reference(fnref)
+  except:
+    dct1 = parse(fnref)
   dct2 = parse(fntest)
   diffs = make_state_diffs(dct1,dct2)
 

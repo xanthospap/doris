@@ -36,7 +36,7 @@ constexpr const double DfefeN_apriori_stddev = 1e0;
 
 // a priori value for Drag Coefficient and respective sigma
 constexpr const double DragCoef = 2e0;
-constexpr const double DragCoefSigma = .75e0;
+constexpr const double DragCoefSigma = .05e0;
 
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
@@ -46,11 +46,36 @@ using Datetime = dso::datetime<dso::nanoseconds>;
 
 double crange(const Eigen::Matrix<double, 3, 1> &rbeacon_ecef,
               const Eigen::Matrix<double, 3, 1> &rsat_ecef,
-              const Eigen::Matrix<double, 3, 1> &rsat_eci,
-              [[maybe_unused]]const dso::datetime<dso::nanoseconds> &ttai) noexcept 
-{
-  return (rsat_ecef - rbeacon_ecef).norm() 
-    + iers2010::OmegaEarth * (rbeacon_ecef.dot(rsat_eci))/iers2010::C;
+              [[maybe_unused]] const dso::datetime<dso::nanoseconds> &ttai,
+              Eigen::Matrix<double, 3, 1> &rbeacon_ecef_corr) noexcept {
+  // return (rsat_ecef - rbeacon_ecef).norm()
+  //   + iers2010::OmegaEarth * (rbeacon_ecef.dot(rsat_eci))/iers2010::C;
+  Eigen::Matrix<double, 3, 1> newpos = rbeacon_ecef;
+  rbeacon_ecef_corr = Eigen::Matrix<double, 3, 1>::Zero();
+  int iteration = 0;
+  constexpr const int max_iterations = 50;
+
+  while ((rbeacon_ecef_corr - newpos).cwiseAbs().maxCoeff() > 1e-6 &&
+         ++iteration < max_iterations) {
+    rbeacon_ecef_corr = newpos;
+    // t_emmision = t_reception - dt
+    double r_approx = (rsat_ecef - rbeacon_ecef_corr).norm(); // range in [m]
+    double dt = r_approx / iers2010::C;                       // [sec]
+    newpos = Eigen::AngleAxisd(-iers2010::OmegaEarth * dt,
+                               -Eigen::Vector3d::UnitZ()) *
+             rbeacon_ecef;
+
+    //Eigen::Matrix<double, 3, 1> diff = rbeacon_ecef_corr - newpos;
+    //printf("\titeration, dt=%+.9f [sec] and DX=[%.9f, %.9f, %.9f]\n", dt,
+    //       diff(0), diff(1), diff(2));
+    //diff = newpos - rbeacon_ecef;
+    //printf("\t                                  DX=[%.9f, %.9f, %.9f]\n",
+    //       diff(0), diff(1), diff(2));
+  }
+
+  assert(iteration < max_iterations);
+
+  return (rsat_ecef - newpos).norm();
 }
 
 // @see https://www.johndcook.com/blog/standard_deviation/
@@ -776,22 +801,26 @@ int main(int argc, char *argv[]) {
         //}
 
         // Iono-Free phase center, ECEF (changeme)
-        const Eigen::Matrix<double, 3, 1> bxyz_ion =
+        Eigen::Matrix<double, 3, 1> bxyz_ion =
             beacon_arp2ion(bxyz_sta, *beacon_it);
 
         // get azimouth [rad], elevation [rad] and geometric distance [m]
         // (beacon to satellite, Iono-Free PC at both ends)
-        const Eigen::Matrix<double, 3, 1> r_enu =
+        Eigen::Matrix<double, 3, 1> r_enu =
             dso::car2top<dso::ellipsoid::grs80>(
                 bxyz_ion, svState.state.block<3, 1>(0, 0));
         double az, el;
         double rho = dso::top2dae(r_enu, az, el);
 
-        // NEW::
         // correct the satellite-beacon distance for Earth rotation
-        const Eigen::Matrix<double, 3, 1> sat_eci = dso::rter2cel(
-            svState.state.block<3, 1>(0, 0), rc2i_now, era_now, rpom_now);
-        rho = crange(bxyz_ion, svState.state.block<3, 1>(0, 0), sat_eci, tl1);
+        {
+          Eigen::Matrix<double, 3, 1> corrected_beacon;
+          rho = crange(bxyz_ion, svState.state.block<3, 1>(0, 0), tl1,
+                       corrected_beacon);
+          bxyz_ion = corrected_beacon;
+          // !! WARNING !!
+          r_enu = bxyz_ion;
+        }
 
         // only process observations to elevation > EleCutOff [deg]
         if (dso::rad2deg(el) < EleCutOff) {
@@ -969,8 +998,9 @@ int main(int argc, char *argv[]) {
 
               rstats.update(oc);
 
-              const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(
-                  dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
+              [[maybe_unused]] const Eigen::Matrix<double, 3, 3> R =
+                  dso::topocentric_matrix(
+                      dso::car2ell<dso::ellipsoid::grs80>(bxyz_ion));
 
               // partials wrt [x,y,z,Vx,Vy,Vz,Np_1, Np_2, ..., Lwz,Dfe/feN]
               // we actually need the partials of -Utheo (not Utheo), so
@@ -978,7 +1008,9 @@ int main(int argc, char *argv[]) {
               Eigen::VectorXd dHdX = Eigen::VectorXd::Zero(NumParams);
               // dz/dy
               dHdX.block<3, 1>(0, 0) =
-                  R.transpose() *
+                  /*R.transpose() *
+                  (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
+                  (1e0 / Dtau);*/
                   (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                   (1e0 / Dtau);
               dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
