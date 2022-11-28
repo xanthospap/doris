@@ -39,6 +39,6 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: .5e0
+  observation-sigma: .05e0
   ## Units: [degrees]
   elevation-cut-off: 15e0 ## in degrees

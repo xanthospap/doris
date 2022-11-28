@@ -47,7 +47,7 @@ using Datetime = dso::datetime<dso::nanoseconds>;
 double crange(const Eigen::Matrix<double, 3, 1> &rbeacon_ecef,
               const Eigen::Matrix<double, 3, 1> &rsat_ecef,
               const Eigen::Matrix<double, 3, 1> &rsat_eci,
-              [[maybe_unused]]const dso::datetime<dso::seconds> &ttai) noexcept 
+              [[maybe_unused]]const dso::datetime<dso::nanoseconds> &ttai) noexcept 
 {
   return (rsat_ecef - rbeacon_ecef).norm() 
     + iers2010::OmegaEarth * (rbeacon_ecef.dot(rsat_eci))/iers2010::C;
@@ -90,15 +90,16 @@ struct SatBeacon {
   double Drel;                   ///< relativity correction
   TropoDetails Dtropo;           ///< tropospheric correction
   Eigen::Matrix<double, 3, 1> s; ///< beacon-satellite vector in topocentric rf
+  double crho;                   ///< beacon-satellite range, corrected for Earth rotation (Sagnac & aberration)
   int arcnr{0};
   int reinitialize{0}; ///< measurement marked as discontinuity
 
   SatBeacon(const char *id_, int count_, const Datetime &ttai_,
             const Datetime &tproper_, double L1, double L2, double Diono_,
             const TropoDetails &Dtropo_, double Drel_,
-            const Eigen::Matrix<double, 3, 1> &s_) noexcept
+            const Eigen::Matrix<double, 3, 1> &s_, double _crho) noexcept
       : count(count_), ttai(ttai_), tproper(tproper_), Ls1(L1), Lu2(L2),
-        Diono(Diono_), Drel(Drel_), Dtropo(Dtropo_), s(s_) {
+        Diono(Diono_), Drel(Drel_), Dtropo(Dtropo_), s(s_), crho(_crho) {
     // std::strncpy(id3c, id_, 3); // fuck the warning!
     std::memcpy(id3c, id_, sizeof(char) * 3);
   }
@@ -114,12 +115,13 @@ struct SatBeacon {
     Dtropo = sb.Dtropo;
     Drel = sb.Drel;
     s = sb.s;
+    crho = sb.crho;
     return *this;
   }
 
   void update(const Datetime &ttai_, const Datetime &tproper_, double L1_,
               double L2_, double Diono_, const TropoDetails &Dtropo_,
-              double Drel_, const Eigen::Matrix<double, 3, 1> &s_) noexcept {
+              double Drel_, const Eigen::Matrix<double, 3, 1> &s_, double _crho) noexcept {
     ttai = ttai_;
     tproper = tproper_;
     Ls1 = L1_;
@@ -128,9 +130,10 @@ struct SatBeacon {
     Dtropo = Dtropo_;
     Drel = Drel_;
     s = s_;
+    crho = _crho;
   }
 
-  double rho() const noexcept { return s.norm(); }
+  double rho() const noexcept { return /*s.norm();*/crho; }
 };
 
 // hold satellite state & time
@@ -667,6 +670,14 @@ int main(int argc, char *argv[]) {
     // We now have the state vector svState.state in ECEF coordinates wrt
     // the satellite antenna RP. The state vector referes to svState.tai_mjd.
     // We also have the state transition matrix ready
+    
+    // NEW::
+    // GCRS-to-ITRS parameters for current TAI
+    Eigen::Matrix<double, 3, 3> rc2i_now, rpom_now;
+    double era_now, lod_now;
+    assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i_now, era_now, rpom_now,
+                      lod_now));
+    // return dso::yter2cel(state, rc2i, era, lod, rpom);
 
     // needed for tides ...
     // Various variables to be used, depending only on the current epoch
@@ -776,6 +787,12 @@ int main(int argc, char *argv[]) {
         double az, el;
         double rho = dso::top2dae(r_enu, az, el);
 
+        // NEW::
+        // correct the satellite-beacon distance for Earth rotation
+        const Eigen::Matrix<double, 3, 1> sat_eci = dso::rter2cel(
+            svState.state.block<3, 1>(0, 0), rc2i_now, era_now, rpom_now);
+        rho = crange(bxyz_ion, svState.state.block<3, 1>(0, 0), sat_eci, tl1);
+
         // only process observations to elevation > EleCutOff [deg]
         if (dso::rad2deg(el) < EleCutOff) {
           ;
@@ -851,7 +868,7 @@ int main(int argc, char *argv[]) {
               // observation info
               pprev_obs->update(tl1, tproper, beaconobs->m_values[l1i].m_value,
                                 beaconobs->m_values[l2i].m_value, cDiono,
-                                cDtropo, cDrel, r_enu);
+                                cDtropo, cDrel, r_enu, rho);
               // update arc number -- if needed
               if (start_new_arc) {
                 pprev_obs->arcnr += 1;
@@ -868,7 +885,7 @@ int main(int argc, char *argv[]) {
                                             tl1, tproper,
                                             beaconobs->m_values[l1i].m_value,
                                             beaconobs->m_values[l2i].m_value,
-                                            cDiono, cDtropo, cDrel, r_enu));
+                                            cDiono, cDtropo, cDrel, r_enu, rho));
               // update a-priori value for this beacon zenith wet tropo
               // delay [m]
               Filter.tropo_estimate(receiver_count) = cDtropo.Lwz;
@@ -990,7 +1007,7 @@ int main(int argc, char *argv[]) {
               const Eigen::VectorXd apriori = Filter.estimates();
 
               // Filter measurement update
-              Filter.observation_update(Uobs, -Utheo, obs_sigma / std::cos(el),
+              Filter.observation_update(Uobs, -Utheo, obs_sigma / std::sin(el)*std::sin(el),
                                        dHdX);
 
               dso::strftime_ymd_hmfs(tl1, dtbuf);
@@ -1025,7 +1042,7 @@ int main(int argc, char *argv[]) {
             // update previous observation for next Ndop
             pprev_obs->update(tl1, tproper, beaconobs->m_values[l1i].m_value,
                               beaconobs->m_values[l2i].m_value, cDiono, cDtropo,
-                              cDrel, r_enu);
+                              cDrel, r_enu, rho);
             ++ndop_count;
 
           } // computing Ndop
