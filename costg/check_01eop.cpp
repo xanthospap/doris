@@ -57,9 +57,7 @@ int main(int argc, char *argv[]) {
       dso::modified_julian_day(static_cast<int>(refeops[0].mjd)),
       dso::nanoseconds(0));
 
-  // EOP Look Up Table
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
-  // -------------------------------------------------------------------------
   dso::EopLookUpTable eop_lut;
   const int ref_mjd = d1.as_mjd();
   const int start = ref_mjd - 5;
@@ -69,8 +67,12 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR. Failed collecting EOP data\n");
     return 1;
   }
+  
   // regularize ERP (DUT and LOD)
   eop_lut.regularize();
+
+  printf("%12s %12s %12s %12s %12s %12s %12s\n", "Mjd", "xp('')", "yp('')",
+         "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')");
 
   // ok, now for every MJD in the reference file, check our interpolation
   for (const Eop01Record &eop: refeops) {
@@ -88,7 +90,7 @@ int main(int argc, char *argv[]) {
     const auto reop = eop.to_sec();
 
     // report results:
-    printf("%.5f %.12f %.12f %.12f %.12f %.12f %.12f\n", eop.mjd, 
+    printf("%12.5f %.6f %.6f %.7f %.7f %.6f %.6f\n", eop.mjd, 
       std::abs(reop.xp-myeop.xp),
       std::abs(reop.yp-myeop.yp),
       std::abs(reop.dut1-myeop.dut),
