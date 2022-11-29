@@ -46,11 +46,11 @@ AddOption('--std',
           metavar='STD',
           help='C++ Standard [11/14/17/20]',
           default='17')
-AddOption('--branchless',
-          dest='branchls',
-          action='store_true',
-          help='Trigger built with BRANCHLESS defined',
-          default=False)
+#AddOption('--branchless',
+#          dest='branchls',
+#          action='store_true',
+#          help='Trigger built with BRANCHLESS defined',
+#          default=False)
 AddOption('--ignore-tests',
           nargs=1,
           type='string',
@@ -65,6 +65,11 @@ AddOption('--include-tests',
           metavar='INCLUDE_TEST_FILES',
           dest='include_tests',
           help='Comma-seperated list of test source files to ignore when building')
+AddOption('--check-costG',
+          dest='costg',
+          action='store_true',
+          metavar='BUILD_COSTG_TESTS',
+          help='Build costG tests')
 
 ## Source files (for lib)
 lib_src_files = glob.glob(r"src/*.cpp")
@@ -94,6 +99,7 @@ penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wsha
 ## Command line arguments ...
 debug = ARGUMENTS.get('debug', 0)
 eigen = ARGUMENTS.get('eigen', 0)
+branchless = ARGUMENTS.get('branchless', 1)
 
 ## Construct the build enviroment
 env = denv.Clone() if int(debug) else penv.Clone()
@@ -104,9 +110,6 @@ if GetOption('cxx') is not None: env['CXX'] = GetOption('cxx')
 ## Set the C++ standard
 cxxstd = GetOption('std')
 env.Append(CXXFLAGS=' --std=c++{}'.format(cxxstd))
-
-## Get options from command line ...
-if GetOption('branchls'): env.Append(CXXFLAGS=' -DBRANCHLESS')
 
 ## Various other compilation symobols, for debug builds ...
 for key, value in ARGLIST:
@@ -120,6 +123,7 @@ if eigen:
     env.Append(CXXFLAGS=' -DUSE_EIGEN')
 else:
     math_lib = 'matvec'
+if branchless: env.Append(CXXFLAGS=' -DBRANCHLESS')
 
 ## (shared) library ...
 vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=['src/'], SHLIBVERSION=lib_version)
@@ -153,6 +157,17 @@ for tsource in test_sources:
 if ARGUMENTS.get('make-check', 0):
     print('Note: Building Unit Tests ...')
     tests_sources = glob.glob(r"unit_test/*.cpp")
+    if 'RPATH' not in env or root_dir not in env['RPATH']:
+      env.Append(RPATH=root_dir)
+    for tsource in tests_sources:
+        pth = os.path.dirname(tsource)
+        bsn = os.path.basename(tsource)
+        ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+
+if GetOption('costg'):
+    print("Building cost-G test programs ...")
+    tests_sources = glob.glob(r"costg/*.cpp")
     if 'RPATH' not in env or root_dir not in env['RPATH']:
       env.Append(RPATH=root_dir)
     for tsource in tests_sources:
