@@ -1,10 +1,38 @@
 #include "eop.hpp"
+#include "geodesy/units.hpp"
+#include "iers2010/iau.hpp"
 #include <charconv>
+#include <cmath>
 #include <cstdio>
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
-#include "geodesy/units.hpp"
+
+class RunningStats {
+  // see https://www.johndcook.com/blog/standard_deviation/
+private:
+  int n;
+  double m_old, m_new, s_old, s_new;
+
+public:
+  void update(double val) noexcept {
+    ++n;
+    if (n == 1) {
+      m_old = m_new = val;
+      m_old = 0e0;
+    } else {
+      m_new = m_old + (val - m_old) / n;
+      s_new = s_old + (val - m_old) * (val - m_new);
+      m_old = m_new;
+      s_old = s_new;
+    }
+    return;
+  }
+
+  double mean() const noexcept { return (n > 0) ? m_new : 0e0; }
+  double variance() const noexcept { return ((n > 1) ? m_new / (n - 1) : 0e0); }
+  double stddev() const noexcept { return std::sqrt(variance()); }
+};
 
 struct Eop01Record {
   double mjd,         // [mjd]
@@ -67,37 +95,78 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR. Failed collecting EOP data\n");
     return 1;
   }
-  
+
   // regularize ERP (DUT and LOD)
   eop_lut.regularize();
 
-  printf("%12s %12s %12s %12s %12s %12s %12s\n", "Mjd", "xp('')", "yp('')",
-         "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')");
+  // Mean and std. deviation for all parameters
+  RunningStats rsxp, rsyp, rsdut1, rslod, rsX, rsY, rsS, rsSprime;
+
+  printf("#%12s %9s %9s %10s %10s %9s %9s %9s %9s\n", "Mjd", "xp('')", "yp('')",
+         "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')", "CIO ('')", "TIO ('')");
 
   // ok, now for every MJD in the reference file, check our interpolation
-  for (const Eop01Record &eop: refeops) {
+  for (const Eop01Record &eop : refeops) {
     // hold results here
     dso::EopRecord myeop;
-    
-    // need to transform GPST to TT for our interpolation, also note that 
+
+    // need to transform GPST to TT for our interpolation, also note that
     // costG uses an order-3 interpolation
     if (eop_lut.interpolate(gps2tt(eop.mjd), myeop, 3)) {
       fprintf(stderr, "ERROR. My interpolation failed!\n");
       return 1;
     }
 
-    // trnaform angular units to arcsec
+    // compute X,Y from series, IAU2006/2000A
+    double X, Y;
+    iers2010::sofa::xy06(dso::mjd0_jd, gps2tt(eop.mjd), X, Y);
+    // compute CIO locator, s [radians]
+    const double s = iers2010::sofa::s06(dso::mjd0_jd, gps2tt(eop.mjd), X, Y);
+    // compute TIO locator, s' [radians]
+    const double sp = iers2010::sofa::sp00(dso::mjd0_jd, gps2tt(eop.mjd));
+
+    // add corrections (from EOP interpolation) to X,Y
+    X += dso::sec2rad(myeop.dx);
+    Y += dso::sec2rad(myeop.dy);
+
+    // transform angular units to arcsec
     const auto reop = eop.to_sec();
 
     // report results:
-    printf("%12.5f %.6f %.6f %.7f %.7f %.6f %.6f\n", eop.mjd, 
-      std::abs(reop.xp-myeop.xp),
-      std::abs(reop.yp-myeop.yp),
-      std::abs(reop.dut1-myeop.dut),
-      std::abs(reop.lod-myeop.lod),
-      std::abs(reop.X-myeop.dx),
-      std::abs(reop.Y-myeop.dy));
+    printf(
+  #ifdef VISUAL
+        "%12.5f %+.6f %+.6f %+.7f %+.7f %+.6f %+.6f %+.6f %+.6f\n",
+  #else
+        "%12.5f %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e\n",
+#endif
+        eop.mjd, std::abs(reop.xp - myeop.xp), std::abs(reop.yp - myeop.yp),
+        std::abs(reop.dut1 - myeop.dut), std::abs(reop.lod - myeop.lod),
+        std::abs(dso::rad2sec(eop.X - X)), std::abs(dso::rad2sec(eop.Y - Y)),
+        std::abs(dso::rad2sec(eop.s - s)),
+        std::abs(dso::rad2sec(eop.sprime - sp)));
+
+    // update statistics
+    rsxp.update(reop.xp - myeop.xp);      // arcsec
+    rsyp.update(reop.yp - myeop.yp);      // arcsec
+    rsdut1.update(reop.dut1 - myeop.dut); // sec
+    rslod.update(reop.lod - myeop.lod);   // sec
+    rsX.update(eop.X - X);                // rad
+    rsY.update(eop.Y - Y);                // rad
+    rsS.update(eop.s - s);                // rad
+    rsSprime.update(eop.sprime - sp);     // rad
   }
+
+  // print statistics
+  printf("#%12s %9s %9s %10s %10s %9s %9s %9s %9s\n", "Mjd", "xp('')", "yp('')",
+         "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')", "CIO ('')", "TIO ('')");
+  printf("#%12s %+.6f %+.6f %+.7f %+.7f %+.6f %+.6f %+.6f %+.6f\n", " ",
+         rsxp.mean(), rsyp.mean(), rsdut1.mean(), rslod.mean(),
+         dso::rad2sec(rsX.mean()), dso::rad2sec(rsY.mean()),
+         dso::rad2sec(rsS.mean()), dso::rad2sec(rsSprime.mean()));
+  printf("#%12s %.6f %.6f %.7f %.7f %.6f %.6f %.6f %.6f\n", " ", rsxp.stddev(),
+         rsyp.stddev(), rsdut1.stddev(), rslod.stddev(),
+         dso::rad2sec(rsX.stddev()), dso::rad2sec(rsY.stddev()),
+         dso::rad2sec(rsS.stddev()), dso::rad2sec(rsSprime.stddev()));
 
   return 0;
 }
