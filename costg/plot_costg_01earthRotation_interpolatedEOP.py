@@ -50,5 +50,5 @@ for y in ['xp', 'yp', 'X', 'Y', 'dut1', 'lod', 'cio', 'tio']:
 
 ## Rotate date labels automatically
 fig.suptitle('COST-G Benchmark Diffs\n', fontsize=16)
-plt.show()
 plt.savefig('01earthRotation_interpolatedEOP.png')
+#plt.show()
