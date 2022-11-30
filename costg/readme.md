@@ -7,8 +7,8 @@ For information on the benchmark test, see the paper
 
 ### 01earthRotation_interpolatedEOP
 
-![alt text](01earthRotation_interpolatedEOP.png)
+![alt text](figures/01earthRotation_interpolatedEOP.png)
 
 ### 01earthRotation_rotaryMatrix
 
-![alt text](01earthRotation_rotaryMatrix.png)
+![alt text](figures/01earthRotation_rotaryMatrix.png)
