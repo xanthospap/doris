@@ -1,5 +1,14 @@
 #include "cmat2d.hpp"
+#include "harmonic_coeffs.hpp"
 #include <cmath>
+
+/*
+ *  Reads:
+ * https://boris.unibe.ch/160516/1/adgeo-55-1-2020.pdf
+ * https://authors.library.caltech.edu/103344/1/1985SoPh___99__371L.pdf
+ * https://space.stackexchange.com/questions/27779/how-can-i-verify-my-reconstructed-gravity-field-of-ceres-from-spherical-harmonic
+ * https://spsweb.fltops.jpl.nasa.gov/portaldataops/mpg/MPG_Docs/Source%20Docs/gravity-SphericalHarmonics.pdf
+ */
 
 namespace {
 inline double _anm(int n, int m) noexcept {
@@ -11,9 +20,24 @@ int legendre_polynomials(
     int maxdegree, double x,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularRowWise> &P) noexcept;
 
-int main() {
-  const int degree = 5;
+int main(int argc, char *argv[]) {
+  const int degree = 120;
+  const int order = 120;
+  
+  dso::HarmonicCoeffs harmonics(degree);
+  if (dso::parse_gravity_model(argv[1], degree, order,
+                               dso::datetime<dso::nanoseconds>::max(),
+                               harmonics, false)) {
+    fprintf(stder, "ERROR Failed to parse gravity field\n");
+    return 1;
+  }
 
+  const Eigen::Matrix<double, 3, 1> r(1.032008992022930295e+06,
+                                      -1.537736218408579705e+06,
+                                      6.576829252585867420e+06);
+}
+
+int sh() noexcept {
 }
 
 /*

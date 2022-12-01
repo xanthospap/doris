@@ -20,6 +20,7 @@ enum class MatrixStorageType : char {
   ColumnWise,         ///< Column-Wise storage
   Trapezoid,          ///< A trapezoid matrix with row-wise storage
   LwTriangularRowWise ///< Lower triangular, stored Row-Wise
+  LwTriangularColWise ///< Lower triangular, stored Col-Wise
 };                    // MatrixStorageType
 
 /// @brief implementation details depending on storage type, aka
@@ -62,6 +63,45 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
     return slice(row) + column;
   }
 }; // StorageImplementation<MatrixStorageType::LwTriangularRowWise>
+
+/// @brief Implementation details for a 2-d lower triangular matrix, holding
+///        data in a Col-Wise fashion.
+/// Here we are not interested on the actual data of the matrix, but only the
+/// indexing implementation of the matrix.
+template <>
+struct StorageImplementation<MatrixStorageType::LwTriangularColWise> {
+  int rows;
+  constexpr StorageImplementation(int r, [[maybe_unused]] int _) noexcept
+      : rows(r){};
+
+  /// @brief Compute number of elements stored
+  constexpr std::size_t num_elements() const noexcept {
+    return rows * (rows + 1) / 2;
+  }
+
+  constexpr int nrows() const noexcept {return rows;}
+  constexpr int ncols() const noexcept {return rows;}
+
+  /// @brief Index/offset of given column.
+  /// Return the offset from the begining of the data array, given a column
+  /// number.
+  /// First column is column 0 (NOT row 1).
+  /// That means that if the data is stored in an array e.g.
+  ///   double *data = new double[num_pts];
+  ///   double *col_3 = data[0] + slice(2);
+  /// will point to the first (0) element of the third column.
+  constexpr int slice(int col) const noexcept {
+    const int M = col - 1;
+    return col * rows  - M * (M-1) / 2;
+  }
+
+  /// @brief Index of element (row, column) in the data array.
+  /// E.g. data[element_offset(1,2)] will return the element in the second
+  /// row, and third column.
+  constexpr int element_offset(int row, int col) const noexcept {
+    return slice(col) + row;
+  }
+}; // StorageImplementation<MatrixStorageType::LwTriangularColWise>
 
 /// @brief Implementation details for a 2-d trapezoid matrix, holding data in
 ///        a Row-Wise fashion.
