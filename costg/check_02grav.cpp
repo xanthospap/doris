@@ -9,8 +9,8 @@
 #include <fstream>
 #include <vector>
 
-constexpr const int degree = 90;
-constexpr const int order = 90;
+constexpr const int degree = 120;
+constexpr const int order = 120;
 
 struct Acc {
   double mjd;
@@ -72,17 +72,18 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Reading gfc gravity harmonics file: %s\n", argv[1]);
     return 1;
   }
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> V(degree + 3, order + 3),
-      W(degree + 3, order + 3);
+  //dso::Mat2D<dso::MatrixStorageType::Trapezoid> V(degree + 3, order + 3),
+  //    W(degree + 3, order + 3);
 
-  Eigen::Matrix<double, 3, 3> gpartials;
+  //Eigen::Matrix<double, 3, 3> gpartials;
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
 
+  Eigen::Matrix<double,3,1> acc;
   // for every sattellite position ...
   for (const auto &pos : refposs) {
     // compute gravity acceleration at this point
-    Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
-        pos.xyz, degree, order, V, W, harmonics, gpartials);
+    if (test::gravacc1(harmonics, pos.xyz, degree, harmonics.Re(), acc))
+      return 1;
     
     // find relative reference acceleration result
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
@@ -91,10 +92,10 @@ int main(int argc, char *argv[]) {
     
     // compute differences
     if (cit != refaccs.cend()) {
-      //printf("comparing %.6f %.6f %.6f %.6f\n", pos.mjd, gacc(0),gacc(1),gacc(2));
-      //printf("to        %.6f %.6f %.6f %.6f\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
-      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, gacc(0) - cit->a(0),
-             gacc(1) - cit->a(1), gacc(2) - cit->a(2));
+      printf("comparing %.6f %.6f %.6f %.6f\n", pos.mjd, acc(0),acc(1),acc(2));
+      printf("to        %.6f %.6f %.6f %.6f\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
+      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, acc(0) - cit->a(0),
+             acc(1) - cit->a(1), acc(2) - cit->a(2));
       it = cit;
     }
   }

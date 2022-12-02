@@ -12,6 +12,12 @@
 #include <cstdio>
 #endif
 
+namespace test {
+int gravacc1(const dso::HarmonicCoeffs &cs,
+                   const Eigen::Matrix<double, 3, 1> &r, int degree, double Re,
+                   Eigen::Matrix<double, 3, 1> &acc) noexcept;
+}
+
 namespace dso {
 
 /// @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs

@@ -16,12 +16,12 @@ namespace dso {
 
 ///< Enum class to describe storage type of a 2-d matrix
 enum class MatrixStorageType : char {
-  RowWise,            ///< Row-Wise storage
-  ColumnWise,         ///< Column-Wise storage
-  Trapezoid,          ///< A trapezoid matrix with row-wise storage
-  LwTriangularRowWise ///< Lower triangular, stored Row-Wise
-  LwTriangularColWise ///< Lower triangular, stored Col-Wise
-};                    // MatrixStorageType
+  RowWise,             ///< Row-Wise storage
+  ColumnWise,          ///< Column-Wise storage
+  Trapezoid,           ///< A trapezoid matrix with row-wise storage
+  LwTriangularRowWise, ///< Lower triangular, stored Row-Wise
+  LwTriangularColWise  ///< Lower triangular, stored Col-Wise
+};                     // MatrixStorageType
 
 /// @brief implementation details depending on storage type, aka
 ///        MatrixStorageType
@@ -42,8 +42,10 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
     return rows * (rows + 1) / 2;
   }
 
-  constexpr int nrows() const noexcept {return rows;}
-  constexpr int ncols() const noexcept {return rows;}
+  constexpr std::size_t _size(int d) const noexcept { return d * (d + 1) / 2; }
+
+  constexpr int nrows() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return rows; }
 
   /// Return the offset from the begining of the data array, given a row
   /// number. First row is row 0 (NOT row 1).
@@ -52,8 +54,7 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
   ///   double *row_3 = data[0] + slice(2);
   /// will point to the first (0) element of the third row.
   constexpr int slice(int row) const noexcept {
-    const int N = row - 1;
-    return (N * (N + 1) / 2) * (row != 0);
+    return _size(row - 1) * (row != 0);
   }
 
   /// @brief Index of element (row, column) in the data array.
@@ -79,8 +80,8 @@ struct StorageImplementation<MatrixStorageType::LwTriangularColWise> {
     return rows * (rows + 1) / 2;
   }
 
-  constexpr int nrows() const noexcept {return rows;}
-  constexpr int ncols() const noexcept {return rows;}
+  constexpr int nrows() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return rows; }
 
   /// @brief Index/offset of given column.
   /// Return the offset from the begining of the data array, given a column
@@ -91,15 +92,14 @@ struct StorageImplementation<MatrixStorageType::LwTriangularColWise> {
   ///   double *col_3 = data[0] + slice(2);
   /// will point to the first (0) element of the third column.
   constexpr int slice(int col) const noexcept {
-    const int M = col - 1;
-    return col * rows  - M * (M-1) / 2;
+    return col * rows - col * (col - 1) / 2;
   }
 
   /// @brief Index of element (row, column) in the data array.
   /// E.g. data[element_offset(1,2)] will return the element in the second
   /// row, and third column.
   constexpr int element_offset(int row, int col) const noexcept {
-    return slice(col) + row;
+    return slice(col) + (row - col);
   }
 }; // StorageImplementation<MatrixStorageType::LwTriangularColWise>
 
@@ -112,9 +112,9 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
-  constexpr int nrows() const noexcept {return rows;}
-  constexpr int ncols() const noexcept {return cols;}
-  
+  constexpr int nrows() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return cols; }
+
   /// @brief Compute number of elements stored
   constexpr std::size_t num_elements() const noexcept {
     if (rows == cols) {
@@ -162,9 +162,9 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
 template <> struct StorageImplementation<MatrixStorageType::RowWise> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
-  
-  constexpr int nrows() const noexcept {return rows;}
-  constexpr int ncols() const noexcept {return rows;}
+
+  constexpr int nrows() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return rows; }
 
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
@@ -195,9 +195,9 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
   int rows, cols;
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
-  constexpr int nrows() const noexcept {return rows;}
-  constexpr int ncols() const noexcept {return rows;}
-  
+  constexpr int nrows() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return rows; }
+
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
 
@@ -241,6 +241,8 @@ public:
   double &operator()(int i, int j) noexcept {
 #ifdef DEBUG
     assert(i < rows() && j < cols());
+    assert(m_storage.element_offset(i, j) >= 0 &&
+           m_storage.element_offset(i, j) < (int)m_storage.num_elements());
 #endif
     return m_data[m_storage.element_offset(i, j)];
   }
@@ -249,6 +251,8 @@ public:
   const double &operator()(int i, int j) const noexcept {
 #ifdef DEBUG
     assert(i < rows() && j < cols());
+    assert(m_storage.element_offset(i, j) >= 0 &&
+           m_storage.element_offset(i, j) < (int)m_storage.num_elements());
 #endif
     return m_data[m_storage.element_offset(i, j)];
   }
