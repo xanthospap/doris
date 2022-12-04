@@ -10,8 +10,11 @@
 #endif
 
 namespace {
-  inline int kdelta(int i, int j) noexcept { return 1*(i==j); };
+  inline int kdelta(int i, int j) noexcept { return (i==j); };
   inline double _gnm(int n, int m) noexcept {
+#ifdef DEBUG
+    assert(n!=m);
+#endif
     return std::sqrt(static_cast<double>((2 * n + 1) * (2 * n - 1)) /
                      static_cast<int>((n + m) * (n - m)));
   }
@@ -47,7 +50,7 @@ int report_fenv(const char *msg) {
 
 int test::gravacc1(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &r, int degree, double Re,
-                   Eigen::Matrix<double, 3, 1> &acc) noexcept {
+                   double GM, Eigen::Matrix<double, 3, 1> &acc) noexcept {
 #ifdef DEBUG
   [[maybe_unused]]double snan = std::numeric_limits<double>::signaling_NaN();
   char buf[264];
@@ -69,7 +72,17 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> P(lp_degree+1,
                                                             lp_degree+1);
 
-  // compute Legendre polynomials
+  P(0,0) = 1e0;
+  for (int n=1; n<=lp_degree; n++)
+    P(n,n) = cf * P(n-1,n-1) * std::sqrt((1+(n==1))*(2*n+1)/2e0/n);
+
+  for (int m=0; m<=lp_degree; m++) {
+    for (int n=m+1; n<=lp_degree; n++) {
+      P(n,m) = _gnm(n,m) * sf * P(n-1,m) - ((n-1==m)?(0e0):(_hnm(n,m)*P(n-2,m)));
+    }
+  }
+
+  /* compute Legendre polynomials
   P(0,0) = 1e0;
   P(1,0) = _gnm(1,0) * sf * P(0,0);
   // compute sectorials, P_nn and subsectorials P(n+1,n)
@@ -106,6 +119,7 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
       P(n,m) = _gnm(n,m) * sf * P(n-1,m) - _hnm(n,m) * P(n-2,m);
     }
   }
+  */
 
 #ifdef DEBUG
   if (report_fenv("after Legendre computation (3)")) return 1;
@@ -126,7 +140,7 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
     double Bmf = 0e0;
     double Amr = 0e0;
     double Bmr = 0e0;
-    double arn = 1e0;
+    double arn = (m==0)? 1e0 : std::pow(ar,m);
     for (int n=m; n<=degree; n++) {
       Am0 += arn * cs.C(n,m) * P(n,m);
       Bm0 += (m==0) ? 0e0 : arn * cs.S(n,m) * P(n,m);
@@ -139,21 +153,35 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
   sprintf(buf, "on SH computation at (%d,%d)", n,m);
   if (report_fenv(buf)) return 1;
 #endif
-    }
+    } // end loop on m
     Vl += m * (Am0 * sl - Bm0 * cl);
     Vf += Amf * cl + Bm0 * sl;
     Vr += Amr * cl + Bmr * sl;
-  }
+  } // end loop on n
+  Vl *= -GM/r.norm();
+  Vf *= GM/r.norm();
+  Vr *= -GM/r.squaredNorm();
 
   // transform acceleration vector to cartesian coordinates
   // acc = dso::car2sph_rotation_matrix(sph) * Eigen::Matrix<double,3,1>(Vr,Vf,Vl);
-  const double _rs  = sph(0);
+  // const double _rs  = sph(0);
   // const Eigen::Matrix<double, 3, 1> sph = dso::car2sph(r);
-  const Eigen::Matrix<double,3,3> R{
-    {cf*cl, -sf*cl/_rs, -sl/(_rs*cf)},
-    {cf*sl, -sf*sl/_rs, cl/(_rs*sf)},
-    {sf, cf/_rs, 0e0}};
-  acc = R * Eigen::Matrix<double,3,1>(Vr,Vf,Vl);
+  //const Eigen::Matrix<double,3,3> R{
+  //  {cf*cl, -sf*cl/_rs, -sl/(_rs*cf)},
+  //  {cf*sl, -sf*sl/_rs, cl/(_rs*sf)},
+  //  {sf, cf/_rs, 0e0}};
+  //acc = R * Eigen::Matrix<double,3,1>(Vr,Vf,Vl);
+  const double x = r(0);
+  const double y = r(1);
+  const double z = r(2);
+  const double xy = std::sqrt(x*x + y*y);
+  const double xy2 = x*x + y*y;
+  const double R = sph(0);
+  const double R2 = R*R;
+  acc = Eigen::Matrix<double,3,1>(
+    (Vr/R - (z/xy)*(Vf/R2))*x - (y/xy2)*Vl,
+    (Vr/R - (z/xy)*(Vf/R2))*y + (x/xy2)*Vl,
+    (Vr/R)*z +  (xy/R2)*Vf);
 
   return 0;
 }

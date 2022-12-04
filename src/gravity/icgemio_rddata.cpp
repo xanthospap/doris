@@ -210,6 +210,9 @@ int dso::Icgem::parse_data(int l, int m,
         }
 
         // assign to harmonic coefficients matrix
+#ifdef DEBUG
+        if (ll==2 && mm==1) printf("Reading coefficient C(2,1)=%.15e\n", Clm);
+#endif
         coeffs->C(ll, mm) += Clm;
         if (mm == 0) {
           assert(Slm == 0e0);
@@ -275,6 +278,9 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
 
         if (t >= tstart && t < tend) {
+#ifdef DEBUG
+        if (ll==2 && mm==1) printf("Reading coefficient C(2,1)=%.15e\n", Clm);
+#endif
           // add drift to harmonic coefficients matrix
           coeffs->C(ll, mm) += Clm;
           if (mm == 0) {

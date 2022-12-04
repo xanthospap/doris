@@ -68,23 +68,26 @@ int main(int argc, char *argv[]) {
 
   // handle gravity field and allocate memory
   dso::HarmonicCoeffs harmonics(degree);
-  if (dso::parse_gravity_model(argv[1], degree, order, d1, harmonics, true)) {
+  if (dso::parse_gravity_model(argv[1], degree, order, d1, harmonics, false)) {
     fprintf(stderr, "ERROR Reading gfc gravity harmonics file: %s\n", argv[1]);
     return 1;
   }
-  //dso::Mat2D<dso::MatrixStorageType::Trapezoid> V(degree + 3, order + 3),
-  //    W(degree + 3, order + 3);
 
   //Eigen::Matrix<double, 3, 3> gpartials;
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
 
-  Eigen::Matrix<double,3,1> acc;
+  Eigen::Matrix<double,3,1> acc1,acc2;
+  int dummy_it = 0;
   // for every sattellite position ...
   for (const auto &pos : refposs) {
     // compute gravity acceleration at this point
-    if (test::gravacc1(harmonics, pos.xyz, degree, harmonics.Re(), acc))
+    if (test::gravacc1(harmonics, pos.xyz, degree, harmonics.Re(),
+                       harmonics.GM(), acc1))
       return 1;
-    
+    if (test::gravacc2(harmonics, pos.xyz, degree, harmonics.Re(),
+                       harmonics.GM(), acc2))
+      return 1;
+
     // find relative reference acceleration result
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
       return std::abs(a.mjd - pos.mjd) < 1e-16;
@@ -92,12 +95,15 @@ int main(int argc, char *argv[]) {
     
     // compute differences
     if (cit != refaccs.cend()) {
-      printf("comparing %.6f %.6f %.6f %.6f\n", pos.mjd, acc(0),acc(1),acc(2));
-      printf("to        %.6f %.6f %.6f %.6f\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
-      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, acc(0) - cit->a(0),
-             acc(1) - cit->a(1), acc(2) - cit->a(2));
+      printf("comparing %.6f %.6f %.6f %.6f\n", pos.mjd, acc1(0),acc1(1),acc1(2));
+      printf("          %.6f %.6f %.6f %.6f\n", pos.mjd, acc2(0),acc2(1),acc2(2));
+      printf("          %.6f %.6f %.6f %.6f\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
+      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, acc1(0) - cit->a(0),
+             acc1(1) - cit->a(1), acc1(2) - cit->a(2));
       it = cit;
     }
+
+    if (!dummy_it) return 0;
   }
 
   return 0;
