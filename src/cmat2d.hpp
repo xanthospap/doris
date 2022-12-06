@@ -275,6 +275,11 @@ public:
     std::fill(m_data, m_data + m_storage.num_elements(), val);
   }
 
+  void multiply(double value) noexcept {
+    std::transform(m_data, m_data + m_storage.num_elements(),
+                   [=](double d) { return d * value; });
+  }
+
   const double *data() const noexcept { return m_data; }
 
 #ifdef DEBUG
