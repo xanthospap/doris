@@ -276,7 +276,7 @@ public:
   }
 
   void multiply(double value) noexcept {
-    std::transform(m_data, m_data + m_storage.num_elements(),
+    std::transform(m_data, m_data + m_storage.num_elements(), m_data,
                    [=](double d) { return d * value; });
   }
 

@@ -76,14 +76,14 @@ int main(int argc, char *argv[]) {
   //Eigen::Matrix<double, 3, 3> gpartials;
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
 
-  Eigen::Matrix<double,3,1> acc1,acc2;
-  int dummy_it = 0;
+  [[maybe_unused]]Eigen::Matrix<double,3,1> acc1,acc2;
+  [[maybe_unused]]int dummy_it = 0;
   // for every sattellite position ...
   for (const auto &pos : refposs) {
     // compute gravity acceleration at this point
-    if (test::gravacc1(harmonics, pos.xyz, degree, harmonics.Re(),
-                       harmonics.GM(), acc1))
-      return 1;
+    //if (test::gravacc1(harmonics, pos.xyz, degree, harmonics.Re(),
+    //                   harmonics.GM(), acc1))
+    //  return 1;
     if (test::gravacc2(harmonics, pos.xyz, degree, harmonics.Re(),
                        harmonics.GM(), acc2))
       return 1;
@@ -95,15 +95,15 @@ int main(int argc, char *argv[]) {
     
     // compute differences
     if (cit != refaccs.cend()) {
-      printf("comparing %.6f %.6f %.6f %.6f\n", pos.mjd, acc1(0),acc1(1),acc1(2));
-      printf("          %.6f %.6f %.6f %.6f\n", pos.mjd, acc2(0),acc2(1),acc2(2));
-      printf("          %.6f %.6f %.6f %.6f\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
-      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, acc1(0) - cit->a(0),
-             acc1(1) - cit->a(1), acc1(2) - cit->a(2));
+      // printf("comparing %.6f %.12e %.12e %.12e\n", pos.mjd, acc1(0),acc1(1),acc1(2));
+      // printf("          %.6f %.12e %.12e %.12e (pos: %.3f %.3f %.3f)\n", pos.mjd, acc2(0),acc2(1),acc2(2), pos.xyz(0), pos.xyz(1), pos.xyz(2));
+      // printf("          %.6f %.12e %.12e %.12e\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
+      printf("%.12f %.15e %.15e %.15e\n", pos.mjd, acc2(0) - cit->a(0),
+             acc2(1) - cit->a(1), acc2(2) - cit->a(2));
       it = cit;
     }
 
-    if (!dummy_it) return 0;
+    //if (!dummy_it) return 0;
   }
 
   return 0;
