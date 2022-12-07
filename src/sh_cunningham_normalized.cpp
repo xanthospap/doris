@@ -86,7 +86,7 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
   // start ALF iteration
   M(0,0) = Re / R;
   W(0,0) = 0e0;
-  M(1,0) = F.f1(0+1,0) * zn * M(0,0)
+  M(1,0) = F.f1(0+1,0) * zn * M(0,0);
   
   // first fill column 0;  note that W(n,0) = 0 (already set)
   for (int n=2; n<=lp_degree; n++) {
@@ -138,19 +138,24 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
   for (int m = 1; m <= degree; m++) {
     for (int n = m; n <= degree; n++) {
 
-      double fac1 = ((2e0 * n + 1e0) / (2e0 * (n + 1e0) + 1e0)) * (n + m + 1) *
-                    (n + m + 2);
-      double fac2 =
-          ((m == 1 ? 2e0 : 1e0) * (2e0 * n + 1e0) / (2e0 * (n + 1e0) + 1e0)) *
-          (n - m + 2) * (n - m + 1);
-      xacc += 0.5e0 * (std::sqrt(fac1) * (-cs.C(n, m) * M(n + 1, m + 1) +
+      //double fac1 = ((2e0 * n + 1e0) / (2e0 * (n + 1e0) + 1e0)) * (n + m + 1) *
+      //              (n + m + 2);
+      //double fac2 =
+      //    ((m == 1 ? 2e0 : 1e0) * (2e0 * n + 1e0) / (2e0 * (n + 1e0) + 1e0)) *
+      //    (n - m + 2) * (n - m + 1);
+      const double f1 = std::sqrt( (n+m+1)*(n+m+2) * 1e0);
+      const double f2 = std::sqrt( (n-m+1)*(n-m+2) * (m==1?2e0:1e0));
+
+      // TODO need factors dependent on n!
+
+      xacc += 0.5e0 * (f1 * (-cs.C(n, m) * M(n + 1, m + 1) -
                                         cs.S(n, m) * W(n + 1, m + 1)) +
-                     std::sqrt(fac2) * (-cs.C(n, m) * M(n + 1, m - 1) +
+                     f2 * (cs.C(n, m) * M(n + 1, m - 1) +
                                         cs.S(n, m) * W(n + 1, m - 1)));
 
-      yacc += .5e0 * (std::sqrt(fac1) * (-cs.C(n, m) * W(n + 1, m + 1) +
+      yacc += .5e0 * (f1 * (-cs.C(n, m) * W(n + 1, m + 1) +
                                          cs.S(n, m) * M(n + 1, m + 1)) +
-                      std::sqrt(fac2) * (-cs.C(n, m) * W(n + 1, m - 1) +
+                      f2 * (-cs.C(n, m) * W(n + 1, m - 1) +
                                          cs.S(n, m) * W(n + 1, m - 1)));
       fac1 = ((2e0 * n + 1e0) / (2e0 * (n + 1e0) + 1e0)) * (n - m + 1) *
              (n + m + 1);
