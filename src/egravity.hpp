@@ -22,6 +22,10 @@ int gravacc1(const dso::HarmonicCoeffs &cs,
 int gravacc2(const dso::HarmonicCoeffs &cs,
              const Eigen::Matrix<double, 3, 1> &r, int degree, double Re,
              double GM, Eigen::Matrix<double, 3, 1> &acc) noexcept;
+int gravacc3(const dso::HarmonicCoeffs &cs,
+                   const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
+                   double GM, Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &gradient) noexcept;
 }
 
 namespace dso {

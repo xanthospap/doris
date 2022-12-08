@@ -1,6 +1,7 @@
 #include "cmat2d.hpp"
 #include "egravity.hpp"
 #include "geodesy/geodesy.hpp"
+#include "geodesy/units.hpp"
 #include "harmonic_coeffs.hpp"
 #include <cmath>
 #ifdef DEBUG

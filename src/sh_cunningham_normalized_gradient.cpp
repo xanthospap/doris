@@ -96,9 +96,14 @@ public:
 
 static const NormalizedLegendreFactors<125> F;
 
+/*            | dx/dx dx/dy dx/dz |
+ * gradient = | dy/dx dy/dy dy/dz |
+ *            | dz/dx dz/dy dz/dz |
+ */
 int test::gravacc3(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
-                   double GM, Eigen::Matrix<double, 3, 1> &acc) noexcept {
+                   double GM, Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &gradient) noexcept {
 
   const int lp_degree = degree + 1; // aka, [0,....degree+1]
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 3,
@@ -158,18 +163,116 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
     }
   } // end computing Legendre
 
-  // acceleration in cartesian components
+  // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
-  [[maybe_unused]] const int minDegree = 2;
+  gradient = Eigen::Matrix<double,3,3>::Zero();
+  [[maybe_unused]] const int minDegree = 1;
 
+  // start from smaller terms. note that for degrees m=0,1, we are using 
+  // seperate loops
   for (int m = degree; m >= 2; --m) {
-    double acx = 0e0, acy = 0e0, acz = 0e0;
     for (int n = degree; n >= m; --n) {
-      const double wm2 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n - m + 3) * (n - m + 4)) *
-                         ((m == 2) ? std::sqrt(2.0) : 1.0);
+      // acceleration
+      {
+        const double wm1 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2));
+        const double wm0 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+        const double wp1 =
+            std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+
+        const double Cm1 = wm1 * M(n + 1, m - 1);
+        const double Sm1 = wm1 * W(n + 1, m - 1);
+        const double Cm0 = wm0 * M(n + 1, m);
+        const double Sm0 = wm0 * W(n + 1, m);
+        const double Cp1 = wp1 * M(n + 1, m + 1);
+        const double Sp1 = wp1 * W(n + 1, m + 1);
+
+        const double ax = cs.C(n, m) * (Cm1 - Cp1) + cs.S(n, m) * (Sm1 - Sp1);
+        const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
+        const double az = cs.C(n, m) * (-2 * Cm0) + cs.S(n, m) * (-2 * Sm0);
+
+        acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
+               std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+      }
+      // derivative of acceleration
+      {
+        const double wm2 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n - m + 3) * (n - m + 4)) *
+                           ((m == 2) ? std::sqrt(2.0) : 1.0);
+        const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n - m + 3) * (n + m + 1));
+        const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n + m + 1) * (n + m + 2));
+        const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n + m + 1) * (n + m + 2) * (n + m + 3));
+        const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
+                                     (n + m + 2) * (n + m + 3) * (n + m + 4));
+
+        const double Cm2 = wm2 * M(n + 2, m - 2);
+        const double Sm2 = wm2 * W(n + 2, m - 2);
+        const double Cm1 = wm1 * M(n + 2, m - 1);
+        const double Sm1 = wm1 * W(n + 2, m - 1);
+        const double Cm0 = wm0 * M(n + 2, m);
+        const double Sm0 = wm0 * W(n + 2, m);
+        const double Cp1 = wp1 * M(n + 2, m + 1);
+        const double Sp1 = wp1 * W(n + 2, m + 1);
+        const double Cp2 = wp2 * M(n + 2, m + 2);
+        const double Sp2 = wp2 * W(n + 2, m + 2);
+
+        const double gxx = cs.C(n, m) * (Cm2 - 2 * Cm0 + Cp2) +
+                           cs.S(n, m) * (Sm2 - 2 * Sm0 + Sp2);
+        const double gxy = cs.C(n, m) * (-Sm2 + Sp2) + cs.S(n, m) * (Cm2 - Cp2);
+        const double gxz = cs.C(n, m) * (-2 * Cm1 + 2 * Cp1) +
+                           cs.S(n, m) * (-2 * Sm1 + 2 * Sp1);
+        const double gyy = cs.C(n, m) * (-Cm2 - 2 * Cm0 - Cp2) +
+                           cs.S(n, m) * (-Sm2 - 2 * Sm0 - Sp2);
+        const double gyz = cs.C(n, m) * (2 * Sm1 + 2 * Sp1) +
+                           cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
+        const double gzz = cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
+
+        gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
+                                                {gxy, gyy, gyz},
+                                                {gxz, gyz, gzz}} *
+                    std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+      }
+    } // loop over n
+  } // loop over m
+
+  // order m = 1
+  for (int n = degree; n >= 1; --n) { // begin summation from smaller terms
+    const int m = 1;
+    // acceleration
+    {
+        // only difference with the generalized formula (aka for random n,m)
+        // is in wm1
+        const double wm1 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2)) *
+            std::sqrt(2e0);
+        const double wm0 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+        const double wp1 =
+            std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+
+        const double Cm1 = wm1 * M(n + 1, m - 1);
+        const double Sm1 = wm1 * W(n + 1, m - 1);
+        const double Cm0 = wm0 * M(n + 1, m);
+        const double Sm0 = wm0 * W(n + 1, m);
+        const double Cp1 = wp1 * M(n + 1, m + 1);
+        const double Sp1 = wp1 * W(n + 1, m + 1);
+
+        const double ax = cs.C(n, m) * (Cm1 - Cp1) + cs.S(n, m) * (Sm1 - Sp1);
+        const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
+        const double az = cs.C(n, m) * (-2e0 * Cm0) + cs.S(n, m) * (-2 * Sm0);
+
+        acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
+               std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+    }
+    // derivative of acceleration
+    {
       const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n - m + 3) * (n + m + 1));
+                                   (n - m + 2) * (n - m + 3) * (n + m + 1)) *
+                         std::sqrt(2.0);
       const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
                                    (n - m + 2) * (n + m + 1) * (n + m + 2));
       const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
@@ -177,8 +280,6 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
       const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
                                    (n + m + 2) * (n + m + 3) * (n + m + 4));
 
-      const double Cm2 = wm2 * M(n + 2, m - 2);
-      const double Sm2 = wm2 * W(n + 2, m - 2);
       const double Cm1 = wm1 * M(n + 2, m - 1);
       const double Sm1 = wm1 * W(n + 2, m - 1);
       const double Cm0 = wm0 * M(n + 2, m);
@@ -188,80 +289,79 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
       const double Cp2 = wp2 * M(n + 2, m + 2);
       const double Sp2 = wp2 * W(n + 2, m + 2);
 
-      K.xx() += cs.C(n, m) * (Cm2 - 2 * Cm0 + Cp2) +
-                cs.S(n, m) * (Sm2 - 2 * Sm0 + Sp2);
-      K.xy() += cs.C(n, m) * (-Sm2 + Sp2) + cs.S(n, m) * (Cm2 - Cp2);
-      K.xz() +=
+      const double gxx =
+          cs.C(n, m) * (-3 * Cm0 + Cp2) + cs.S(n, m) * (-Sm0 + Sp2);
+      const double gxy = cs.C(n, m) * (-Sm0 + Sp2) + cs.S(n, m) * (-Cm0 - Cp2);
+      const double gxz =
           cs.C(n, m) * (-2 * Cm1 + 2 * Cp1) + cs.S(n, m) * (-2 * Sm1 + 2 * Sp1);
-      K.yy() += cs.C(n, m) * (-Cm2 - 2 * Cm0 - Cp2) +
-                cs.S(n, m) * (-Sm2 - 2 * Sm0 - Sp2);
-      K.yz() +=
-          cs.C(n, m) * (2 * Sm1 + 2 * Sp1) + cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
-      K.zz() += cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
-    } // loop over n
-    acc += Eigen::Matrix<double, 3, 1>(acx, acy, acz);
-  } // loop over m
+      const double gyy =
+          cs.C(n, m) * (-Cm0 - Cp2) + cs.S(n, m) * (-3 * Sm0 - Sp2);
+      const double gyz =
+          cs.C(n, m) * (2 * Sp1) + cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
+      const double gzz = cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
 
+      gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
+                                              {gxy, gyy, gyz},
+                                              {gxz, gyz, gzz}} *
+                  std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+    }
+  }
+  
   // order m = 0
-  double gxt = 0e0, gyt = 0e0, gzt = 0e0;
   for (int n = degree; n >= minDegree;
        --n) { // begin summation from smaller terms
-    const int m = 0;
-    const double wm0 =
-        std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 1) * (n + 2));
-    const double wp1 =
-        std::sqrt(static_cast<double>(n + 1) * (n + 1) * (n + 2) * (n + 3)) /
-        std::sqrt(2.0);
-    const double wp2 =
-        std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 3) * (n + 4)) /
-        std::sqrt(2.0);
+    [[maybe_unused]]const int m = 0;
+    // acceleration
+    {
+      double wm0 = std::sqrt(static_cast<double>(n + 1) * (n + 1));
+      double wp1 =
+          std::sqrt(static_cast<double>(n + 1) * (n + 2)) / std::sqrt(2e0);
 
-    const double Cm0 = wm0 * M(n + 2, 0);
-    const double Cp1 = wp1 * M(n + 2, 1);
-    const double Sp1 = wp1 * W(n + 2, 1);
-    const double Cp2 = wp2 * M(n + 2, 2);
-    const double Sp2 = wp2 * W(n + 2, 2);
+      double Cm0 = wm0 * M(n + 1, 0);
+      double Cp1 = wp1 * M(n + 1, 1);
+      double Sp1 = wp1 * W(n + 1, 1);
 
-    K.xx() = cs.C(n, 0) * (-2 * Cm0 + 2 * Cp2);
-    K.xy() = cs.C(n, 0) * (2 * Sp2);
-    K.xz() = cs.C(n, 0) * (4 * Cp1);
-    K.yy() = cs.C(n, 0) * (-2 * Cm0 - 2 * Cp2);
-    K.yz() = cs.C(n, 0) * (4 * Sp1);
-    K.zz() = cs.C(n, 0) * (4 * Cm0);
+      const double ax = cs.C(n, 0) * (-2e0 * Cp1);
+      const double ay = cs.C(n, 0) * (-2e0 * Sp1);
+      const double az = cs.C(n, 0) * (-2e0 * Cm0);
+
+      acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
+             std::sqrt((2e0 * n + 1.) / (2e0 * n + 3e0));
+    }
+    // derivative of acceleration
+    {
+      const double wm0 =
+          std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 1) * (n + 2));
+      const double wp1 =
+          std::sqrt(static_cast<double>(n + 1) * (n + 1) * (n + 2) * (n + 3)) /
+          std::sqrt(2.0);
+      const double wp2 =
+          std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 3) * (n + 4)) /
+          std::sqrt(2.0);
+
+      const double Cm0 = wm0 * M(n + 2, 0);
+      const double Cp1 = wp1 * M(n + 2, 1);
+      const double Sp1 = wp1 * W(n + 2, 1);
+      const double Cp2 = wp2 * M(n + 2, 2);
+      const double Sp2 = wp2 * W(n + 2, 2);
+
+      const double gxx = cs.C(n, 0) * (-2e0 * Cm0 + 2e0 * Cp2);
+      const double gxy = cs.C(n, 0) * (2e0 * Sp2);
+      const double gxz = cs.C(n, 0) * (4e0 * Cp1);
+      const double gyy = cs.C(n, 0) * (-2e0 * Cm0 - 2e0 * Cp2);
+      const double gyz = cs.C(n, 0) * (4e0 * Sp1);
+      const double gzz = cs.C(n, 0) * (4e0 * Cm0);
+
+      gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
+                                              {gxy, gyy, gyz},
+                                              {gxz, gyz, gzz}} *
+                  std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+    }
   }
 
-  for (int n = degree; n >= 1; --n) { // begin summation from smaller terms
-    const int m = 1;
-    double wm1 = std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2) *
-                           (n - m + 3) * (n + m + 1)) *
-                 std::sqrt(2.0);
-    double wm0 = std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2) *
-                           (n + m + 1) * (n + m + 2));
-    double wp1 = std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1) *
-                           (n + m + 2) * (n + m + 3));
-    double wp2 = std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2) *
-                           (n + m + 3) * (n + m + 4));
-
-    double Cm1 = wm1 * M(n + 2, m - 1);
-    double Sm1 = wm1 * W(n + 2, m - 1);
-    double Cm0 = wm0 * M(n + 2, m);
-    double Sm0 = wm0 * W(n + 2, m);
-    double Cp1 = wp1 * M(n + 2, m + 1);
-    double Sp1 = wp1 * W(n + 2, m + 1);
-    double Cp2 = wp2 * M(n + 2, m + 2);
-    double Sp2 = wp2 * W(n + 2, m + 2);
-
-    K.xx() += cs.C(n, m) * (-3 * Cm0 + Cp2) + cs.S(n, m) * (-Sm0 + Sp2);
-    K.xy() += cs.C(n, m) * (-Sm0 + Sp2) + cs.S(n, m) * (-Cm0 - Cp2);
-    K.xz() +=
-        cs.C(n, m) * (-2 * Cm1 + 2 * Cp1) + cs.S(n, m) * (-2 * Sm1 + 2 * Sp1);
-    K.yy() += cs.C(n, m) * (-Cm0 - Cp2) + cs.S(n, m) * (-3 * Sm0 - Sp2);
-    K.yz() += cs.C(n, m) * (2 * Sp1) + cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
-    K.zz() += cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
-  }
-
-  acc += (-2e0 * Eigen::Matrix<double, 3, 1>(gxt, gyt, gzt));
-  acc *= GM / (2 * Re * Re);
+  // scale ...
+  gradient *= GM/(4e0*Re*Re*Re);
+  acc *= GM/(2e0*Re*Re);
 
   return 0;
 }
