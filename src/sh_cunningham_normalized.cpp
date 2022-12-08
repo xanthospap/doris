@@ -160,7 +160,7 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
 
   // acceleration in cartesian components
   acc = Eigen::Matrix<double,3,1>::Zero();
-  [[maybe_unused]]const int minDegree = 1;
+  [[maybe_unused]]const int minDegree = 2;
 
   for (int m = degree; m >= 1; --m) {
     double acx = 0e0, acy = 0e0, acz = 0e0;
