@@ -94,6 +94,8 @@ public:
   }
 };
 
+static const NormalizedLegendreFactors<125> F;
+
 int test::gravacc2(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
                    double GM, Eigen::Matrix<double, 3, 1> &acc) noexcept {
@@ -105,8 +107,6 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
                                                             lp_degree + 2);
   W.fill_with(0e0);
   M.fill_with(0e0);
-
-  const NormalizedLegendreFactors<125> F;
 
   // Associated Legendre Polynomials
   {

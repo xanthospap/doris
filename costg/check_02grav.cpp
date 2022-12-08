@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 
   [[maybe_unused]]Eigen::Matrix<double,3,1> acc0,acc1,acc2;
   [[maybe_unused]]int dummy_it = 0;
-  const double t0 = it->mjd;
+  [[maybe_unused]]const double t0 = it->mjd;
   // for every sattellite position ...
   for (const auto &pos : refposs) {
     // compute gravity acceleration at this point
@@ -88,9 +88,9 @@ int main(int argc, char *argv[]) {
     if (test::gravacc2(harmonics, pos.xyz, degree, harmonics.Re(),
                        harmonics.GM(), acc2))
       return 1;
-    if (test::gravacc0(harmonics, pos.xyz, degree, harmonics.Re(),
-                       harmonics.GM(), acc0))
-      return 1;
+    //if (test::gravacc0(harmonics, pos.xyz, degree, harmonics.Re(),
+    //                   harmonics.GM(), acc0))
+    //  return 1;
 
     // find relative reference acceleration result
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
@@ -104,13 +104,13 @@ int main(int argc, char *argv[]) {
       // printf("          %.6f %.12e %.12e %.12e\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
       printf("%.12f %+.15f %+.15f %+.15f [2]\n", pos.mjd, acc2(0) - cit->a(0),
              acc2(1) - cit->a(1), acc2(2) - cit->a(2));
-      printf("%.12f %+.15f %+.15f %+.15f [0]\n", pos.mjd, acc0(0) - cit->a(0),
-             acc0(1) - cit->a(1), acc0(2) - cit->a(2));
+      //printf("%.12f %+.15f %+.15f %+.15f [0]\n", pos.mjd, acc0(0) - cit->a(0),
+      //       acc0(1) - cit->a(1), acc0(2) - cit->a(2));
       it = cit;
     }
 
-    if (pos.mjd-t0 > 0.5) return 0;
-    if (!dummy_it) return 0;
+    //if (pos.mjd-t0 > 0.5) return 0;
+    //if (!dummy_it) return 0;
   }
 
   return 0;
