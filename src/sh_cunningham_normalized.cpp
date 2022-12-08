@@ -1,6 +1,5 @@
 #include "cmat2d.hpp"
 #include "egravity.hpp"
-#include "gcem.hpp"
 #include "geodesy/geodesy.hpp"
 #include "harmonic_coeffs.hpp"
 #include <array>
@@ -17,6 +16,7 @@ namespace {
 template <int N> struct NormalizedLegendreFactors {
   std::array<double, N *(N + 1) / 2> fac1{};
   std::array<double, N *(N + 1) / 2> fac2{};
+  std::array<double, N> fac3{};
   constexpr int slice(int m) const noexcept { return m * N - m * (m - 1) / 2; }
   constexpr int nm2index(int n, int m) const noexcept {
 #ifdef DEBUG
@@ -32,25 +32,46 @@ template <int N> struct NormalizedLegendreFactors {
   constexpr double f2(int n, int m) const noexcept {
     return fac2[nm2index(n, m)];
   }
+  constexpr double f3(int n) const noexcept {
+#ifdef DEBUG
+    assert( n>=0 && n< N );
+#endif
+     return fac3[n];
+  }
   constexpr NormalizedLegendreFactors() noexcept {
     // factors for the recursion ( (2n+1)/2n )^(1/2)
-    f1(1, 1) = gcem::sqrt(3e0);
+    f1(1, 1) = std::sqrt(3e0);
     for (int n = 2; n < N; n++)
-      f1(n, n) = gcem::sqrt(static_cast<double>(2 * n + 1) /
+      f1(n, n) = std::sqrt(static_cast<double>(2 * n + 1) /
                             static_cast<double>(2 * n));
 
     // factors for the recursion
     for (int m = 0; m < N; m++) {
       for (int n = m + 1; n < N; n++) {
-        double f = static_cast<double>(2 * n + 1) /
-                   static_cast<double>((n + m) * (n - m));
-        // f1_nm = B_nm
-        f1(n, m) = gcem::sqrt(f * (2 * n - 1));
-        // f2_nm = B_nm / Bn-1m
-        f2(n, m) =
-            -gcem::sqrt(f * (n - m - 1e0) * (n + m - 1e0) / (2e0 * n - 3e0));
+        // --- a little easier .....
+        //double f = static_cast<double>(2 * n + 1) /
+        //           static_cast<double>((n + m) * (n - m));
+        //// f1_nm = B_nm
+        //f1(n, m) = std::sqrt(f * (2 * n - 1));
+        //// f2_nm = B_nm / Bn-1m
+        //f2(n, m) =
+        //    - std::sqrt(f * (n - m - 1e0) * (n + m - 1e0) / (2e0 * n - 3e0));
+        // -- alternative ... keep integers as late as possible
+        const long n1 = 2 * n + 1;
+        const long n2 = (n + m) * (n - m);
+        const long f11 = n1 * (2*n-1);
+        const long f12 = n2;
+        f1(n,m) = std::sqrt( (double)f11 / (double)f12 );
+
+        const long f21 = n1 * (n - m - 1) * (n + m - 1);
+        const long f22 = n2 * (2 * n - 3);
+        f2(n,m) = -std::sqrt( (double)f21 / (double)f22 );
       }
     }
+
+    // factors for acceleration
+    for (int n=0; n<N; n++)
+      fac3[n] = std::sqrt( (double)(2*n+1) / (double)(2*n+3) );
   }
 }; // SHFactors
 } // namespace
@@ -78,71 +99,16 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
                    double GM, Eigen::Matrix<double, 3, 1> &acc) noexcept {
 
   const int lp_degree = degree + 1; // aka, [0,....degree+1]
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
-                                                            lp_degree + 1);
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
-                                                            lp_degree + 1);
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 2,
+                                                            lp_degree + 2);
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 2,
+                                                            lp_degree + 2);
   W.fill_with(0e0);
   M.fill_with(0e0);
 
   const NormalizedLegendreFactors<125> F;
-  //assert(F.f1(1, 1) == gcem::sqrt(3e0));
-  //const Factor F;
-  //for (int n=1; n<=lp_degree; n++) {
-  //  for (int m=0; m<=n; m++) {
-  //    if (F.f1(n,m) != Fct.f1(n,m)) {
-  //      printf("ERROR at (%d,%d) runtime gives: %.12f compile-time gives: %.12f diff=%.20e\n", n, m, F.f1(n,m), Fct.f1(n,m), std::abs(F.f1(n,m) - Fct.f1(n,m)));
-  //    }
-  //  }
-  //}
-
-#ifdef KOKO
-  {
-    const Eigen::Matrix<double, 3, 1> r = p / Re;
-    const double rr = std::pow(1 / r.norm(), 2);
-    const double x = r.x() * rr;
-    const double y = r.y() * rr;
-    const double z = r.z() * rr;
-    M(0, 0) = 1e280 / r.norm();
-
-    // Recursion diagonal
-    // C(n-1,n-1) -> C(n,n)
-    for (int n = 1; n <= degree; n++) {
-      M(n, n) = F.f1(n, n) * (x * M(n - 1, n - 1) - y * W(n - 1, n - 1));
-      W(n, n) = F.f1(n, n) * (y * M(n - 1, n - 1) + x * W(n - 1, n - 1));
-    }
-
-    // Recursion secondary diagonal
-    // C(n-1,n-1) -> C(n,n-1)
-    for (int n = 1; n <= degree; n++) {
-      M(n, n - 1) = F.f1(n, n - 1) * z * M(n - 1, n - 1);
-      W(n, n - 1) = F.f1(n, n - 1) * z * W(n - 1, n - 1);
-    }
-
-    // Recursion others
-    // C(n-1,m),C(n-1,m) -> C(n,m)
-    if (degree > 1) {
-      // for (int m = 0; m < (degree - 1); m++) {
-      for (int m = 0; m < lp_degree-1; m++) {
-        for (int n = m + 2; n <= degree; n++) {
-          M(n, m) =
-              F.f1(n, m) * z * M(n - 1, m) + F.f2(n, m) * rr * M(n - 2, m);
-          W(n, m) =
-              F.f1(n, m) * z * W(n - 1, m) + F.f2(n, m) * rr * W(n - 2, m);
-        }
-      }
-    }
-
-    M.multiply(1e-280);
-    W.multiply(1e-280);
-  }
-#endif
 
   // Associated Legendre Polynomials
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W1(lp_degree + 1,
-  //                                                          lp_degree + 1);
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M1(lp_degree + 1,
-  //                                                          lp_degree + 1);
   {
     const Eigen::Matrix<double, 3, 1> r = p / Re;
     const double rr = std::pow(1 / r.norm(), 2);
@@ -151,7 +117,11 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
     const double z = r.z() * rr;
 
     // start ALF iteration
-    M(0, 0) = 1e0 / r.norm();
+    const int __use_factor = false;
+    if (__use_factor)
+    M(0, 0) = 1e280 / r.norm();
+    else
+      M(0, 0) = 1e0 / r.norm();
     M(1, 0) = std::sqrt(3e0)*z*M(0,0);// F.f1(1, 0) * z * M(0, 0);
 
     // first fill column 0;  note that W(n,0) = 0 (already set)
@@ -182,106 +152,57 @@ int test::gravacc2(const dso::HarmonicCoeffs &cs,
       W(m, m) = F.f1(m, m) * (y * M(m - 1, m - 1) + x * W(m - 1, m - 1));
     }
 
-    //M.multiply(1e-280);
-    //W.multiply(1e-280);
+    if (__use_factor) {
+    M.multiply(1e-280);
+    W.multiply(1e-280);
+    }
   } // end computing Legendre
-  //int error = 0;
-  //for (int m=0; m<=lp_degree; m++) {
-  //  for (int n=m+1; n<=lp_degree; n++) {
-  //    if (std::abs(M1(n,m) - M(n,m))>1e-16) {
-  //      printf("Error M(%d,%d) = %.12e Vs %.12e diff=%.16e\n", n,m,M1(n,m), M(n,m), std::abs(M1(n,m) - M(n,m)));
-  //      ++error;
-  //    }
-  //  }
-  //}
-  //if (error) return error;
 
   // acceleration in cartesian components
   acc = Eigen::Matrix<double,3,1>::Zero();
-  const int minDegree = 1;
-  for(int n=minDegree; n<=degree; n++) {
-      // 0. Order
-      double wm0 = std::sqrt(static_cast<double>(n+1)*(n+1));
-      double wp1 = std::sqrt(static_cast<double>(n+1)*(n+2)) / std::sqrt(2.0);
+  [[maybe_unused]]const int minDegree = 1;
 
-      double Cm0 = wm0*M(n+1,0);
-      double Cp1 = wp1*M(n+1,1); 
-      double Sp1 = wp1*W(n+1,1);
+  for (int m = degree; m >= 1; --m) {
+    double acx = 0e0, acy = 0e0, acz = 0e0;
+    for (int n = degree; n >= m; --n) {
+      const long arxy1 = (n + m + 1) * (n + m + 2);
+      const long arxy2 = (n - m + 1) * (n - m + 2) * ((m == 1)?2:1);
+      const long arzz1 = (n + m + 1) * (n - m + 1);
 
-      double gx = cs.C(n,0) * (-2*Cp1);
-      double gy = cs.C(n,0) * (-2*Sp1);
-      double gz = cs.C(n,0) * (-2*Cm0);
+      acx +=
+          F.f3(n) *
+          (std::sqrt((double)arxy1) *
+               (-cs.C(n, m) * M(n + 1, m + 1) - cs.S(n, m) * W(n + 1, m + 1)) +
+           std::sqrt((double)arxy2) *
+               (cs.C(n, m) * M(n + 1, m - 1) + cs.S(n, m) * W(n + 1, m - 1)));
+      acy +=
+          F.f3(n) *
+          (std::sqrt((double)arxy1) *
+               (-cs.C(n, m) * W(n + 1, m + 1) + cs.S(n, m) * M(n + 1, m + 1)) +
+           std::sqrt((double)arxy2) *
+               (-cs.C(n, m) * W(n + 1, m - 1) + cs.S(n, m) * M(n + 1, m - 1)));
+      
+      acz += 2e0*F.f3(n) * std::sqrt((double)arzz1) *
+             (-cs.C(n, m) * M(n + 1, m) - cs.S(n, m) * W(n + 1, m));
+    
+    } // loop over n
+    acc += Eigen::Matrix<double, 3, 1>(acx, acy, acz);
+  } // loop over m
+ 
+  // order m = 0
+  double gxt = 0e0, gyt = 0e0, gzt = 0e0;
+  for (int n=degree; n>=minDegree; --n) { // begin summation from smaller terms
+    // const int m = 0;
+    const long n3 = (n+1)*(n+2);
 
-      for (int m=1; m<=n; m++) {
-        double wm1 = std::sqrt(static_cast<double>(n-m+1)*(n-m+2)) * ((m==1) ? std::sqrt(2.0) : 1.0);
-        wm0 = std::sqrt(static_cast<double>(n-m+1)*(n+m+1));
-        wp1 = std::sqrt(static_cast<double>(n+m+1)*(n+m+2));
-
-        const double Cm1 = wm1*M(n+1,m-1);
-        const double Sm1 = wm1*W(n+1,m-1);
-        Cm0 = wm0*M(n+1,m  );
-        const double Sm0 = wm0*W(n+1,m  );
-        Cp1 = wp1*M(n+1,m+1);
-        Sp1 = wp1*W(n+1,m+1);
-
-        gx += cs.C(n,m) * ( Cm1 - Cp1) + cs.S(n,m) * (Sm1 - Sp1);
-        gy += cs.C(n,m) * (-Sm1 - Sp1) + cs.S(n,m) * (Cm1 + Cp1);
-        gz += cs.C(n,m) * (-2*Cm0)     + cs.S(n,m) * (-2*Sm0);
-      }
-
-    acc +=  std::sqrt((2.*n+1.)/(2.*n+3.))*Eigen::Matrix<double,3,1>(gx,gy,gz);
+    const double fgx = (double)n3 / 2e0;
+    gxt += cs.C(n, 0) * F.f3(n) * M(n + 1, 1) * std::sqrt(fgx);
+    gyt += cs.C(n, 0) * F.f3(n) * W(n + 1, 1) * std::sqrt(fgx);
+    gzt += cs.C(n, 0) * F.f3(n) * M(n + 1, 0) * (double)(n + 1);
   }
-
-  acc *= GM / (2e0 * Re * Re);
-
-
-  // terms with m = 0
-  //for (int n = minDegree; n <= degree; n++) {
-  //  const double wm0 = std::sqrt(static_cast<double>(2 * n + 1) /
-  //                               static_cast<double>(2 * n + 3));
-  //  const double wp1 =
-  //      std::sqrt(static_cast<double>(n + 1) * (n + 2)) / std::sqrt(2e0);
-  //  xacc -= wm0 * wp1 * (cs.C(n, 0) * M(n + 1, 1));
-  //  yacc -= wm0 * wp1 * (cs.C(n, 0) * W(n + 1, 1));
-  //  zacc -= static_cast<double>(n + 1) * (cs.C(n, 0) * M(n + 1, 0));
-  //  printf("adding to z(%d,%d) = %.6f * (%.12f * %.12f)\n", n, 0,
-  //         static_cast<double>(n + 1), cs.C(n, 0), M(n + 1, 0));
-  //}
-
-  //// for m > 0
-  //for (int m = 1; m <= degree; m++) {
-  //  for (int n = m; n <= degree; n++) {
-
-  //    const double f1 = std::sqrt((n + m + 1) * (n + m + 2) * 1e0);
-  //    const double f2 =
-  //        std::sqrt((n - m + 1) * (n - m + 2) * (m == 1 ? 2e0 : 1e0));
-  //    const double f3 = std::sqrt((n - m + 1) * (n + m + 1) * 1e0);
-
-  //    // TODO need factors dependent on n!
-  //    double axt(0e0), ayt(0e0), azt(0e0);
-
-  //    axt =
-  //        .5e0 *
-  //        (f1 * (-cs.C(n, m) * M(n + 1, m + 1) - cs.S(n, m) * W(n + 1, m + 1)) +
-  //         f2 * (cs.C(n, m) * M(n + 1, m - 1) + cs.S(n, m) * W(n + 1, m - 1)));
-
-  //    ayt =
-  //        .5e0 *
-  //        (f1 * (-cs.C(n, m) * W(n + 1, m + 1) + cs.S(n, m) * M(n + 1, m + 1)) +
-  //         f2 * (-cs.C(n, m) * W(n + 1, m - 1) + cs.S(n, m) * W(n + 1, m - 1)));
-
-  //    azt = f3 * (-cs.C(n, m) * M(n + 1, m) - cs.S(n, m) * W(n + 1, m));
-
-  //    const double wm0 = std::sqrt(static_cast<double>(2 * n + 1) /
-  //                                 static_cast<double>(2 * n + 3));
-
-  //    xacc += wm0 * axt;
-  //    yacc += wm0 * ayt;
-  //    zacc += wm0 * azt;
-  //  }
-  //}
-
-  //acc = (GM / Re / Re) * Eigen::Matrix<double, 3, 1>(xacc, yacc, zacc);
+  
+  acc += (-2e0 * Eigen::Matrix<double, 3, 1>(gxt, gyt, gzt));
+  acc *= GM / (2 * Re * Re);
 
   return 0;
 }
