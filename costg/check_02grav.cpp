@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
   auto stop = high_resolution_clock::now();
 
   auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "Time taken by function: " << << duration.count() << " microseconds\n";
+  std::cout << "Time taken by function: " << duration.count() << " milliseconds\n";
 
   return 0;
 }

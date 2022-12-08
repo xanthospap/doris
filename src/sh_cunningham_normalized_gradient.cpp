@@ -105,11 +105,11 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
                    double GM, Eigen::Matrix<double, 3, 1> &acc,
                    Eigen::Matrix<double, 3, 3> &gradient) noexcept {
 
-  const int lp_degree = degree + 1; // aka, [0,....degree+1]
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 3,
-                                                            lp_degree + 3);
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 3,
-                                                            lp_degree + 3);
+  const int lp_degree = degree + 2; // aka, [0,....degree+1]
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
+                                                            lp_degree + 1);
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
+                                                            lp_degree + 1);
   W.fill_with(0e0);
   M.fill_with(0e0);
 
