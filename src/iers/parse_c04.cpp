@@ -76,13 +76,13 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
       // if the date is ok, collect data
       if (cmjd >= start_mjd && cmjd < end_mjd) {
         error = 0;
-        // do we need to transform the given UTC date to TAI?
+        // do we need to transform the given UTC date to TT?
         if (utc2tt) {
           dso::modified_julian_day tai_mjd;
           const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
           const double tt_fday = tai_fday + (32.184e0/86400e0);
           *(eoptable.mjd(sz)) =
-              tt_fday + static_cast<double>(tai_mjd.as_underlying_type());
+              static_cast<double>(tai_mjd.as_underlying_type()) + tt_fday;
         } else {
           *(eoptable.mjd(sz)) = static_cast<double>(imjd);
         }

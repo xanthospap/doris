@@ -41,6 +41,7 @@ int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
   return 0;
 }
 
+/* THIS IS THE ORIGINAL ONE
 int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
                                      int order) const noexcept {
 
@@ -79,6 +80,32 @@ int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
   eopr.yp += cy;
 
   eopr.mjd = tt_fmjd; // TT MJD
+
+  return 0;
+}
+*/
+int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
+                                     int order) const noexcept {
+
+  // perform simple interpolation (lagrangian)
+  dso::EopLookUpTable::interpolate_lagrange(tt_fmjd, eopr, order);
+
+  // call ortho_eop
+  double dxoc,dyoc,dut1oc;
+  iers2010::ortho_eop(tt_fmjd,dxoc,dyoc,dut1oc); // [μas] and [μsec]
+
+  double dxlib,dylib;
+  iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]
+
+  // corrections in arcseconds
+  const double dx = (dxoc + dxlib) * 1e-6;
+  const double dy = (dyoc + dylib) * 1e-6;
+  const double dut = (dut1oc) * 1e-6;
+
+  // add corrections
+  eopr.xp += dx;
+  eopr.yp += dy;
+  eopr.dut += dut;
 
   return 0;
 }

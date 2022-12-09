@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
   }
 
   // regularize ERP (DUT and LOD)
-  eop_lut.regularize();
+  // eop_lut.regularize();
 
   // ok, now for every MJD in the reference file
   for (const Rotary &rot : refrots) {

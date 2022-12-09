@@ -307,10 +307,10 @@ public:
 ///             ypa   Array of y pole (EOP) in arcseconds [arcsec]
 ///             ut1a  Array of UT1-UTC values in seconds [sec]
 ///             loda  Array of LOD values in seconds/day [sec]
-/// @note  EOP files contain UTC time-stamps. In this function, the the
-///        time-tags (mjd array) will be converted to TT before appended to
-///        the mjd array, hence the mjd array in the eoptable instance will be
-///        in MJD/TT.
+/// @note  EOP files contain UTC time-stamps. In this function, the time-tags 
+///        (mjd array) will be converted to TT before appended to the mjd 
+///        array, hence the mjd array in the eoptable instance will be n 
+///        MJD/TT.
 /// @return Anything other than 0 denotes an error
 int parse_iers_C04(const char *c04fn, dso::modified_julian_day start,
                    dso::modified_julian_day end,
