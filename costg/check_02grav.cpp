@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
     //if (test::gravacc0(harmonics, pos.xyz, degree, harmonics.Re(),
     //                   harmonics.GM(), acc0))
     //  return 1;
-    if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
+    if (test::gravacc_prl(harmonics, pos.xyz, degree, harmonics.Re(),
                        harmonics.GM(), acc3, grad))
       return 1;
 
