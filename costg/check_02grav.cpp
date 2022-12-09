@@ -78,10 +78,13 @@ int main(int argc, char *argv[]) {
   //Eigen::Matrix<double, 3, 3> gpartials;
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
 
-  [[maybe_unused]]Eigen::Matrix<double,3,1> acc0,acc1,acc2,acc3;
+  [[maybe_unused]]Eigen::Matrix<double,3,1> acc0,acc1,acc2,acc3,acc32,acc4;
   [[maybe_unused]]Eigen::Matrix<double,3,3> grad;
   [[maybe_unused]]int dummy_it = 0;
   [[maybe_unused]]const double t0 = it->mjd;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Mwork(degree + 3,degree+3),
+      Wwork(degree + 3, degree+3);
+
   // for every sattellite position ...
   auto start = high_resolution_clock::now();
   for (const auto &pos : refposs) {
@@ -92,11 +95,17 @@ int main(int argc, char *argv[]) {
     if (test::gravacc2(harmonics, pos.xyz, degree, harmonics.Re(),
                        harmonics.GM(), acc2))
       return 1;
+    if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
+                       harmonics.GM(), acc3, grad))
+      return 1;
+    if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
+                       harmonics.GM(), acc32, grad, &Wwork,&Mwork))
+      return 1;
     //if (test::gravacc0(harmonics, pos.xyz, degree, harmonics.Re(),
     //                   harmonics.GM(), acc0))
     //  return 1;
     if (test::gravacc_prl(harmonics, pos.xyz, degree, harmonics.Re(),
-                       harmonics.GM(), acc3, grad))
+                       harmonics.GM(), acc4, grad))
       return 1;
 
     // find relative reference acceleration result
@@ -109,17 +118,21 @@ int main(int argc, char *argv[]) {
       // printf("comparing %.6f %.12e %.12e %.12e\n", pos.mjd, acc1(0),acc1(1),acc1(2));
       // printf("          %.6f %.12e %.12e %.12e (pos: %.3f %.3f %.3f)\n", pos.mjd, acc2(0),acc2(1),acc2(2), pos.xyz(0), pos.xyz(1), pos.xyz(2));
       // printf("          %.6f %.12e %.12e %.12e\n", cit->mjd, cit->a(0), cit->a(1), cit->a(2));
-      // printf("%.12f %+.15f %+.15f %+.15f [2]\n", pos.mjd, acc2(0) - cit->a(0),
-      //       acc2(1) - cit->a(1), acc2(2) - cit->a(2));
-      printf("%.12f %+.15f %+.15f %+.15f [3]\n", pos.mjd, acc3(0) - cit->a(0),
+      printf("%.12f %+.15f %+.15f %+.15f [2]\n", pos.mjd, acc2(0) - cit->a(0),
+             acc2(1) - cit->a(1), acc2(2) - cit->a(2));
+      printf("%.12f %+.15f %+.15f %+.15f [31]\n", pos.mjd, acc3(0) - cit->a(0),
              acc3(1) - cit->a(1), acc3(2) - cit->a(2));
+      printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd, acc32(0) - cit->a(0),
+             acc32(1) - cit->a(1), acc32(2) - cit->a(2));
+      printf("%.12f %+.15f %+.15f %+.15f [4]\n", pos.mjd, acc4(0) - cit->a(0),
+             acc4(1) - cit->a(1), acc4(2) - cit->a(2));
       //printf("%.12f %+.15f %+.15f %+.15f [0]\n", pos.mjd, acc0(0) - cit->a(0),
       //       acc0(1) - cit->a(1), acc0(2) - cit->a(2));
       it = cit;
     }
 
     // if (pos.mjd-t0 > 0.5) return 0;
-    // if (!dummy_it) return 0;
+    if (!dummy_it) return 0;
   }
   auto stop = high_resolution_clock::now();
 

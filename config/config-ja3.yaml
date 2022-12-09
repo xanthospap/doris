@@ -18,10 +18,10 @@ naif-kernels:
 
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
-  degree: 90
-  order: 90
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  degree: 120
+  order: 120
 
 troposphere:
   gpt3:
@@ -40,6 +40,6 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: .05e0
+  observation-sigma: .5e0
   ## Units: [degrees]
   elevation-cut-off: 15e0 ## in degrees

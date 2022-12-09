@@ -100,16 +100,19 @@ static const NormalizedLegendreFactors<125> F;
  * gradient = | dy/dx dy/dy dy/dz |
  *            | dz/dx dz/dy dz/dz |
  */
-int test::gravacc3(const dso::HarmonicCoeffs &cs,
+int gravacc3_impl(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
                    double GM, Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &gradient) noexcept {
+                   Eigen::Matrix<double, 3, 3> &gradient, 
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W, 
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M) noexcept {
 
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
-                                                            lp_degree + 1);
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
-                                                            lp_degree + 1);
+  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
+  //                                                          lp_degree + 1);
+  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
+  //                                                          lp_degree + 1);
+  
   W.fill_with(0e0);
   M.fill_with(0e0);
 
@@ -166,7 +169,7 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
   gradient = Eigen::Matrix<double,3,3>::Zero();
-  [[maybe_unused]] const int minDegree = 1;
+  // [[maybe_unused]] const int minDegree = 1;
 
   // start from smaller terms. note that for degrees m=0,1, we are using 
   // seperate loops
@@ -308,7 +311,7 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
   }
   
   // order m = 0
-  for (int n = degree; n >= minDegree;
+  for (int n = degree; n >= 0;
        --n) { // begin summation from smaller terms
     [[maybe_unused]]const int m = 0;
     // acceleration
@@ -365,3 +368,46 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
 
   return 0;
 }
+
+int test::gravacc3(const dso::HarmonicCoeffs &cs,
+                   const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
+                   double GM, Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &gradient) noexcept {
+
+  const int lp_degree = degree + 2; // aka, [0,....degree+1]
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
+                                                            lp_degree + 1);
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
+                                                            lp_degree + 1);
+  //W.fill_with(0e0);
+  //M.fill_with(0e0);
+  return gravacc3_impl(cs, p, degree, Re, GM, acc, gradient, W, M);
+}
+
+int test::gravacc3(const dso::HarmonicCoeffs &cs,
+                   const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
+                   double GM, Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &gradient, 
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W, 
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *M) noexcept {
+
+  const int lp_degree = degree + 2; // aka, [0,....degree+1]
+  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
+  //                                                          lp_degree + 1);
+  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
+  //                                                          lp_degree + 1);
+  if (((W->rows() < lp_degree + 1) || (W->cols() < lp_degree + 1)) ||
+      ((M->rows() < lp_degree + 1) || (M->cols() < lp_degree + 1))) {
+    fprintf(stderr,
+            "[ERROR] Erronous size of M/W coefficient matrices for SH "
+            "(traceback: %s)\n",
+            __func__);
+    return 1;
+  }
+
+  //W->fill_with(0e0);
+  //M->fill_with(0e0);
+
+  return gravacc3_impl(cs, p, degree, Re, GM, acc, gradient, *W, *M);
+}
+

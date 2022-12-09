@@ -88,7 +88,7 @@ void order1(int degree, const dso::HarmonicCoeffs &cs,
            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
            Eigen::Matrix<double, 3, 1> &acc,
            Eigen::Matrix<double, 3, 3> &gradient) noexcept;
-void ordern(int degree, int m, const dso::HarmonicCoeffs &cs,
+void ordern(int degree, int minm, int maxm, const dso::HarmonicCoeffs &cs,
            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
            Eigen::Matrix<double, 3, 1> &acc,
@@ -173,15 +173,34 @@ int test::gravacc_prl(const dso::HarmonicCoeffs &cs,
 
 
   {
-    std::thread t0(order0, degree, std::cref(cs), std::cref(M), std::cref(W),
-                   std::ref(acc), std::ref(gradient), minDegree);
-    std::thread t1(order1, degree, std::cref(cs), std::cref(M), std::cref(W),
-                   std::ref(acc), std::ref(gradient));
-    std::thread tm(ordern, 2, degree, std::cref(cs), std::cref(M), std::cref(W),
-                   std::ref(acc), std::ref(gradient));
-    tm.join();
-    t1.join();
-    t0.join();
+    int num_threads = 4;
+    int tcount = (degree - 2) / num_threads;
+    std::vector<std::thread> tvec; tvec.reserve(6);
+    //for (int i=0; i<tcount; i++) {
+      tvec.emplace_back(ordern, degree, 2, 2 + tcount - 1, std::cref(cs), std::cref(M),
+                        std::cref(W), std::ref(acc), std::ref(gradient));
+      tvec.emplace_back(ordern, degree, 2 + tcount, 2 + 2 * tcount - 1, std::cref(cs),
+                        std::cref(M), std::cref(W), std::ref(acc),
+                        std::ref(gradient));
+      tvec.emplace_back(ordern, degree, 2 + 2 * tcount, 2 + 3 * tcount - 1,
+                        std::cref(cs), std::cref(M), std::cref(W),
+                        std::ref(acc), std::ref(gradient));
+      tvec.emplace_back(ordern, degree, 2 + 3 * tcount, degree, std::cref(cs),
+                        std::cref(M), std::cref(W), std::ref(acc),
+                        std::ref(gradient));
+      tvec.emplace_back(order1, degree, std::cref(cs), std::cref(M),
+                        std::cref(W), std::ref(acc), std::ref(gradient));
+      tvec.emplace_back(order0, degree, std::cref(cs), std::cref(M),
+                        std::cref(W), std::ref(acc), std::ref(gradient),
+                        minDegree);
+      //std::thread t0(order0, degree, std::cref(cs), std::cref(M), std::cref(W),
+      //               std::ref(acc), std::ref(gradient), minDegree);
+      //std::thread t1(order1, degree, std::cref(cs), std::cref(M), std::cref(W),
+      //               std::ref(acc), std::ref(gradient));
+      //std::thread tm(ordern, degree, 2, degree, std::cref(cs), std::cref(M),
+      //               std::cref(W), std::ref(acc), std::ref(gradient));
+    //}
+    for (auto &t : tvec) t.join();
   }
 
   // scale ...
@@ -218,8 +237,8 @@ void order0(int degree, const dso::HarmonicCoeffs &cs,
       std::scoped_lock lock(AccMtx);     
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
              std::sqrt((2e0 * n + 1.) / (2e0 * n + 3e0));
-      const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      printf("Contribution of order %3d is %.12f\n", 0, tmp.norm());
+      //const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+      //printf("Contribution of order %3d is %.12f\n", 0, tmp.norm());
     }
 
     // derivative of acceleration
@@ -290,8 +309,8 @@ void order1(int degree, const dso::HarmonicCoeffs &cs,
       std::scoped_lock lock(AccMtx);     
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
             std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
-      const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      printf("Contribution of order %3d is %.12f\n", 1, tmp.norm());
+      //const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+      //printf("Contribution of order %3d is %.12f\n", 1, tmp.norm());
     }
     // derivative of acceleration
     {
@@ -335,14 +354,14 @@ void order1(int degree, const dso::HarmonicCoeffs &cs,
   return;
 }
 
-void ordern(int degree, int m, const dso::HarmonicCoeffs &cs,
+void ordern(int degree, int minm, int maxm, const dso::HarmonicCoeffs &cs,
            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
            Eigen::Matrix<double, 3, 1> &acc,
            Eigen::Matrix<double, 3, 3> &gradient) noexcept {
   // start from smaller terms. note that for degrees m=0,1, we are using
   // seperate loops
-  // for (int m = degree; m >= 2; --m) {
+  for (int m = maxm; m >= std::min(2,minm); --m) {
   for (int n = degree; n >= m; --n) {
     // acceleration
     {
@@ -367,8 +386,8 @@ void ordern(int degree, int m, const dso::HarmonicCoeffs &cs,
       std::scoped_lock lock(AccMtx);     
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
              std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
-      const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      printf("Contribution of order %3d is %.12f\n", m, tmp.norm());
+      // const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+      // printf("Contribution of order %3d is %.12f\n", m, tmp.norm());
 
     }
     // derivative of acceleration
@@ -414,7 +433,7 @@ void ordern(int degree, int m, const dso::HarmonicCoeffs &cs,
                   std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
     }
   } // loop over n
-  //} // loop over m
+  } // loop over m
 
   return;
 }

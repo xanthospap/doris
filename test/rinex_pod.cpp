@@ -452,9 +452,10 @@ int main(int argc, char *argv[]) {
   dso::HarmonicCoeffs harmonics(degree);
   if (!error)
     error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
+  // parse the un-normalized harmonic ceofficients from model (gfc format)
   if (!error)
     error = dso::parse_gravity_model(buf, degree, order, rnx.ref_datetime(),
-                                     harmonics, true);
+                                     harmonics, false);
   if (error) {
     fprintf(stderr, "ERROR Failed handling gravity field model!\n");
     return 1;

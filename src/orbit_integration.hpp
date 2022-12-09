@@ -23,8 +23,10 @@ struct IntegrationParameters {
   ///< gravity harmonics
   const dso::HarmonicCoeffs &harmonics;
   ///< memmory for Lagrange polynomials
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_V{nullptr};
-  dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_W{nullptr};
+  // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_V{nullptr};
+  // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_W{nullptr};
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr}; 
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
   ///< degree and order of geopotential harmonics
   int degree, order;
   ///< Sun/Moon gravitational parameters
@@ -45,10 +47,12 @@ struct IntegrationParameters {
                         const dso::HarmonicCoeffs &harmonics_,
                         const char *pck_kernel) noexcept
       : eopLUT(eoptable_), harmonics(harmonics_),
-        Lagrange_V{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
-            degree_ + 3, order_ + 3)},
-        Lagrange_W{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
-            degree_ + 3, order_ + 3)},
+        //Lagrange_V{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
+        //    degree_ + 3, order_ + 3)},
+        //Lagrange_W{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
+        //    degree_ + 3, order_ + 3)},
+        V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
+        W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
         degree(degree_), order(order_) {
     assert(degree_ == harmonics_.degree());
     // gravitational parameters
@@ -56,10 +60,10 @@ struct IntegrationParameters {
   };
 
   ~IntegrationParameters() noexcept {
-    if (Lagrange_V)
-      delete Lagrange_V;
-    if (Lagrange_W)
-      delete Lagrange_W;
+    if (V)
+      delete V;
+    if (W)
+      delete W;
   }
 }; // Integration Parameters
 

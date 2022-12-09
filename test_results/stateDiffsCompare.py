@@ -9,6 +9,7 @@ import matplotlib.dates as mdates
 import argparse
 import requests
 from scipy.interpolate import interp1d
+from scipy import stats
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
 import julian
@@ -107,17 +108,18 @@ def ColStatistics(dct,col,fac=1e0):
       array = colAsArray(dct,col,fac)
     else:
       array = col
-    sum = 0e0
-    sumSquared = 0e0
-    max = -1e99
-    min = 1e99
-    for value in array:
-        sum += value
-        sumSquared += value * value
-        if value > max: max = value
-        if value < min: min = value
-    n = float(len(array))
-    return min, max, sum / n, math.sqrt(sumSquared / n)
+    #sum = 0e0
+    #sumSquared = 0e0
+    #max = -1e99
+    #min = 1e99
+    #for value in array:
+    #    sum += value
+    #    sumSquared += value * value
+    #    if value > max: max = value
+    #    if value < min: min = value
+    #n = float(len(array))
+    #return min, max, sum / n, math.sqrt(sumSquared / n)
+    return stats.describe(array)
 
 def remove_outliers(dct, col, fac=1e0):
   min, max, sumDn, sigma = ColStatistics(dct,col,fac)
@@ -291,23 +293,21 @@ def plot_state_diffs(fnref, fntest):
   for component in range(3):
       ## first position, then velocity ...
       for pv in range(2):
-          # fac = 1e-3 if pv == 0 else 1e0 ## noop .... just meters now
           fac = 1e0
           index = whichCol(component, pv)
-          #axs[component, pv].scatter(t2sec(t,t0),colAsArray(diffs,index,fac),s=1,color='black')
           axs[component, pv].scatter(t,colAsArray(diffs,index,fac),s=1,color='black')
           axs[component, pv].set_title(whichTitle(component, pv, fac))
           _, end = axs[component, pv].get_xlim()
-          #axs[component, pv].xaxis.set_minor_locator(MultipleLocator(3600))
-          #axs[component, pv].xaxis.set_ticks(np.arange(start_sec, end, 3600*2))
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
           axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-          minv, maxv, average, rms = ColStatistics(diffs,index,fac)
-          text_x = t[-1] - (t[-1] - t[0]) / 10e0
-          text_y = maxv - (maxv-minv) / 10e0
-          axs[component, pv].text(text_x, text_y, 'Average: {:+.4f}, Rms: {:.4f}'.format(average, rms), style='italic',
-          bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          dsts = ColStatistics(diffs,index,fac)
+          text_x = t[0] #t[-1] - (t[-1] - t[0]) / 10e0
+          text_y = dsts.minmax[0] # dsts.minmax[1] - (dsts.minmax[1]-dsts.minmax[0]) / 10e0
+          if pv == 0:
+            axs[component, pv].text(text_x, text_y, 'Mean: {:+.1f} +/- {:.1f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          else:
+            axs[component, pv].text(text_x, text_y, 'Mean: {:+.4f} +/- {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
           axs[component, pv].grid(True, 'both', 'x')
   ## Rotate date labels automatically
   fig.autofmt_xdate()

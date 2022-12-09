@@ -26,6 +26,12 @@ int gravacc3(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
                    double GM, Eigen::Matrix<double, 3, 1> &acc,
                    Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+int gravacc3(const dso::HarmonicCoeffs &cs,
+                   const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
+                   double GM, Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &gradient,
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W, 
+                   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *M) noexcept;
 int gravacc_prl(const dso::HarmonicCoeffs &cs,
                    const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
                    double GM, Eigen::Matrix<double, 3, 1> &acc,
