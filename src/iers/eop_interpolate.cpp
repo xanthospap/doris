@@ -123,7 +123,7 @@ int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
   return 0;
 }
 
-void dso::EopLookUpTable::regularize() noexcept {
+void dso::EopLookUpTable::__regularize() noexcept {
   dso::modified_julian_day tt_mjd;
   double imjd;
   for (int i = 0; i < sz; i++) {

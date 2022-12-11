@@ -256,7 +256,7 @@ public:
   ///        Omega) and subtract it from the respective elements in the
   ///        instance (hence this value will change the ut1a, loda and omegaa
   ///        arrays. This will result on the so-called "regularized" EOPs.
-  void regularize() noexcept;
+  void __regularize() noexcept;
 
   /// @brief Interpolate and correct to get EOP/ERP parameters at given date
   ///
@@ -269,6 +269,7 @@ public:
   ///            (iers2010::interp::pmut1_oceans) and libration
   ///            (iers2010::interp::pm_gravi) effects.
   /// @return Anything other than 0 is an error
+  /// TODO Must handle leap seconds, see Bradley et al
   int interpolate(double fmjd_tt, EopRecord &eopr,
                   int order = 3) const noexcept;
   int interpolate2(double fmjd_tt, EopRecord &eopr,
