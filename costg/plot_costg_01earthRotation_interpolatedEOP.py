@@ -4,6 +4,7 @@ import datetime
 import sys, os
 import math
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import argparse
@@ -16,7 +17,7 @@ import fileinput
 def component(key, lofd): return [ dct[key] for dct in lofd ]
 def units(key):
     if key == 'mjd': return 'days'
-    if key in ['xp', 'yp', 'X', 'Y', 'cio', 'tio']: return 'arcsec'
+    if key in ['xp', 'yp', 'X', 'Y', 'cio', 'tio']: return 'asec'
     return 'sec'
 
 ##
@@ -46,7 +47,9 @@ for y in ['xp', 'yp', 'X', 'Y', 'dut1', 'lod', 'cio', 'tio']:
     j+=1
     x = component(y, dct)
     axs[r,c].scatter(t,x,s=1,color='black')
-    axs[r,c].set_title(y + ' in ' + units(y))
+    sts = stats.describe(x)
+    _stats = ' {:+.1e} +- {:.1e}, |max|: {:.1e}'.format(sts.mean, math.sqrt(sts.variance), max(abs(sts.minmax[0]), abs(sts.minmax[1])))
+    axs[r,c].set_title(y + ' in ' + units(y) + _stats)
 
 ## Rotate date labels automatically
 fig.suptitle('COST-G Benchmark Diffs\n', fontsize=16)

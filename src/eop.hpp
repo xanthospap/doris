@@ -270,7 +270,9 @@ public:
   ///            (iers2010::interp::pm_gravi) effects.
   /// @return Anything other than 0 is an error
   int interpolate(double fmjd_tt, EopRecord &eopr,
-                  int order = 5) const noexcept;
+                  int order = 3) const noexcept;
+  int interpolate2(double fmjd_tt, EopRecord &eopr,
+                  int order = 3) const noexcept;
 
   /// @brief Interpolate EOP/ERPs at time ffmjd_tt using Lgrangian
   /// interpolation
@@ -286,7 +288,7 @@ public:
   ///             integer
   /// @return Anything other than 0 denotes an error
   int interpolate_lagrange(double fmjd_tt, EopRecord &eopr,
-                           int order = 5) const noexcept;
+                           int order = 3) const noexcept;
 }; // EopLookUpTable
 
 /// @brief Extract data EOP from an EopFile for given dates

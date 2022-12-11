@@ -8,32 +8,6 @@
 #include <fstream>
 #include <vector>
 
-class RunningStats {
-  // see https://www.johndcook.com/blog/standard_deviation/
-private:
-  int n;
-  double m_old, m_new, s_old, s_new;
-
-public:
-  void update(double val) noexcept {
-    ++n;
-    if (n == 1) {
-      m_old = m_new = val;
-      m_old = 0e0;
-    } else {
-      m_new = m_old + (val - m_old) / n;
-      s_new = s_old + (val - m_old) * (val - m_new);
-      m_old = m_new;
-      s_old = s_new;
-    }
-    return;
-  }
-
-  double mean() const noexcept { return (n > 0) ? m_new : 0e0; }
-  double variance() const noexcept { return ((n > 1) ? m_new / (n - 1) : 0e0); }
-  double stddev() const noexcept { return std::sqrt(variance()); }
-};
-
 struct Eop01Record {
   double mjd,         // [mjd]
       xp, yp, sprime, // [rad]
@@ -97,10 +71,7 @@ int main(int argc, char *argv[]) {
   }
 
   // regularize ERP (DUT and LOD)
-  eop_lut.regularize();
-
-  // Mean and std. deviation for all parameters
-  RunningStats rsxp, rsyp, rsdut1, rslod, rsX, rsY, rsS, rsSprime;
+  // eop_lut.regularize();
 
   printf("#%12s %9s %9s %10s %10s %9s %9s %9s %9s\n", "Mjd", "xp('')", "yp('')",
          "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')", "CIO ('')", "TIO ('')");
@@ -134,39 +105,15 @@ int main(int argc, char *argv[]) {
 
     // report results:
     printf(
-  #ifdef VISUAL
+#ifdef VISUAL
         "%12.5f %+.6f %+.6f %+.7f %+.7f %+.6f %+.6f %+.6f %+.6f\n",
-  #else
+#else
         "%12.5f %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e\n",
 #endif
-        eop.mjd, std::abs(reop.xp - myeop.xp), std::abs(reop.yp - myeop.yp),
-        std::abs(reop.dut1 - myeop.dut), std::abs(reop.lod - myeop.lod),
-        std::abs(dso::rad2sec(eop.X - X)), std::abs(dso::rad2sec(eop.Y - Y)),
-        std::abs(dso::rad2sec(eop.s - s)),
-        std::abs(dso::rad2sec(eop.sprime - sp)));
-
-    // update statistics
-    rsxp.update(reop.xp - myeop.xp);      // arcsec
-    rsyp.update(reop.yp - myeop.yp);      // arcsec
-    rsdut1.update(reop.dut1 - myeop.dut); // sec
-    rslod.update(reop.lod - myeop.lod);   // sec
-    rsX.update(eop.X - X);                // rad
-    rsY.update(eop.Y - Y);                // rad
-    rsS.update(eop.s - s);                // rad
-    rsSprime.update(eop.sprime - sp);     // rad
+        eop.mjd, reop.xp - myeop.xp, reop.yp - myeop.yp, reop.dut1 - myeop.dut,
+        reop.lod - myeop.lod, dso::rad2sec(eop.X - X), dso::rad2sec(eop.Y - Y),
+        dso::rad2sec(eop.s - s), dso::rad2sec(eop.sprime - sp));
   }
-
-  // print statistics
-  printf("#%12s %9s %9s %10s %10s %9s %9s %9s %9s\n", "Mjd", "xp('')", "yp('')",
-         "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')", "CIO ('')", "TIO ('')");
-  printf("#%12s %+.6f %+.6f %+.7f %+.7f %+.6f %+.6f %+.6f %+.6f\n", " ",
-         rsxp.mean(), rsyp.mean(), rsdut1.mean(), rslod.mean(),
-         dso::rad2sec(rsX.mean()), dso::rad2sec(rsY.mean()),
-         dso::rad2sec(rsS.mean()), dso::rad2sec(rsSprime.mean()));
-  printf("#%12s %.6f %.6f %.7f %.7f %.6f %.6f %.6f %.6f\n", " ", rsxp.stddev(),
-         rsyp.stddev(), rsdut1.stddev(), rslod.stddev(),
-         dso::rad2sec(rsX.stddev()), dso::rad2sec(rsY.stddev()),
-         dso::rad2sec(rsS.stddev()), dso::rad2sec(rsSprime.stddev()));
 
   return 0;
 }
