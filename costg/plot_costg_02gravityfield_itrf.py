@@ -50,4 +50,4 @@ for y in ['xacc', 'yacc', 'zacc']:
 ## Rotate date labels automatically
 fig.suptitle('COST-G Benchmark Diffs\n', fontsize=16)
 plt.savefig('02gravityfield_itrf.png')
-#plt.show()
+plt.show()

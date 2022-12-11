@@ -48,4 +48,4 @@ for y in ['xx', 'xy', 'xz', 'yx', 'yy', 'yz', 'zx', 'zy', 'zz']:
 ## Rotate date labels automatically
 fig.suptitle('COST-G Benchmark Diffs\n', fontsize=16)
 plt.savefig('01earthRotation_rotaryMatrix.png')
-#plt.show()
+plt.show()

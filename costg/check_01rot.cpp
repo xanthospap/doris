@@ -9,32 +9,6 @@
 #include <fstream>
 #include <vector>
 
-class RunningStats {
-  // see https://www.johndcook.com/blog/standard_deviation/
-private:
-  int n;
-  double m_old, m_new, s_old, s_new;
-
-public:
-  void update(double val) noexcept {
-    ++n;
-    if (n == 1) {
-      m_old = m_new = val;
-      m_old = 0e0;
-    } else {
-      m_new = m_old + (val - m_old) / n;
-      s_new = s_old + (val - m_old) * (val - m_new);
-      m_old = m_new;
-      s_old = s_new;
-    }
-    return;
-  }
-
-  double mean() const noexcept { return (n > 0) ? m_new : 0e0; }
-  double variance() const noexcept { return ((n > 1) ? m_new / (n - 1) : 0e0); }
-  double stddev() const noexcept { return std::sqrt(variance()); }
-};
-
 struct Rotary {
   double mjd;
   Eigen::Matrix<double, 3, 3> R;

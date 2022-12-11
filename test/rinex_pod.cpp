@@ -454,7 +454,7 @@ int main(int argc, char* argv[])
       return 1;
     }
     // regularize ERP (DUT and LOD)
-    eop_lut.regularize();
+    // eop_lut.regularize();
   }
 
   // Gravity

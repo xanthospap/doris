@@ -3,12 +3,12 @@
 #include "iers2010/iau.hpp"
 #include "orbit_integration.hpp"
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
-#include <chrono>
 using namespace std::chrono;
 
 constexpr const int degree = 120;
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   }
 
   // regularize ERP (DUT and LOD)
-  eop_lut.regularize();
+  // eop_lut.regularize();
 
   // handle gravity field and allocate memory
   dso::HarmonicCoeffs harmonics(degree);
@@ -89,26 +89,28 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  //Eigen::Matrix<double, 3, 3> gpartials;
+  // Eigen::Matrix<double, 3, 3> gpartials;
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
 
-  [[maybe_unused]]Eigen::Matrix<double,3,1> acc0,acc1,acc2,acc3,acc32,acc4;
-  [[maybe_unused]]Eigen::Matrix<double,3,3> grad;
-  [[maybe_unused]]int dummy_it = 0;
-  [[maybe_unused]]const double t0 = it->mjd;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Mwork(degree + 3,degree+3),
-      Wwork(degree + 3, degree+3);
+  [[maybe_unused]] Eigen::Matrix<double, 3, 1> acc0, acc1, acc2, acc3, acc32,
+      acc4;
+  [[maybe_unused]] Eigen::Matrix<double, 3, 3> grad;
+  [[maybe_unused]] int dummy_it = 0;
+  [[maybe_unused]] const double t0 = it->mjd;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Mwork(degree + 3,
+                                                                degree + 3),
+      Wwork(degree + 3, degree + 3);
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
 
   // for every sattellite position ...
   auto clock_start = high_resolution_clock::now();
   for (const auto &pos : refposs) {
+    //if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
+    //                   harmonics.GM(), acc3, grad))
+    //  return 1;
     if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
-                       harmonics.GM(), acc3, grad))
-      return 1;
-    if (test::gravacc3(harmonics, pos.xyz, degree, harmonics.Re(),
-                       harmonics.GM(), acc32, grad, &Wwork,&Mwork))
+                       harmonics.GM(), acc32, grad, &Wwork, &Mwork))
       return 1;
 
     // transform acceleration results to ICRF (from ITRF)
@@ -118,25 +120,27 @@ int main(int argc, char *argv[]) {
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
       return std::abs(a.mjd - pos.mjd) < 1e-16;
     });
-    
+
     // compute differences
     if (cit != refaccs.cend()) {
-      acc3 = dso::rter2cel(acc3, rc2i, era, rpom);
+      //acc3 = dso::rter2cel(acc3, rc2i, era, rpom);
       acc32 = dso::rter2cel(acc32, rc2i, era, rpom);
-      printf("%.12f %+.15f %+.15f %+.15f [31]\n", pos.mjd, acc3(0) - cit->a(0),
-             acc3(1) - cit->a(1), acc3(2) - cit->a(2));
+      //printf("%.12f %+.15f %+.15f %+.15f [31]\n", pos.mjd, acc3(0) - cit->a(0),
+      //       acc3(1) - cit->a(1), acc3(2) - cit->a(2));
       printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd, acc32(0) - cit->a(0),
              acc32(1) - cit->a(1), acc32(2) - cit->a(2));
       it = cit;
     }
 
     // if (pos.mjd-t0 > 0.5) return 0;
-    if (!dummy_it) return 0;
+    //if (!dummy_it)
+    //  return 0;
   }
   auto clock_stop = high_resolution_clock::now();
 
   auto duration = duration_cast<milliseconds>(clock_stop - clock_start);
-  std::cout << "Time taken by function: " << duration.count() << " milliseconds\n";
+  std::cout << "Time taken by function: " << duration.count()
+            << " milliseconds\n";
 
   return 0;
 }

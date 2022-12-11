@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   }
 
   // regularize ERP (DUT and LOD)
-  eop_lut.regularize();
+  // eop_lut.regularize();
   
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
