@@ -169,7 +169,7 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
   gradient = Eigen::Matrix<double,3,3>::Zero();
-  [[maybe_unused]] const int minDegree = 1;
+  [[maybe_unused]] const int minDegree = 0;
 
   // start from smaller terms. note that for degrees m=0,1, we are using 
   // seperate loops

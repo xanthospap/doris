@@ -18,8 +18,8 @@ naif-kernels:
 
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 

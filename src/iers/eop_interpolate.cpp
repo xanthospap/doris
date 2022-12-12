@@ -8,7 +8,6 @@ int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
                                               int order) const noexcept {
   int status = 0;
   int index = -1;
-  double *tmpd = new double[order+1];
 
   // xp (pole)
   status +=
@@ -17,32 +16,8 @@ int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
   status +=
       iers2010::interp::lagint(mjd(), yp(), sz, tt_fmjd, eopr.yp, index, order);
 
-  int window = (order+1) / 2;
-  int k = 0;
-  for (int i=index-window; i<index+window; i++) {
-    double it;
-    double ft = std::modf(*mjd(i), &it);
-    const double t = (it - dso::j2000_mjd) / dso::days_in_julian_cent +
-                     ft / dso::days_in_julian_cent;
-    double du,dl,dm;
-    iers2010::rg_zont2(t, du, dl, dm);
-    tmpd[k++] = *dut(i) - du;
-  }
-  // dUT1
-  status += iers2010::interp::lagint(mjd(), tmpd-(index-window), sz, tt_fmjd, eopr.dut, index,
+  status += iers2010::interp::lagint(mjd(), dut(), sz, tt_fmjd, eopr.dut, index,
                                      order);
-  {
-  double it;
-  double ft = std::modf(tt_fmjd, &it);
-  const double t = (it - dso::j2000_mjd) / dso::days_in_julian_cent +
-                   ft / dso::days_in_julian_cent;
-  double du,dl,dm;
-  iers2010::rg_zont2(t, du, dl, dm);
-  eopr.dut += du;
-  }
-  
-  //status += iers2010::interp::lagint(mjd(), dut(), sz, tt_fmjd, eopr.dut, index,
-  //                                   order);
   // dX
   status +=
       iers2010::interp::lagint(mjd(), dx(), sz, tt_fmjd, eopr.dx, index, order);
@@ -52,15 +27,6 @@ int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
   // LOD
   status += iers2010::interp::lagint(mjd(), lod(), sz, tt_fmjd, eopr.lod, index,
                                      order);
-
-  delete[] tmpd;
-  if (status) {
-    fprintf(stderr,
-            "[ERROR] Failed to interpolate EOP/ERP parameters for requested "
-            "MJD=%.6f (traceback: %s)\n",
-            tt_fmjd, __func__);
-    return 1;
-  }
 
   // remember to assign date to the filled-in instance
   eopr.mjd = tt_fmjd;
