@@ -7,7 +7,8 @@
 #include <fstream>
 #include <stdexcept>
 
-constexpr const int LINE_SZ = 256;
+namespace {
+constexpr const int LINE_SZ = 512;
 
 int resolve_jason3_body_quaternion_line(
     const char *line, dso::JasonBodyQuaternion &record) noexcept {
@@ -76,6 +77,7 @@ int resolve_jason3_body_quaternion_line(
   record.quaternion.z() = qdata[3];
 
   return 0;
+}
 }
 
 dso::JasonQuaternionHunter::JasonQuaternionHunter(const char *body_fn)

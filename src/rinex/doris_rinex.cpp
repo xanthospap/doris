@@ -2,10 +2,20 @@
 #include "datetime/datetime_read.hpp"
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <stdexcept>
 #ifdef DEBUG
 #include "datetime/datetime_write.hpp"
 #endif
+
+namespace {
+inline const char *skipws(const char *const line) noexcept {
+  const char *c = line;
+  while (*c && *c == ' ')
+    ++c;
+  return c;
+}
+} // namespace
 
 /// The constructor will try to:
 /// 1. open the input file
@@ -20,13 +30,17 @@ dso::DorisObsRinex::DorisObsRinex(const char *fn)
   m_ref_stations.reserve(7);
 
   // read the header ..
-  int status = read_header();
-  if (status) {
-    fprintf(stderr,
-            "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: "
-            "%s)\n",
-            fn, status, __func__);
-    throw std::runtime_error("[ERROR] Cannot read RINEX header");
+  try {
+    int status = read_header();
+    if (status) {
+      fprintf(stderr,
+              "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: "
+              "%s)\n",
+              fn, status, __func__);
+      throw std::runtime_error("[ERROR] Cannot read RINEX header");
+    }
+  } catch (std::exception &) {
+    fprintf(stderr, "[ERROR] Failed creating DorisObsRinex instance\n");
   }
 
   m_lines_per_beacon = lines_per_beacon();
@@ -132,7 +146,7 @@ void dso::DorisObsRinex::read() {
 int dso::DorisObsRinex::read_data_block(
     dso::RinexDataRecordHeader &hdr,
     std::vector<BeaconObservations> &obsvec) noexcept {
-  static char line[MAX_RECORD_CHARS];
+  char line[MAX_RECORD_CHARS];
   if (!obsvec.empty())
     obsvec.clear();
 
@@ -176,11 +190,16 @@ int dso::DorisObsRinex::read_data_block(
       }
       char flagm1 = line[3 + (curobs % 5) * 16 + 14];
       char flagm2 = line[3 + (curobs % 5) * 16 + 15];
-      val = (buf_is_empty) ? OBSERVATION_VALUE_MISSING : std::strtod(buf, &end);
-      if (val == 0e0 || end == buf) {
+      if (buf_is_empty) {
         val = OBSERVATION_VALUE_MISSING;
-        if (end == buf)
+      } else {
+        auto tres = std::from_chars(skipws(buf), buf + 16, val);
+        if (!(tres.ec == std::errc{})) {
+          fprintf(stderr,
+                  "[ERROR] Failed resolving line [%s]/[%s] (traceback: %s)\n",
+                  line, buf, __func__);
           return 2;
+        }
       }
       // push value to the current BeaconObservations instance (in-place)
       // WAIT! check if we have a scale factor for the observable (note that
@@ -241,17 +260,16 @@ int dso::DorisObsRinex::resolve_data_epoch(
   if (*line != '>')
     return 1; // must start with '>' character
 
-  char *end;
   int status = 0;
+  int sz = std::strlen(line);
 
-  try {
-    hdr.m_epoch = dso::strptime_ymd_hms<dso::nanoseconds>(line + 2, &end);
-  } catch (std::exception &e) {
-    status = status ? status : 2;
-  }
-
-  // we are going to chec errno from now on, set it to 0
-  errno = 0;
+  // try {
+  hdr.m_epoch = dso::strptime_ymd_hms<dso::nanoseconds>(line + 2, nullptr);
+  //} catch (std::exception &e) {
+  //  status = status ? status : 2;
+  //  fprintf(stderr, "[ERROR] Failed resolving date from line: \'%s\'
+  //  (traceback: %s)\n", line, __func__);
+  //}
 
   // probably i am exagerating a bit here, but nevertheless ...
   // it could happen that the 'Epoch flag' and the 'Number of stations' fields
@@ -261,20 +279,23 @@ int dso::DorisObsRinex::resolve_data_epoch(
   char tbuf[4];
   std::memset(tbuf, '\0', sizeof tbuf);
   std::memcpy(tbuf, line + 31, 3);
-  // hdr.m_flag = static_cast<int_fast8_t>(std::strtol(line + 31, &end, 10));
-  hdr.m_flag = static_cast<int_fast8_t>(std::strtol(tbuf, &end, 10));
-  if (end == tbuf || errno) {
-    errno = 0;
-    status = status ? status : 3;
+  auto cres = std::from_chars(skipws(tbuf), tbuf + 4, hdr.m_flag);
+  if (cres.ec != std::errc{}) {
+    status += 1;
+    fprintf(stderr,
+            "[ERROR] Failed resolving epoch flag from line: \'%s\' (traceback: "
+            "%s)\n",
+            line, __func__);
   }
 
   std::memcpy(tbuf, line + 34, 3);
-  // hdr.m_num_stations =
-  //     static_cast<int_fast16_t>(std::strtol(line + 34, &end, 10));
-  hdr.m_num_stations = static_cast<int_fast16_t>(std::strtol(tbuf, &end, 10));
-  if (end == tbuf || errno) {
-    errno = 0;
-    status = status ? status : 4;
+  cres = std::from_chars(skipws(tbuf), tbuf + 4, hdr.m_num_stations);
+  if (cres.ec != std::errc{}) {
+    status += 1;
+    fprintf(stderr,
+            "[ERROR] Failed resolving #stations from line: \'%s\' (traceback: "
+            "%s)\n",
+            line, __func__);
   }
 
   bool has_clock_offset = false;
@@ -285,19 +306,25 @@ int dso::DorisObsRinex::resolve_data_epoch(
     }
   }
   if (has_clock_offset) {
-    hdr.m_clock_offset = std::strtod(line + 43, &end);
-    if (errno || end == line + 43) {
-      errno = 0;
-      status = status ? status : 5;
+    cres = std::from_chars(skipws(line + 43), line + sz, hdr.m_clock_offset);
+    if (cres.ec != std::errc{}) {
+      status += 1;
+      fprintf(stderr,
+              "[ERROR] Failed resolving clock offset from line: \'%s\' "
+              "(traceback: %s)\n",
+              line, __func__);
     }
   } else {
     hdr.m_clock_offset = RECEIVER_CLOCK_OFFSET_MISSING;
   }
 
-  hdr.m_clock_flag = static_cast<int_fast8_t>(std::strtol(line + 56, &end, 10));
-  if (errno || end == line + 56) {
-    errno = 0;
-    status = status ? status : 6;
+  cres = std::from_chars(skipws(line + 56), line + sz, hdr.m_clock_flag);
+  if (cres.ec != std::errc{}) {
+    status += 1;
+    fprintf(stderr,
+            "[ERROR] Failed resolving clock flag from line: \'%s\' (traceback: "
+            "%s)\n",
+            line, __func__);
   }
 
   return status;

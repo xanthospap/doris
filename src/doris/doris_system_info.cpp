@@ -2,6 +2,15 @@
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
+#include <charconv>
+
+namespace {
+inline const char *skipws(const char *line) noexcept {
+  const char *c = line;
+  while (*c && *c==' ') ++c;
+  return c;
+}
+}// unnamed namespace
 
 char dso::ObservationType_to_char(dso::ObservationType o) {
   switch (o) {
@@ -96,23 +105,19 @@ bool dso::ObservationCode::has_frequency() const noexcept {
 }
 
 int dso::BeaconStation::set_from_rinex_line(const char *line) noexcept {
-  if (std::strlen(line) < 60)
+  int sz;
+  if ((sz=std::strlen(line)) < 60)
     return 1;
   std::memcpy(m_internal_code, line, sizeof m_internal_code);
   std::memcpy(m_station_id, line + 5, sizeof m_station_id);
   std::memcpy(m_station_name, line + 10, sizeof m_station_name);
   std::memcpy(m_station_domes, line + 40, sizeof m_station_domes);
-  char *end;
-  m_type = std::strtol(line + 50, &end, 10);
-  if (errno || end == line + 50) {
-    errno = 0;
-    return 2;
-  }
-  m_shift_factor = std::strtol(line + 52, &end, 10);
-  if (errno || end == line + 52) {
-    errno = 0;
-    return 3;
-  }
+  
+  int error = 0;
+  auto cerr = std::from_chars(skipws(line+50), line+sz, m_type);
+  if (cerr.ec != std::errc{}) ++error;
+  cerr = std::from_chars(skipws(line+52), line+sz, m_type);
+  if (cerr.ec != std::errc{}) ++error;
 
   // remove trailing whitespace characters from stations name
   char *s = m_station_name + (sizeof m_station_name) - 1;
@@ -122,7 +127,7 @@ int dso::BeaconStation::set_from_rinex_line(const char *line) noexcept {
   while (*s == ' ' && (s - m_station_domes) > 0)
     *s-- = '\0';
 
-  return 0;
+  return error;
 }
 
 char *dso::BeaconStation::to_str(char *buffer) const noexcept {
