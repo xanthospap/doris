@@ -9,6 +9,7 @@
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include <cassert>
+#include <datetime/dtcalendar.hpp>
 
 namespace dso {
 
@@ -17,7 +18,8 @@ namespace dso {
 ///        of (the system of) variational equations.
 struct IntegrationParameters {
   ///< time in TAI
-  double mjd_tai;
+  // double mjd_tai;
+  dso::TwoPartDate mjd_tai;
   ///< EOP parameters Look-up table
   const dso::EopLookUpTable &eopLUT;
   ///< gravity harmonics
@@ -47,10 +49,6 @@ struct IntegrationParameters {
                         const dso::HarmonicCoeffs &harmonics_,
                         const char *pck_kernel) noexcept
       : eopLUT(eoptable_), harmonics(harmonics_),
-        //Lagrange_V{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
-        //    degree_ + 3, order_ + 3)},
-        //Lagrange_W{new dso::Mat2D<dso::MatrixStorageType::Trapezoid>(
-        //    degree_ + 3, order_ + 3)},
         V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
         W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
         degree(degree_), order(order_) {
@@ -59,6 +57,7 @@ struct IntegrationParameters {
     assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon));
   };
 
+  // TODO
   ~IntegrationParameters() noexcept {
     if (V)
       delete V;
@@ -90,7 +89,7 @@ Eigen::Matrix<double, 3, 3>
 itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
 #else
-int gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
+int gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &eop_table,
               Eigen::Matrix<double, 3, 3> &rc2i, double &era,
               Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
 #endif
@@ -139,7 +138,7 @@ void SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
              Eigen::Matrix<double, 3, 1> &sun_pos,
              Eigen::Matrix<double, 3, 3> &mon_partials) noexcept;
 
-void VariationalEquations(double tsec, const Eigen::VectorXd &yPhi,
+void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 

@@ -4,7 +4,12 @@
 #include "iers2010/iau.hpp"
 #include "iers2010/iers2010.hpp"
 #include "orbit_integration.hpp"
+#include <datetime/dtcalendar.hpp>
 #include <iers2010/iersc.hpp>
+
+namespace {
+  const double TAI2TTFDAYS = 32.184e0 / 86400e0;
+}
 
 // TODO should have an error status!!!!
 #ifdef ABCD
@@ -77,8 +82,13 @@ dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
 }
 #else
 
-double OmegaEarth(double xlod) noexcept {
-  return iers2010::OmegaEarth * (1e0 - xlod / 86400e0);
+inline double OmegaEarth(double xlod) noexcept {
+  // return iers2010::OmegaEarth * (1e0 - xlod / 86400e0);
+  // xlod in [seconds/day]
+  // see https://www.iers.org/IERS/EN/Science/EarthRotation/UT1LOD.html
+  // tranform LOD to milliseconds (from seconds)
+  const double LOD = xlod * 1e3;
+  return (72921151.467064e0 - 0.843994809e0*LOD) * 1e-12; // [rad/sec]
 }
 
 Eigen::Matrix<double, 3, 1>
@@ -134,42 +144,46 @@ dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
 }
 
 // IAU 2006/2000A, CIO based, using X,Y series
-int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
+int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &eop_table,
                    Eigen::Matrix<double, 3, 3> &rc2i, double &era,
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
 
   // TAI MJD to datetime instance
-  int imjd = (int)mjd_tai;
-  double sec = (mjd_tai - (int)mjd_tai) * 86400e0;
-  dso::nanoseconds::underlying_type iSec =
-      static_cast<dso::nanoseconds::underlying_type>(
-          sec * dso::nanoseconds::template sec_factor<double>());
-  dso::datetime<dso::nanoseconds> taidate{dso::modified_julian_day(imjd),
-                                          dso::nanoseconds(iSec)};
+  //int imjd = (int)mjd_tai;
+  //double sec = (mjd_tai - (int)mjd_tai) * 86400e0;
+  //dso::nanoseconds::underlying_type iSec =
+  //    static_cast<dso::nanoseconds::underlying_type>(
+  //        sec * dso::nanoseconds::template sec_factor<double>());
+  //dso::datetime<dso::nanoseconds> taidate{dso::modified_julian_day(imjd),
+  //                                        dso::nanoseconds(iSec)};
 
   // TAI to TT
-  dso::datetime<dso::nanoseconds> ttdate(taidate);
-  ttdate.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
+  //dso::datetime<dso::nanoseconds> ttdate(taidate);
+  //ttdate.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
+  dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
 
   // interpolate/correct EOP values using TT
   dso::EopRecord eops;
-  if (int error; (error = eop_table.interpolate(ttdate.as_mjd(), eops))) {
+  if (int error; (error = eop_table.interpolate(mjd_tt, eops))) {
     fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
     return error;
   }
 
-  // assign interpolated LOD value
+  // assign interpolated LOD value, [sec/day]
   xlod = eops.lod;
+
+  // split date as in SOFA Date&Time idiom
+  auto sofajd = mjd_tt.jd_sofa();
 
   // X,Y coordinates of celestial intermediate pole from series based
   // on IAU 2006 precession and IAU 2000A nutation.
   double X, Y;
-  iers2010::sofa::xy06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
+  iers2010::sofa::xy06(sofajd._big, sofajd._small, X, Y);
 
   // The CIO locator s, positioning the Celestial Intermediate Origin on
   // the equator of the Celestial Intermediate Pole, given the CIP's X,Y
   // coordinates. Compatible with IAU 2006/2000A precession-nutation.
-  const double s = iers2010::sofa::s06(dso::mjd0_jd, ttdate.as_mjd(), X, Y);
+  const double s = iers2010::sofa::s06(sofajd._big, sofajd._small, X, Y);
 
   // Add CIP corrections (arcsec to radians)
   X += dso::sec2rad(eops.dx);
@@ -183,17 +197,18 @@ int dso::gcrs2itrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)
   dso::modified_julian_day utc_mjd;
   const double utc = dso::tai2utc(taidate, utc_mjd); // fractional part
-  double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
-  ut1 += static_cast<double>(utc_mjd.as_underlying_type()); // UTC as mjd
-  era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
+  const double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
+  era = iers2010::sofa::era00(
+      dso::mjd0_jd + (double)utc_mjd.as_underlying_type(), ut1);
 
   // Estimate s' [radians]
-  const double sp = iers2010::sofa::sp00(dso::mjd0_jd, ttdate.as_mjd());
+  const double sp = iers2010::sofa::sp00(sofajd._big, sofajd._small);
 
   // Form the polar motion matrix (W); note that we need angular units in
   // radians
   rpom =
-      iers2010::sofa::pom00_e(dso::sec2rad(eops.xp), dso::sec2rad(eops.yp), sp);
+      // iers2010::sofa::pom00_e(dso::sec2rad(eops.xp), dso::sec2rad(eops.yp), sp);
+      iers2010::sofa::pom00_e(X, Y, sp);
 
   return 0;
 }

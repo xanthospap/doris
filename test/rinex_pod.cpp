@@ -20,6 +20,7 @@
 #include "var_utils.hpp"
 #include <cassert>
 #include <cstdio>
+#include <datetime/dtcalendar.hpp>
 
 constexpr const int Np = 1;
 
@@ -177,7 +178,8 @@ struct SatBeacon {
 // hold satellite state & time
 struct SatelliteState {
   // Current datetime in TAI
-  double mjd_tai;
+  // double mjd_tai;
+  dso::TwoPartDate mjd_tai;
   // state vector at t=tai in ECEF, at DORIS receiver RP (Iono-Free)
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
@@ -211,7 +213,7 @@ struct SatelliteState {
                     : (Eigen::Matrix<double, 3, 1>::Zero());
   }
 
-  int integrate(double mjd_target, dso::SGOde& integrator) noexcept
+  int integrate(/*double mjd_target*/const dso::TwoPartDate &mjd_target, dso::SGOde& integrator) noexcept
   {
     // count calls; this is only needed because the first call should
     // consider the satellite coordinates as CoM coordinates, and not
@@ -260,7 +262,7 @@ struct SatelliteState {
     integrator.params->mjd_tai = mjd_tai;
 
     // target t for variational equations; seconds after t0
-    double tout = (mjd_target - mjd_tai) * 86400e0;
+    double tout = (double)(mjd_target - mjd_tai) * 86400e0;
 
     // set initial intergation flag
     integrator.flag() = 1;
@@ -274,14 +276,18 @@ struct SatelliteState {
     integrator.de(tsec, tout, yPhi, sol);
 
     // output epoch as datetime
-    double tout_mjd = integrator.params->mjd_tai + tsec / 86400e0;
+    // double tout_mjd = integrator.params->mjd_tai + tsec / 86400e0;
+    const dso::TwoPartDate tout_mjd(integrator.params->mjd_tai +
+                                    dso::TwoPartDate(0e0, tsec / 86400e0));
 
     // let's see were we are at
-    if (std::abs(tout_mjd - mjd_target) > 1e-12) {
+    // if (std::abs(tout_mjd - mjd_target) > 1e-12) {
+    if (std::abs((double)(tout_mjd - mjd_target)) * 86400e0 > 1e-3) {
       fprintf(stderr,
-          "ERROR wanted integration to %.9f and got up to %.9f, that is "
-          "%.9f sec apart!\n",
-          mjd_target, tout_mjd, (mjd_target - mjd_tai) * 86400e0);
+              "ERROR wanted integration to %.9f and got up to %.9f, that is "
+              "%.9f sec apart!\n",
+              mjd_target.mjd(), tout_mjd.mjd(),
+              (mjd_target.mjd() - mjd_tai.mjd()) * 86400e0);
       return 1;
     }
 

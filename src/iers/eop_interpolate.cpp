@@ -1,32 +1,62 @@
 #include "datetime/utcdates.hpp"
 #include "eop.hpp"
 #include "iers2010/iers2010.hpp"
-#include <datetime/dtfund.hpp>
+#include "datetime/dtcalendar.hpp"
+#include <algorithm>
 
-int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
+namespace {
+int lag_int(const dso::TwoPartDate &tt_fmjd,
+            const std::vector<dso::TwoPartDate> &t,
+            const std::vector<double> &y, int order, int &index,
+            double &val) noexcept {
+  // find suitable index in input dates
+  if (index < 0) {
+    auto it = std::lower_bound(t.begin(), t.end(), tt_fmjd);
+    if (it == t.end())
+      return 1;
+    index = std::distance(t.begin(), it);
+  }
+  // make sure index is ok
+  int window = (order + 1) / 2;
+  if (index < window || index > (int)t.size() - window)
+    return 1;
+  // perform lagrangian interpolation, spanning indexes
+  // [index-window, index+window)
+  val = 0e0;
+  for (int i = index - window; i < index + window; i++) {
+    const double l = y[i];
+    double pval = 1e0;
+    for (int j = index - window; j < i; j++) {
+      pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+    }
+    for (int j = i + 1; j < index + window; j++) {
+      pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+    }
+    val += l * pval;
+  }
+
+  return 0;
+}
+}// unnamed namespace
+
+int dso::EopLookUpTable::interpolate_lagrange(const dso::TwoPartDate &tt_fmjd,
                                               dso::EopRecord &eopr,
                                               int order) const noexcept {
   int status = 0;
   int index = -1;
 
   // xp (pole)
-  status +=
-      iers2010::interp::lagint(mjd(), xp(), sz, tt_fmjd, eopr.xp, index, order);
+  status += lag_int(tt_fmjd, t, xp, order, index, eopr.xp);
   // yp (pole)
-  status +=
-      iers2010::interp::lagint(mjd(), yp(), sz, tt_fmjd, eopr.yp, index, order);
-
-  status += iers2010::interp::lagint(mjd(), dut(), sz, tt_fmjd, eopr.dut, index,
-                                     order);
+  status += lag_int(tt_fmjd, t, yp, order, index, eopr.yp);
+  // Dut1
+  status += lag_int(tt_fmjd, t, dut1, order, index, eopr.dut);
   // dX
-  status +=
-      iers2010::interp::lagint(mjd(), dx(), sz, tt_fmjd, eopr.dx, index, order);
+  status += lag_int(tt_fmjd, t, dX, order, index, eopr.dx);
   // dY
-  status +=
-      iers2010::interp::lagint(mjd(), dy(), sz, tt_fmjd, eopr.dy, index, order);
+  status += lag_int(tt_fmjd, t, dY, order, index, eopr.dy);
   // LOD
-  status += iers2010::interp::lagint(mjd(), lod(), sz, tt_fmjd, eopr.lod, index,
-                                     order);
+  status += lag_int(tt_fmjd, t, lod, order, index, eopr.lod);
 
   // remember to assign date to the filled-in instance
   eopr.mjd = tt_fmjd;
@@ -34,7 +64,7 @@ int dso::EopLookUpTable::interpolate_lagrange(double tt_fmjd,
   return 0;
 }
 
-// this version is based on the interp.f routine but does not work well enough
+/* this version is based on the interp.f routine but does not work well enough
 int dso::EopLookUpTable::interpolate2(double tt_fmjd, dso::EopRecord &eopr,
                                      int order) const noexcept {
 
@@ -76,10 +106,11 @@ int dso::EopLookUpTable::interpolate2(double tt_fmjd, dso::EopRecord &eopr,
   eopr.mjd = tt_fmjd; // TT MJD
 
   return 0;
-}
+}*/
 
 // do not regularize EOPs before calling this function
-int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
+int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &tt_fmjd,
+                                     dso::EopRecord &eopr,
                                      int order) const noexcept {
 
   // perform simple interpolation (lagrangian)
@@ -117,7 +148,7 @@ int dso::EopLookUpTable::interpolate(double tt_fmjd, dso::EopRecord &eopr,
   return 0;
 }
 
-void dso::EopLookUpTable::__regularize() noexcept {
+/*void dso::EopLookUpTable::__regularize() noexcept {
   dso::modified_julian_day tt_mjd;
   double imjd;
   for (int i = 0; i < sz; i++) {
@@ -138,4 +169,4 @@ void dso::EopLookUpTable::__regularize() noexcept {
     *(omega(i)) -= domega; // [?]
   }
   return;
-}
+}*/

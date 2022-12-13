@@ -3,6 +3,7 @@
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
 #include "orbit_integration.hpp"
+#include <datetime/dtcalendar.hpp>
 
 constexpr const int Np = 1;
 
@@ -16,7 +17,8 @@ void dso::VariationalEquations(
     dso::IntegrationParameters &params) noexcept {
 
   // current mjd, TAI
-  const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
+  // const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
+  const dso::TwoPartDate cmjd(params.mjd_tai+dso::TwoPartDate(0e0,tsec/86400e0));
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -49,7 +51,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 1> sun_acc;
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
-  dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
+  dso::SunMoon(cmjd.mjd(), r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
                tb_partials);
 
   // Drag
@@ -60,7 +62,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> ddragdv;
   Eigen::Matrix<double, 3, 1> ddragdC;
   Eigen::Quaternion<double> q;
-  if (params.qhunt->get_at(cmjd, q)) {
+  if (params.qhunt->get_at(cmjd.mjd(), q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
     assert(false);
   } else {
@@ -82,19 +84,8 @@ void dso::VariationalEquations(
       }
     }
     // get atmospheric density, using the UTC date
-    double imjd;
-    int eid;
-    double utc_fday = std::modf(cmjd, &imjd);
-    const int leap_sec = dso::dat(cmjd, eid);
-    utc_fday -= leap_sec / (86400e0 + (double)eid);
-    if (utc_fday > 1e0) {
-      utc_fday -= 1e0;
-      ++imjd;
-    } else if (utc_fday < 1e0) {
-      utc_fday += 1e0;
-      --imjd;
-    }
-    assert(!params.AtmDataFeed->update_params(imjd, utc_fday * 86400e0));
+    // TODO for now use TAI date
+    assert(!params.AtmDataFeed->update_params(cmjd._big, cmjd._small * 86400e0));
     params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));

@@ -1,5 +1,5 @@
-#include "eop.hpp"
 #include "datetime/utcdates.hpp"
+#include "eop.hpp"
 #include <charconv>
 #include <cstdio>
 #include <cstring>
@@ -45,20 +45,20 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
 
   // if needed, resize the EOP table, interval is [start.end)
   int days = end_mjd.as_underlying_type() - start_mjd.as_underlying_type();
-  eoptable.resize(days);
+  eoptable.clear();
+  eoptable.reserve(days);
 
   char line[MAX_LINE_CHARS];
-  int sz = 0;
-
   constexpr const int utc2tt = true;
 
+  dso::EopRecord rec;
   while (fin.getline(line, MAX_LINE_CHARS)) {
     const char *start;
     const char *end;
     long imjd;
     if (*line && (*line != ' ' && *line != '#')) {
       // skip the data (YYYY MM DD) which is 12 chars length
-      // get the mjd
+      // get the mjd (note that this is UTC)
       start = next_num(line + 12);
       end = line + std::strlen(line);
       auto fcr = std::from_chars(start, end, imjd);
@@ -80,18 +80,17 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
         if (utc2tt) {
           dso::modified_julian_day tai_mjd;
           const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
-          const double tt_fday = tai_fday + (32.184e0/86400e0);
-          *(eoptable.mjd(sz)) =
-              static_cast<double>(tai_mjd.as_underlying_type()) + tt_fday;
+          const double tt_fday = tai_fday + (32.184e0 / 86400e0); // TAI to TT
+          rec.mjd = dso::TwoPartDate(
+              static_cast<double>(tai_mjd.as_underlying_type()), tt_fday);
         } else {
-          *(eoptable.mjd(sz)) = static_cast<double>(imjd);
+          rec.mjd = dso::TwoPartDate(static_cast<double>(imjd), 0e0);
         }
         double data[6];
         for (int i = 0; i < 6; i++) {
           start = next_num(fcr.ptr);
           fcr = std::from_chars(start, end, data[i]);
           if (fcr.ec != std::errc() || fcr.ptr == start) {
-            // fprintf(stderr, "[ERROR] i=%d, line=\"%s\"\n", i, start);
             ++error;
           }
         }
@@ -105,21 +104,21 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
         }
 
         // assign (watch the order)
-        *(eoptable.xp(sz)) = data[0];
-        *(eoptable.yp(sz)) = data[1];
-        *(eoptable.dut(sz)) = data[2];
-        *(eoptable.lod(sz)) = data[3];
-        *(eoptable.dx(sz)) = data[4];
-        *(eoptable.dy(sz)) = data[5];
+        rec.xp = data[0];
+        rec.yp = data[1];
+        rec.dut = data[2];
+        rec.lod = data[3];
+        rec.dx = data[4];
+        rec.dy = data[5];
 
-        ++sz;
+        eoptable.push_back(rec);
       } else if (cmjd >= end_mjd) {
         break;
       }
 
     } // if (line[0] != ' ') ...
-  } // end reading lines
+  }   // end reading lines
 
   // we were supposed to collect:
-  return !(days == sz);
+  return !(days == eoptable.size());
 }
