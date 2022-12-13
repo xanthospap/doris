@@ -3,7 +3,7 @@
 
 #include "cmat2d.hpp"
 #include "eigen3/Eigen/Eigen"
-#include "gravity/associated_legendre.hpp"
+#include "associated_legendre.hpp"
 #include "matvec/matvec.hpp"
 #include "harmonic_coeffs.hpp"
 #include "datetime/dtcalendar.hpp"

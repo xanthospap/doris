@@ -20,6 +20,7 @@
 
 namespace dso {
 
+/// TODO storage type should be transformed to COLUMN-WISE
 /// @brief Storage and access of Harmonic Coefficients.
 /// We are allocating and using a 2-d array of size (degree+1) * (degree+1)
 /// (hence not actually using the order of the Coefficients). This make take

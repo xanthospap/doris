@@ -1,6 +1,6 @@
-#include "tides.hpp"
-#include "iers2010/iau.hpp"
 #include "geodesy/geoconst.hpp"
+#include "iers2010/iau.hpp"
+#include "tides.hpp"
 #include <cmath>
 
 namespace {
@@ -93,7 +93,8 @@ const Step2TidesCoeffs ST2_m21[]{{/*125755*/ 2, 0, 2, 0, 2, -0.1e0, 0.0e0},
 /// @param[in] fundarg Pointer to an array containing Fundamental Arguments,
 ///            in the order [l, l', F, F, Ω]
 /// @return Step 2, ΔC_(20) correction
-double compute_step2_m0([[maybe_unused]]double gmst, const double *const fundarg) noexcept {
+double compute_step2_m0([[maybe_unused]] double gmst,
+                        const double *const fundarg) noexcept {
   constexpr const int szm20 = sizeof(ST2_m20) / sizeof(ST2_m20[0]);
   double dC20 = 0e0;
   // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5

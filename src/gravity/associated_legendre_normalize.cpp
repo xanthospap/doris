@@ -3,7 +3,7 @@
 
 void dso::AssociatedLegendreFunctions::normalize() noexcept {
   const double sqrt2_ = std::sqrt(2e0);
-  for (int n = 1; n <= m_order; n++) {
+  for (int n = 1; n <= m_degree; n++) {
     const double tnp1 = 2 * n + 1;
     double factor = std::sqrt(tnp1);
     P(n, 0) *= factor;

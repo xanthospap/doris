@@ -5,23 +5,23 @@
 
 namespace dso {
 struct AssociatedLegendreFunctions {
-  int m_order; ///< order, inclusive
-  ///< Lower triangular, of size (order+1, order+1)
+  int m_degree; ///< degree, inclusive; order  = degree
+  ///< Lower triangular, of size (degree+1, degree+1)
   dso::Mat2D<dso::MatrixStorageType::LwTriangularRowWise> P;
 
-  AssociatedLegendreFunctions(int order)
-      : m_order(order), P(order + 1, order + 1){};
+  AssociatedLegendreFunctions(int degree)
+      : m_degree(degree), P(degree + 1, degree + 1){};
 
   double &operator()(int n, int m) noexcept {
 #ifdef DEBUG
-    assert(n>=0 && m <= n && n <= m_order);
+    assert(n>=0 && m <= n && n <= m_degree);
 #endif
     return P(n,m);
   }
   
   double operator()(int n, int m) const noexcept {
 #ifdef DEBUG
-    assert(n>=0 && m <= n && n <= m_order);
+    assert(n>=0 && m <= n && n <= m_degree);
 #endif
     return P(n,m);
   }
