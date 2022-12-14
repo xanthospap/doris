@@ -85,8 +85,8 @@ struct JasonQuaternionHunter {
   }
 
   int find_interval(const dso::TwoPartDate &tai_mjd) const noexcept {
-    printf("Requasting for quaternion at : %.2f = %.15f\n", tai_mjd._big, tai_mjd._small);
-    dump_buffered_quaternions();
+    // printf("Requasting for quaternion at : %.2f = %.15f\n", tai_mjd._big, tai_mjd._small);
+    // dump_buffered_quaternions();
     // start searching from the top, aka from last element
     int qindex = NumQuaternionsInBuffer - 2;
     for (int i = qindex; i >= 0; --i) {

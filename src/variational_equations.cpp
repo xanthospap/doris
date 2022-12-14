@@ -8,7 +8,7 @@
 constexpr const int Np = 1;
 
 void dso::VariationalEquations(
-    double tsec, // TAI
+    double tsec, // seconds from reference epoch (TAI)
     // state and state transition matrix (inertial RF)
     const Eigen::VectorXd &yPhi,
     // state derivative and state transition matrix derivative (inertial RF)
@@ -62,7 +62,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> ddragdv;
   Eigen::Matrix<double, 3, 1> ddragdC;
   Eigen::Quaternion<double> q;
-  if (params.qhunt->get_at(cmjd.mjd(), q)) {
+  if (params.qhunt->get_at(cmjd, q)) {
     fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
     assert(false);
   } else {

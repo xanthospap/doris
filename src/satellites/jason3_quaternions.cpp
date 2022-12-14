@@ -17,7 +17,7 @@ int resolve_jason3_body_quaternion_line(
   try {
     auto utc = dso::utc_strptime_ymd_hms(line);
     record.tai_mjd = dso::utc2tai(utc);
-    printf("Note that we resolved ITC date %s to %.2f + %.15f\n", line, record.tai_mjd._big, record.tai_mjd._small);
+    // printf("Note that we resolved ITC date %s to %.2f + %.15f\n", line, record.tai_mjd._big, record.tai_mjd._small);
   } catch (std::exception &e) {
     fprintf(stderr,
             "[ERROR] Failed resolving date in quaternion file, line \'%s\' "
@@ -128,7 +128,7 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd, int &ind
   // first, check if we are ok, i.e. the time requested is within the buffered
   // interval
   index = this->find_interval(tai_mjd);
-  printf("Index returned: %d\n", index);
+  // printf("Index returned: %d\n", index);
   assert(index >= 0);
   if (index < NumQuaternionsInBuffer) {
     return 0;
@@ -168,9 +168,9 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd, int &ind
               bodyq[0].tai_mjd.mjd(), bodyq[1].tai_mjd.mjd());
       return 1;
     }
-    printf("Hunting failed, next quaternions was at: %.1f + %.15f\n", tmp.tai_mjd._big, tmp.tai_mjd._small);
-    printf("Rejected beacuse: %1d %1d\n",(tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd), (tai_mjd < tmp.tai_mjd));
-    printf("Again, that is: %.1f + %.15f < %.1f + %.15f\n", tai_mjd._big, tai_mjd._small, tmp.tai_mjd._big, tmp.tai_mjd._small);
+    //printf("Hunting failed, next quaternions was at: %.1f + %.15f\n", tmp.tai_mjd._big, tmp.tai_mjd._small);
+    //printf("Rejected beacuse: %1d %1d\n",(tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd), (tai_mjd < tmp.tai_mjd));
+    //printf("Again, that is: %.1f + %.15f < %.1f + %.15f\n", tai_mjd._big, tai_mjd._small, tmp.tai_mjd._big, tmp.tai_mjd._small);
     // else, find a suitable interval ....
     int error = 0;
     left_shift();
@@ -180,7 +180,7 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd, int &ind
       error = bodyin.get_next(tmp);
       left_shift();
       bodyq[NumQuaternionsInBuffer - 1] = tmp;
-      printf("\tnext quaternions is at: %.1f + %.15f\n", tmp.tai_mjd._big, tmp.tai_mjd._small);
+      // printf("\tnext quaternions is at: %.1f + %.15f\n", tmp.tai_mjd._big, tmp.tai_mjd._small);
       // bodyq[0] = tmp;
       // bodyq[1] = tmp2;
       // tmp = tmp2;

@@ -11,77 +11,6 @@ namespace {
   const double TAI2TTFDAYS = 32.184e0 / 86400e0;
 }
 
-// TODO should have an error status!!!!
-#ifdef ABCD
-Eigen::Matrix<double, 3, 3>
-dso::itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
-               Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept {
-
-  // Need UTC datetime
-  int imjd = (int)mjd_tai;
-  double sec = (mjd_tai - (int)mjd_tai) * 86400e0;
-  dso::nanoseconds::underlying_type iSec =
-      static_cast<dso::nanoseconds::underlying_type>(
-          sec * dso::nanoseconds::template sec_factor<double>());
-  dso::datetime<dso::nanoseconds> taidate{dso::modified_julian_day(imjd),
-                                          dso::nanoseconds(iSec)};
-  dso::modified_julian_day utc_mjd;
-  double utc = dso::tai2utc(taidate, utc_mjd);
-  utc += static_cast<double>(utc_mjd.as_underlying_type());
-
-  // interpolate/correct EOP values using UTC
-  double xp, yp, dut1;
-  if (int error; (error = eop_table.interpolate(utc, xp, yp, dut1))) {
-    fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
-  }
-
-  dso::datetime<dso::nanoseconds> ttdate = taidate;
-
-  // Form the celestial-to-intermediate matrix for this TT.
-  auto rc2i = iers2010::sofa::c2i06a(dso::mjd0_jd, ttdate.as_mjd());
-  // printf("RC2I\n");
-  // for (int i=0; i<3; i++) {
-  //   for (int j=0; j<3; j++) {
-  //     printf(" %+.6f ", rc2i(i,j));
-  //   }
-  //   printf("\n");
-  // }
-
-  // Predict the Earth rotation angle for this UT1.
-  const double ut1 = utc + (dut1 / 86400e0) * 1e-3;
-  const double era = iers2010::sofa::era00(dso::mjd0_jd, ut1);
-
-  // Estimate s'.
-  const double sp = iers2010::sofa::sp00(dso::mjd0_jd, ttdate.as_mjd());
-
-  // Form the polar motion matrix.
-  auto rpom =
-      iers2010::sofa::pom00(xp * iers2010::DMAS2R, yp * iers2010::DMAS2R, sp);
-
-  // Combine to form the celestial-to-terrestrial matrix.
-  auto mat = rpom * dso::Mat3x3::RotZ(era) * rc2i;
-  // printf("RC22\n");
-  // for (int i=0; i<3; i++) {
-  //   for (int j=0; j<3; j++) {
-  //     printf(" %+.6f ", tmp(i,j));
-  //   }
-  //   printf("\n");
-  // }
-
-  // note that the following will result in an Eigen matrix that is the
-  // transpose of mat (Eigen uses Column-Major and Mat3x3 Row-Major)
-  Eigen::Matrix<double, 3, 3> t2c(mat.data);
-
-  // ERA derivative
-  const dso::Mat3x3 S({0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth,
-                       0e0, 0e0, 0e0, 0e0, 0e0});
-  mat = rpom * (S * dso::Mat3x3::RotZ(era)) * rc2i;
-  ditrs2gcrs = Eigen::Matrix<double, 3, 3>(mat.data);
-
-  return t2c;
-}
-#else
-
 inline double OmegaEarth(double xlod) noexcept {
   // return iers2010::OmegaEarth * (1e0 - xlod / 86400e0);
   // xlod in [seconds/day]
@@ -148,18 +77,7 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &e
                    Eigen::Matrix<double, 3, 3> &rc2i, double &era,
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
 
-  // TAI MJD to datetime instance
-  //int imjd = (int)mjd_tai;
-  //double sec = (mjd_tai - (int)mjd_tai) * 86400e0;
-  //dso::nanoseconds::underlying_type iSec =
-  //    static_cast<dso::nanoseconds::underlying_type>(
-  //        sec * dso::nanoseconds::template sec_factor<double>());
-  //dso::datetime<dso::nanoseconds> taidate{dso::modified_julian_day(imjd),
-  //                                        dso::nanoseconds(iSec)};
-
   // TAI to TT
-  //dso::datetime<dso::nanoseconds> ttdate(taidate);
-  //ttdate.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
   dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
 
   // interpolate/correct EOP values using TT
@@ -199,11 +117,6 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &e
   ut1._small += eops.dut / 86400e0; // add UT1-UTC, interpolated
   const auto sofa_ut1jd = ut1.normalized().jd_sofa();
   era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);
-  //dso::modified_julian_day utc_mjd;
-  //const double utc = dso::tai2utc(taidate, utc_mjd); // fractional part
-  //const double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
-  //era = iers2010::sofa::era00(
-  //    dso::mjd0_jd + (double)utc_mjd.as_underlying_type(), ut1);
 
   // Estimate s' [radians]
   const double sp = iers2010::sofa::sp00(sofajd._big, sofajd._small);
@@ -211,10 +124,7 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &e
   // Form the polar motion matrix (W); note that we need angular units in
   // radians
   rpom =
-      // iers2010::sofa::pom00_e(dso::sec2rad(eops.xp), dso::sec2rad(eops.yp), sp);
-      iers2010::sofa::pom00_e(X, Y, sp);
+      iers2010::sofa::pom00_e(dso::sec2rad(eops.xp), dso::sec2rad(eops.yp), sp);
 
   return 0;
 }
-
-#endif
