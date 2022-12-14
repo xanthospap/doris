@@ -9,6 +9,9 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
             const std::vector<dso::TwoPartDate> &t,
             const std::vector<double> &y, int order, int &index,
             double &val) noexcept {
+  constexpr const dso::DateTimeDifferenceType FD =
+      dso::DateTimeDifferenceType::FractionalDays;
+
   // find suitable index in input dates
   if (index < 0) {
     auto it = std::lower_bound(t.begin(), t.end(), tt_fmjd);
@@ -27,10 +30,12 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
     const double l = y[i];
     double pval = 1e0;
     for (int j = index - window; j < i; j++) {
-      pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+      // pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+      pval *= tt_fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
     }
     for (int j = i + 1; j < index + window; j++) {
-      pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+      // pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
+      pval *= tt_fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
     }
     val += l * pval;
   }

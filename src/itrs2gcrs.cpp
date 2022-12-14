@@ -195,11 +195,15 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &e
   rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
 
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)
-  dso::modified_julian_day utc_mjd;
-  const double utc = dso::tai2utc(taidate, utc_mjd); // fractional part
-  const double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
-  era = iers2010::sofa::era00(
-      dso::mjd0_jd + (double)utc_mjd.as_underlying_type(), ut1);
+  dso::TwoPartDate ut1 = dso::tai2utc(mjd_tai); // UTC date
+  ut1._small += eops.dut / 86400e0; // add UT1-UTC, interpolated
+  const auto sofa_ut1jd = ut1.normalized().jd_sofa();
+  era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);
+  //dso::modified_julian_day utc_mjd;
+  //const double utc = dso::tai2utc(taidate, utc_mjd); // fractional part
+  //const double ut1 = utc + (eops.dut / 86400e0); // add UT1-UTC, interpolated
+  //era = iers2010::sofa::era00(
+  //    dso::mjd0_jd + (double)utc_mjd.as_underlying_type(), ut1);
 
   // Estimate s' [radians]
   const double sp = iers2010::sofa::sp00(sofajd._big, sofajd._small);

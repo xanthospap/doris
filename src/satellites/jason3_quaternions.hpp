@@ -2,6 +2,7 @@
 #define __DSO_JASON3_QUATERNION_ROT_HPP__
 
 #include "jason3.hpp"
+#include <datetime/dtcalendar.hpp>
 #include <fstream>
 #include <stdexcept>
 #include "eigen3/Eigen/Geometry"
@@ -10,7 +11,7 @@ namespace dso {
 
 struct JasonBodyQuaternion {
     ///< TAI MJD
-    double tai_mjd;
+    dso::TwoPartDate tai_mjd;
     ///< Quaternion
     Eigen::Quaternion<double> quaternion;
 }; // JasonBodyQuaternion
@@ -52,6 +53,13 @@ struct JasonQuaternionHunter {
   JasonBodyQuaternionFile bodyin;
   JasonBodyQuaternion bodyq[NumQuaternionsInBuffer];
 
+  // only for debuging
+  void dump_buffered_quaternions() const noexcept {
+    for (int i=0; i<NumQuaternionsInBuffer; i++) {
+      printf("\tBuffered Quaternion at: %.2f + %.15f\n", bodyq[i].tai_mjd._big, bodyq[i].tai_mjd._small);
+    }
+  }
+
   /// @brief  Constructor
   /// @param body_fn Name of the quaternion file, parsed into the instance's 
   ///        JasonBodyQuaternionFile member variable
@@ -76,11 +84,13 @@ struct JasonQuaternionHunter {
     return;
   }
 
-  int find_interval(double tai_mjd) const noexcept {
+  int find_interval(const dso::TwoPartDate &tai_mjd) const noexcept {
+    printf("Requasting for quaternion at : %.2f = %.15f\n", tai_mjd._big, tai_mjd._small);
+    dump_buffered_quaternions();
     // start searching from the top, aka from last element
     int qindex = NumQuaternionsInBuffer - 2;
     for (int i = qindex; i >= 0; --i) {
-      if (tai_mjd >= bodyq[i].tai_mjd && tai_mjd < bodyq[i + 1].tai_mjd) {
+      if ((tai_mjd >= bodyq[i].tai_mjd) && (tai_mjd < bodyq[i + 1].tai_mjd)) {
         return i;
       }
     }
@@ -101,14 +111,14 @@ struct JasonQuaternionHunter {
   /// file) and has an effect on where the file streams are placed.
   /// @param[in] t Requested datetime as fractional MJD (TAI)
   /// @return Anything other than 0 signals an error
-  int set_at(double mjd_tai, int &index) noexcept;
+  int set_at(const dso::TwoPartDate &mjd_tai, int &index) noexcept;
 
   /// @brief Get the quaternion for a given datetime instance, using the
   ///        SLERP interpolation method.
   /// @param[in]  t Requested datetime as fractional MJD (TAI)
   /// @param[out] q The quaternion at time t
   /// @return Always zero
-  int get_at(double mjd_tai, Eigen::Quaternion<double> &q) noexcept;
+  int get_at(const dso::TwoPartDate &mjd_tai, Eigen::Quaternion<double> &q) noexcept;
 }; // JasonQuaternionHunter
 
 } // dso
