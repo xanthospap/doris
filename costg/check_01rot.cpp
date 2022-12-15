@@ -10,7 +10,7 @@
 #include <vector>
 
 struct Rotary {
-  double mjd;
+  dso::TwoPartDate mjd;
   Eigen::Matrix<double, 3, 3> R;
 };
 
@@ -22,13 +22,13 @@ inline const char *skipws(const char *line) noexcept {
   return str;
 }
 
-double gps2tt(double gpst) noexcept {
+dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
-  return gpst + offset;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
-double gps2tai(double gpst) noexcept {
+dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (19e0) / 86400e0;
-  return gpst + offset;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
 
 int main(int argc, char *argv[]) {
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
-      dso::modified_julian_day(static_cast<int>(refrots[0].mjd)),
+      dso::modified_julian_day(static_cast<int>(refrots[0].mjd._big)),
       dso::nanoseconds(0));
 
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     // differences [-]
     printf("%12.5f %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e "
            "%+.15e\n",
-           rot.mjd, R(0, 0) - rot.R(0, 0), R(0, 1) - rot.R(0, 1),
+           rot.mjd.mjd(), R(0, 0) - rot.R(0, 0), R(0, 1) - rot.R(0, 1),
            R(0, 2) - rot.R(0, 2), R(1, 0) - rot.R(1, 0), R(1, 1) - rot.R(1, 1),
            R(1, 2) - rot.R(1, 2), R(2, 0) - rot.R(2, 0), R(2, 1) - rot.R(2, 1),
            R(2, 2) - rot.R(2, 2));
@@ -128,8 +128,11 @@ int map_input(const char *fn, std::vector<Rotary> &rots) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     rots.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(_data+1)});
+        {dso::TwoPartDate(it, ft),
+         Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(_data + 1)});
   }
 
   printf("Number of records collected to compare: %d\n", (int)rots.size());
