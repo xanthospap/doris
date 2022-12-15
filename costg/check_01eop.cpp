@@ -9,8 +9,8 @@
 #include <vector>
 
 struct Eop01Record {
-  double mjd,         // [mjd]
-      xp, yp, sprime, // [rad]
+  dso::TwoPartDate mjd;         // [mjd]
+  double    xp, yp, sprime, // [rad]
       dut1, lod,      // [sec]
       X, Y, s;        // [rad]
 
@@ -34,9 +34,13 @@ inline const char *skipws(const char *line) noexcept {
   return str;
 }
 
-double gps2tt(double gpst) noexcept {
+dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
-  return gpst + offset;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
+}
+dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
+  constexpr const double offset = (19e0) / 86400e0;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
 
 int main(int argc, char *argv[]) {
@@ -56,7 +60,7 @@ int main(int argc, char *argv[]) {
 
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
-      dso::modified_julian_day(static_cast<int>(refeops[0].mjd)),
+      dso::modified_julian_day(static_cast<int>(refeops[0].mjd._big)),
       dso::nanoseconds(0));
 
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -90,11 +94,12 @@ int main(int argc, char *argv[]) {
 
     // compute X,Y from series, IAU2006/2000A
     double X, Y;
-    iers2010::sofa::xy06(dso::mjd0_jd, gps2tt(eop.mjd), X, Y);
+    const dso::TwoPartDate jd = gps2tt(eop.mjd).jd_sofa();
+    iers2010::sofa::xy06(jd._big, jd._small, X, Y);
     // compute CIO locator, s [radians]
-    const double s = iers2010::sofa::s06(dso::mjd0_jd, gps2tt(eop.mjd), X, Y);
+    const double s = iers2010::sofa::s06(jd._big, jd._small, X, Y);
     // compute TIO locator, s' [radians]
-    const double sp = iers2010::sofa::sp00(dso::mjd0_jd, gps2tt(eop.mjd));
+    const double sp = iers2010::sofa::sp00(jd._big, jd._small);
 
     // add corrections (from EOP interpolation) to X,Y
     X += dso::sec2rad(myeop.dx);
@@ -110,7 +115,7 @@ int main(int argc, char *argv[]) {
 #else
         "%12.5f %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e %+.12e\n",
 #endif
-        eop.mjd, reop.xp - myeop.xp, reop.yp - myeop.yp, reop.dut1 - myeop.dut,
+        eop.mjd.mjd(), reop.xp - myeop.xp, reop.yp - myeop.yp, reop.dut1 - myeop.dut,
         reop.lod - myeop.lod, dso::rad2sec(eop.X - X), dso::rad2sec(eop.Y - Y),
         dso::rad2sec(eop.s - s), dso::rad2sec(eop.sprime - sp));
   }
@@ -154,7 +159,9 @@ int map_input(const char *fn, std::vector<Eop01Record> &eops) {
       }
       c = cres.ptr;
     }
-    eops.push_back({_data[0], _data[1], _data[2], _data[3], _data[4], _data[5],
+    double it;
+    const double ft = std::modf(_data[0], &it);
+    eops.push_back({dso::TwoPartDate(it,ft), _data[1], _data[2], _data[3], _data[4], _data[5],
                     _data[6], _data[7], _data[8]});
   }
 

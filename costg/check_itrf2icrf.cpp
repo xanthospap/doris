@@ -11,7 +11,7 @@
 using namespace std::chrono;
 
 struct Pos {
-  double mjd;
+  dso::TwoPartDate mjd;
   Eigen::Matrix<double, 3, 1> xyz;
 };
 
@@ -22,14 +22,13 @@ inline const char *skipws(const char *line) noexcept {
     ++str;
   return str;
 }
-
-double gps2tt(double gpst) noexcept {
+dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
-  return gpst + offset;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
-double gps2tai(double gpst) noexcept {
+dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (19e0) / 86400e0;
-  return gpst + offset;
+  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
 
 int main(int argc, char *argv[]) {
@@ -52,7 +51,7 @@ int main(int argc, char *argv[]) {
   
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
-      dso::modified_julian_day(static_cast<int>(itrfPos[0].mjd)),
+      dso::modified_julian_day(static_cast<int>(itrfPos[0].mjd._big)),
       dso::nanoseconds(0));
 
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -66,9 +65,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // regularize ERP (DUT and LOD)
-  // eop_lut.regularize();
-  
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
   
@@ -80,17 +76,17 @@ int main(int argc, char *argv[]) {
     // Transformation data
     assert(!dso::gcrs2itrs(gps2tai(tpos.mjd), eop_lut, rc2i, era, rpom, xlod));
 
-    // transform itrf 2 icrf
+    // transform itrf-to-icrf
     const Eigen::Matrix<double, 3, 1> cpos =
         dso::rter2cel(tpos.xyz, rc2i, era, rpom);
 
     // report differences
     auto cit = std::find_if(it, icrfPos.cend(), [&](const Pos &p) {
-      return std::abs(p.mjd - tpos.mjd) < 1e-16;
+      return std::abs(p.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(tpos.mjd)) < 1e-3;
     });
     
     if (cit != icrfPos.cend()) {
-      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd, cpos(0) - cit->xyz(0),
+      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), cpos(0) - cit->xyz(0),
              cpos(1) - cit->xyz(1), cpos(2) - cit->xyz(2));
       it = cit;
     }
@@ -142,8 +138,10 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     poss.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())
