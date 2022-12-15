@@ -94,7 +94,7 @@ hdr_src_files = glob.glob(r"src/*.hpp")
 
 ## Environments ...
 denv = Environment(CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -Wdisabled-optimization -DDEBUG')
-penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native')
+penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DUSE_SOFA')
 
 ## Command line arguments ...
 debug = ARGUMENTS.get('debug', 0)
@@ -174,4 +174,4 @@ if GetOption('costg'):
         pth = os.path.dirname(tsource)
         bsn = os.path.basename(tsource)
         ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
-        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')

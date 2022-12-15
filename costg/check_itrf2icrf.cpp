@@ -8,6 +8,10 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
+#ifdef USE_SOFA
+#  include "sofa.h"
+#endif
+
 using namespace std::chrono;
 
 struct Pos {
@@ -77,8 +81,34 @@ int main(int argc, char *argv[]) {
     assert(!dso::gcrs2itrs(gps2tai(tpos.mjd), eop_lut, rc2i, era, rpom, xlod));
 
     // transform itrf-to-icrf
-    const Eigen::Matrix<double, 3, 1> cpos =
+    [[maybe_unused]]const Eigen::Matrix<double, 3, 1> cpos =
         dso::rter2cel(tpos.xyz, rc2i, era, rpom);
+
+#ifdef USE_SOFA
+    const dso::TwoPartDate ttjd = gps2tt(tpos.mjd).normalized();
+    int iy, im, id;
+    double fd, dat;
+    assert(!iauJd2cal(ttjd._big + dso::mjd0_jd, ttjd._small, &iy, &im, &id, &fd));
+    assert(!iauDat(iy, im, id, fd, &dat));
+    dso::EopRecord myeop;
+    if (eop_lut.interpolate(gps2tt(tpos.mjd), myeop, 3)) {
+      fprintf(stderr, "ERROR. My interpolation failed!\n");
+      return 1;
+    }
+    const double extra = (-dat + myeop.dut) / 86400e0;
+    printf("> Note, adding extra seconds: %.12f\n", -dat + myeop.dut);
+    dso::TwoPartDate utjd(gps2tai(tpos.mjd));
+    utjd._small += extra;
+    utjd.normalize();
+    double rc2t[3][3];
+    iauC2t06a(ttjd._big + dso::mjd0_jd, ttjd._small, utjd._big + dso::mjd0_jd,
+              utjd._small, dso::sec2rad(myeop.xp), dso::sec2rad(myeop.yp),
+              rc2t);
+    iauTr(rc2t, rc2t);
+    double v[] = {tpos.xyz(0), tpos.xyz(1), tpos.xyz(2)};
+    double rp[3];
+    iauRxp(rc2t, v, rp);
+#endif
 
     // report differences
     auto cit = std::find_if(it, icrfPos.cend(), [&](const Pos &p) {
@@ -86,8 +116,13 @@ int main(int argc, char *argv[]) {
     });
     
     if (cit != icrfPos.cend()) {
+#ifdef USE_SOFA
+      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), rp[0] - cit->xyz(0),
+             rp[1] - cit->xyz(1), rp[2] - cit->xyz(2));
+#else
       printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), cpos(0) - cit->xyz(0),
              cpos(1) - cit->xyz(1), cpos(2) - cit->xyz(2));
+#endif
       it = cit;
     }
   }
