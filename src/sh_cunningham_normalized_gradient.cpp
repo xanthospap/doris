@@ -12,6 +12,20 @@
 #endif
 
 namespace {
+struct KahanSum {
+  double sum{0e0};
+  double c{0e0}; //error
+  void operator+(double val) noexcept {
+    const double y = val - c;
+    const double t = sum + y;
+    c = (t-sum) - y;
+    sum = t;
+  }
+  double operator()() const noexcept {
+    return sum;
+  }
+};// KahanSum
+
 // compile-time factors
 template <int N> struct NormalizedLegendreFactors {
   std::array<double, N *(N + 1) / 2> fac1{};
@@ -125,7 +139,7 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
     const double z = r.z() * rr;
 
     // start ALF iteration
-    const int __use_factor = false;
+    const int __use_factor = true;
     if (__use_factor)
       M(0, 0) = 1e280 / r.norm();
     else
@@ -165,11 +179,32 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
       W.multiply(1e-280);
     }
   } // end computing Legendre
+  /* groops-like ....
+  for (int m=1; m<=lp_degree; m++) {
+    M(m, m) = F.f1(m, m) * (x * M(m - 1, m - 1) - y * W(m - 1, m - 1));
+    W(m, m) = F.f1(m, m) * (y * M(m - 1, m - 1) + x * W(m - 1, m - 1));
+  }
+  for (int m=1; m<=lp_degree; m++) {
+    M(m, m-1) = F.f1(m, m-1) * z * M(m-1, m-1);
+    W(m, m-1) = F.f1(m, m-1) * z * W(m-1, m-1);
+  }
+  for (int m=0; m<lp_degree-1; m++) {
+    for (int n=m+2; n<=lp_degree; n++) {
+      M(n, m) = F.f1(n, m) * z * M(n - 1, m) + F.f2(n, m) * rr * M(n - 2, m);
+      W(n, m) = F.f1(n, m) * z * W(n - 1, m) + F.f2(n, m) * rr * W(n - 2, m);
+    }
+  }
+  M.multiply(1e-280);
+  W.multiply(1e-280);
+  }*/
 
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
   gradient = Eigen::Matrix<double,3,3>::Zero();
-  [[maybe_unused]] const int minDegree = 0;
+  [[maybe_unused]] const int minDegree = 1;
+#ifdef KAHAN_SUM
+    KahanSum axs,ays,azs;
+#endif
 
   // start from smaller terms. note that for degrees m=0,1, we are using 
   // seperate loops
@@ -195,6 +230,11 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
         const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
         const double az = cs.C(n, m) * (-2 * Cm0) + cs.S(n, m) * (-2 * Sm0);
 
+#ifdef KAHAN_SUM
+  axs + ax*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  ays + ay*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  azs + az*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+#endif
         acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
                std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
       }
@@ -268,6 +308,11 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
         const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
         const double az = cs.C(n, m) * (-2e0 * Cm0) + cs.S(n, m) * (-2 * Sm0);
 
+#ifdef KAHAN_SUM
+  axs + ax*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  ays + ay*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  azs + az*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+#endif
         acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
                std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
     }
@@ -328,6 +373,11 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
       const double ay = cs.C(n, 0) * (-2e0 * Sp1);
       const double az = cs.C(n, 0) * (-2e0 * Cm0);
 
+#ifdef KAHAN_SUM
+  axs + ax*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  ays + ay*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+  azs + az*std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+#endif
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
              std::sqrt((2e0 * n + 1.) / (2e0 * n + 3e0));
     }
@@ -362,9 +412,54 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
     }
   }
 
+  /* groops-like ...
+  Eigen::Matrix<double,3,1> g, g_ges=Eigen::Matrix<double,3,1>::Zero();
+  for (int n = minDegree; n <= degree; n++) {
+    double wm0 = std::sqrt(static_cast<double>(n + 1) * (n + 1));
+    double wp1 =
+        std::sqrt(static_cast<double>(n + 1) * (n + 2)) / std::sqrt(2.0);
+
+    double Cm0 = wm0 * W(n + 1, 0);
+    double Cp1 = wp1 * W(n + 1, 1);
+    double Sp1 = wp1 * W(n + 1, 1);
+
+    g.x() = cs.C(n, 0) * (-2 * Cp1);
+    g.y() = cs.C(n, 0) * (-2 * Sp1);
+    g.z() = cs.C(n, 0) * (-2 * Cm0);
+
+    for (int m = 1; m <= n; m++) {
+      double wm1 = std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2)) *
+                   ((m == 1) ? std::sqrt(2.0) : 1.0);
+      wm0 = std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+      wp1 = std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+
+      double Cm1 = wm1 * W(n + 1, m - 1);
+      double Sm1 = wm1 * W(n + 1, m - 1);
+      Cm0 = wm0 * W(n + 1, m);
+      double Sm0 = wm0 * W(n + 1, m);
+      Cp1 = wp1 * W(n + 1, m + 1);
+      Sp1 = wp1 * W(n + 1, m + 1);
+
+      g.x() += cs.C(n, m) * (Cm1 - Cp1) + cs.S(n, m) * (Sm1 - Sp1);
+      g.y() += cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
+      g.z() += cs.C(n, m) * (-2 * Cm0) + cs.S(n, m) * (-2 * Sm0);
+    }
+    g_ges += std::sqrt((2. * n + 1.) / (2. * n + 3.)) * g;
+  }
+
+  g_ges = GM/(2*Re*Re) * g_ges;
+  printf("# Acceleration diffs = %.15f %.15f %.15f\n", g_ges(0)-acc(0),  g_ges(1)-acc(1),  g_ges(2)-acc(2));
+  acc = g_ges;
+  */
+
   // scale ...
   gradient *= GM/(4e0*Re*Re*Re);
   acc *= GM/(2e0*Re*Re);
+#ifdef KAHAN_SUM
+  Eigen::Matrix<double,3,1> ks({axs(), ays(), azs()});
+  ks *= GM/(2e0*Re*Re);
+  printf("# Acceleration diffs = %.15f %.15f %.15f\n", ks(0)-acc(0),  ks(1)-acc(1),  ks(2)-acc(2));
+#endif
 
   return 0;
 }
