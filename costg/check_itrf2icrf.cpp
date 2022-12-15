@@ -11,7 +11,7 @@
 using namespace std::chrono;
 
 struct Pos {
-  dso::TwoPartDate mjd;
+  double mjd;
   Eigen::Matrix<double, 3, 1> xyz;
 };
 
@@ -22,13 +22,14 @@ inline const char *skipws(const char *line) noexcept {
     ++str;
   return str;
 }
-dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
+
+double gps2tt(double gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
-  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
+  return gpst + offset;
 }
-dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
+double gps2tai(double gpst) noexcept {
   constexpr const double offset = (19e0) / 86400e0;
-  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
+  return gpst + offset;
 }
 
 int main(int argc, char *argv[]) {
@@ -51,7 +52,7 @@ int main(int argc, char *argv[]) {
   
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
-      dso::modified_julian_day(static_cast<int>(itrfPos[0].mjd._big)),
+      dso::modified_julian_day(static_cast<int>(itrfPos[0].mjd)),
       dso::nanoseconds(0));
 
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -85,11 +86,11 @@ int main(int argc, char *argv[]) {
 
     // report differences
     auto cit = std::find_if(it, icrfPos.cend(), [&](const Pos &p) {
-      return std::abs(p.mjd.diff<dso::DateTimeDifferenceType::FractionalDays>(tpos.mjd)) < 1e-3;
+      return std::abs(p.mjd - tpos.mjd) < 1e-16;
     });
     
     if (cit != icrfPos.cend()) {
-      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), cpos(0) - cit->xyz(0),
+      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd, cpos(0) - cit->xyz(0),
              cpos(1) - cit->xyz(1), cpos(2) - cit->xyz(2));
       it = cit;
     }
@@ -141,10 +142,8 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
-    double it;
-    const double ft = std::modf(_data[0], &it);
     poss.push_back(
-        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())

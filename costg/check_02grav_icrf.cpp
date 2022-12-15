@@ -15,12 +15,12 @@ constexpr const int degree = 120;
 constexpr const int order = 120;
 
 struct Acc {
-  dso::TwoPartDate mjd;
+  double mjd;
   Eigen::Matrix<double, 3, 1> a;
 };
 
 struct Pos {
-  dso::TwoPartDate mjd;
+  double mjd;
   Eigen::Matrix<double, 3, 1> xyz;
 };
 
@@ -33,13 +33,13 @@ inline const char *skipws(const char *line) noexcept {
   return str;
 }
 
-dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
+double gps2tt(double gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
-  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
+  return gpst + offset;
 }
-dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
+double gps2tai(double gpst) noexcept {
   constexpr const double offset = (19e0) / 86400e0;
-  return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
+  return gpst + offset;
 }
 
 int main(int argc, char *argv[]) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
-      dso::modified_julian_day(static_cast<int>(refaccs[0].mjd._big)),
+      dso::modified_julian_day(static_cast<int>(refaccs[0].mjd)),
       dso::nanoseconds(0));
 
   // Parse the input EOP data file to create an EopLookUpTable eop_lut
@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
       acc4;
   [[maybe_unused]] Eigen::Matrix<double, 3, 3> grad;
   [[maybe_unused]] int dummy_it = 0;
+  [[maybe_unused]] const double t0 = it->mjd;
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Mwork(degree + 3,
                                                                 degree + 3),
       Wwork(degree + 3, degree + 3);
@@ -117,7 +118,7 @@ int main(int argc, char *argv[]) {
 
     // find relative reference acceleration result
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
-      return std::abs(a.mjd.diff<dso::DateTimeDifferenceType::FractionalDays>(pos.mjd)) < 1e-3;
+      return std::abs(a.mjd - pos.mjd) < 1e-16;
     });
 
     // compute differences
@@ -126,7 +127,7 @@ int main(int argc, char *argv[]) {
       acc32 = dso::rter2cel(acc32, rc2i, era, rpom);
       //printf("%.12f %+.15f %+.15f %+.15f [31]\n", pos.mjd, acc3(0) - cit->a(0),
       //       acc3(1) - cit->a(1), acc3(2) - cit->a(2));
-      printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd.mjd(), acc32(0) - cit->a(0),
+      printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd, acc32(0) - cit->a(0),
              acc32(1) - cit->a(1), acc32(2) - cit->a(2));
       it = cit;
     }
@@ -181,10 +182,8 @@ int map_input(const char *fn, std::vector<Acc> &accs) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
-    double it;
-    const double ft = std::modf(_data[0], &it);
-    accs.push_back({dso::TwoPartDate(it, ft),
-                    Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+    accs.push_back(
+        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())
@@ -230,10 +229,8 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
-    double it;
-    const double ft = std::modf(_data[0], &it);
-    poss.push_back({dso::TwoPartDate(it, ft),
-                    Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+    poss.push_back(
+        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())
