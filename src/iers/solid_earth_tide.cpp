@@ -38,6 +38,36 @@ int array2harmonics(const std::array<double, 12> &dC,
 
 return 0;
 }
+
+void compute_legendre(
+    double latitude,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &P) noexcept {
+  const double sf = std::sin(latitude);
+  const double sf2 = sf*sf;
+  const double cf = std::cos(latitude);
+  const double cf2 = cf*cf;
+  P(0,0) = 0e0;
+
+  P(1,0) = sf;
+  P(1,1) = -cf;
+
+  P(2,0) = 0.5e0 * (3e0 * sf2 - 1e0);
+  P(2,1) = -3e0 * sf *cf;
+  P(2,2) = 3e0 * cf;
+
+  P(3,0) = 0.5e0*sf*(5e0*sf2-3e0);
+  P(3,1) = (3e0/2e0)*(1e0-5e0*sf2)*cf;
+  P(3,2) = 15e0*sf*cf2;
+  P(3,3) = -15e0*cf*cf2;
+
+  P(4,0) = (1e0/8e0)*(35e0*sf2*sf2-30e0*sf2+3e0);
+  P(4,1) = (-5e0/2e0)*(7e0*sf2*sf-3e0*sf)*cf;
+  P(4,2) = 7.5e0 * (7e0*sf*sf-1e0)*cf2;
+  P(4,3) = -105e0*sf*cf2*cf;
+  P(4,4) = 105e0*cf2*cf2;
+
+  return;
+}
 }// unnamed namespace
 
 /// @brief Compute corrections to normalized C and S gravitational
@@ -64,8 +94,8 @@ int dso::SolidEarthTide::operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
   const Eigen::Matrix<double,3,1> Srfl = dso::car2sph(rsun);
 
   // compute associated Legendre functions
-  PM.compute(std::sin(Mrfl(1)));
-  PS.compute(std::sin(Srfl(1)));
+  compute_legendre(Mrfl(1), PM.P);
+  compute_legendre(Srfl(1), PS.P);
 
   // Step 1 corrections
   solid_earth_tide_step1(Mrfl(0), Srfl(0), Mrfl(2), Srfl(2), dC, dS);

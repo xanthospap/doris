@@ -134,10 +134,6 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd, int &ind
     return 0;
   }
 
-#ifdef DEBUG
-  assert(tmp.tai_mjd > bodyq[NumQuaternionsInBuffer - 1].tai_mjd);
-#endif
-
   // get next quaternion, hopefully we are ok now ...
   // new quternion temporarilly stored in tmp
   dso::JasonBodyQuaternion tmp;
@@ -148,6 +144,9 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd, int &ind
         __func__);
     return 1;
   }
+#ifdef DEBUG
+  assert(tmp.tai_mjd > bodyq[NumQuaternionsInBuffer - 1].tai_mjd);
+#endif
 
   // check if we are ok with this pair ...
   if ((tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd) &&

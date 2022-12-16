@@ -4,13 +4,24 @@
 #include "cmat2d.hpp"
 
 namespace dso {
+namespace detail {
+  constexpr const int MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE = 4;
+};//detail
 struct AssociatedLegendreFunctions {
   int m_degree; ///< degree, inclusive; order  = degree
   ///< Lower triangular, of size (degree+1, degree+1)
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularRowWise> P;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> P;
 
   AssociatedLegendreFunctions(int degree)
-      : m_degree(degree), P(degree + 1, degree + 1){};
+      : m_degree(degree),
+        P((degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+              ? (detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE + 1)
+              : (degree + 1),
+          (degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+              ? (detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE + 1)
+              : (degree + 1)) {}
+
+  int degree() const noexcept {return m_degree;}
 
   double &operator()(int n, int m) noexcept {
 #ifdef DEBUG
@@ -39,7 +50,7 @@ struct AssociatedLegendreFunctions {
   /// TODO This is more of a column-wise computation algorithm. Could maybe 
   /// gain speed if we used LwTriangularColWise storage type or use another 
   /// algorithm
-  void compute(double phi) noexcept;
+  /// void compute(double phi) noexcept;
 
   /// @brief Normalize Legendere functions, using the scale factor:
   ///        N_nm = sqrt[ (n-m)! (2n+1) (2-Kronecker(0,m) / (n+m)! ]
