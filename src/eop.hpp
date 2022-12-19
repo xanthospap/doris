@@ -21,10 +21,10 @@ struct EopRecord {
 ///        information in UTC).
 struct EopLookUpTable {
   std::vector<dso::TwoPartDate> t;
-  std::vector<double> xp,yp,dut1,dX,dY,lod;
-  
-  EopLookUpTable() noexcept {reserve(8);}
-  
+  std::vector<double> xp, yp, dut1, dX, dY, lod;
+
+  EopLookUpTable() noexcept { reserve(8); }
+
   void push_back(const EopRecord &r) noexcept {
     t.push_back(r.mjd);
     xp.push_back(r.xp);
@@ -36,7 +36,7 @@ struct EopLookUpTable {
   }
 
   int size() const noexcept { return t.size(); }
-  
+
   void clear() noexcept {
     t.clear();
     xp.clear();
@@ -78,8 +78,8 @@ struct EopLookUpTable {
   /// TODO Must handle leap seconds, see Bradley et al
   int interpolate(const dso::TwoPartDate &mjd_tt, EopRecord &eopr,
                   int order = 3) const noexcept;
-  //int interpolate2(double fmjd_tt, EopRecord &eopr,
-  //                int order = 3) const noexcept;
+  // int interpolate2(double fmjd_tt, EopRecord &eopr,
+  //                 int order = 3) const noexcept;
 
   /// @brief Interpolate EOP/ERPs at time ffmjd_tt using Lgrangian
   /// interpolation
@@ -116,9 +116,9 @@ struct EopLookUpTable {
 ///             ypa   Array of y pole (EOP) in arcseconds [arcsec]
 ///             ut1a  Array of UT1-UTC values in seconds [sec]
 ///             loda  Array of LOD values in seconds/day [sec]
-/// @note  EOP files contain UTC time-stamps. In this function, the time-tags 
-///        (mjd array) will be converted to TT before appended to the mjd 
-///        array, hence the mjd array in the eoptable instance will be n 
+/// @note  EOP files contain UTC time-stamps. In this function, the time-tags
+///        (mjd array) will be converted to TT before appended to the mjd
+///        array, hence the mjd array in the eoptable instance will be n
 ///        MJD/TT.
 /// @return Anything other than 0 denotes an error
 int parse_iers_C04(const char *c04fn, dso::modified_julian_day start,

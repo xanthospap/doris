@@ -104,7 +104,7 @@ int dso::extrapolate_sinex_coordinates(
   // clear result size
   result_size = 0;
 
-  // a vector to hold indexes of station_ids that are missing from the SINEX 
+  // a vector to hold indexes of station_ids that are missing from the SINEX
   // file
   std::vector<int> missing_indexes;
 
@@ -118,23 +118,30 @@ int dso::extrapolate_sinex_coordinates(
   int error = snx.parse_block_site_id(site_vec, num_stations, station_ids);
   if (error || (int)site_vec.size() != num_stations) {
     if (error) {
-    fprintf(stderr,
-            "[ERROR] Failed to collect info for given sites; SINEX file is %s "
-            "(traceback: %s)\n",
-            snx.filename().c_str(), __func__);
-    return 1;
+      fprintf(
+          stderr,
+          "[ERROR] Failed to collect info for given sites; SINEX file is %s "
+          "(traceback: %s)\n",
+          snx.filename().c_str(), __func__);
+      return 1;
     } else {
       // report the missing station(s)
-      for (int i=0; i<num_stations; i++) {
+      for (int i = 0; i < num_stations; i++) {
         const char *sid = station_ids[i];
-        const auto it = std::find_if(site_vec.begin(), site_vec.end(),
-                                     [&](const dso::sinex::SiteId& rid) {return !std::strncmp(sid, rid.m_site_code, 4);});
+        const auto it =
+            std::find_if(site_vec.begin(), site_vec.end(),
+                         [&](const dso::sinex::SiteId &rid) {
+                           return !std::strncmp(sid, rid.m_site_code, 4);
+                         });
         if (it == site_vec.end()) {
-          fprintf(stderr, "[WARNING] Failed to find station %.4s in SINEX file %s\n", sid, snx_fn);
+          fprintf(stderr,
+                  "[WARNING] Failed to find station %.4s in SINEX file %s\n",
+                  sid, snx_fn);
           missing_indexes.push_back(i);
         }
       }
-      if (missing_site_is_error) return 2;
+      if (missing_site_is_error)
+        return 2;
     }
   }
 

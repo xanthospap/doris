@@ -5,9 +5,9 @@
 #include "harmonic_coeffs.hpp"
 #include <cmath>
 #ifdef DEBUG
+#include "geodesy/units.hpp"
 #include <cfenv>
 #include <limits>
-#include "geodesy/units.hpp"
 //#  pragma STDC_FENV_ACCESS on
 #endif
 
@@ -69,14 +69,15 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
 
   // cartesian to spherical, using the Earth's equatorial radius
   const Eigen::Matrix<double, 3, 1> sph = dso::car2sph(r);
-  printf("Spherical coordinates are: %.12f %.12f %.12f\n", sph(0), dso::rad2deg(sph(1)), dso::rad2deg(sph(2)));
+  printf("Spherical coordinates are: %.12f %.12f %.12f\n", sph(0),
+         dso::rad2deg(sph(1)), dso::rad2deg(sph(2)));
 
   // geocentric latitude [rad]
   assert(sph(1) != M_PI / 2e0);
   //
-  //double theta = std::atan(r(0)*r(0)+r(1)*r(1));
-  //if (r(2)<0e0) theta = M_PI + theta;
-  //const double phi = M_PI / 2e0 - theta;
+  // double theta = std::atan(r(0)*r(0)+r(1)*r(1));
+  // if (r(2)<0e0) theta = M_PI + theta;
+  // const double phi = M_PI / 2e0 - theta;
   //
   const double phi = sph(1);
   const double cf = std::cos(phi);

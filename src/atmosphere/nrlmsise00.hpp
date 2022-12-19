@@ -2,15 +2,15 @@
 #define __DSO_NRLMSISE00_CVERS_HPP__
 
 #include "datetime/dtcalendar.hpp"
-#include "nrlmsise00_const.hpp"
-#include "var_utils.hpp"
+#include "eigen3/Eigen/Eigen"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
+#include "nrlmsise00_const.hpp"
+#include "var_utils.hpp"
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <geodesy/ellipsoid.hpp>
-#include "eigen3/Eigen/Eigen"
 #ifdef DEBUG
 #include <cassert>
 #include <cstdio>
@@ -144,20 +144,20 @@ struct Switches {
 struct ApArray {
   double a[7];
   // since we are declaring an assignment operator, we need to have all ...
-  ApArray& operator=(const ApArray& other) noexcept {
+  ApArray &operator=(const ApArray &other) noexcept {
     if (this != &other) {
       std::memcpy(a, other.a, sizeof(double) * 7);
     }
     return *this;
   }
-  ApArray& operator=(const double *other) noexcept {
+  ApArray &operator=(const double *other) noexcept {
     if (this->a != other) {
       std::memcpy(a, other, sizeof(double) * 7);
     }
     return *this;
   }
   ApArray() noexcept = default;
-  ApArray(const ApArray&) noexcept = default;
+  ApArray(const ApArray &) noexcept = default;
   ~ApArray() = default;
 }; // dso::nrlmsise00::ApArray
 
@@ -234,14 +234,10 @@ struct InParamsCore {
 
   /// @brief Set the Ap index array values using an input array
   /// @param[in] ap_array Should hold 7 double values, as ordered in ApArray
-  void set_ap_array(const double *ap_array) noexcept {
-    aparr = ap_array;
-  }
+  void set_ap_array(const double *ap_array) noexcept { aparr = ap_array; }
 
   /// @brief Set the Ap index array values using an ApArray
-  void set_ap_array(const ApArray &ap_array) noexcept {
-    aparr = ap_array;
-  }
+  void set_ap_array(const ApArray &ap_array) noexcept { aparr = ap_array; }
 
   /// @brief
   int get_flux_data(const char *csvfn) noexcept;
@@ -272,10 +268,10 @@ struct Nrlmsise00DataFeed {
 
   // --- rule of fucking five --
   // @brief Copy constructor
-  Nrlmsise00DataFeed(const Nrlmsise00DataFeed&) = delete;
-  Nrlmsise00DataFeed(Nrlmsise00DataFeed&&) = delete;
-  Nrlmsise00DataFeed& operator=(const Nrlmsise00DataFeed&) = delete;
-  Nrlmsise00DataFeed& operator=(Nrlmsise00DataFeed&&) = delete;
+  Nrlmsise00DataFeed(const Nrlmsise00DataFeed &) = delete;
+  Nrlmsise00DataFeed(Nrlmsise00DataFeed &&) = delete;
+  Nrlmsise00DataFeed &operator=(const Nrlmsise00DataFeed &) = delete;
+  Nrlmsise00DataFeed &operator=(Nrlmsise00DataFeed &&) = delete;
   ~Nrlmsise00DataFeed() noexcept {};
 
   /// @brief Initialize -- do not use, is used automatically --
@@ -330,7 +326,7 @@ template <> struct InParams<detail::FluxDataFeedType::ST_CSV_SW> {
     return feed_.update(params_);
   }
 
-  /// @brief Set parameter set spatial input data (longitude, latitude and 
+  /// @brief Set parameter set spatial input data (longitude, latitude and
   /// altitude) from a set of cartesian ECEF coordinates
   void
   set_spatial_from_cartesian(const Eigen::Matrix<double, 3, 1> &xyz) noexcept {
@@ -338,7 +334,7 @@ template <> struct InParams<detail::FluxDataFeedType::ST_CSV_SW> {
         dso::car2ell<dso::ellipsoid::grs80>(xyz);
     params_.glon = dso::rad2deg(lfh(0)); // longitude in degrees
     params_.glat = dso::rad2deg(lfh(1)); // latitude in degrees
-    params_.alt  = lfh(2) * 1e-3; // altitude in km
+    params_.alt = lfh(2) * 1e-3;         // altitude in km
   }
 };
 

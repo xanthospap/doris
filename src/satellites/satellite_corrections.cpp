@@ -4,14 +4,14 @@
 #include <fstream>
 
 int dso::get_satellite_corrections(const char *j3mass,
-                                const dso::datetime<dso::nanoseconds> &t,
-                                double *dmdxyz) noexcept {
+                                   const dso::datetime<dso::nanoseconds> &t,
+                                   double *dmdxyz) noexcept {
   std::ifstream fin(j3mass);
   if (!fin.is_open()) {
-    fprintf(
-        stderr,
-        "[ERROR] Failed to open satellite information file: %s (traceback: %s)\n",
-        j3mass, __func__);
+    fprintf(stderr,
+            "[ERROR] Failed to open satellite information file: %s (traceback: "
+            "%s)\n",
+            j3mass, __func__);
     return 1;
   }
 
@@ -30,7 +30,8 @@ int dso::get_satellite_corrections(const char *j3mass,
       char *last = line + 255;
 
       // remove whitespace chars
-      while (*c++ == ' '); 
+      while (*c++ == ' ')
+        ;
 
       // first resolve datetime from Julian date
       double cjd, csec;
@@ -39,7 +40,8 @@ int dso::get_satellite_corrections(const char *j3mass,
       if (*c++ != ' ' || pec.ec != std::errc{}) {
         ++error;
       }
-      while (*c++ == ' ');
+      while (*c++ == ' ')
+        ;
       pec = std::from_chars(c, last, csec);
       c = pec.ptr;
       if (*c++ != ' ' || pec.ec != std::errc{}) {
@@ -52,10 +54,11 @@ int dso::get_satellite_corrections(const char *j3mass,
 
       // prior date, update corrections
       for (int i = 0; i < 4; i++) {
-        while (*c++ == ' ');
+        while (*c++ == ' ')
+          ;
         pec = std::from_chars(c, last, dmdxyz[i]);
         c = pec.ptr + 1;
-        if (/**c++ != ' ' || */pec.ec != std::errc{}) {
+        if (/**c++ != ' ' || */ pec.ec != std::errc{}) {
           ++error;
         }
       }
@@ -63,11 +66,12 @@ int dso::get_satellite_corrections(const char *j3mass,
   }
 
   if (error) {
-    fprintf(stderr,
-            "[ERROR] Failed resolving line: \"%s\" in satellite ninformation file: "
-            "%s (traceback: "
-            "%s)\n",
-            line, j3mass, __func__);
+    fprintf(
+        stderr,
+        "[ERROR] Failed resolving line: \"%s\" in satellite ninformation file: "
+        "%s (traceback: "
+        "%s)\n",
+        line, j3mass, __func__);
     return error;
   }
 

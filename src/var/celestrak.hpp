@@ -68,7 +68,7 @@ int resolve_csv_line_date(const char *line,
 ///             record, for the next day
 /// @param[in] days_before Number of days to be collected, before mjd
 /// @param[in] days_after Number of days to be collected, after mjd
-/// @return Anything other than 0 denotes an error. In this case, the 
+/// @return Anything other than 0 denotes an error. In this case, the
 ///         resulting flux_data may be erronuous!
 int parse_csv_for_date(dso::modified_julian_day mjd, const char *fncsv,
                        CelestTrakSWFlux *flux_data,

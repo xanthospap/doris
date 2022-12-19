@@ -2,7 +2,7 @@
 #include "geodesy/geodesy.hpp"
 #include "iers2010/iersc.hpp"
 
-/// @brief Compute the relativistic clock correction for a given point 
+/// @brief Compute the relativistic clock correction for a given point
 ///        (normally satellite) at r with velocity v (in ECEF).
 /// @param[in] recef Position vector of body in ECEF reference frame [m]
 /// @param[in] vecef Velocity vector of body in ECEF reference frame [m/sec]
@@ -23,13 +23,13 @@ dso::relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
   // velocity squared
   const double V2 = vecef.squaredNorm();
 
-  //printf("\tRCC::emitter: %20.6f (=%.3f + %.3f)\n", U + V2 / 2e0, U, V2/2e0);
+  // printf("\tRCC::emitter: %20.6f (=%.3f + %.3f)\n", U + V2 / 2e0, U, V2/2e0);
 
   // return total potential, aka U + V^2 / 2
   return (U + V2 / 2e0) / iers2010::C;
 }
 
-/// @brief Compute the relativistic clock correction for a given point 
+/// @brief Compute the relativistic clock correction for a given point
 ///        (normally satellite) at r with velocity v (in ECEF).
 /// @param[in] recef Position vector of body in ECEF reference frame [m]
 /// @param[in] vecef Velocity vector of body in ECEF reference frame [m/sec]
@@ -61,8 +61,8 @@ dso::relativistic_clock_correction(const Eigen::Matrix<double, 3, 1> &recef,
 
   // velocity squared
   const double V2 = vecef.squaredNorm();
-  
-  //printf("\tRCC::receiver %20.6f (=%.3f + %.3f)\n", U + V2 / 2e0, U, V2/2e0);
+
+  // printf("\tRCC::receiver %20.6f (=%.3f + %.3f)\n", U + V2 / 2e0, U, V2/2e0);
 
   // return total potential, aka U + V^2 / 2
   return (U + V2 / 2e0) / iers2010::C;

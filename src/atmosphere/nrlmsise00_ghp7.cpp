@@ -11,7 +11,7 @@ int dso::Nrlmsise00::ghp7(const InParamsCore *in,
 
   double pl = std::log10(press);
 
-  double zi=0e0, z;
+  double zi = 0e0, z;
   // initial altitude estimate
   if (pl >= -5e0) {
     if (pl > 2.5e0)

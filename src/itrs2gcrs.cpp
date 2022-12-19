@@ -8,7 +8,7 @@
 #include <iers2010/iersc.hpp>
 
 namespace {
-  const double TAI2TTFDAYS = 32.184e0 / 86400e0;
+const double TAI2TTFDAYS = 32.184e0 / 86400e0;
 }
 
 inline double OmegaEarth(double xlod) noexcept {
@@ -17,7 +17,7 @@ inline double OmegaEarth(double xlod) noexcept {
   // see https://www.iers.org/IERS/EN/Science/EarthRotation/UT1LOD.html
   // tranform LOD to milliseconds (from seconds)
   const double LOD = xlod * 1e3;
-  return (72921151.467064e0 - 0.843994809e0*LOD) * 1e-12; // [rad/sec]
+  return (72921151.467064e0 - 0.843994809e0 * LOD) * 1e-12; // [rad/sec]
 }
 
 Eigen::Matrix<double, 3, 1>
@@ -31,8 +31,7 @@ dso::rcel2ter(const Eigen::Matrix<double, 3, 1> r,
 Eigen::Matrix<double, 6, 1>
 dso::ycel2ter(const Eigen::Matrix<double, 6, 1> y,
               const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-              double xlod,
-              const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+              double xlod, const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
   Eigen::Matrix<double, 6, 1> x;
   x.block<3, 1>(0, 0) = dso::rcel2ter(y.block<3, 1>(0, 0), rc2i, era, rpom);
   x.block<3, 1>(3, 0) = dso::rcel2ter(y.block<3, 1>(3, 0), rc2i, era, rpom);
@@ -57,8 +56,7 @@ dso::rter2cel(const Eigen::Matrix<double, 3, 1> r,
 Eigen::Matrix<double, 6, 1>
 dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
               const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-              double xlod,
-              const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
+              double xlod, const Eigen::Matrix<double, 3, 3> &rpom) noexcept {
   Eigen::Matrix<double, 6, 1> x;
   x.block<3, 1>(0, 0) = dso::rter2cel(y.block<3, 1>(0, 0), rc2i, era, rpom);
   x.block<3, 1>(3, 0) = dso::rter2cel(y.block<3, 1>(3, 0), rc2i, era, rpom);
@@ -73,7 +71,8 @@ dso::yter2cel(const Eigen::Matrix<double, 6, 1> y,
 }
 
 // IAU 2006/2000A, CIO based, using X,Y series
-int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &eop_table,
+int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
+                   const dso::EopLookUpTable &eop_table,
                    Eigen::Matrix<double, 3, 3> &rc2i, double &era,
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
 
@@ -114,7 +113,7 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &e
 
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)
   dso::TwoPartDate ut1 = dso::tai2utc(mjd_tai); // UTC date
-  ut1._small += eops.dut / 86400e0; // add UT1-UTC, interpolated
+  ut1._small += eops.dut / 86400e0;             // add UT1-UTC, interpolated
   const auto sofa_ut1jd = ut1.normalized().jd_sofa();
   era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);
 

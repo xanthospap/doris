@@ -1,8 +1,8 @@
+#include "egravity.hpp"
 #include "geodesy/geodesy.hpp"
+#include "harmonic_coeffs.hpp"
 #include "iers2010/iau.hpp"
 #include "iers2010/iersc.hpp"
-#include "harmonic_coeffs.hpp"
-#include "egravity.hpp"
 #include "tides.hpp"
 
 namespace {
@@ -14,31 +14,30 @@ namespace {
 ///                 0,  1   2 3   4   5   6 7   8   9
 int array2harmonics(const std::array<double, 12> &dC,
                     const std::array<double, 12> &dS,
-                    dso::HarmonicCoeffs &cs) noexcept 
-{
+                    dso::HarmonicCoeffs &cs) noexcept {
   cs.clear();
-  cs.C(2,0) = dC[0];
-  cs.C(3,0) = dC[3];
-  cs.C(4,0) = dC[7];
-  cs.C(2,1) = dC[1];
-  cs.C(3,1) = dC[4];
-  cs.C(4,1) = dC[8];
-  cs.C(2,2) = dC[2];
-  cs.C(3,2) = dC[5];
-  cs.C(4,2) = dC[9];
-  cs.C(3,3) = dC[6];
+  cs.C(2, 0) = dC[0];
+  cs.C(3, 0) = dC[3];
+  cs.C(4, 0) = dC[7];
+  cs.C(2, 1) = dC[1];
+  cs.C(3, 1) = dC[4];
+  cs.C(4, 1) = dC[8];
+  cs.C(2, 2) = dC[2];
+  cs.C(3, 2) = dC[5];
+  cs.C(4, 2) = dC[9];
+  cs.C(3, 3) = dC[6];
 
-  cs.S(2,1) = dS[1];
-  cs.S(2,2) = dS[2];
-  cs.S(3,1) = dS[4];
-  cs.S(3,2) = dS[5];
-  cs.S(3,3) = dS[6];
-  cs.S(4,1) = dS[8];
-  cs.S(4,2) = dS[9];
+  cs.S(2, 1) = dS[1];
+  cs.S(2, 2) = dS[2];
+  cs.S(3, 1) = dS[4];
+  cs.S(3, 2) = dS[5];
+  cs.S(3, 3) = dS[6];
+  cs.S(4, 1) = dS[8];
+  cs.S(4, 2) = dS[9];
 
-return 0;
+  return 0;
 }
-}// unnamed namespace
+} // unnamed namespace
 
 /// @brief Compute corrections to normalized C and S gravitational
 ///        coefficients, using the model(s) described in IERS2010 standards.
@@ -55,13 +54,13 @@ return 0;
 ///             dS = 0,S21,S22,S30,S31,S32,S33,S40,S41,S42,0,0
 int dso::SolidEarthTide::operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
                                double ut1_mjd,*/
-                               const Eigen::Matrix<double, 3, 1> &rmoon,
-                               const Eigen::Matrix<double, 3, 1> &rsun,
-                               std::array<double, 12> &dC,
-                               std::array<double, 12> &dS) noexcept {
+                                    const Eigen::Matrix<double, 3, 1> &rmoon,
+                                    const Eigen::Matrix<double, 3, 1> &rsun,
+                                    std::array<double, 12> &dC,
+                                    std::array<double, 12> &dS) noexcept {
   // Spherical cordinates of Moon and Sun (ITRF)
-  const Eigen::Matrix<double,3,1> Mrfl = dso::car2sph(rmoon);
-  const Eigen::Matrix<double,3,1> Srfl = dso::car2sph(rsun);
+  const Eigen::Matrix<double, 3, 1> Mrfl = dso::car2sph(rmoon);
+  const Eigen::Matrix<double, 3, 1> Srfl = dso::car2sph(rsun);
 
   // compute associated Legendre functions (given geocentric latitude, φ)
   PM.at(Mrfl(1));
@@ -84,10 +83,11 @@ int dso::SolidEarthTide::operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
   return 0;
 }
 
-int dso::SolidEarthTide::acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
-                                 const Eigen::Matrix<double, 3, 1> &rmoon,
-                                 const Eigen::Matrix<double, 3, 1> &rsun,
-                                 Eigen::Matrix<double, 3, 1> &acc) noexcept {
+int dso::SolidEarthTide::acceleration(
+    const Eigen::Matrix<double, 3, 1> &rsat,
+    const Eigen::Matrix<double, 3, 1> &rmoon,
+    const Eigen::Matrix<double, 3, 1> &rsun,
+    Eigen::Matrix<double, 3, 1> &acc) noexcept {
   Eigen::Matrix<double, 3, 1> a;
   Eigen::Matrix<double, 3, 3> partials;
 

@@ -9,7 +9,7 @@ constexpr const double pi2 = iers2010::D2PI;
 /// @brief Normalize in range [0, 2π], including negative angles
 inline double arg02pi(double angle) noexcept {
   const double t = std::fmod(angle, pi2);
-  return t + (t<0e0)*pi2;
+  return t + (t < 0e0) * pi2;
 }
 
 double dso::kepler(double e, double M, int &status,
@@ -18,7 +18,7 @@ double dso::kepler(double e, double M, int &status,
   M = arg02pi(M);
   const bool elt08 = (e < 8e-1);
   double E = (!elt08) * pi + elt08 * M;
-  
+
   double f;
   int it = 0;
   do {
@@ -41,7 +41,7 @@ double dso::kepler_vallado(double e, double M, int &status,
   const bool mr = (M > -pi && M < 0) || (M > pi);
   const double esign = mr * -e + (!mr) * e;
   double En = M + esign;
-  
+
   double E;
   int it = 0;
   do {
@@ -56,4 +56,3 @@ double dso::kepler_vallado(double e, double M, int &status,
 #endif
   return En;
 }
-

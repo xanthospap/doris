@@ -9,7 +9,7 @@ int dso::Nrlmsise00::gtd7d(const InParamsCore *in,
   double *__restrict__ d = out->d;
 
 #if __cplusplus >= 202002L
-  if (mass == 48) [[likely]]{
+  if (mass == 48) [[likely]] {
 #else
   if (mass == 48) {
 #endif

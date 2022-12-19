@@ -37,7 +37,7 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
   constexpr StorageImplementation(int r, [[maybe_unused]] int _) noexcept
       : rows(r){};
 
-  void __set_dimensions(int _rows, [[maybe_unused]]int _cols) noexcept {
+  void __set_dimensions(int _rows, [[maybe_unused]] int _cols) noexcept {
     rows = _rows;
   }
 
@@ -83,8 +83,8 @@ struct StorageImplementation<MatrixStorageType::LwTriangularColWise> {
   constexpr std::size_t num_elements() const noexcept {
     return rows * (rows + 1) / 2;
   }
-  
-  void __set_dimensions(int _rows, [[maybe_unused]]int _cols) noexcept {
+
+  void __set_dimensions(int _rows, [[maybe_unused]] int _cols) noexcept {
     rows = _rows;
   }
 
@@ -122,7 +122,7 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
 
   constexpr int nrows() const noexcept { return rows; }
   constexpr int ncols() const noexcept { return cols; }
-  
+
   void __set_dimensions(int _rows, int _cols) noexcept {
     rows = _rows;
     cols = _cols;
@@ -178,7 +178,7 @@ template <> struct StorageImplementation<MatrixStorageType::RowWise> {
 
   constexpr int nrows() const noexcept { return rows; }
   constexpr int ncols() const noexcept { return cols; }
-  
+
   void __set_dimensions(int _rows, int _cols) noexcept {
     rows = _rows;
     cols = _cols;
@@ -215,7 +215,7 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
 
   constexpr int nrows() const noexcept { return rows; }
   constexpr int ncols() const noexcept { return cols; }
-  
+
   void __set_dimensions(int _rows, int _cols) noexcept {
     rows = _rows;
     cols = _cols;

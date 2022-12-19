@@ -1,7 +1,7 @@
 #include "doris_rinex.hpp"
 #include "doris_system_info.hpp"
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 #include <datetime/dtfund.hpp>
 #ifdef DEBUG
 #include "datetime/datetime_write.hpp"
@@ -13,8 +13,8 @@ struct BeaconObservationData {
 };
 
 int compute_ndop(const std::vector<dso::BeaconObservations> &obsvec,
-    const dso::datetime<dso::nanoseconds> &t,
-    std::vector<BeaconObservationData> &data) noexcept {
+                 const dso::datetime<dso::nanoseconds> &t,
+                 std::vector<BeaconObservationData> &data) noexcept {
   const char *newid = nullptr;
   for (const auto &newobs : obsvec) {
     newid = newobs.m_beacon_id;
@@ -37,7 +37,6 @@ int compute_ndop(const std::vector<dso::BeaconObservations> &obsvec,
   return 0;
 }
 
-
 int update(const std::vector<dso::BeaconObservations> &obsvec,
            const dso::datetime<dso::nanoseconds> &t,
            std::vector<BeaconObservationData> &data) noexcept {
@@ -52,7 +51,7 @@ int update(const std::vector<dso::BeaconObservations> &obsvec,
     // if not, append
     if (it == data.end()) {
       data.emplace_back(BeaconObservationData{newobs, t});
-    // else set current observation records for this beacon
+      // else set current observation records for this beacon
     } else {
       it->obs = newobs;
       it->t = t;

@@ -1,7 +1,7 @@
 #include "nrlmsise00.hpp"
 
-dso::nrlmsise00::detail::InParamsCore::InParamsCore(dso::modified_julian_day mjd,
-                                      double secday) noexcept {
+dso::nrlmsise00::detail::InParamsCore::InParamsCore(
+    dso::modified_julian_day mjd, double secday) noexcept {
   const dso::datetime<dso::milliseconds> t(
       mjd, dso::milliseconds(
                static_cast<dso::milliseconds::underlying_type>(secday * 1e3)));

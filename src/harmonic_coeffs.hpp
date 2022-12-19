@@ -103,7 +103,7 @@ public:
   double J2() const noexcept { return -m_data[2 * (m_degree + 1)]; };
   void clear() noexcept {
     if (m_data)
-    std::memset(m_data, 0, (m_degree + 1)*(m_degree + 1)*sizeof(double));
+      std::memset(m_data, 0, (m_degree + 1) * (m_degree + 1) * sizeof(double));
   }
 
   /// @brief De-normalize harmonic coefficients.
@@ -135,7 +135,7 @@ public:
     assert(degree <= m_degree);
 #endif
     // C(degree,0)-> C(degree, degree)
-    return m_data + (degree * (m_degree + 1)); 
+    return m_data + (degree * (m_degree + 1));
   }
 
   /// @brief Get the C coefficient of degree i and order j
@@ -143,8 +143,8 @@ public:
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
-    //if (i==1)
-    //printf(">>request for C(%d,%d)\n", i,j);
+    // if (i==1)
+    // printf(">>request for C(%d,%d)\n", i,j);
     return C_row(i)[j];
   }
 
@@ -153,8 +153,8 @@ public:
 #ifdef DEBUG
     assert(i <= m_degree && j <= i);
 #endif
-    //if (i==1)
-    //printf(">>request for C(%d,%d) --const--\n", i,j);
+    // if (i==1)
+    // printf(">>request for C(%d,%d) --const--\n", i,j);
     return C_row(i)[j];
   }
 

@@ -33,10 +33,11 @@ dso::DorisObsRinex::DorisObsRinex(const char *fn)
   try {
     int status = read_header();
     if (status) {
-      fprintf(stderr,
-              "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: "
-              "%s)\n",
-              fn, status, __func__);
+      fprintf(
+          stderr,
+          "[ERROR] Failed reading RINEX header for %s (error=%d) (traceback: "
+          "%s)\n",
+          fn, status, __func__);
       throw std::runtime_error("[ERROR] Cannot read RINEX header");
     }
   } catch (std::exception &) {

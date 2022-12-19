@@ -49,14 +49,15 @@ int dso::parse_gravity_model(const char *model_fn, int degree, int order,
   if (denormalize)
     harmonics.denormalize();
 
-  //for (int n = 0; n <= 3; n++) {
-  //  printf("C(%d,%d) = %.15e ", n, 0, harmonics.C(n, 0));
-  //  for (int m = 1; m <= n; m++) {
-  //    printf("C(%d,%d) = %.15e, S(%d,%d) = %.15e ", n, m, harmonics.C(n, m), n,
-  //           m, harmonics.S(n, m));
-  //  }
-  //  printf("\n");
-  //}
+  // for (int n = 0; n <= 3; n++) {
+  //   printf("C(%d,%d) = %.15e ", n, 0, harmonics.C(n, 0));
+  //   for (int m = 1; m <= n; m++) {
+  //     printf("C(%d,%d) = %.15e, S(%d,%d) = %.15e ", n, m, harmonics.C(n, m),
+  //     n,
+  //            m, harmonics.S(n, m));
+  //   }
+  //   printf("\n");
+  // }
 
   // all done
   return 0;

@@ -1,5 +1,5 @@
-#include "tides.hpp"
 #include "geodesy/geodesy.hpp"
+#include "tides.hpp"
 #include <cmath>
 
 namespace {
@@ -45,7 +45,7 @@ pole_tide_part2(double m1, double m2,
 
   return Eigen::Matrix<double, 3, 1>(Slambda, Stheta, Sr);
 }
-}// unnamed namespace
+} // unnamed namespace
 
 /// @brief Compute Pole Tides according to IERS 2010, Sec. 7.1.4
 /// @param t  Date (IERS does not identify the time-scale)
@@ -53,9 +53,9 @@ pole_tide_part2(double m1, double m2,
 /// @param yp Polar motion in y [arcseconds]
 /// @param sites Geodetic coordinates aka longitude, latitude height (in
 ///           this order), in units of [rad], [rad], [m]
-/// @param Senu The deformation vector as (Slambda, Stheta, Sr) aka in east, 
-///           north and up directions, in [mm]. If the site has cartesian 
-///           coordinates (x,y,z), then the changes in them due to the pole 
+/// @param Senu The deformation vector as (Slambda, Stheta, Sr) aka in east,
+///           north and up directions, in [mm]. If the site has cartesian
+///           coordinates (x,y,z), then the changes in them due to the pole
 ///           tide are: (dx,dy,dz) = R^(T) * (Stheta, Slambda, Sr), with
 ///             | cosθcosλ  cosθsinλ  -sinθ |
 ///         R = |  -sinθ      cosλ      0   |
@@ -68,7 +68,7 @@ int dso::pole_tide(const dso::datetime<dso::nanoseconds> &t, double xp,
   if (Senu.capacity() < sites.size())
     Senu.reserve(sites.size());
 
-        Senu.clear();
+  Senu.clear();
 
   // t to fractional years
   const double tfyears = t.as_fractional_years();

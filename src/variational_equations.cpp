@@ -18,7 +18,8 @@ void dso::VariationalEquations(
 
   // current mjd, TAI
   // const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
-  const dso::TwoPartDate cmjd(params.mjd_tai+dso::TwoPartDate(0e0,tsec/86400e0));
+  const dso::TwoPartDate cmjd(params.mjd_tai +
+                              dso::TwoPartDate(0e0, tsec / 86400e0));
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -33,12 +34,11 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> gpartials;
   Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
   Eigen::Matrix<double, 3, 1> gacc;
-  test::gravacc3(params.harmonics, r_geo, params.degree,
-                 params.harmonics.Re(), params.harmonics.GM(), gacc, gpartials,
-                 params.V, params.W);
-  //Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
-  //    r_geo, params.degree, params.order, *(params.Lagrange_V),
-  //    *(params.Lagrange_W), params.harmonics, gpartials);
+  test::gravacc3(params.harmonics, r_geo, params.degree, params.harmonics.Re(),
+                 params.harmonics.GM(), gacc, gpartials, params.V, params.W);
+  // Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
+  //     r_geo, params.degree, params.order, *(params.Lagrange_V),
+  //     *(params.Lagrange_W), params.harmonics, gpartials);
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
@@ -51,8 +51,8 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 1> sun_acc;
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
-  dso::SunMoon(cmjd.mjd(), r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
-               tb_partials);
+  dso::SunMoon(cmjd.mjd(), r, params.GMSun, params.GMMon, sun_acc, mon_acc,
+               rsun, tb_partials);
 
   // Drag
   // Warning only valid for Jason-3
@@ -85,7 +85,8 @@ void dso::VariationalEquations(
     }
     // get atmospheric density, using the UTC date
     // TODO for now use TAI date
-    assert(!params.AtmDataFeed->update_params(cmjd._big, cmjd._small * 86400e0));
+    assert(
+        !params.AtmDataFeed->update_params(cmjd._big, cmjd._small * 86400e0));
     params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
     dso::nrlmsise00::OutParams aout;
     assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));

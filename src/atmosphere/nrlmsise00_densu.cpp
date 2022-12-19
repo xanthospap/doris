@@ -52,7 +52,7 @@ double dso::Nrlmsise00::densu(double alt, double dlb, double t1, double t2,
     for (int k = 0; k < mn; k++) {
       xs[k] = zeta(zn1[k], z1) / zgdif;
     }
-    for (int k = 0; k < mn; k++){
+    for (int k = 0; k < mn; k++) {
       ys[k] = 1e0 / tn1[k];
     }
 

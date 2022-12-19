@@ -14,9 +14,9 @@ template <> struct SatelliteInfo<SATELLITE::Cryosat2> {
 
   /// @ref
   /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
-  static double InitialMass() noexcept {return 724.6e0;} // [kg]
+  static double InitialMass() noexcept { return 724.6e0; } // [kg]
 
-  /// @brief Cryosat-2 initial center of gravity in the satellite fixed frame, 
+  /// @brief Cryosat-2 initial center of gravity in the satellite fixed frame,
   /// in cartesian components (x,y,z) [m].
   /// @ref
   /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
@@ -73,9 +73,8 @@ template <> struct SatelliteInfo<SATELLITE::Cryosat2> {
   /// frame; cartesian (x,y,z) in [m]
   /// @ref
   /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
-  static int
-  pco(Eigen::Matrix<double, 3, 1> &l1_pco,
-      Eigen::Matrix<double, 3, 1> &l2_pco) noexcept {
+  static int pco(Eigen::Matrix<double, 3, 1> &l1_pco,
+                 Eigen::Matrix<double, 3, 1> &l2_pco) noexcept {
     constexpr const double l1pco[] = {1.848e0, -0.200e0, -0.751e0};
     constexpr const double l2pco[] = {1.832e0, -0.200e0, -0.598e0};
     l1_pco = Eigen::Matrix<double, 3, 1>(l1pco);
@@ -84,6 +83,6 @@ template <> struct SatelliteInfo<SATELLITE::Cryosat2> {
   }
 
 }; // SatelliteInfo<SATELLITE::Cryosat2>
-}// dso
+} // namespace dso
 
 #endif

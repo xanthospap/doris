@@ -14,6 +14,6 @@ typedef void (*ODEfun)(double x,                 // Independent variable
                        Eigen::Ref<Eigen::VectorXd> yp, // Partials/Derivative
                        /*Eigen::MatrixXd &Phip, */
                        dso::IntegrationParameters &params) noexcept;
-}// dso
+} // namespace dso
 
 #endif

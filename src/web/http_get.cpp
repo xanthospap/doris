@@ -1,10 +1,10 @@
 #include "cweb.hpp"
 #include <curl/curl.h>
+#include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <filesystem>
 #include <system_error>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
@@ -22,9 +22,10 @@ bool file_exists(const char *local) noexcept {
 }
 
 int dso::http_get(const char *url, const char *local, bool force) noexcept {
-  
+
   // if we are not overwritting and file exists, ... the end!
-  if (!force && file_exists(local)) return -1;
+  if (!force && file_exists(local))
+    return -1;
 
   CURL *curl_handle;
   FILE *pagefile;
@@ -65,12 +66,13 @@ int dso::http_get(const char *url, const char *local, bool force) noexcept {
   }
 
   // remove the opened but empty file in case of error
-  if (status != CURLE_OK) remove(local);
+  if (status != CURLE_OK)
+    remove(local);
 
   //  cleanup curl stuff
   curl_easy_cleanup(curl_handle);
   curl_global_cleanup();
 
   // always return positive value or error
-  return (status<0)? (status*(-1)) : status;
+  return (status < 0) ? (status * (-1)) : status;
 }

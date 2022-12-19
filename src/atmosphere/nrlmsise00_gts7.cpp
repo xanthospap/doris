@@ -59,10 +59,8 @@ int dso::Nrlmsise00::gts7(const InParamsCore *in,
     tgn1[1] = ptm[8] * pma[8][0] * tn1[4] * tn1[4] /
               std::pow(ptm[4] * ptl[3][0], 2e0);
   } else if (input_changed || altlast >= 300e0) {
-    tn1[1] =
-        ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[0]));
-    tn1[2] =
-        ptm[2] * ptl[1][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[1]));
+    tn1[1] = ptm[6] * ptl[0][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[0]));
+    tn1[2] = ptm[2] * ptl[1][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[1]));
     tn1[3] = ptm[7] * ptl[2][0] / (1e0 - in->sw.sw[17] * glob7s(in, ptl[2]));
     tn1[4] = ptm[4] * ptl[3][0] /
              (1e0 - in->sw.sw[17] * in->sw.sw[19] * glob7s(in, ptl[3]));
@@ -77,7 +75,7 @@ int dso::Nrlmsise00::gts7(const InParamsCore *in,
 
   int j = 0;
 #if __cplusplus >= 202002L
-  if (mass) [[likely]]{
+  if (mass) [[likely]] {
 #else
   if (mass) {
 #endif
@@ -368,7 +366,7 @@ int dso::Nrlmsise00::gts7(const InParamsCore *in,
         out->d[7] *= ccor(z, rc14, hcc14, zcc14);
       }
     }
-    
+
     if (j == 1 || j == 3 || j == 4 || j == 6 || j == 9 || j == 7 || j == 8 ||
         j == 10 || j == 11) {
 

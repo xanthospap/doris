@@ -234,9 +234,10 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     erkm1 = 0e0;
     erk = 0e0;
     {
-      //printf("\t> yp =["); for (int i=0; i<neqn; i++) printf(" %.15f, ", yp(i)); printf("]\n");
-      //printf("\t> Phi=["); for (int i=0; i<neqn; i++) printf(" %.15f, ", Phi(i,0)); printf("]\n");
-      //printf("\t> wt =["); for (int i=0; i<neqn; i++) printf(" %.15f, ", wt(i)); printf("]\n");
+      // printf("\t> yp =["); for (int i=0; i<neqn; i++) printf(" %.15f, ",
+      // yp(i)); printf("]\n"); printf("\t> Phi=["); for (int i=0; i<neqn; i++)
+      // printf(" %.15f, ", Phi(i,0)); printf("]\n"); printf("\t> wt =["); for
+      // (int i=0; i<neqn; i++) printf(" %.15f, ", wt(i)); printf("]\n");
       const Eigen::ArrayXd t4array = yp().array() - Phi.col(0).array();
       Eigen::ArrayXd tmpar = t4array / wt().array();
       erk = tmpar.matrix().squaredNorm();
@@ -249,9 +250,10 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
         erkm2 = absh * sig(km1 - 1) * gstr[km2 - 1] * tmpar.matrix().norm();
       }
     }
-    //printf("\t> erk from summation = %+.15f and sqrt(erk) = %+.15f\n", erk, std::sqrt(erk));
-    //printf("\t> using quantities: absh=%+.15f g[k]=%+.15f g[k+1]=%.15f sig[k+1]=%+.15f gstr[k]=%.15f\n",
-    //  absh, g(k-1),g(kp1-1),sig(kp1-1),gstr[k-1]);
+    // printf("\t> erk from summation = %+.15f and sqrt(erk) = %+.15f\n", erk,
+    // std::sqrt(erk)); printf("\t> using quantities: absh=%+.15f g[k]=%+.15f
+    // g[k+1]=%.15f sig[k+1]=%+.15f gstr[k]=%.15f\n",
+    //   absh, g(k-1),g(kp1-1),sig(kp1-1),gstr[k-1]);
     const double t5 = absh * std::sqrt(erk);
     const double err = t5 * (g(k - 1) - g(kp1 - 1));
     erk = t5 * sig(kp1 - 1) * gstr[k - 1];
@@ -320,7 +322,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
       //
       // ***     end block 3     ***
       //
-      //printf("\t\t>step failed! setting new h=%.6f and k=%d\n", h, k);
+      // printf("\t\t>step failed! setting new h=%.6f and k=%d\n", h, k);
     } // if (!step_success)
   } while (!step_success);
 
@@ -334,13 +336,13 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   // -- break point 400: --
   kold = k;
   hold = h;
-  //printf("\t>step success! setting h=%.6f and k=%d\n", h, k);
+  // printf("\t>step success! setting h=%.6f and k=%d\n", h, k);
 
   // correct and evaluate
   const double t1 = h * g(kp1 - 1);
   if (!nornd) {
-    // TODO 
-    // the following line produces an error when compiling with GCC in 
+    // TODO
+    // the following line produces an error when compiling with GCC in
     // non-debug mode.
     // Don't have a fucking clue why!!!
     // const auto rho = t1 * (yp() - Phi.col(0)) - Phi.col(15);
@@ -401,7 +403,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
   assert(new_degree > -2 && new_degree < 2);
 #endif
 
-  //printf("\t>erk array =[%.15f %.15f %.15f]\n", erkm1, erk, erkp1);
+  // printf("\t>erk array =[%.15f %.15f %.15f]\n", erkm1, erk, erkp1);
   switch (new_degree) {
   case -1:
     k = km1;
@@ -416,9 +418,10 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
 
   // with new order determine appropriate step size for next step
   // --break point 460: --
-  //printf("\t\tdeciding new h with phase1=%1d p5eps=%.15f erk=%.15f two=%.1f\n", phase1, p5eps, erk, (double)std::pow(2,k+1));
+  // printf("\t\tdeciding new h with phase1=%1d p5eps=%.15f erk=%.15f
+  // two=%.1f\n", phase1, p5eps, erk, (double)std::pow(2,k+1));
   double hnew;
-  if (phase1 || p5eps >= erk * (double)std::pow(2,k+1)) {
+  if (phase1 || p5eps >= erk * (double)std::pow(2, k + 1)) {
     hnew = 2e0 * h;
   } else {
     if (p5eps < erk) {
@@ -430,9 +433,9 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
       hnew = h;
     }
   }
-  
+
   // --break point 465: --
   h = hnew;
-  //printf("\t>setting up for next step, h=%.6f and k=%d\n", h, k);
+  // printf("\t>setting up for next step, h=%.6f and k=%d\n", h, k);
   return 0;
 }

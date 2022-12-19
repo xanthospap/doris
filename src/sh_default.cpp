@@ -14,14 +14,14 @@
 class Factor {
 public:
   double f1(int n, int m) const noexcept {
-  #ifdef DEBUG
-    assert(n>0 && m<=n);
-  #endif
+#ifdef DEBUG
+    assert(n > 0 && m <= n);
+#endif
     if (n == m)
       return (n == 1) ? std::sqrt(3.0) : std::sqrt((2. * n + 1.) / (2. * n));
     else
       return std::sqrt((2. * n + 1.) / static_cast<double>((n + m) * (n - m)) *
-                (2. * n - 1.));
+                       (2. * n - 1.));
   }
   double f2(int n, int m) const noexcept {
     return -std::sqrt((2. * n + 1.) / static_cast<double>((n + m) * (n - m)) *
@@ -95,7 +95,7 @@ int test::gravacc0(const dso::HarmonicCoeffs &cs,
     double gx = cs.C(n, 0) * (-2 * Cp1);
     double gy = cs.C(n, 0) * (-2 * Sp1);
     double gz = cs.C(n, 0) * (-2 * Cm0);
-    
+
     for (int m = 1; m <= n; m++) {
       double wm1 = std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2)) *
                    ((m == 1) ? std::sqrt(2.0) : 1.0);

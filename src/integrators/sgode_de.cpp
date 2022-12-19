@@ -8,7 +8,7 @@ constexpr const double umach = std::numeric_limits<double>::epsilon();
 // constexpr const double twou = 2e0 * umach;
 constexpr const double fouru = 4e0 * umach;
 
-int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
+int dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
   // ***********************************************************************
   // *  the only machine dependent constant is based on the machine unit   *
@@ -36,7 +36,7 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
     int error_flag = -1;
     if (neqn < 1)
       error_flag = 1;
-    else if (t==tout)
+    else if (t == tout)
       error_flag = 2;
     else if (relerr < 0e0 || abserr < 0e0)
       error_flag = 3;
@@ -44,9 +44,10 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
       error_flag = 4;
     else if (!iflag)
       error_flag = 5;
-    else if (t!=told && std::abs(iflag) != 1)
+    else if (t != told && std::abs(iflag) != 1)
       error_flag = 6;
-    fprintf(stderr, "ERROR Invalid parameters to %s. error-flag: %d\n", __func__, error_flag);
+    fprintf(stderr, "ERROR Invalid parameters to %s. error-flag: %d\n",
+            __func__, error_flag);
 #endif
     return 1;
   }
@@ -54,7 +55,7 @@ int dso::SGOde::de(double& t, double tout, const Eigen::VectorXd &y0,
   const int isn = std::copysign(1, iflag);
   iflag = std::abs(iflag);
 
-  if (iflag<0 || iflag > 5)
+  if (iflag < 0 || iflag > 5)
     return 1;
 
   // on each call set interval of integration and counter for number of

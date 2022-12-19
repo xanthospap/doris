@@ -11,8 +11,8 @@
 //#  pragma STDC_FENV_ACCESS on
 #endif
 #include <functional>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 namespace {
 // compile-time factors
@@ -79,20 +79,20 @@ template <int N> struct NormalizedLegendreFactors {
 }; // SHFactors
 } // namespace
 void order0(int degree, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient, int minDegree) noexcept;
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient, int minDegree) noexcept;
 void order1(int degree, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient) noexcept;
 void ordern(int degree, int minm, int maxm, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient) noexcept;
 
 static const NormalizedLegendreFactors<125> F;
 std::mutex AccMtx;
@@ -103,9 +103,9 @@ std::mutex GrdMtx;
  *            | dz/dx dz/dy dz/dz |
  */
 int test::gravacc_prl(const dso::HarmonicCoeffs &cs,
-                   const Eigen::Matrix<double, 3, 1> &p, int degree, double Re,
-                   double GM, Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &gradient) noexcept {
+                      const Eigen::Matrix<double, 3, 1> &p, int degree,
+                      double Re, double GM, Eigen::Matrix<double, 3, 1> &acc,
+                      Eigen::Matrix<double, 3, 3> &gradient) noexcept {
 
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
@@ -167,54 +167,54 @@ int test::gravacc_prl(const dso::HarmonicCoeffs &cs,
 
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
-  gradient = Eigen::Matrix<double,3,3>::Zero();
+  gradient = Eigen::Matrix<double, 3, 3>::Zero();
   [[maybe_unused]] const int minDegree = 1;
-
-
 
   {
     int num_threads = 4;
     int tcount = (degree - 2) / num_threads;
-    std::vector<std::thread> tvec; tvec.reserve(6);
-    //for (int i=0; i<tcount; i++) {
-      tvec.emplace_back(ordern, degree, 2, 2 + tcount - 1, std::cref(cs), std::cref(M),
-                        std::cref(W), std::ref(acc), std::ref(gradient));
-      tvec.emplace_back(ordern, degree, 2 + tcount, 2 + 2 * tcount - 1, std::cref(cs),
-                        std::cref(M), std::cref(W), std::ref(acc),
-                        std::ref(gradient));
-      tvec.emplace_back(ordern, degree, 2 + 2 * tcount, 2 + 3 * tcount - 1,
-                        std::cref(cs), std::cref(M), std::cref(W),
-                        std::ref(acc), std::ref(gradient));
-      tvec.emplace_back(ordern, degree, 2 + 3 * tcount, degree, std::cref(cs),
-                        std::cref(M), std::cref(W), std::ref(acc),
-                        std::ref(gradient));
-      tvec.emplace_back(order1, degree, std::cref(cs), std::cref(M),
-                        std::cref(W), std::ref(acc), std::ref(gradient));
-      tvec.emplace_back(order0, degree, std::cref(cs), std::cref(M),
-                        std::cref(W), std::ref(acc), std::ref(gradient),
-                        minDegree);
-      //std::thread t0(order0, degree, std::cref(cs), std::cref(M), std::cref(W),
-      //               std::ref(acc), std::ref(gradient), minDegree);
-      //std::thread t1(order1, degree, std::cref(cs), std::cref(M), std::cref(W),
-      //               std::ref(acc), std::ref(gradient));
-      //std::thread tm(ordern, degree, 2, degree, std::cref(cs), std::cref(M),
-      //               std::cref(W), std::ref(acc), std::ref(gradient));
+    std::vector<std::thread> tvec;
+    tvec.reserve(6);
+    // for (int i=0; i<tcount; i++) {
+    tvec.emplace_back(ordern, degree, 2, 2 + tcount - 1, std::cref(cs),
+                      std::cref(M), std::cref(W), std::ref(acc),
+                      std::ref(gradient));
+    tvec.emplace_back(ordern, degree, 2 + tcount, 2 + 2 * tcount - 1,
+                      std::cref(cs), std::cref(M), std::cref(W), std::ref(acc),
+                      std::ref(gradient));
+    tvec.emplace_back(ordern, degree, 2 + 2 * tcount, 2 + 3 * tcount - 1,
+                      std::cref(cs), std::cref(M), std::cref(W), std::ref(acc),
+                      std::ref(gradient));
+    tvec.emplace_back(ordern, degree, 2 + 3 * tcount, degree, std::cref(cs),
+                      std::cref(M), std::cref(W), std::ref(acc),
+                      std::ref(gradient));
+    tvec.emplace_back(order1, degree, std::cref(cs), std::cref(M), std::cref(W),
+                      std::ref(acc), std::ref(gradient));
+    tvec.emplace_back(order0, degree, std::cref(cs), std::cref(M), std::cref(W),
+                      std::ref(acc), std::ref(gradient), minDegree);
+    // std::thread t0(order0, degree, std::cref(cs), std::cref(M), std::cref(W),
+    //                std::ref(acc), std::ref(gradient), minDegree);
+    // std::thread t1(order1, degree, std::cref(cs), std::cref(M), std::cref(W),
+    //                std::ref(acc), std::ref(gradient));
+    // std::thread tm(ordern, degree, 2, degree, std::cref(cs), std::cref(M),
+    //                std::cref(W), std::ref(acc), std::ref(gradient));
     //}
-    for (auto &t : tvec) t.join();
+    for (auto &t : tvec)
+      t.join();
   }
 
   // scale ...
-  gradient *= GM/(4e0*Re*Re*Re);
-  acc *= GM/(2e0*Re*Re);
+  gradient *= GM / (4e0 * Re * Re * Re);
+  acc *= GM / (2e0 * Re * Re);
 
   return 0;
 }
 
 void order0(int degree, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient, int minDegree) noexcept {
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient, int minDegree) noexcept {
   // order m = 0
   for (int n = degree; n >= minDegree;
        --n) { // begin summation from smaller terms
@@ -234,11 +234,11 @@ void order0(int degree, const dso::HarmonicCoeffs &cs,
       const double ay = cs.C(n, 0) * (-2e0 * Sp1);
       const double az = cs.C(n, 0) * (-2e0 * Cm0);
 
-      std::scoped_lock lock(AccMtx);     
+      std::scoped_lock lock(AccMtx);
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
              std::sqrt((2e0 * n + 1.) / (2e0 * n + 3e0));
-      //const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      //printf("Contribution of order %3d is %.12f\n", 0, tmp.norm());
+      // const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+      // printf("Contribution of order %3d is %.12f\n", 0, tmp.norm());
     }
 
     // derivative of acceleration
@@ -265,21 +265,21 @@ void order0(int degree, const dso::HarmonicCoeffs &cs,
       const double gyz = cs.C(n, 0) * (4e0 * Sp1);
       const double gzz = cs.C(n, 0) * (4e0 * Cm0);
 
-      std::scoped_lock lock(GrdMtx);     
+      std::scoped_lock lock(GrdMtx);
       gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
-                                             {gxy, gyy, gyz},
-                                             {gxz, gyz, gzz}} *
-                 std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+                                              {gxy, gyy, gyz},
+                                              {gxz, gyz, gzz}} *
+                  std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
     }
   }
   return;
 }
 
 void order1(int degree, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient) noexcept {
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient) noexcept {
   // order m = 1
   for (int n = degree; n >= 1; --n) { // begin summation from smaller terms
     const int m = 1;
@@ -306,11 +306,11 @@ void order1(int degree, const dso::HarmonicCoeffs &cs,
       const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
       const double az = cs.C(n, m) * (-2e0 * Cm0) + cs.S(n, m) * (-2 * Sm0);
 
-      std::scoped_lock lock(AccMtx);     
+      std::scoped_lock lock(AccMtx);
       acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
-            std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
-      //const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      //printf("Contribution of order %3d is %.12f\n", 1, tmp.norm());
+             std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+      // const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+      // printf("Contribution of order %3d is %.12f\n", 1, tmp.norm());
     }
     // derivative of acceleration
     {
@@ -344,96 +344,95 @@ void order1(int degree, const dso::HarmonicCoeffs &cs,
           cs.C(n, m) * (2 * Sp1) + cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
       const double gzz = cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
 
-      std::scoped_lock lock(GrdMtx);     
+      std::scoped_lock lock(GrdMtx);
       gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
-                                             {gxy, gyy, gyz},
-                                             {gxz, gyz, gzz}} *
-                 std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+                                              {gxy, gyy, gyz},
+                                              {gxz, gyz, gzz}} *
+                  std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
     }
   }
   return;
 }
 
 void ordern(int degree, int minm, int maxm, const dso::HarmonicCoeffs &cs,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
-           const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
-           Eigen::Matrix<double, 3, 1> &acc,
-           Eigen::Matrix<double, 3, 3> &gradient) noexcept {
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M,
+            const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
+            Eigen::Matrix<double, 3, 1> &acc,
+            Eigen::Matrix<double, 3, 3> &gradient) noexcept {
   // start from smaller terms. note that for degrees m=0,1, we are using
   // seperate loops
-  for (int m = maxm; m >= std::min(2,minm); --m) {
-  for (int n = degree; n >= m; --n) {
-    // acceleration
-    {
-      const double wm1 =
-          std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2));
-      const double wm0 =
-          std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
-      const double wp1 =
-          std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+  for (int m = maxm; m >= std::min(2, minm); --m) {
+    for (int n = degree; n >= m; --n) {
+      // acceleration
+      {
+        const double wm1 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2));
+        const double wm0 =
+            std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+        const double wp1 =
+            std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
 
-      const double Cm1 = wm1 * M(n + 1, m - 1);
-      const double Sm1 = wm1 * W(n + 1, m - 1);
-      const double Cm0 = wm0 * M(n + 1, m);
-      const double Sm0 = wm0 * W(n + 1, m);
-      const double Cp1 = wp1 * M(n + 1, m + 1);
-      const double Sp1 = wp1 * W(n + 1, m + 1);
+        const double Cm1 = wm1 * M(n + 1, m - 1);
+        const double Sm1 = wm1 * W(n + 1, m - 1);
+        const double Cm0 = wm0 * M(n + 1, m);
+        const double Sm0 = wm0 * W(n + 1, m);
+        const double Cp1 = wp1 * M(n + 1, m + 1);
+        const double Sp1 = wp1 * W(n + 1, m + 1);
 
-      const double ax = cs.C(n, m) * (Cm1 - Cp1) + cs.S(n, m) * (Sm1 - Sp1);
-      const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
-      const double az = cs.C(n, m) * (-2 * Cm0) + cs.S(n, m) * (-2 * Sm0);
+        const double ax = cs.C(n, m) * (Cm1 - Cp1) + cs.S(n, m) * (Sm1 - Sp1);
+        const double ay = cs.C(n, m) * (-Sm1 - Sp1) + cs.S(n, m) * (Cm1 + Cp1);
+        const double az = cs.C(n, m) * (-2 * Cm0) + cs.S(n, m) * (-2 * Sm0);
 
-      std::scoped_lock lock(AccMtx);     
-      acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
-             std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
-      // const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
-      // printf("Contribution of order %3d is %.12f\n", m, tmp.norm());
+        std::scoped_lock lock(AccMtx);
+        acc += Eigen::Matrix<double, 3, 1>(ax, ay, az) *
+               std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
+        // const auto tmp = Eigen::Matrix<double, 3, 1>(ax, ay, az);
+        // printf("Contribution of order %3d is %.12f\n", m, tmp.norm());
+      }
+      // derivative of acceleration
+      {
+        const double wm2 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n - m + 3) * (n - m + 4)) *
+                           ((m == 2) ? std::sqrt(2.0) : 1.0);
+        const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n - m + 3) * (n + m + 1));
+        const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n - m + 2) * (n + m + 1) * (n + m + 2));
+        const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
+                                     (n + m + 1) * (n + m + 2) * (n + m + 3));
+        const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
+                                     (n + m + 2) * (n + m + 3) * (n + m + 4));
 
-    }
-    // derivative of acceleration
-    {
-      const double wm2 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n - m + 3) * (n - m + 4)) *
-                         ((m == 2) ? std::sqrt(2.0) : 1.0);
-      const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n - m + 3) * (n + m + 1));
-      const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n + m + 1) * (n + m + 2));
-      const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n + m + 1) * (n + m + 2) * (n + m + 3));
-      const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
-                                   (n + m + 2) * (n + m + 3) * (n + m + 4));
+        const double Cm2 = wm2 * M(n + 2, m - 2);
+        const double Sm2 = wm2 * W(n + 2, m - 2);
+        const double Cm1 = wm1 * M(n + 2, m - 1);
+        const double Sm1 = wm1 * W(n + 2, m - 1);
+        const double Cm0 = wm0 * M(n + 2, m);
+        const double Sm0 = wm0 * W(n + 2, m);
+        const double Cp1 = wp1 * M(n + 2, m + 1);
+        const double Sp1 = wp1 * W(n + 2, m + 1);
+        const double Cp2 = wp2 * M(n + 2, m + 2);
+        const double Sp2 = wp2 * W(n + 2, m + 2);
 
-      const double Cm2 = wm2 * M(n + 2, m - 2);
-      const double Sm2 = wm2 * W(n + 2, m - 2);
-      const double Cm1 = wm1 * M(n + 2, m - 1);
-      const double Sm1 = wm1 * W(n + 2, m - 1);
-      const double Cm0 = wm0 * M(n + 2, m);
-      const double Sm0 = wm0 * W(n + 2, m);
-      const double Cp1 = wp1 * M(n + 2, m + 1);
-      const double Sp1 = wp1 * W(n + 2, m + 1);
-      const double Cp2 = wp2 * M(n + 2, m + 2);
-      const double Sp2 = wp2 * W(n + 2, m + 2);
+        const double gxx = cs.C(n, m) * (Cm2 - 2 * Cm0 + Cp2) +
+                           cs.S(n, m) * (Sm2 - 2 * Sm0 + Sp2);
+        const double gxy = cs.C(n, m) * (-Sm2 + Sp2) + cs.S(n, m) * (Cm2 - Cp2);
+        const double gxz = cs.C(n, m) * (-2 * Cm1 + 2 * Cp1) +
+                           cs.S(n, m) * (-2 * Sm1 + 2 * Sp1);
+        const double gyy = cs.C(n, m) * (-Cm2 - 2 * Cm0 - Cp2) +
+                           cs.S(n, m) * (-Sm2 - 2 * Sm0 - Sp2);
+        const double gyz = cs.C(n, m) * (2 * Sm1 + 2 * Sp1) +
+                           cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
+        const double gzz = cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
 
-      const double gxx = cs.C(n, m) * (Cm2 - 2 * Cm0 + Cp2) +
-                         cs.S(n, m) * (Sm2 - 2 * Sm0 + Sp2);
-      const double gxy = cs.C(n, m) * (-Sm2 + Sp2) + cs.S(n, m) * (Cm2 - Cp2);
-      const double gxz =
-          cs.C(n, m) * (-2 * Cm1 + 2 * Cp1) + cs.S(n, m) * (-2 * Sm1 + 2 * Sp1);
-      const double gyy = cs.C(n, m) * (-Cm2 - 2 * Cm0 - Cp2) +
-                         cs.S(n, m) * (-Sm2 - 2 * Sm0 - Sp2);
-      const double gyz =
-          cs.C(n, m) * (2 * Sm1 + 2 * Sp1) + cs.S(n, m) * (-2 * Cm1 - 2 * Cp1);
-      const double gzz = cs.C(n, m) * (4 * Cm0) + cs.S(n, m) * (4 * Sm0);
-
-      std::scoped_lock lock(GrdMtx);     
-      gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
-                                              {gxy, gyy, gyz},
-                                              {gxz, gyz, gzz}} *
-                  std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
-    }
-  } // loop over n
-  } // loop over m
+        std::scoped_lock lock(GrdMtx);
+        gradient += Eigen::Matrix<double, 3, 3>{{gxx, gxy, gxz},
+                                                {gxy, gyy, gyz},
+                                                {gxz, gyz, gzz}} *
+                    std::sqrt((2e0 * n + 1e0) / (2e0 * n + 5e0));
+      }
+    } // loop over n
+  }   // loop over m
 
   return;
 }

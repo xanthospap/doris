@@ -23,7 +23,7 @@ double dso::Nrlmsise00::globe7(const InParamsCore *in, double *pp) noexcept {
   // last used tloc/lst (so we don't recompute trig numbers)
   static double tll = 1000e0;
   static double sw9 = 1e0;
-  // last doy used 
+  // last doy used
   static int last_doy = -1;
   static double p14 = -1e3;
   static double p18 = -1e3;

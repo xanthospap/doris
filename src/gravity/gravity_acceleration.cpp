@@ -9,7 +9,7 @@
 #include <cstdio>
 #endif
 
-Eigen::Matrix<double,3,1> dso::grav_potential_accel(
+Eigen::Matrix<double, 3, 1> dso::grav_potential_accel(
     int degree, int order, double Re, double GM,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
@@ -56,13 +56,13 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   zacc += zacc2;
   zacc *= GM / (Re * Re);
 
-  Eigen::Matrix<double,3,1> acc;
+  Eigen::Matrix<double, 3, 1> acc;
   acc << xacc, yacc, zacc;
 
   return acc;
 }
 
-Eigen::Matrix<double,3,1> dso::grav_potential_accel(
+Eigen::Matrix<double, 3, 1> dso::grav_potential_accel(
     int degree, int order, double Re, double GM,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
     const dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W,
@@ -71,7 +71,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
 
   // acceleration
   double xacc(0e0), yacc(0e0), zacc(0e0);
-  
+
   // partials
   double daxdx_m0(0e0), daxdy_m0(0e0), daxdz_m0(0e0), daydz_m0(0e0),
       dazdz_m0(0e0);
@@ -179,7 +179,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
       }
     }
   }
-  
+
   // Sum-up acceleration
   xacc += xacc2;
   xacc *= GM / (Re * Re);
@@ -190,7 +190,7 @@ Eigen::Matrix<double,3,1> dso::grav_potential_accel(
   zacc += zacc2;
   zacc *= GM / (Re * Re);
 
-  Eigen::Matrix<double,3,1> acc(xacc, yacc, zacc);
+  Eigen::Matrix<double, 3, 1> acc(xacc, yacc, zacc);
 
   // Sum-up partial derivatives, column-wise
   partials(0, 0) = daxdx_m0 + daxdx_m1 + daxdx_m2; // dax/dx

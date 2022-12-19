@@ -15,9 +15,10 @@ int dso::RinexDataBlockIterator::next() noexcept {
 
   // ... this should be a data record line; resolve it
   if (int error = rnx->resolve_data_epoch(line, cheader); error) {
-    fprintf(stderr,
-            "[ERROR] Failed parsing data header line, error=%d (traceback: %s)\n",
-            error, __func__);
+    fprintf(
+        stderr,
+        "[ERROR] Failed parsing data header line, error=%d (traceback: %s)\n",
+        error, __func__);
     fprintf(stderr, "Line is: \"%s\"\n", line);
     return 2;
   }

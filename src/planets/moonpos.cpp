@@ -1,5 +1,5 @@
-#include "iers2010/iau.hpp"
 #include "geodesy/units.hpp"
+#include "iers2010/iau.hpp"
 #include "planetpos.hpp"
 #ifdef DEBUG
 #include <cstdio>
@@ -92,7 +92,8 @@ int dso::moon_vector_vallado(double t, double *rmoon) noexcept {
       0.17e0 * sin(dso::deg2rad<double>(217.6e0 - 407'332.20e0 * t)); // [deg]
 
   const double rho =
-      0.9508e0 + 0.0518e0 * cos(dso::deg2rad<double>(134.9e0 + 477'198.85 * t)) +
+      0.9508e0 +
+      0.0518e0 * cos(dso::deg2rad<double>(134.9e0 + 477'198.85 * t)) +
       0.0095e0 * cos(dso::deg2rad<double>(259.2e0 - 413'335.38e0 * t)) +
       0.0078e0 * cos(dso::deg2rad<double>(235.7e0 + 890'534.23e0 * t)) +
       0.0028e0 * cos(dso::deg2rad<double>(269.9e0 + 954'397.70e0 * t)); // [deg]
@@ -117,7 +118,7 @@ int dso::moon_vector_vallado(double t, double *rmoon) noexcept {
   const double m = Ce * Cf * Sl - Se * Sf;
   const double n = Se * Cf * Sl + Ce * Sf;
   // moon position vector in km
-  const double Rm = /*iers2010::Re*/6378136.6e0 / 1e3 / sin(R); // [km]
+  const double Rm = /*iers2010::Re*/ 6378136.6e0 / 1e3 / sin(R); // [km]
   rmoon[0] = Rm * l;
   rmoon[1] = Rm * m;
   rmoon[2] = Rm * n;

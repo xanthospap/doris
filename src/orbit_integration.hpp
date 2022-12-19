@@ -27,7 +27,7 @@ struct IntegrationParameters {
   ///< memmory for Lagrange polynomials
   // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_V{nullptr};
   // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_W{nullptr};
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr}; 
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr};
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
   ///< degree and order of geopotential harmonics
   int degree, order;
@@ -49,8 +49,10 @@ struct IntegrationParameters {
                         const dso::HarmonicCoeffs &harmonics_,
                         const char *pck_kernel) noexcept
       : eopLUT(eoptable_), harmonics(harmonics_),
-        V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
-        W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(degree_+3, degree_+3)),
+        V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+            degree_ + 3, degree_ + 3)),
+        W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+            degree_ + 3, degree_ + 3)),
         degree(degree_), order(order_) {
     assert(degree_ == harmonics_.degree());
     // gravitational parameters
@@ -89,7 +91,8 @@ Eigen::Matrix<double, 3, 3>
 itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
           Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
 #else
-int gcrs2itrs(const dso::TwoPartDate &mjd_tai, const dso::EopLookUpTable &eop_table,
+int gcrs2itrs(const dso::TwoPartDate &mjd_tai,
+              const dso::EopLookUpTable &eop_table,
               Eigen::Matrix<double, 3, 3> &rc2i, double &era,
               Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
 #endif
@@ -101,8 +104,7 @@ rcel2ter(const Eigen::Matrix<double, 3, 1> r,
 
 Eigen::Matrix<double, 6, 1>
 ycel2ter(const Eigen::Matrix<double, 6, 1> y,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-         double xlod,
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era, double xlod,
          const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 Eigen::Matrix<double, 3, 1>
@@ -112,8 +114,7 @@ rter2cel(const Eigen::Matrix<double, 3, 1> r,
 
 Eigen::Matrix<double, 6, 1>
 yter2cel(const Eigen::Matrix<double, 6, 1> y,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-         double xlod,
+         const Eigen::Matrix<double, 3, 3> &rc2i, const double era, double xlod,
          const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an

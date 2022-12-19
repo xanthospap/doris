@@ -1,15 +1,14 @@
 #include "nrlmsise00.hpp"
+#include <cstring>
 #include <datetime/dtfund.hpp>
 #include <stdexcept>
-#include <cstring>
 #ifdef DEBUG
 #include <cstdio>
 #endif
 
 dso::nrlmsise00::detail::Nrlmsise00DataFeed::Nrlmsise00DataFeed(
-    const char *fncsv, dso::nrlmsise00::detail::InParamsCore &in)
-    {
-      std::strcpy(fncsv_,fncsv);
+    const char *fncsv, dso::nrlmsise00::detail::InParamsCore &in) {
+  std::strcpy(fncsv_, fncsv);
 
   const dso::datetime<dso::milliseconds> t(dso::datetime<dso::milliseconds>(
       dso::year(in.year), dso::day_of_year(in.doy), dso::milliseconds(0)));
@@ -31,20 +30,21 @@ int ihours(double secday) noexcept {
 
 int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
     dso::nrlmsise00::detail::InParamsCore &in) noexcept {
-//#ifdef DEBUG
-//      for (int i=0; i<4; i++) {
-//        printf("%d:", (int)flux_data_[i].mjd_.as_underlying_type());
-//        for (int p=0; p<8; p++)
-//          printf(" %2d", flux_data_[i].ApIndexes[p]);
-//        printf("\n");
-//      }
-//#endif
+  //#ifdef DEBUG
+  //      for (int i=0; i<4; i++) {
+  //        printf("%d:", (int)flux_data_[i].mjd_.as_underlying_type());
+  //        for (int p=0; p<8; p++)
+  //          printf(" %2d", flux_data_[i].ApIndexes[p]);
+  //        printf("\n");
+  //      }
+  //#endif
 
   // flux data for this (most recent) day
   dso::utils::celestrak::details::CelestTrakSWFlux *cur = flux_data_ + 3;
-//#ifdef DEBUG
-//  const dso::utils::celestrak::details::CelestTrakSWFlux *today = flux_data_ + 3;
-//#endif
+  //#ifdef DEBUG
+  //  const dso::utils::celestrak::details::CelestTrakSWFlux *today = flux_data_
+  //  + 3;
+  //#endif
 
   // F107A - 81 day AVERAGE OF F10.7 FLUX (centered on day DDD)
   in.f107A = cur->f107ObsC81;
@@ -100,20 +100,21 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   auto stop_doy = cur;
   dso::utils::celestrak::details::CelestTrakSWFlux *start_doy = stop_doy - 1;
 #ifdef DEBUG
-  //printf("\tWill start at %ld days before and index %d\n", start_doy - today, start_index);
-  //printf("\tWill stop at %ld days before and index %d\n", stop_doy - today, stop_index);
+  // printf("\tWill start at %ld days before and index %d\n", start_doy - today,
+  // start_index); printf("\tWill stop at %ld days before and index %d\n",
+  // stop_doy - today, stop_index);
   assert(start_index >= 0 && start_index < 8);
   assert(stop_index >= 0 && stop_index < 8);
   assert(start_doy < stop_doy);
 #endif
   // get average
-  int num_ap = 0, curi=start_index;
+  int num_ap = 0, curi = start_index;
   double sum_ap = 0e0;
   cur = start_doy;
   while (!(cur == stop_doy && curi == stop_index)) {
-//#ifdef DEBUG
-//    printf("+(%ld,%d)=%d", cur - today, curi, cur->ApIndexes[curi]);
-//#endif
+    //#ifdef DEBUG
+    //    printf("+(%ld,%d)=%d", cur - today, curi, cur->ApIndexes[curi]);
+    //#endif
     sum_ap += cur->ApIndexes[curi++];
     if (curi > 7) {
       curi = 0;
@@ -123,7 +124,7 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   }
   in.aparr.a[5] = sum_ap / num_ap;
 #ifdef DEBUG
-  assert(num_ap==8);
+  assert(num_ap == 8);
 #endif
 
   // (7) AVERAGE OF EIGHT 3 HR AP INDICIES FROM 36 TO 57 HRS PRIOR
@@ -133,8 +134,9 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   stop_doy = start_doy;
   start_doy = stop_doy - 1;
 #ifdef DEBUG
-  //printf("\tWill start at %ld days before and index %d\n", start_doy - today, start_index);
-  //printf("\tWill stop at %ld days before and index %d\n", stop_doy - today, stop_index);
+  // printf("\tWill start at %ld days before and index %d\n", start_doy - today,
+  // start_index); printf("\tWill stop at %ld days before and index %d\n",
+  // stop_doy - today, stop_index);
   assert(start_index >= 0 && start_index < 8);
   assert(stop_index >= 0 && stop_index < 8);
   assert(start_doy < stop_doy);
@@ -143,9 +145,10 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   num_ap = 0;
   sum_ap = 0e0;
   while (!(start_doy == stop_doy && start_index == stop_index)) {
-//#ifdef DEBUG
-//    printf("+(%ld,%d)=%d", start_doy - today, start_index, start_doy->ApIndexes[start_index]);
-//#endif
+    //#ifdef DEBUG
+    //    printf("+(%ld,%d)=%d", start_doy - today, start_index,
+    //    start_doy->ApIndexes[start_index]);
+    //#endif
     sum_ap += start_doy->ApIndexes[start_index++];
     if (start_index > 7) {
       ++start_doy;
@@ -155,8 +158,8 @@ int dso::nrlmsise00::detail::Nrlmsise00DataFeed::init(
   }
   in.aparr.a[6] = (double)sum_ap / (double)num_ap;
 #ifdef DEBUG
-  assert(num_ap==8);
-  //printf("\nAdded %d number of Ap indexes\n", num_ap);
+  assert(num_ap == 8);
+  // printf("\nAdded %d number of Ap indexes\n", num_ap);
 #endif
 
   chi = ihours(in.sec) / 3;

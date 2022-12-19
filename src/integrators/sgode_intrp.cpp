@@ -8,9 +8,9 @@
 int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout/*,
                       Eigen::Ref<Eigen::VectorXd> ypout*/) noexcept {
   double MemPool[3 * 13];
-  double * __restrict__ g = MemPool;
-  double * __restrict__ w = MemPool + 13;
-  double * __restrict__ rho = MemPool + 26;
+  double *__restrict__ g = MemPool;
+  double *__restrict__ w = MemPool + 13;
+  double *__restrict__ rho = MemPool + 26;
 
   const double hi = xout - x;
   const int ki = kold + 1;
@@ -49,7 +49,7 @@ int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout/*,
 #ifdef DEBUG
     assert(i < 16);
 #endif
-    yout    += (t2 * Phi.col(i));
+    yout += (t2 * Phi.col(i));
     ypout() += (t3 * Phi.col(i));
   }
 

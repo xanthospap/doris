@@ -6,7 +6,7 @@ Eigen::Matrix<double, 6, 6> dso::state_partials(double GM,
                                                 const dso::OrbitalElements &ele,
                                                 double dt) noexcept {
   // compute perifocal coordinates
-  Eigen::Matrix<double, 6, 1> state = dso::elements2perifocal(GM,ele,dt);
+  Eigen::Matrix<double, 6, 1> state = dso::elements2perifocal(GM, ele, dt);
   const double x = state(0);
   const double y = state(1);
   const double vx = state(3);
@@ -21,7 +21,7 @@ Eigen::Matrix<double, 6, 6> dso::state_partials(double GM,
   const auto P = PQW.block<3, 1>(0, 0); // first column
   const auto Q = PQW.block<3, 1>(0, 1); // second column
   const auto W = PQW.block<3, 1>(0, 2); // third column
-  
+
   auto N = Eigen::Vector3d::UnitZ().cross(W);
   N = N / N.norm();
 
@@ -46,18 +46,18 @@ Eigen::Matrix<double, 6, 6> dso::state_partials(double GM,
   const double e = ele.eccentricity();
   const double fac = std::sqrt((1e0 - e) * (1e0 + e));
   const double n = std::sqrt(GM / (a * a * a));
-  
+
   Eigen::Matrix<double, 6, 1> dYda;
   dYda << ((x / a) * P + (y / a) * Q),
       ((-vx / (2e0 * a)) * P + (-vy / (2e0 * a)) * Q);
-  
+
   Eigen::Matrix<double, 6, 1> dYde;
   dYde << (-a - std::pow(y / fac, 2) / r) * P + (x * y / (r * fac * fac)) * Q,
       (vx * (2 * a * x + e * std::pow(y / fac, 2)) / (r * r)) * P +
           ((n / fac) * std::pow(a / r, 2) *
            (x * x / r - std::pow(y / fac, 2) / a)) *
               Q;
-  
+
   Eigen::Matrix<double, 6, 1> dYdM;
   dYdM << ((vx * P + vy * Q) / n),
       ((-n * std::pow(a / r, 3e0)) * (x * P + y * Q));

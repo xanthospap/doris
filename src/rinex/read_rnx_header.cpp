@@ -23,10 +23,11 @@ int count_length_reverse(const char *str, int from) noexcept {
 }
 inline const char *skipws(const char *line) noexcept {
   const char *c = line;
-  while (*c && *c == ' ') ++c;
+  while (*c && *c == ' ')
+    ++c;
   return c;
 }
-}// unnamed namespace
+} // unnamed namespace
 
 /// The instance's stream must be open and in good state. If it is not placed
 /// at the top of the file, it will be rewinded to the top.
@@ -38,7 +39,7 @@ int dso::DorisObsRinex::read_header() noexcept {
     m_stream.seekg(0);
 
   char line[MAX_HEADER_CHARS];
-  const char *start=line;
+  const char *start = line;
   int num_stations = 0;
   int num_ref_stations = 0;
   int obs_types_num = 0;
@@ -48,8 +49,8 @@ int dso::DorisObsRinex::read_header() noexcept {
   m_stream.getline(line, MAX_HEADER_CHARS);
   if (std::strncmp(line + 60, "RINEX VERSION / TYPE", 20))
     return 10;
-  
-  auto cres = std::from_chars(skipws(line), line+MAX_HEADER_CHARS, m_version);
+
+  auto cres = std::from_chars(skipws(line), line + MAX_HEADER_CHARS, m_version);
   if (!(cres.ec == std::errc{}) || (line[20] != 'O' || line[40] != 'D'))
     return 11;
 
@@ -67,8 +68,8 @@ int dso::DorisObsRinex::read_header() noexcept {
       if (!tmp_sz || tmp_sz >= 59) {
         error = 30;
       } else {
-      std::memcpy(m_satellite_name, line, tmp_sz);
-      m_satellite_name[tmp_sz] = '\0';
+        std::memcpy(m_satellite_name, line, tmp_sz);
+        m_satellite_name[tmp_sz] = '\0';
       }
 
     } else if (!std::strncmp(line + 60, "COSPAR NUMBER", 13)) {
@@ -77,8 +78,8 @@ int dso::DorisObsRinex::read_header() noexcept {
       if (!tmp_sz || tmp_sz > 19) {
         error = 40;
       } else {
-      std::memcpy(m_cospar_number, line, tmp_sz);
-      m_cospar_number[tmp_sz] = '\0';
+        std::memcpy(m_cospar_number, line, tmp_sz);
+        m_cospar_number[tmp_sz] = '\0';
       }
 
     } else if (!std::strncmp(line + 60, "MARKER TYPE", 11)) {
@@ -131,9 +132,9 @@ int dso::DorisObsRinex::read_header() noexcept {
       // APPROX POSITION XYZ; get m_approx_position (err. code 90)
       start = line;
       for (int i = 0; i < 3; i++) {
-        cres = std::from_chars(skipws(start), line+60, m_approx_position[i]);
+        cres = std::from_chars(skipws(start), line + 60, m_approx_position[i]);
         if (cres.ec != std::errc{}) {
-          error = 90+i;
+          error = 90 + i;
         }
         start = cres.ptr;
       }
@@ -141,19 +142,19 @@ int dso::DorisObsRinex::read_header() noexcept {
     } else if (!std::strncmp(line + 60, "CENTER OF MASS: XYZ", 19)) {
       // CENTER OF MASS: XYZ; get m_center_mass (err. code 100)
       start = line;
-      for (int i=0; i<3; i++) {
-      cres = std::from_chars(skipws(start), line + 60, m_center_mass[i]);
-      if (cres.ec != std::errc{}) {
-        error = 100 + i;
-      }
-      start = cres.ptr;
+      for (int i = 0; i < 3; i++) {
+        cres = std::from_chars(skipws(start), line + 60, m_center_mass[i]);
+        if (cres.ec != std::errc{}) {
+          error = 100 + i;
+        }
+        start = cres.ptr;
       }
 
     } else if (!std::strncmp(line + 60, "SYS / # / OBS TYPES", 19)) {
       // SYS / # / OBS TYPES; get/fill m_obs_codes (err. code 110)
       if (*line != 'D')
         return 111;
-      cres = std::from_chars(skipws(line+1), line+60, obs_types_num);
+      cres = std::from_chars(skipws(line + 1), line + 60, obs_types_num);
       if (cres.ec != std::errc{}) {
         error = 112;
       }
@@ -168,7 +169,7 @@ int dso::DorisObsRinex::read_header() noexcept {
           ObservationType type(char_to_observationType(*s)); // may throw!
           int freq = 0;
           if (observationType_has_frequency(type)) {
-            cres = std::from_chars(skipws(s+1), line+60, freq);
+            cres = std::from_chars(skipws(s + 1), line + 60, freq);
             if (cres.ec != std::errc{}) {
               error = 113;
             }
@@ -204,7 +205,7 @@ int dso::DorisObsRinex::read_header() noexcept {
       // vectors will have a one-to-one correspondance
       m_obs_scale_factors = std::vector<int>(m_obs_codes.size(), 1);
       int factor;
-      cres = std::from_chars(skipws(line+2), line+60, factor);
+      cres = std::from_chars(skipws(line + 2), line + 60, factor);
       if (cres.ec != std::errc{}) {
         error = 142;
       }
@@ -214,7 +215,7 @@ int dso::DorisObsRinex::read_header() noexcept {
       } else {
         // scale factors can be defined for any number of ObservationCodes, in
         // the range [0, m_obs_codes.size()]
-        cres = std::from_chars(skipws(line+8), line+60, num_obs);
+        cres = std::from_chars(skipws(line + 8), line + 60, num_obs);
         if (cres.ec != std::errc{}) {
           error = 143;
         }
@@ -227,7 +228,7 @@ int dso::DorisObsRinex::read_header() noexcept {
           ObservationType type(char_to_observationType(*s));
           int freq = 0;
           if (observationType_has_frequency(type)) {
-            cres = std::from_chars(skipws(s+1), line+60, freq);
+            cres = std::from_chars(skipws(s + 1), line + 60, freq);
             if (cres.ec != std::errc{}) {
               error = 144;
             }
@@ -250,14 +251,14 @@ int dso::DorisObsRinex::read_header() noexcept {
       // L2 / L1 DATE OFFSET; get m_l12_date_offset (err. code 150)
       if (*line != 'D')
         error = 151;
-      cres = std::from_chars(skipws(line+3), line+60, m_l12_date_offset);
+      cres = std::from_chars(skipws(line + 3), line + 60, m_l12_date_offset);
       if (cres.ec != std::errc{}) {
         error = 152;
       }
 
     } else if (!std::strncmp(line + 60, "# OF STATIONS", 13)) {
       // # OF STATIONS; reserve size for m_stations (err. code 160)
-      cres = std::from_chars(skipws(line), line+60, num_stations);
+      cres = std::from_chars(skipws(line), line + 60, num_stations);
       if (cres.ec != std::errc{}) {
         error = 161;
       }
@@ -273,7 +274,7 @@ int dso::DorisObsRinex::read_header() noexcept {
 
     } else if (!std::strncmp(line + 60, "# TIME REF STATIONS", 19)) {
       // # TIME REF STATIONS; reserve size for m_ref_stations (err. code 180)
-      cres = std::from_chars(skipws(line), line+60, num_ref_stations);
+      cres = std::from_chars(skipws(line), line + 60, num_ref_stations);
       if (cres.ec != std::errc{}) {
         error = 181;
       }
@@ -285,12 +286,12 @@ int dso::DorisObsRinex::read_header() noexcept {
       // station is already in the m_stations vector (err. code 190)
       TimeReferenceStation refsta;
       std::memcpy(refsta.m_station_code, line, sizeof refsta.m_station_code);
-      cres = std::from_chars(skipws(line+5), line+60, refsta.m_bias);
+      cres = std::from_chars(skipws(line + 5), line + 60, refsta.m_bias);
       if (cres.ec != std::errc{}) {
         error = 191;
       }
       start = cres.ptr;
-      cres = std::from_chars(skipws(start), line+60, refsta.m_shift);
+      cres = std::from_chars(skipws(start), line + 60, refsta.m_shift);
       if (cres.ec != std::errc{}) {
         error = 192;
       }
@@ -318,7 +319,7 @@ int dso::DorisObsRinex::read_header() noexcept {
                              19)) { // Code: 210
 
       int rcv_clock_offs_appl_int = -99;
-      cres = std::from_chars(skipws(line), line+60, rcv_clock_offs_appl_int);
+      cres = std::from_chars(skipws(line), line + 60, rcv_clock_offs_appl_int);
       if ((cres.ec != std::errc{}) ||
           (rcv_clock_offs_appl_int < 0 || rcv_clock_offs_appl_int > 1)) {
         error = 210;
@@ -336,7 +337,10 @@ int dso::DorisObsRinex::read_header() noexcept {
     }
 
     if (error) {
-      fprintf(stderr, "[ERROR] Error while reading RINEX header, code=%d (traceback: %s)\n", error, __func__);
+      fprintf(
+          stderr,
+          "[ERROR] Error while reading RINEX header, code=%d (traceback: %s)\n",
+          error, __func__);
     }
   }
 

@@ -30,17 +30,18 @@ struct LinearKalman {
     double dt = t2d(t);
 
     double y = z - value_at(t);
-    double p0p1dt = P[0] + P[1]*dt;
-    double p1p2dt = P[1] + P[2]*dt;
-    double s = p0p1dt + dt*p1p2dt + R;
+    double p0p1dt = P[0] + P[1] * dt;
+    double p1p2dt = P[1] + P[2] * dt;
+    double s = p0p1dt + dt * p1p2dt + R;
     double k0 = p0p1dt / s;
     double k1 = p1p2dt / s;
-    x[0] += k0*y;
-    x[1] += k1*y;
-    double p0 = (1e0-k0)*P[0] - P[1]*k0*dt;
-    double p1 = ( ((1e0-k0)*P[1] - P[2]*k0*dt) +
-      (-k1*P[0] + (1e0-k1*dt)*P[1]) ) / 2e0;
-    double p2 = -k1*P[1] + (1e0-k1*dt) * P[2];
+    x[0] += k0 * y;
+    x[1] += k1 * y;
+    double p0 = (1e0 - k0) * P[0] - P[1] * k0 * dt;
+    double p1 = (((1e0 - k0) * P[1] - P[2] * k0 * dt) +
+                 (-k1 * P[0] + (1e0 - k1 * dt) * P[1])) /
+                2e0;
+    double p2 = -k1 * P[1] + (1e0 - k1 * dt) * P[2];
     P[0] = p0;
     P[1] = p1;
     P[2] = p2;

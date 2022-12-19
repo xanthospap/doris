@@ -1,13 +1,14 @@
 #include "astrodynamics.hpp"
-#include <cmath>
 #include "gcem.hpp" // for constexpr math (trigonometric funcs)
 #include "geodesy/ellipsoid.hpp"
+#include <cmath>
 #ifdef DEBUG
 #include <cstdio>
 #endif
 
 //[[maybe_unused]]
-//constexpr const double MeanRe =  dso::mean_earth_radius<dso::ellipsoid::grs80>();
+// constexpr const double MeanRe =
+// dso::mean_earth_radius<dso::ellipsoid::grs80>();
 
 /// @file occultation.cpp
 /// @brief Satellite eclipse, shadow and occultation models
@@ -15,9 +16,10 @@
 ///       constexpr. When they are, drop dependendy of gcem
 
 double utest::vallado_shadow(const dso::Vector3 &r_sat,
-                                const dso::Vector3 &r_sun) noexcept {
+                             const dso::Vector3 &r_sun) noexcept {
   const double product = r_sat.dot_product(r_sun);
-  if (product>=0) return 1e0;
+  if (product >= 0)
+    return 1e0;
 
   const double r = r_sat.norm();
   const double s = r_sun.norm();
@@ -30,15 +32,16 @@ double utest::vallado_shadow(const dso::Vector3 &r_sat,
   constexpr const double Apen = /*std::asin(sinApen);*/ gcem::asin(sinApen);
   constexpr const double tanApen = /*std::tan(Apen);*/ gcem::tan(Apen);
   constexpr const double x = iers2010::Re / sinApen;
-  const double penv = tanApen * (x+sath);
-  if (satv<=penv) {
+  const double penv = tanApen * (x + sath);
+  if (satv <= penv) {
     // penumbra ...
-    constexpr const double sinAumb = (iers2010::Rs - iers2010::Re) / iers2010::AU;
+    constexpr const double sinAumb =
+        (iers2010::Rs - iers2010::Re) / iers2010::AU;
     constexpr const double y = iers2010::Re / sinAumb;
     constexpr const double Aumb = /*std::asin(sinAumb);*/ gcem::asin(sinAumb);
     constexpr const double tanAumb = /*std::tan(Aumb);*/ gcem::tan(Aumb);
-    const double umbv = tanAumb * (y-sath);
-    return (satv<=umbv) ? 0 : 0.5e0;
+    const double umbv = tanAumb * (y - sath);
+    return (satv <= umbv) ? 0 : 0.5e0;
   }
   return 1;
 }
@@ -51,8 +54,9 @@ double utest::montebruck_shadow(const dso::Vector3 &r_sat,
                                                                        : 0e0);
 }
 
-double utest::montebruck_shadow(const Eigen::Matrix<double,3,1> &r_sat,
-                                const Eigen::Matrix<double,3,1> &r_sun) noexcept {
+double
+utest::montebruck_shadow(const Eigen::Matrix<double, 3, 1> &r_sat,
+                         const Eigen::Matrix<double, 3, 1> &r_sun) noexcept {
   const auto unitvec_sun = r_sun.normalized(); // r_sun / r_sun.norm();
   const double s = r_sat.dot(unitvec_sun); // r_sat.dot_product(unitvec_sun);
   return ((s > 0e0 || (r_sat - s * unitvec_sun).norm() > iers2010::Re) ? 1e0
@@ -60,16 +64,18 @@ double utest::montebruck_shadow(const Eigen::Matrix<double,3,1> &r_sat,
 }
 
 double utest::bernese_shadow1(const dso::Vector3 &r_sat,
-                             const dso::Vector3 &r_sun) noexcept {
-    constexpr const double fac = 1e0 + dso::ellipsoid_traits<dso::ellipsoid::grs80>::f;
-    const dso::Vector3 zsat{{r_sat.x(), r_sat.y(), r_sat.z()*fac}};
-    const dso::Vector3 zsun{{r_sun.x(), r_sun.y(), r_sun.z()*fac}};
-    const double rsun = zsun.norm();
-    const double rsat2 = zsat.norm_squared();
-    const double rcos = zsat.dot_product(zsun) / rsun;
-    const double rsin = std::sqrt(rsat2-rcos*rcos);
-    if (rcos<0e0 && (rsin-iers2010::Re<0e0)) return 0e0;
-    return 1;
+                              const dso::Vector3 &r_sun) noexcept {
+  constexpr const double fac =
+      1e0 + dso::ellipsoid_traits<dso::ellipsoid::grs80>::f;
+  const dso::Vector3 zsat{{r_sat.x(), r_sat.y(), r_sat.z() * fac}};
+  const dso::Vector3 zsun{{r_sun.x(), r_sun.y(), r_sun.z() * fac}};
+  const double rsun = zsun.norm();
+  const double rsat2 = zsat.norm_squared();
+  const double rcos = zsat.dot_product(zsun) / rsun;
+  const double rsin = std::sqrt(rsat2 - rcos * rcos);
+  if (rcos < 0e0 && (rsin - iers2010::Re < 0e0))
+    return 0e0;
+  return 1;
 }
 
 double utest::conical_shadow(const dso::Vector3 &r_sat,

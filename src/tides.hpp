@@ -1,10 +1,10 @@
 #ifndef __IERS2010_VAR_TIDE_MODELS_HPP__
 #define __IERS2010_VAR_TIDE_MODELS_HPP__
 
-#include "eigen3/Eigen/Eigen"
-#include "datetime/dtcalendar.hpp"
-#include "harmonic_coeffs.hpp"
 #include "associated_legendre.hpp"
+#include "datetime/dtcalendar.hpp"
+#include "eigen3/Eigen/Eigen"
+#include "harmonic_coeffs.hpp"
 #include <array>
 
 namespace dso {
@@ -23,26 +23,27 @@ int pole_tide(const dso::datetime<dso::nanoseconds> &t, double xp, double yp,
 int permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
                    std::vector<Eigen::Matrix<double, 3, 1>> &Senu) noexcept;
 
-class OceanTide {
-}; //OceanTide
+class OceanTide {}; // OceanTide
 
 class SolidEarthTide {
   static constexpr const int degree = 4;
-private:
-    const double GM_moon, GM_sun;
-    dso::HarmonicCoeffs cs;
-    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
-    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
-    AssociatedLegendreFunctions PM,PS;
 
-    int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon,
+private:
+  const double GM_moon, GM_sun;
+  dso::HarmonicCoeffs cs;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
+  AssociatedLegendreFunctions PM, PS;
+
+  int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon,
                              double slon, std::array<double, 12> &dC,
                              std::array<double, 12> &dS) noexcept;
-    
-    int solid_earth_tide_step2(const dso::datetime<dso::nanoseconds> &t_tt,
+
+  int solid_earth_tide_step2(const dso::datetime<dso::nanoseconds> &t_tt,
                              double ut1_mjd, double &dC20, double &dC21,
                              double &dS21, double &dC22,
                              double &dS22) const noexcept;
+
 public:
   /// @brief Constructor
   /// @param GMearth Standard gravitational parameter μ=GM for the Earth
@@ -60,15 +61,15 @@ public:
                  double ut1_mjd,*/
                  const Eigen::Matrix<double, 3, 1> &rmoon,
                  const Eigen::Matrix<double, 3, 1> &rsun,
-                 std::array<double,12> &dC,
-                 std::array<double,12> &dS) noexcept;
+                 std::array<double, 12> &dC,
+                 std::array<double, 12> &dS) noexcept;
 
   int acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
                    const Eigen::Matrix<double, 3, 1> &rmoon,
                    const Eigen::Matrix<double, 3, 1> &rsun,
                    Eigen::Matrix<double, 3, 1> &acc) noexcept;
-};// SolidEarthTide
+}; // SolidEarthTide
 
-}// dso
+} // namespace dso
 
 #endif

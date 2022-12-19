@@ -110,6 +110,6 @@ constexpr const int mn3 = 5;
 // static double s3tloc, c3tloc;
 // static double apdf, apt[4];
 
-} // namespace dso::nrlmsise00
+} // namespace dso::nrlmsise00::detail
 
 #endif

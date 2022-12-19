@@ -1,7 +1,7 @@
+#include "datetime/dtcalendar.hpp"
 #include "datetime/utcdates.hpp"
 #include "eop.hpp"
 #include "iers2010/iers2010.hpp"
-#include "datetime/dtcalendar.hpp"
 #include <algorithm>
 
 namespace {
@@ -42,7 +42,7 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
 
   return 0;
 }
-}// unnamed namespace
+} // unnamed namespace
 
 int dso::EopLookUpTable::interpolate_lagrange(const dso::TwoPartDate &tt_fmjd,
                                               dso::EopRecord &eopr,
@@ -122,27 +122,27 @@ int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &tt_fmjd,
   dso::EopLookUpTable::interpolate_lagrange(tt_fmjd, eopr, order);
 
   // call ortho_eop
-  double dxoc,dyoc,dut1oc;
-  iers2010::ortho_eop(tt_fmjd,dxoc,dyoc,dut1oc); // [μas] and [μsec]
-  
-  // compute fundamental arguments (and gmst+π) needed for pmsdnut2 and 
+  double dxoc, dyoc, dut1oc;
+  iers2010::ortho_eop(tt_fmjd, dxoc, dyoc, dut1oc); // [μas] and [μsec]
+
+  // compute fundamental arguments (and gmst+π) needed for pmsdnut2 and
   // utlibr
   double fargs[6];
   iers2010::utils::eop_fundarg(tt_fmjd, fargs);
 
-  double dxlib,dylib;
-  //iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]
+  double dxlib, dylib;
+  // iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]
   iers2010::utils::pmsdnut2(tt_fmjd, fargs, dxlib, dylib);
 
-  double dut1lib,dlodlib;
+  double dut1lib, dlodlib;
   // iers2010::utlibr(tt_fmjd, dut1lib, dlodlib);
   iers2010::utils::utlibr(tt_fmjd, fargs, dut1lib, dlodlib);
 
   // corrections in [asec]
   const double dx = (dxoc + dxlib) * 1e-6;
   const double dy = (dyoc + dylib) * 1e-6;
-  const double dut = (dut1oc+dut1lib) * 1e-6;
-  const double dlod = (dlodlib) * 1e-6;
+  const double dut = (dut1oc + dut1lib) * 1e-6;
+  const double dlod = (dlodlib)*1e-6;
 
   // add corrections
   eopr.xp += dx;

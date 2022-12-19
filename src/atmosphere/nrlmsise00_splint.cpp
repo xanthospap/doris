@@ -1,9 +1,9 @@
 #include "nrlmsise00.hpp"
 
 double dso::nrlmsise00::detail::splint(const double *__restrict__ xa,
-                               const double *__restrict__ ya,
-                               double *__restrict__ y2a, int n,
-                               double x) noexcept {
+                                       const double *__restrict__ ya,
+                                       double *__restrict__ y2a, int n,
+                                       double x) noexcept {
 
   int klo = 0, khi = n - 1;
   do {

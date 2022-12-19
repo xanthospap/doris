@@ -5,8 +5,8 @@
 /// @param[in] r    Target ratio
 /// @param[in] h1   Transition scale length
 /// @param[in] zh   Altitude of 1 / 2 r
-double dso::nrlmsise00::detail::ccor2(double alt, double r, double h1, double zh,
-                              double h2) noexcept {
+double dso::nrlmsise00::detail::ccor2(double alt, double r, double h1,
+                                      double zh, double h2) noexcept {
   constexpr const double echeck = 70e0;
 
   const double e1 = (alt - zh) / h1;

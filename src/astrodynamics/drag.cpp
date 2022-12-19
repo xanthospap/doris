@@ -6,10 +6,10 @@
 ///
 /// @param[in] rsat Satellite position in GCRS/ICRF [m]
 /// @param[in] vsat Satellite velocity in GCRS/ICRF [m/sec]
-/// @param[in] rbpn GCRs to true-of-date transformation matrix.  
-///            The matrix operates in the sense V(date) = rbpn * V(GCRS), 
-///            where the vector V(date) is with respect to the true equatorial 
-///            triad of date and the vector V(GCRS) is with respect to the 
+/// @param[in] rbpn GCRs to true-of-date transformation matrix.
+///            The matrix operates in the sense V(date) = rbpn * V(GCRS),
+///            where the vector V(date) is with respect to the true equatorial
+///            triad of date and the vector V(GCRS) is with respect to the
 ///            Geocentric Celestial Reference System (IAU, 2000).
 ///            See iers2010::iau::pnm06
 /// @param[in] Area Cross-section [m^2]
@@ -43,8 +43,7 @@ dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
 
 Eigen::Matrix<double, 3, 1>
 dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                const Eigen::Matrix<double, 3, 1> &vsat,
-                double Area, double CD,
+                const Eigen::Matrix<double, 3, 1> &vsat, double Area, double CD,
                 double Mass, double atmdens) noexcept {
   // earth angular velocity vector [rad/sec]
   constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
@@ -61,15 +60,12 @@ dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
   return acc;
 }
 
-Eigen::Matrix<double, 3, 1>
-dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                const Eigen::Matrix<double, 3, 1> &vsat,
-                double Area, double CD,
-                double Mass, double atmdens,
-                const Eigen::Matrix<double, 3, 1> &datmdensdr,
-                Eigen::Matrix<double, 3, 3> &daccdr,
-                Eigen::Matrix<double, 3, 3> &daccdv,
-                Eigen::Matrix<double, 3, 1> &daccdC) noexcept {
+Eigen::Matrix<double, 3, 1> dso::drag_accel(
+    const Eigen::Matrix<double, 3, 1> &rsat,
+    const Eigen::Matrix<double, 3, 1> &vsat, double Area, double CD,
+    double Mass, double atmdens, const Eigen::Matrix<double, 3, 1> &datmdensdr,
+    Eigen::Matrix<double, 3, 3> &daccdr, Eigen::Matrix<double, 3, 3> &daccdv,
+    Eigen::Matrix<double, 3, 1> &daccdC) noexcept {
   // earth angular velocity vector [rad/sec]
   constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
   const Eigen::Matrix<double, 3, 1> omega{omegav};
@@ -95,9 +91,9 @@ dso::drag_accel(const Eigen::Matrix<double, 3, 1> &rsat,
       0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth, 0e0, 0e0, 0e0, 0e0,
       0e0};
   const Eigen::Matrix<double, 3, 3> XOmega(_data);
-  daccdr =
-      -0.5e0 * CD * (Area / Mass) * vrel.norm() * vrel * datmdensdr.transpose() -
-      daccdv * XOmega;
+  daccdr = -0.5e0 * CD * (Area / Mass) * vrel.norm() * vrel *
+               datmdensdr.transpose() -
+           daccdv * XOmega;
 
   return acc;
 }

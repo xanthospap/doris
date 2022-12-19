@@ -32,7 +32,7 @@ int dso::Nrlmsise00::gtd7(const InParamsCore *in,
   // Only calculate N2 in thermosphere if alt in mixed region
   if (in->alt < zmix && mass > 0)
     mss = 28;
-  // Only calculate thermosphere if input parameters changed (but they always 
+  // Only calculate thermosphere if input parameters changed (but they always
   // have in this C++ version ...) or altitude above ZN2(1) in mesosphere
   {
     InParamsCore inc(*in);
@@ -59,13 +59,10 @@ int dso::Nrlmsise00::gtd7(const InParamsCore *in,
     tgn2[0] = tgn1[1];
     tn2[0] = tn1[4];
     tn2[1] = pma[0][0] * pavgm[0] / (1e0 - sw19 * glob7s(in, pma[0]));
-    tn2[2] =
-        pma[1][0] * pavgm[1] / (1e0 - sw19 * glob7s(in, pma[1]));
-    tn2[3] = pma[2][0] * pavgm[2] /
-             (1e0 - sw19 * sw21 * glob7s(in, pma[2]));
-    tgn2[1] = pavgm[8] * pma[9][0] *
-              (1e0 + sw19 * sw21 * glob7s(in, pma[9])) * tn2[3] *
-              tn2[3] / std::pow(pma[2][0] * pavgm[2], 2e0);
+    tn2[2] = pma[1][0] * pavgm[1] / (1e0 - sw19 * glob7s(in, pma[1]));
+    tn2[3] = pma[2][0] * pavgm[2] / (1e0 - sw19 * sw21 * glob7s(in, pma[2]));
+    tgn2[1] = pavgm[8] * pma[9][0] * (1e0 + sw19 * sw21 * glob7s(in, pma[9])) *
+              tn2[3] * tn2[3] / std::pow(pma[2][0] * pavgm[2], 2e0);
   }
 
   // LOWER STRATOSPHERE AND TROPOSPHERE [below ZN3(1)]
@@ -79,7 +76,7 @@ int dso::Nrlmsise00::gtd7(const InParamsCore *in,
       tn3[2] = pma[4][0] * pavgm[4] / (1e0 - sw21 * glob7s(in, pma[4]));
       tn3[3] = pma[5][0] * pavgm[5] / (1e0 - sw21 * glob7s(in, pma[5]));
       tn3[4] = pma[6][0] * pavgm[6] / (1e0 - sw21 * glob7s(in, pma[6]));
-      tgn3[1] = pma[7][0] * pavgm[7] * (1e0 +sw21 * glob7s(in, pma[7])) *
+      tgn3[1] = pma[7][0] * pavgm[7] * (1e0 + sw21 * glob7s(in, pma[7])) *
                 tn3[4] * tn3[4] / std::pow(pma[6][0] * pavgm[6], 2e0);
     }
   }

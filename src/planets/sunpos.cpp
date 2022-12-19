@@ -1,7 +1,7 @@
-#include "iers2010/iau.hpp"
-#include "geodesy/units.hpp"
-#include "planetpos.hpp"
 #include "gcem.hpp" // for constexpr math (trigonometric funcs)
+#include "geodesy/units.hpp"
+#include "iers2010/iau.hpp"
+#include "planetpos.hpp"
 #ifdef DEBUG
 #include <cstdio>
 #endif

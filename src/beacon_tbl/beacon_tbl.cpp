@@ -14,7 +14,7 @@ inline const char *skipws(const char *line) noexcept {
 std::vector<dso::BeaconInformationTableEntry>
 dso::BeaconInformationTable::load_to_memmory(
     const dso::datetime<dso::nanoseconds> &t) {
-  
+
   std::ifstream fin(fn_);
   if (!fin.is_open()) {
     fprintf(stderr, "ERROR. Failed to open file %s (traceback: %s)\n", fn_,

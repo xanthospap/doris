@@ -4,7 +4,7 @@
 using namespace dso::nrlmsise00::detail;
 
 double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
-  
+
   double t[14] = {0e0};
   const double glong = in->glon;
   const double doy = in->doy;
@@ -47,25 +47,26 @@ double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
   p39 = p[39];
 
   t[0] = p[21] * dfa;
-  
+
   // time independent
   t[1] = p[1] * plg[0][2] + p[2] * plg[0][4] + p[22] * plg[0][6] +
          p[26] * plg[0][1] + p[14] * plg[0][3] + p[59] * plg[0][5];
-  
+
   // symmetrical annual
   t[2] = (p[18] + p[47] * plg[0][2] + p[29] * plg[0][4]) * cd32;
-  
+
   // symmetrical semi-annual
   t[3] = (p[15] + p[16] * plg[0][2] + p[30] * plg[0][4]) * cd18;
-  
+
   // asymmetrical annual
   t[4] = (p[9] * plg[0][1] + p[10] * plg[0][3] + p[20] * plg[0][5]) * cd14;
-  
+
   // asymmetric semi-annual
   t[5] = (p[37] * plg[0][1]) * cd39;
 
   double absw[Switches::dim];
-  for (int i=0;i<Switches::dim; i++) absw[i] = std::abs(in->sw.sw[i]);
+  for (int i = 0; i < Switches::dim; i++)
+    absw[i] = std::abs(in->sw.sw[i]);
 
   // diurnal
   if (absw[6] > 0) {
@@ -74,7 +75,7 @@ double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
     t[6] = ((p[3] * plg[1][1] + p[4] * plg[1][3] + t71) * ctloc +
             (p[6] * plg[1][1] + p[7] * plg[1][3] + t72) * stloc);
   }
-  
+
   // semidiurnal
   if (absw[7] > 0) {
     const double t81 =
@@ -84,12 +85,12 @@ double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
     t[7] = ((p[5] * plg[2][2] + p[41] * plg[2][4] + t81) * c2tloc +
             (p[8] * plg[2][2] + p[42] * plg[2][4] + t82) * s2tloc);
   }
-  
+
   // terdiurnal
   if (absw[13] > 0) {
     t[13] = p[39] * plg[3][3] * s3tloc + p[40] * plg[3][3] * c3tloc;
   }
-  
+
   // magnetic activity
   if (absw[8] > 0) {
     if (in->sw.sw[8] > 0)
@@ -97,10 +98,9 @@ double dso::Nrlmsise00::glob7s(const InParamsCore *in, double *pp) noexcept {
     if (in->sw.sw[8] < 0)
       t[8] = (p[50] * apt[0] + p[96] * plg[0][2] * apt[0] * in->sw.swc[1]);
   }
-  
+
   // longitudinal
-  if (absw[9] > 0 && absw[10] > 0 &&
-      glong > -1e3) {
+  if (absw[9] > 0 && absw[10] > 0 && glong > -1e3) {
     t[10] = (1e0 +
              plg[0][1] *
                  (p[80] * in->sw.swc[4] * std::cos(dr * (doy - p[81])) +

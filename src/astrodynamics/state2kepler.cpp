@@ -1,8 +1,8 @@
 #include "astrodynamics.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
-#include <cmath>
 #include "matvec/matvec.hpp"
+#include <cmath>
 #include <limits>
 #ifdef ASSERT_ERROR
 #include <cassert>
@@ -55,8 +55,8 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
 Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
                                                 const dso::OrbitalElements &ele,
                                                 int &error) noexcept {
-  //printf(" -- Call to %s --\n", __func__);
-  // mean anomaly M at time t
+  // printf(" -- Call to %s --\n", __func__);
+  //  mean anomaly M at time t
   const double a = ele.semimajor();
   const double M = ele.mean_anomaly() + std::sqrt(GM / (a * a * a)) * dt;
 
@@ -72,8 +72,9 @@ Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
   const double vmag = std::sqrt(GM * a) / rmag;
   Eigen::Matrix<double, 6, 1> Y;
   Y << a * (cE - e), a * f * sE, 0e0, -vmag * sE, vmag * f * cE, 0e0;
-  //printf("perifocal coordinates: r=[%+20.10f %+20.10f %20.10f]\n", Y(0),Y(1),Y(2));
-  //printf("                       v=[%+20.10f %+20.10f %20.10f]\n", Y(3),Y(4),Y(5));
+  // printf("perifocal coordinates: r=[%+20.10f %+20.10f %20.10f]\n",
+  // Y(0),Y(1),Y(2)); printf("                       v=[%+20.10f %+20.10f
+  // %20.10f]\n", Y(3),Y(4),Y(5));
 
   // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
   const double Omega = ele.Omega();
@@ -82,16 +83,18 @@ Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
   Eigen::Matrix3d R(Eigen::AngleAxisd(-Omega, Eigen::Vector3d::UnitZ()) *
                     Eigen::AngleAxisd(-i, Eigen::Vector3d::UnitX()) *
                     Eigen::AngleAxisd(-omega, Eigen::Vector3d::UnitZ()));
-  //printf("PQW = [%+20.10f %+20.10f %20.10f]\n", R(0,0),R(0,1),R(0,2));
-  //printf("      [%+20.10f %+20.10f %20.10f]\n", R(1,0),R(1,1),R(1,2));
-  //printf("      [%+20.10f %+20.10f %20.10f]\n", R(2,0),R(2,1),R(2,2));
-  //printf("xAngle %+10.5f yAngle %+10.5f zAngle %+10.5f\n", dso::rad2deg(Omega), dso::rad2deg(i), dso::rad2deg(omega));
+  // printf("PQW = [%+20.10f %+20.10f %20.10f]\n", R(0,0),R(0,1),R(0,2));
+  // printf("      [%+20.10f %+20.10f %20.10f]\n", R(1,0),R(1,1),R(1,2));
+  // printf("      [%+20.10f %+20.10f %20.10f]\n", R(2,0),R(2,1),R(2,2));
+  // printf("xAngle %+10.5f yAngle %+10.5f zAngle %+10.5f\n",
+  // dso::rad2deg(Omega), dso::rad2deg(i), dso::rad2deg(omega));
 
   // rotate to get equatorial, aka geocentric/(quasi-)inertial
-  Y.block<3,1>(0,0) = R.transpose() * Y.block<3,1>(0,0);
-  Y.block<3,1>(3,0) = R.transpose() * Y.block<3,1>(3,0);
-  //printf("inertial coordinates: r=[%+20.10f %+20.10f %20.10f]\n", Y(0),Y(1),Y(2));
-  //printf("                      v=[%+20.10f %+20.10f %20.10f]\n", Y(3),Y(4),Y(5));
+  Y.block<3, 1>(0, 0) = R.transpose() * Y.block<3, 1>(0, 0);
+  Y.block<3, 1>(3, 0) = R.transpose() * Y.block<3, 1>(3, 0);
+  // printf("inertial coordinates: r=[%+20.10f %+20.10f %20.10f]\n",
+  // Y(0),Y(1),Y(2)); printf("                      v=[%+20.10f %+20.10f
+  // %20.10f]\n", Y(3),Y(4),Y(5));
   return Y;
 }
 
@@ -131,30 +134,29 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   return 0;
 }
 
-dso::OrbitalElements dso::state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y
-                        ) noexcept {
+dso::OrbitalElements
+dso::state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y) noexcept {
 
-  const auto r = Y.block<3,1>(0,0);
-  const auto v = Y.block<3,1>(3,0);
+  const auto r = Y.block<3, 1>(0, 0);
+  const auto v = Y.block<3, 1>(3, 0);
   const auto h = r.cross(v);
   const double H = h.norm();
 
   dso::OrbitalElements ele;
 
-  ele.Omega() = dso::norm_angle<double, dso::AngleUnit::Radians>(
-      std::atan2(h(0), -h(1)));
-  ele.inclination() =
-      std::atan2(std::sqrt(h(0)*h(0)+h(1)*h(1)), h(2));
-  
+  ele.Omega() =
+      dso::norm_angle<double, dso::AngleUnit::Radians>(std::atan2(h(0), -h(1)));
+  ele.inclination() = std::atan2(std::sqrt(h(0) * h(0) + h(1) * h(1)), h(2));
+
   // argument of latitude
-  const double u = std::atan2(r(2)*H, -r(0)*h(1)+r(1)*h(0));
+  const double u = std::atan2(r(2) * H, -r(0) * h(1) + r(1) * h(0));
 
   const double R = r.norm();
-  ele.semimajor() = 1e0 / (2e0/R-(v.dot(v))/GM); 
+  ele.semimajor() = 1e0 / (2e0 / R - (v.dot(v)) / GM);
   const double a = ele.semimajor();
 
-  const double eCosE = 1e0-R/a;
-  const double eSinE = r.dot(v)/sqrt(GM*a);
+  const double eCosE = 1e0 - R / a;
+  const double eSinE = r.dot(v) / sqrt(GM * a);
   const double e2 = eCosE * eCosE + eSinE * eSinE;
 
   ele.eccentricity() = std::sqrt(e2);

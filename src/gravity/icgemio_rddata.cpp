@@ -1,5 +1,5 @@
-#include "icgemio.hpp"
 #include "datetime/dtcalendar.hpp"
+#include "icgemio.hpp"
 #include "iers2010/iersc.hpp"
 #include <cassert>
 #include <charconv>
@@ -46,7 +46,7 @@ const char *goto_column(const char *line, int colnr) noexcept {
     while (*c && *c == ' ')
       ++c;
     if (*c && *c != ' ') {
-      if (++cols == colnr+1) {
+      if (++cols == colnr + 1) {
         // printf("founf column: [%s]\n", c);
         return c;
       } else {
@@ -155,7 +155,7 @@ int dso::Icgem::parse_data(int l, int m,
 
   fin.seekg(data_section_pos);
 
-  char line[max_data_line]; 
+  char line[max_data_line];
   const char *start;
   int ll, mm;
   double Clm, Slm;
@@ -211,7 +211,8 @@ int dso::Icgem::parse_data(int l, int m,
 
         // assign to harmonic coefficients matrix
 #ifdef DEBUG
-        if (ll==2 && mm==1) printf("Reading coefficient C(2,1)=%.15e\n", Clm);
+        if (ll == 2 && mm == 1)
+          printf("Reading coefficient C(2,1)=%.15e\n", Clm);
 #endif
         coeffs->C(ll, mm) += Clm;
         if (mm == 0) {
@@ -279,7 +280,8 @@ int dso::Icgem::parse_data(int l, int m,
 
         if (t >= tstart && t < tend) {
 #ifdef DEBUG
-        if (ll==2 && mm==1) printf("Reading coefficient C(2,1)=%.15e\n", Clm);
+          if (ll == 2 && mm == 1)
+            printf("Reading coefficient C(2,1)=%.15e\n", Clm);
 #endif
           // add drift to harmonic coefficients matrix
           coeffs->C(ll, mm) += Clm;
@@ -440,10 +442,11 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
         // find the yearly period, aka annual, semi-annual, etc ...
         double yper;
-        ccres = std::from_chars(goto_column(line, cols-1), line + sz, yper);
-        if (ccres.ec != std::errc{}) ++error;
-        
-        if (t>= tstart && t < tend) {
+        ccres = std::from_chars(goto_column(line, cols - 1), line + sz, yper);
+        if (ccres.ec != std::errc{})
+          ++error;
+
+        if (t >= tstart && t < tend) {
           // angular frequency, 2π/T * delta-years
           if (std::abs(yper - 1e0) < 1e-9) {
             // Annual signal
