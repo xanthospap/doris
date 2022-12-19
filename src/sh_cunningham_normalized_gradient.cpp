@@ -122,10 +122,6 @@ int gravacc3_impl(const dso::HarmonicCoeffs &cs,
                    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M) noexcept {
 
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
-  //                                                          lp_degree + 1);
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
-  //                                                          lp_degree + 1);
   
   W.fill_with(0e0);
   M.fill_with(0e0);
@@ -474,8 +470,6 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
                                                             lp_degree + 1);
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
                                                             lp_degree + 1);
-  //W.fill_with(0e0);
-  //M.fill_with(0e0);
   return gravacc3_impl(cs, p, degree, Re, GM, acc, gradient, W, M);
 }
 
@@ -487,10 +481,6 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
                    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *M) noexcept {
 
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W(lp_degree + 1,
-  //                                                          lp_degree + 1);
-  //dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> M(lp_degree + 1,
-  //                                                          lp_degree + 1);
   if (((W->rows() < lp_degree + 1) || (W->cols() < lp_degree + 1)) ||
       ((M->rows() < lp_degree + 1) || (M->cols() < lp_degree + 1))) {
     fprintf(stderr,
@@ -499,9 +489,6 @@ int test::gravacc3(const dso::HarmonicCoeffs &cs,
             __func__);
     return 1;
   }
-
-  //W->fill_with(0e0);
-  //M->fill_with(0e0);
 
   return gravacc3_impl(cs, p, degree, Re, GM, acc, gradient, *W, *M);
 }

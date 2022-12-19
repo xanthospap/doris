@@ -7,19 +7,106 @@ namespace dso {
 namespace detail {
   constexpr const int MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE = 4;
 };//detail
-struct AssociatedLegendreFunctions {
+
+class AssociatedLegendreFunctions {
+public:
   int m_degree; ///< degree, inclusive; order  = degree
   ///< Lower triangular, of size (degree+1, degree+1)
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> P;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *F1, *F2;
+  void compute_factors() noexcept;
+  void compute(double angle) noexcept;
 
-  AssociatedLegendreFunctions(int degree)
+public:
+  AssociatedLegendreFunctions(int degree) noexcept
       : m_degree(degree),
         P((degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
               ? (detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE + 1)
               : (degree + 1),
           (degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
               ? (detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE + 1)
-              : (degree + 1)) {}
+              : (degree + 1)),
+        F1((degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+               ? (nullptr)
+               : (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     degree + 1, degree + 1))),
+        F2((degree < detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+               ? (nullptr)
+               : (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     degree + 1, degree + 1)))
+  {
+    // computeation of factors only happens once, at construction (if needed)
+    if (m_degree > detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+      compute_factors();
+  }
+
+  ~AssociatedLegendreFunctions() noexcept {
+    if (F1) delete F1;
+    if (F2) delete F2;
+  }
+
+  AssociatedLegendreFunctions(const AssociatedLegendreFunctions &l) noexcept
+      : m_degree(l.m_degree), P(l.P),
+        F1((l.F1)
+               ? (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     m_degree + 1, m_degree + 1))
+               : (nullptr)),
+        F2((l.F2)
+               ? (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     m_degree + 1, m_degree + 1))
+               : (nullptr)) {
+    if (l.F1)
+      F1 = l.F1;
+    if (l.F2)
+      F2 = l.F2;
+  }
+
+  AssociatedLegendreFunctions &
+  operator=(const AssociatedLegendreFunctions &l) noexcept
+  {
+    if (this != &l) {
+      m_degree = l.m_degree;
+      P = l.P;
+      F1 = (l.F1)
+               ? (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     m_degree + 1, m_degree + 1))
+               : (nullptr);
+      F2 = (l.F2)
+               ? (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+                     m_degree + 1, m_degree + 1))
+               : (nullptr);
+      if (F1) F1 = l.F1;
+      if (F2) F2 = l.F2;
+    }
+    return *this;
+  }
+  
+  AssociatedLegendreFunctions &
+  operator=(AssociatedLegendreFunctions &&l) noexcept
+  {
+    if (this != &l) {
+      m_degree = l.m_degree;
+      P = std::move(l.P);
+      if (F1) {
+        F1 = l.F1;
+        l.F1=nullptr;
+      }
+      if (F2) {
+        F2 = l.F2;
+        l.F2=nullptr;
+      }
+    }
+    return *this;
+  }
+
+  AssociatedLegendreFunctions(AssociatedLegendreFunctions &&l) noexcept
+      : m_degree(l.m_degree), P(std::move(l.P)),F1(l.F1),F2(l.F2) 
+  {
+    if (l.F1)
+      l.F1 = nullptr;
+    if (l.F2)
+      l.F2 = nullptr;
+  }
 
   int degree() const noexcept {return m_degree;}
 
@@ -35,6 +122,10 @@ struct AssociatedLegendreFunctions {
     assert(n>=0 && m <= n && n <= m_degree);
 #endif
     return P(n,m);
+  }
+
+  inline void at(double angle) noexcept {
+    return compute(angle);
   }
 
   /// The computation algorithm follow Montenbruck et al, 2012, Section 3.2.4
@@ -54,7 +145,7 @@ struct AssociatedLegendreFunctions {
 
   /// @brief Normalize Legendere functions, using the scale factor:
   ///        N_nm = sqrt[ (n-m)! (2n+1) (2-Kronecker(0,m) / (n+m)! ]
-  void normalize() noexcept;
+  // void normalize() noexcept;
 }; // AssociatedLegendreFunction
 } // namespace dso
 

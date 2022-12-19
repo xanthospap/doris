@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   [[maybe_unused]]Eigen::Matrix<double,3,1> acc0,acc1,acc2,acc3,acc32,acc4;
   [[maybe_unused]]Eigen::Matrix<double,3,3> grad;
   [[maybe_unused]]int dummy_it = 0;
-  [[maybe_unused]]const double t0 = it->mjd;
+  //[[maybe_unused]]const double t0 = it->mjd;
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Mwork(degree + 3,degree+3),
       Wwork(degree + 3, degree+3);
 
@@ -180,8 +180,10 @@ int map_input(const char *fn, std::vector<Acc> &accs) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     accs.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())
@@ -227,8 +229,10 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     poss.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())

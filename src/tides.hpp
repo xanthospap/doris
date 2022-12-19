@@ -55,7 +55,7 @@ public:
   SolidEarthTide(double GMearth, double Rearth, double GMmoon,
                  double GMsun) noexcept
       : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth),
-        V(degree + 2, degree + 2), W(degree + 2, degree + 2), PM(degree),
+        V(degree + 3, degree + 3), W(degree + 3, degree + 3), PM(degree),
         PS(degree) {}
 
   int operator()(/*dso::datetime<dso::nanoseconds> &t_tt,

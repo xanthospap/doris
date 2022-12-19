@@ -1,62 +1,93 @@
 #include "associated_legendre.hpp"
 #include <cmath>
 
-namespace {
-  // Associated Legendre Polynomials up to (n,m)=(4,4) according to Wikipedia
-  // see https://en.wikipedia.org/wiki/Associated_Legendre_polynomials#The_first_few_associated_Legendre_functions
-
-void fill_degree4x4(
-    double x,
-    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &P) noexcept 
-    {
-      const double rpmx = std::sqrt(1e0 -x*x);
-      const double pmx = rpmx * rpmx;
-      const double x2 = x*x;
-
-      P(0, 0) = 1e0;
-
-      P(1, 0) = x;
-      P(1, 1) = -rpmx;
-
-      P(2, 0) = .5e0 * (3e0 * x2 - 1e0);
-      P(2, 1) = -3e0 * x * rpmx;
-      P(2, 2) = 3e0 * pmx;
-
-      P(3, 0) = .5e0 * (5e0 * x * x2 - 3e0 * x);
-      P(3, 1) = (3e0 / 2e0) * (1e0 - 5 * x2) * rpmx;
-      P(3, 2) = 15e0 * x * pmx;
-      P(3, 3) = -15e0 * rpmx * pmx;
-
-      P(4, 0) = (1e0 / 8e0) * (35e0 * x2 * x2 - 30e0 * x2 + 3e0);
-      P(4, 1) = -(5e0 / 2e0) * (7e0 * x2 * x - 3e0 * x) * rpmx;
-      P(4, 2) = (15e0 / 2e0) * (7e0 * x2 - 1e0) * pmx;
-      P(4, 3) = -105e0 * x * rpmx * pmx;
-      P(4, 4) = 105e0 * pmx * pmx;
-
-      return;
-    }
-
-}// unnamed namespace
-
-/*
-void dso::AssociatedLegendreFunctions::compute(double x) noexcept {
-  // fill polynomials to min degree/order = (4,4)
-  fill_degree4x4(x,P);
-
-  for (int m = 1; m <= m_degree; m++) {
-    P(m, m) = static_cast<double>(2 * m - 1) * cf * P(m - 1, m - 1);
-    // P(m,m-1) = static_cast<double>(2*(m-1)+1) * sf * P(m,m);
+// See 
+// To be used with the standard forward column method(s)
+void dso::AssociatedLegendreFunctions::compute_factors() noexcept {
+  const int maxDegree = m_degree;
+  
+  // diagonal terms (Eq. 13)
+  F1->operator()(1,1) = std::sqrt(3e0);
+  for (int n=2; n<=maxDegree; n++) {
+    (*F1)(n,n) = std::sqrt( (2*n+1) / (2e0*n) );
   }
-  for (int m = 0; m <= m_degree; m++) {
-    P(m + 1, m) = static_cast<double>(2 * m + 1) * sf * P(m, m);
+
+  // degrees > 0 and order m=0
+  for (int n = 1; n <= maxDegree; n++) {
+    const long ln = n;
+    const long Anm_u = (2L * ln - 1L) * (2L * ln + 1L);
+    const long Anm_d = ln * ln;
+    const long Bnm_u = (2L * ln + 1L) * (ln - 1L) * (ln - 1L);
+    const long Bnm_d = ln * ln * (2l * ln - 3);
+    F1->operator()(n, 0) = std::sqrt((double)Anm_u / (double)Anm_d);
+    F2->operator()(n, 0) = std::sqrt((double)Bnm_u / (double)Bnm_d);
   }
-  for (int n = 2; n <= m_degree; n++) {
-    for (int m = 0; m < n + 1 - 2; m++) {
-      P(n, m) = (1e0 / (n - m)) *
-                ((2 * n - 1) * sf * P(n - 1, m) - (n + m - 1) * P(n - 2, m));
+
+  // all other terms, per order (m), Eq. 12 (a_nm and b_nm)
+  for (int m=1; m<=maxDegree; m++) {
+    for (int n=m+1; n<=maxDegree; n++) {
+      const long ln = n;
+      const long lm = m;
+      const long Anm_u = (2L*ln-1L)*(2L*ln+1L);
+      const long Anm_d = (ln-lm)*(ln+lm);
+      const long Bnm_u = (2L*ln+1L)*(ln+lm-1L)*(ln-lm-1L);
+      const long Bnm_d = (ln-lm)*(ln+lm)*(2l*ln-3);
+      F1->operator()(n,m) = std::sqrt((double)Anm_u/(double)Anm_d);
+      F2->operator()(n,m) = std::sqrt((double)Bnm_u/(double)Bnm_d);
+
+      //const long ipar = (n + m) * (n - m);
+      //const double f = (2 * n + 1) / static_cast<double>(ipar);
+      //F1->operator()(n,m) = std::sqrt(f*(2*n-1));
+      //F2->operator()(n,m) = std::sqrt(f*((n-m-1)*(n+m-1))/(2*n-3));
     }
   }
 
   return;
 }
-*/
+
+/*void dso::AssociatedLegendreFunctions::compute(double angle) noexcept {
+  const int maxDegree = m_degree;
+  const double ca = std::cos(angle);
+  const double sa = std::sin(angle);
+  
+  P(0,0) = 1e0;
+  P(1,0) = 
+}*/
+
+// Standard Forward Column Method
+void dso::AssociatedLegendreFunctions::compute(double angle) noexcept {
+  const int maxDegree = m_degree;
+  const double u = std::sin(angle);
+  const double t = std::cos(angle);
+  
+  P(0,0) = 1e0;
+  
+  { // fill elements for order = 0
+    const int m = 0;
+    P(1,0) = (*F1)(1,0) * t * P(0,0);
+    for (int n=2; n<=maxDegree; n++)
+      P(n,m) = (*F1)(n,m) * t * P(n-1, m) - (*F2)(n,m) * P(n-2, m);
+  }
+
+  // column wise visiting, for orders: 1<=m<maxDegree
+  double lastDiagonal = P(0,0);
+  for (int m=1; m<maxDegree; m++) {
+    // diagonal elements
+    P(m,m) = (*F1)(m,m) * u * /*P(m-1,m-1)*/lastDiagonal;
+    lastDiagonal = P(m,m);
+    // sub-diagonal points
+    P(m+1,m) = (*F1)(m+1,m) * t * P(m,m);
+    // all other points of same order = m
+    for (int n=m+2; n<=maxDegree; n++)
+      P(n,m) = (*F1)(n,m) * t * P(n-1, m) - (*F2)(n,m) * P(n-2, m);
+  }
+
+  // we are missing the last (diagonal) element!
+  {
+    const int m = maxDegree;
+    P(m, m) = (*F1)(m,m) * u * /*P(m-1,m-1)*/lastDiagonal;
+  }
+
+  // all done!
+  return;
+}

@@ -37,6 +37,10 @@ struct StorageImplementation<MatrixStorageType::LwTriangularRowWise> {
   constexpr StorageImplementation(int r, [[maybe_unused]] int _) noexcept
       : rows(r){};
 
+  void __set_dimensions(int _rows, [[maybe_unused]]int _cols) noexcept {
+    rows = _rows;
+  }
+
   /// @brief Compute number of elements stored
   constexpr std::size_t num_elements() const noexcept {
     return rows * (rows + 1) / 2;
@@ -79,6 +83,10 @@ struct StorageImplementation<MatrixStorageType::LwTriangularColWise> {
   constexpr std::size_t num_elements() const noexcept {
     return rows * (rows + 1) / 2;
   }
+  
+  void __set_dimensions(int _rows, [[maybe_unused]]int _cols) noexcept {
+    rows = _rows;
+  }
 
   constexpr int nrows() const noexcept { return rows; }
   constexpr int ncols() const noexcept { return rows; }
@@ -114,6 +122,11 @@ template <> struct StorageImplementation<MatrixStorageType::Trapezoid> {
 
   constexpr int nrows() const noexcept { return rows; }
   constexpr int ncols() const noexcept { return cols; }
+  
+  void __set_dimensions(int _rows, int _cols) noexcept {
+    rows = _rows;
+    cols = _cols;
+  }
 
   /// @brief Compute number of elements stored
   constexpr std::size_t num_elements() const noexcept {
@@ -164,7 +177,12 @@ template <> struct StorageImplementation<MatrixStorageType::RowWise> {
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
   constexpr int nrows() const noexcept { return rows; }
-  constexpr int ncols() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return cols; }
+  
+  void __set_dimensions(int _rows, int _cols) noexcept {
+    rows = _rows;
+    cols = _cols;
+  }
 
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
@@ -196,7 +214,12 @@ template <> struct StorageImplementation<MatrixStorageType::ColumnWise> {
   constexpr StorageImplementation(int r, int c) noexcept : rows(r), cols(c){};
 
   constexpr int nrows() const noexcept { return rows; }
-  constexpr int ncols() const noexcept { return rows; }
+  constexpr int ncols() const noexcept { return cols; }
+  
+  void __set_dimensions(int _rows, int _cols) noexcept {
+    rows = _rows;
+    cols = _cols;
+  }
 
   /// @brief Number of elements in matrix
   constexpr std::size_t num_elements() const noexcept { return rows * cols; }
@@ -233,7 +256,7 @@ public:
 
   constexpr int cols() const noexcept { return m_storage.ncols(); }
 
-  constexpr long num_elements() const noexcept {
+  constexpr std::size_t num_elements() const noexcept {
     return m_storage.num_elements();
   }
 
@@ -296,7 +319,7 @@ public:
 
   Mat2D(const Mat2D &mat) noexcept
       : m_storage(mat.m_storage), m_data(new double[mat.num_elements()]) {
-    std::memset(m_data, mat.m_data, sizeof(double) * mat.num_elements());
+    std::memcpy(m_data, mat.m_data, sizeof(double) * mat.num_elements());
   }
 
   Mat2D(Mat2D &&mat) noexcept : m_storage(mat.m_storage), m_data(mat.m_data) {
@@ -309,18 +332,17 @@ public:
         delete[] m_data;
         m_data = new double[mat.num_elements()];
       }
-      std::memset(m_data, mat.m_data, sizeof(double) * mat.num_elements());
-      m_storage.rows = mat.rows();
-      m_storage.cols = mat.cols();
+      std::memcpy(m_data, mat.m_data, sizeof(double) * mat.num_elements());
+      m_storage.__set_dimensions(mat.rows(), mat.cols());
     }
     return *this;
   }
 
   Mat2D &operator=(Mat2D &&mat) noexcept {
-    m_storage.rows = mat.rows();
-    m_storage.cols = mat.cols();
     m_data = mat.m_data;
+    m_storage.__set_dimensions(mat.rows(), mat.cols());
     mat.m_data = nullptr;
+    return *this;
   }
 
 #ifdef DEBUG

@@ -1,9 +1,11 @@
 #include "planetpos.hpp"
 #include <cstring>
 
-#define  FILLEN   128                                                           
-#define  TYPLEN   32                                                            
-#define  SRCLEN   128
+namespace {
+constexpr const int FILLEN = 128;
+constexpr const int TYPLEN = 32;
+constexpr const int SRCLEN = 128;
+}
 
 int dso::cspice::load_if_unloaded_lsk(const char *lsk_kernel) noexcept {
   SpiceInt count, which, handle;
@@ -14,16 +16,18 @@ int dso::cspice::load_if_unloaded_lsk(const char *lsk_kernel) noexcept {
 
   // get number of all ascii kernels loaded ... (to find if we already have
   // the LSK kernel loaded)
-  ktotal_c("text", &count);
+  ktotal_c("ALL", &count);
 
   if (count) {
     for (which = 0; which < count; which++) {
-      kdata_c(which, "text", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
+      kdata_c(which, "ALL", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
               &handle, &found);
+      printf(">> Loaded kernel: %s [%s]\n", source, __func__);
       if (!std::strncmp(file, lsk_kernel, std::strlen(lsk_kernel))) return 0;
     }
   }
 
+  printf(">> Loading kernel %s [%s]\n", lsk_kernel, __func__);
   furnsh_c(lsk_kernel);
   return 0;
 }
@@ -36,16 +40,18 @@ int dso::cspice::load_if_unloaded_spk(const char *spk_kernel) noexcept {
   SpiceBoolean found;
 
   // get number of spk kernels loaded ... 
-  ktotal_c("spk", &count);
+  ktotal_c("ALL", &count);
 
   if (count) {
     for (which = 0; which < count; which++) {
-      kdata_c(which, "spk", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
+      kdata_c(which, "ALL", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
               &handle, &found);
+      printf(">> Loaded kernel: %s [%s]\n", source, __func__);
       if (!std::strncmp(file, spk_kernel, std::strlen(spk_kernel))) return 0;
     }
   }
 
+  printf(">> Loading kernel %s [%s]\n", spk_kernel, __func__);
   furnsh_c(spk_kernel);
   return 0;
 }
@@ -58,16 +64,18 @@ int dso::cspice::load_if_unloaded_pck(const char *pck_kernel) noexcept {
   SpiceBoolean found;
 
   // get number of spk kernels loaded ... 
-  ktotal_c("pck", &count);
+  ktotal_c("ALL", &count);
 
   if (count) {
     for (which = 0; which < count; which++) {
-      kdata_c(which, "pck", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
+      kdata_c(which, "ALL", FILLEN, TYPLEN, SRCLEN, file, filtyp, source,
               &handle, &found);
+      printf(">> Loaded kernel: %s [%s]\n", source, __func__);
       if (!std::strncmp(file, pck_kernel, std::strlen(pck_kernel))) return 0;
     }
   }
 
+  printf(">> Loading kernel %s [%s]\n", pck_kernel, __func__);
   furnsh_c(pck_kernel);
   return 0;
 }

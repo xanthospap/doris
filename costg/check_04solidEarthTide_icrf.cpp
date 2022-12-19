@@ -10,6 +10,8 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
+#include "planetpos.hpp"
+#include "tides.hpp"
 
 using namespace std::chrono;
 
@@ -46,28 +48,112 @@ int main(int argc, char *argv[]) {
   // check input
   if (argc != 4) {
     fprintf(stderr,
-            "USAGE: %s [gravity field (.gfc)] [00orbit_itrf.txt] "
-            "[02gravityfield_itcrf.txt]\n",
+            "USAGE: %s [eopc04_14_IAU2000.62-now] [00orbit_icrf.txt] "
+            "[04solidEarthTide_icrf.txt]\n",
             argv[0]);
     return 1;
   }
 
+  // Load CSPICE/NAIF Kernels
+  // -------------------------------------------------------------------------
+  int cerror = dso::cspice::load_if_unloaded_spk("data/jpl/de405.bsp");
+  cerror += dso::cspice::load_if_unloaded_lsk("data/jpl/naif0012.tls");
+  cerror += dso::cspice::load_if_unloaded_pck("data/jpl/gm_de431.tpc");
+  // cerror += dso::cspice::load_if_unloaded_pck("data/jpl/earth_fixed.tf");
+  // cerror += dso::cspice::load_if_unloaded_pck("data/jpl/earth_latest_high_prec.bpc");
+  cerror += dso::cspice::load_if_unloaded_pck("data/jpl/pck00010.tpc");
+  if (cerror) {
+    fprintf(stderr, "Failed to load NAIF kernels!\n");
+    return 1;
+  }
+  
   // parse reference results (gravity acceleration)
   std::vector<Acc> refaccs;
   if (map_input(argv[3], refaccs))
     return 1;
 
   // parse reference position (ICRF)
-  std::vector<Pos> refposs;
-  if (map_position(argv[2], refposs))
+  std::vector<Pos> refpos;
+  if (map_position(argv[2], refpos))
     return 1;
 
-
-  for (const auto &pos : refposs) {
-
-    // compute acceleration due to solid earth tide
-    
+  double GMSun, GMMoon;
+  if (dso::get_sun_moon_GM("data/jpl/gm_de431.tpc", GMSun, GMMoon)) {
+    fprintf(stderr, "Failed getting gravitational constants\n");
+    return 1;
   }
+  printf("Got Moon/Sun constants from %s\n", "data/jpl/gm_de431.tpc");
+  
+  // fist date in file as datetime instance
+  dso::datetime<dso::nanoseconds> d1(
+      dso::modified_julian_day(static_cast<int>(refpos[0].mjd._big)),
+      dso::nanoseconds(0));
+
+  // Parse the input EOP data file to create an EopLookUpTable eop_lut
+  dso::EopLookUpTable eop_lut;
+  const int ref_mjd = d1.as_mjd();
+  const int start = ref_mjd - 5;
+  const int end = ref_mjd + 6;
+  // parse C04 EOPs and convert time-stamps to TT (not UTC)
+  if (parse_iers_C04(argv[1], start, end, eop_lut)) {
+    fprintf(stderr, "ERROR. Failed collecting EOP data\n");
+    return 1;
+  }
+
+  // for ICRF-to-ITRF transformations
+  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+  double era, xlod;
+
+  // A solid earth tide instance
+  dso::SolidEarthTide setide(0.3986004415E+15, 0.6378136460E+07, GMMoon, GMSun);
+
+  std::vector<Acc>::const_iterator it = refaccs.cbegin();
+  for (const auto &pos : refpos) {
+
+    // get Sun and Moon coordinates in ECEF (Cartesian, km)
+    double dummy;
+    double rm[3], rs[3];
+    double et = dso::cspice::jd2et(gps2tt(pos.mjd).mjd() + dso::mjd0_jd);
+    //spkezp_c(301, et, "IAU_EARTH", "NONE", 399, rm, &dummy);
+    //spkezp_c( 10, et, "IAU_EARTH", "NONE", 399, rs, &dummy);
+    spkezp_c(301, et, "J2000", "NONE", 399, rm, &dummy);
+    spkezp_c( 10, et, "J2000", "NONE", 399, rs, &dummy);
+    Eigen::Matrix<double,3,1> rmoon(rm[0], rm[1], rm[2]); // [km]
+    Eigen::Matrix<double,3,1> rsun(rs[0], rs[1], rs[2]);  // [km]
+    rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
+    rsun  = dso::rcel2ter(rsun, rc2i, era, rpom);
+
+    // ECEF coordinates of SV
+    assert(!dso::gcrs2itrs(gps2tai(pos.mjd), eop_lut, rc2i, era, rpom, xlod));
+    
+    // transform icrf-to-itrf
+    [[maybe_unused]]const Eigen::Matrix<double, 3, 1> cpos =
+        dso::rcel2ter(pos.xyz, rc2i, era, rpom);
+
+    // compute acceleration due to solid earth tide (ECEF)
+    Eigen::Matrix<double,3,1> ecef_acc;
+    setide.acceleration(cpos, rmoon*1e3, rsun*1e3, ecef_acc);
+    
+    // acceleration, ITRF-to-ICRF
+    Eigen::Matrix<double,3,1> acc = dso::rter2cel(ecef_acc, rc2i, era, rpom);
+
+    // find respective element in reference file
+    auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &p) {
+      return std::abs(
+                 p.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                     pos.mjd)) < 1e-3;
+    });
+
+    if (cit != refaccs.cend()) {
+      //printf("%.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(),
+      //       acc(0) - cit->a(0), acc(1) - cit->a(1), acc(2) - cit->a(2));
+      printf("%.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(),
+             acc(0), acc(1), acc(2));
+      it = cit;
+    }
+  }
+
+  return 0;
 }
 
 // file: 02gravityfield_i[tc]rf.txt
@@ -107,8 +193,10 @@ int map_input(const char *fn, std::vector<Acc> &accs) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     accs.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())
@@ -154,8 +242,10 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
       c = cres.ptr;
     }
     // remember, COLUMN-WISE order!
+    double it;
+    const double ft = std::modf(_data[0], &it);
     poss.push_back(
-        {_data[0], Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())

@@ -68,6 +68,7 @@ inline int j2planet_pos_from(double et, int target_id, int observer_id,
   spkezp_c(target_id, et, "J2000", "NONE", observer_id, pos, &dummy);
   return 0;
 }
+
 } // namespace cspice
 
 /// @brief Get the Sun's and Moon's standard gravitational parameter (μ) off
