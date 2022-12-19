@@ -8,6 +8,7 @@ template <typename T, int N> struct FactorialLookUpTable {
   }
 
   constexpr T factorial(int i) const noexcept { return table[i]; }
+  constexpr T operator()(int i) const noexcept { return table[i]; }
 }; // FactorialTable
 
 // yield (Nominator)! / (Denominator)! as T

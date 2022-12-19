@@ -16,6 +16,7 @@ public:
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *F1, *F2;
   void compute_factors() noexcept;
   void compute(double angle) noexcept;
+  void assign(double angle) noexcept;
 
 public:
   AssociatedLegendreFunctions(int degree) noexcept
@@ -35,7 +36,7 @@ public:
                : (new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
                      degree + 1, degree + 1)))
   {
-    // computeation of factors only happens once, at construction (if needed)
+    // computation of factors only happens once, at construction (if needed)
     if (m_degree > detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
       compute_factors();
   }
@@ -125,7 +126,9 @@ public:
   }
 
   inline void at(double angle) noexcept {
-    return compute(angle);
+    return (m_degree > detail::MIN_ASSOCIATEDLEGENDREFUNCTIONS_DEGREE)
+               ? (compute(angle))
+               : (assign(angle));
   }
 
   /// The computation algorithm follow Montenbruck et al, 2012, Section 3.2.4

@@ -35,8 +35,6 @@ private:
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
     AssociatedLegendreFunctions PM,PS;
 
-    int computeLegendre(double latitude) noexcept;
-    
     int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon,
                              double slon, std::array<double, 12> &dC,
                              std::array<double, 12> &dS) noexcept;
