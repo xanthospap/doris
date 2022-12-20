@@ -112,7 +112,7 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
   rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
 
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)
-  dso::TwoPartDate ut1 = dso::tai2utc(mjd_tai); // UTC date
+  dso::TwoPartDate ut1 = mjd_tai.tai2utc(); // UTC date
   ut1._small += eops.dut / 86400e0;             // add UT1-UTC, interpolated
   const auto sofa_ut1jd = ut1.normalized().jd_sofa();
   era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);

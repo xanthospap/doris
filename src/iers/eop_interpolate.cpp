@@ -121,22 +121,42 @@ int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &tt_fmjd,
   // perform simple interpolation (lagrangian)
   dso::EopLookUpTable::interpolate_lagrange(tt_fmjd, eopr, order);
 
+  // note that groops performs the corrections in UTC
+  const auto utc_fmjd = tt_fmjd.tt2utc();
+
+{
+  printf("[DEBUG@] utc=%.15f tt =%.15f\n", utc_fmjd.mjd(), tt_fmjd.mjd());
+}
+
   // call ortho_eop
   double dxoc, dyoc, dut1oc;
-  iers2010::ortho_eop(tt_fmjd, dxoc, dyoc, dut1oc); // [μas] and [μsec]
+  iers2010::ortho_eop(utc_fmjd, dxoc, dyoc, dut1oc); // [μas] and [μsec]
+{
+    printf("\t[ortho_eop] xp =%.15f\n", dxoc);
+    printf("\t[ortho_eop] yp =%.15f\n", dyoc);
+    printf("\t[ortho_eop] dUT=%.15f\n", dut1oc);
+}
 
   // compute fundamental arguments (and gmst+π) needed for pmsdnut2 and
   // utlibr
   double fargs[6];
-  iers2010::utils::eop_fundarg(tt_fmjd, fargs);
+  iers2010::utils::eop_fundarg(utc_fmjd, fargs);
 
   double dxlib, dylib;
   // iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]
-  iers2010::utils::pmsdnut2(tt_fmjd, fargs, dxlib, dylib);
+  iers2010::utils::pmsdnut2(utc_fmjd, fargs, dxlib, dylib);
+  {
+    printf("\t[pmsdnut2] xp =%.15f\n", dxlib);
+    printf("\t[pmsdnut2] yp =%.15f\n", dylib);
+  }
 
   double dut1lib, dlodlib;
   // iers2010::utlibr(tt_fmjd, dut1lib, dlodlib);
-  iers2010::utils::utlibr(tt_fmjd, fargs, dut1lib, dlodlib);
+  iers2010::utils::utlibr(utc_fmjd, fargs, dut1lib, dlodlib);
+{
+  printf("\t[utlibr] xp =%.15f\n", dut1lib);
+  printf("\t[utlibr] yp =%.15f\n", dlodlib);
+}
 
   // corrections in [asec]
   const double dx = (dxoc + dxlib) * 1e-6;

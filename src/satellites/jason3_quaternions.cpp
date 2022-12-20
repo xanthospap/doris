@@ -16,7 +16,8 @@ int resolve_jason3_body_quaternion_line(
   // read in date (UTC) and transform to TAI
   try {
     auto utc = dso::utc_strptime_ymd_hms(line);
-    record.tai_mjd = dso::utc2tai(utc);
+    // record.tai_mjd = dso::utc2tai(utc);
+    record.tai_mjd = utc.utc2tai();
     // printf("Note that we resolved ITC date %s to %.2f + %.15f\n", line,
     // record.tai_mjd._big, record.tai_mjd._small);
   } catch (std::exception &e) {

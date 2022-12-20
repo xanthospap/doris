@@ -74,9 +74,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // regularize ERP (DUT and LOD)
-  // eop_lut.regularize();
-
   printf("#%12s %9s %9s %10s %10s %9s %9s %9s %9s\n", "Mjd", "xp('')", "yp('')",
          "dut1 (sec)", "lod (sec)", "X ('')", "Y ('')", "CIO ('')", "TIO ('')");
 
@@ -96,8 +93,10 @@ int main(int argc, char *argv[]) {
     double X, Y;
     const dso::TwoPartDate jd = gps2tt(eop.mjd).jd_sofa();
     iers2010::sofa::xy06(jd._big, jd._small, X, Y);
+    
     // compute CIO locator, s [radians]
     const double s = iers2010::sofa::s06(jd._big, jd._small, X, Y);
+    
     // compute TIO locator, s' [radians]
     const double sp = iers2010::sofa::sp00(jd._big, jd._small);
 
@@ -137,9 +136,8 @@ int map_input(const char *fn, std::vector<Eop01Record> &eops) {
     return 1;
   }
 
-  // first two lines are GROOPS related
-  fin.getline(line, MAX_CHARS);
-  fin.getline(line, MAX_CHARS);
+  // first five (?) lines are GROOPS related
+  for (int i=0; i<7; i++) fin.getline(line, MAX_CHARS);
 
   // read data
   double _data[9];

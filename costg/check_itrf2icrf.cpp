@@ -151,7 +151,7 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 7; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data

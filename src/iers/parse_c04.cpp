@@ -78,11 +78,12 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
         error = 0;
         // do we need to transform the given UTC date to TT?
         if (utc2tt) {
-          dso::modified_julian_day tai_mjd;
-          const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
-          const double tt_fday = tai_fday + (32.184e0 / 86400e0); // TAI to TT
-          rec.mjd = dso::TwoPartDate(
-              static_cast<double>(tai_mjd.as_underlying_type()), tt_fday);
+          //dso::modified_julian_day tai_mjd;
+          //const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
+          //const double tt_fday = tai_fday + (32.184e0 / 86400e0); // TAI to TT
+          //rec.mjd = dso::TwoPartDate(
+          //    static_cast<double>(tai_mjd.as_underlying_type()), tt_fday);
+          rec.mjd = TwoPartDate((double)imjd, 0e0).utc2tt();
         } else {
           rec.mjd = dso::TwoPartDate(static_cast<double>(imjd), 0e0);
         }
