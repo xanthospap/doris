@@ -77,11 +77,14 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
 
   // TAI to TT
-  dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
+  const dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
 
-  // interpolate/correct EOP values using TT
+  // TAI to UTC
+  const dso::TwoPartDate mjd_utc = mjd_tai.tai2utc();
+
+  // interpolate/correct EOP values using UTC
   dso::EopRecord eops;
-  if (int error; (error = eop_table.interpolate(mjd_tt, eops))) {
+  if (int error; (error = eop_table.interpolate(mjd_utc, eops))) {
     fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
     return error;
   }
@@ -112,8 +115,8 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
   rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
 
   // call ERA00 to get the ERA rotation angle (need UT1 datetime)
-  dso::TwoPartDate ut1 = mjd_tai.tai2utc(); // UTC date
-  ut1._small += eops.dut / 86400e0;             // add UT1-UTC, interpolated
+  dso::TwoPartDate ut1 = mjd_utc;
+  ut1._small += eops.dut / 86400e0; // add UT1-UTC, interpolated
   const auto sofa_ut1jd = ut1.normalized().jd_sofa();
   era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);
 

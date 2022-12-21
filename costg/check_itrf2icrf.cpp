@@ -2,14 +2,14 @@
 #include "geodesy/units.hpp"
 #include "orbit_integration.hpp"
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
-#include <chrono>
 #ifdef USE_SOFA
-#  include "sofa.h"
+#include "sofa.h"
 #endif
 
 using namespace std::chrono;
@@ -47,12 +47,12 @@ int main(int argc, char *argv[]) {
   }
 
   // parse position data
-  std::vector<Pos> icrfPos, itrfPos;
+  std::vector<Pos> itrfPos, icrfPos;
   if (map_position(argv[2], itrfPos))
     return 1;
   if (map_position(argv[3], icrfPos))
     return 1;
-  
+
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
       dso::modified_julian_day(static_cast<int>(itrfPos[0].mjd._big)),
@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
   const int ref_mjd = d1.as_mjd();
   const int start = ref_mjd - 5;
   const int end = ref_mjd + 6;
-  // parse C04 EOPs and convert time-stamps to TT (not UTC)
   if (parse_iers_C04(argv[1], start, end, eop_lut)) {
     fprintf(stderr, "ERROR. Failed collecting EOP data\n");
     return 1;
@@ -71,7 +70,7 @@ int main(int argc, char *argv[]) {
 
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
-  
+
   std::vector<Pos>::const_iterator it = icrfPos.cbegin();
   // for every sattellite position ...
   auto clock_start = high_resolution_clock::now();
@@ -81,14 +80,15 @@ int main(int argc, char *argv[]) {
     assert(!dso::gcrs2itrs(gps2tai(tpos.mjd), eop_lut, rc2i, era, rpom, xlod));
 
     // transform itrf-to-icrf
-    [[maybe_unused]]const Eigen::Matrix<double, 3, 1> cpos =
+    [[maybe_unused]] const Eigen::Matrix<double, 3, 1> cpos =
         dso::rter2cel(tpos.xyz, rc2i, era, rpom);
 
 #ifdef USE_SOFA
     const dso::TwoPartDate ttjd = gps2tt(tpos.mjd).normalized();
     int iy, im, id;
     double fd, dat;
-    assert(!iauJd2cal(ttjd._big + dso::mjd0_jd, ttjd._small, &iy, &im, &id, &fd));
+    assert(
+        !iauJd2cal(ttjd._big + dso::mjd0_jd, ttjd._small, &iy, &im, &id, &fd));
     assert(!iauDat(iy, im, id, fd, &dat));
     dso::EopRecord myeop;
     if (eop_lut.interpolate(gps2tt(tpos.mjd), myeop, 3)) {
@@ -112,25 +112,35 @@ int main(int argc, char *argv[]) {
 
     // report differences
     auto cit = std::find_if(it, icrfPos.cend(), [&](const Pos &p) {
-      return std::abs(p.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(tpos.mjd)) < 1e-3;
+      return std::abs(
+                 p.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                     tpos.mjd)) < 1e-6;
     });
-    
+
     if (cit != icrfPos.cend()) {
 #ifdef USE_SOFA
-      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), rp[0] - cit->xyz(0),
-             rp[1] - cit->xyz(1), rp[2] - cit->xyz(2));
+      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(),
+             rp[0] - cit->xyz(0), rp[1] - cit->xyz(1), rp[2] - cit->xyz(2));
 #else
-      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), cpos(0) - cit->xyz(0),
-             cpos(1) - cit->xyz(1), cpos(2) - cit->xyz(2));
+      printf("%.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(),
+             cpos(0) - cit->xyz(0), cpos(1) - cit->xyz(1),
+             cpos(2) - cit->xyz(2));
 #endif
+      printf("[MINE]   %.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(), cpos(0),
+             cpos(1), cpos(2));
+      printf("[GROOPS] %.12f %+.15f %+.15f %+.15f\n", cit->mjd.mjd(),
+             cit->xyz(0), cit->xyz(1), cit->xyz(2));
+      printf("[DATA]   %.12f %+.15f %+.15f %+.15f\n", tpos.mjd.mjd(),
+             tpos.xyz(0), tpos.xyz(1), tpos.xyz(2));
       it = cit;
     }
   }
-  
+
   auto clock_stop = high_resolution_clock::now();
 
   auto duration = duration_cast<milliseconds>(clock_stop - clock_start);
-  std::cout << "Time taken by function: " << duration.count() << " milliseconds\n";
+  std::cout << "Time taken by function: " << duration.count()
+            << " milliseconds\n";
 
   return 0;
 }
@@ -151,7 +161,7 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 7; i++)
+  for (int i = 0; i < 6; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data
@@ -175,8 +185,8 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
     // remember, COLUMN-WISE order!
     double it;
     const double ft = std::modf(_data[0], &it);
-    poss.push_back(
-        {dso::TwoPartDate(it,ft), Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
+    poss.push_back({dso::TwoPartDate(it, ft),
+                    Eigen::Map<Eigen::Matrix<double, 3, 1>>(_data + 1)});
   }
 
   if (!fin.good() && fin.eof())

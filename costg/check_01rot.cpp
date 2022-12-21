@@ -56,14 +56,11 @@ int main(int argc, char *argv[]) {
   const int ref_mjd = d1.as_mjd();
   const int start = ref_mjd - 5;
   const int end = ref_mjd + 6;
-  // parse C04 EOPs and convert time-stamps to TT (not UTC)
+  // parse C04 EOPs
   if (parse_iers_C04(argv[1], start, end, eop_lut)) {
     fprintf(stderr, "ERROR. Failed collecting EOP data\n");
     return 1;
   }
-
-  // regularize ERP (DUT and LOD)
-  // eop_lut.regularize();
 
   // ok, now for every MJD in the reference file
   for (const Rotary &rot : refrots) {
@@ -107,7 +104,7 @@ int map_input(const char *fn, std::vector<Rotary> &rots) {
   }
 
   // first five lines are GROOPS related
-  for (int i=0; i<5;i++) fin.getline(line, MAX_CHARS);
+  for (int i=0; i<6;i++) fin.getline(line, MAX_CHARS);
 
   // read data
   double _data[10];
