@@ -91,12 +91,11 @@ int main(int argc, char *argv[]) {
         !iauJd2cal(ttjd._big + dso::mjd0_jd, ttjd._small, &iy, &im, &id, &fd));
     assert(!iauDat(iy, im, id, fd, &dat));
     dso::EopRecord myeop;
-    if (eop_lut.interpolate(gps2tt(tpos.mjd), myeop, 3)) {
+    if (eop_lut.interpolate(gps2tai(tpos.mjd), myeop, 3)) {
       fprintf(stderr, "ERROR. My interpolation failed!\n");
       return 1;
     }
     const double extra = (-dat + myeop.dut) / 86400e0;
-    printf("> Note, adding extra seconds: %.12f\n", -dat + myeop.dut);
     dso::TwoPartDate utjd(gps2tai(tpos.mjd));
     utjd._small += extra;
     utjd.normalize();

@@ -14,30 +14,34 @@ struct Rotary {
   Eigen::Matrix<double, 3, 3> R;
 };
 
-int map_input(const char *fn, std::vector<Rotary> &rots);
-inline const char *skipws(const char *line) noexcept {
-  const char *str = line;
+int map_input(const char* fn, std::vector<Rotary>& rots);
+inline const char* skipws(const char* line) noexcept
+{
+  const char* str = line;
   while (*str && *str == ' ')
     ++str;
   return str;
 }
 
-dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
+dso::TwoPartDate gps2tt(const dso::TwoPartDate& gpst) noexcept
+{
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
   return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
-dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
+dso::TwoPartDate gps2tai(const dso::TwoPartDate& gpst) noexcept
+{
   constexpr const double offset = (19e0) / 86400e0;
   return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
 
   // check input
   if (argc != 3) {
     fprintf(stderr,
-            "USAGE: %s [EOP INPUT] [01earthRotation_rotaryMatrix.txt]\n",
-            argv[0]);
+        "USAGE: %s [EOP INPUT] [01earthRotation_rotaryMatrix.txt]\n",
+        argv[0]);
     return 1;
   }
 
@@ -63,7 +67,7 @@ int main(int argc, char *argv[]) {
   }
 
   // ok, now for every MJD in the reference file
-  for (const Rotary &rot : refrots) {
+  for (const Rotary& rot : refrots) {
 
     // IAU 2006/2000A, CIO based, using X,Y series
     Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -80,10 +84,10 @@ int main(int argc, char *argv[]) {
     // differences [-]
     printf("%12.5f %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e "
            "%+.15e\n",
-           rot.mjd.mjd(), R(0, 0) - rot.R(0, 0), R(0, 1) - rot.R(0, 1),
-           R(0, 2) - rot.R(0, 2), R(1, 0) - rot.R(1, 0), R(1, 1) - rot.R(1, 1),
-           R(1, 2) - rot.R(1, 2), R(2, 0) - rot.R(2, 0), R(2, 1) - rot.R(2, 1),
-           R(2, 2) - rot.R(2, 2));
+        rot.mjd.mjd(), R(0, 0) - rot.R(0, 0), R(0, 1) - rot.R(0, 1),
+        R(0, 2) - rot.R(0, 2), R(1, 0) - rot.R(1, 0), R(1, 1) - rot.R(1, 1),
+        R(1, 2) - rot.R(1, 2), R(2, 0) - rot.R(2, 0), R(2, 1) - rot.R(2, 1),
+        R(2, 2) - rot.R(2, 2));
   }
 
   return 0;
@@ -92,7 +96,8 @@ int main(int argc, char *argv[]) {
 // Read and parse file 01earthRotation_rotartMatrix.txt
 // Assume columns:
 // gps time [mjd], xx, xy, xz, yx, yy, yz, zx, zy, zz
-int map_input(const char *fn, std::vector<Rotary> &rots) {
+int map_input(const char* fn, std::vector<Rotary>& rots)
+{
   constexpr const int MAX_CHARS = 1024;
   char line[MAX_CHARS];
   rots.clear();
@@ -104,16 +109,17 @@ int map_input(const char *fn, std::vector<Rotary> &rots) {
   }
 
   // first five lines are GROOPS related
-  for (int i=0; i<6;i++) fin.getline(line, MAX_CHARS);
+  for (int i = 0; i < 6; i++)
+    fin.getline(line, MAX_CHARS);
 
   // read data
   double _data[10];
   while (fin.getline(line, MAX_CHARS)) {
-    const char *c = line;
+    const char* c = line;
     const int sz = std::strlen(line);
     for (int i = 0; i < 10; i++) {
       auto cres = std::from_chars(skipws(c), line + sz, _data[i]);
-      if (cres.ec != std::errc{}) {
+      if (cres.ec != std::errc {}) {
         fprintf(stderr, "ERROR Failed resolving line %s\n", line);
         if (!std::strlen(line)) {
           fprintf(stderr, "Line is actually empty, so pretending this never "
@@ -128,8 +134,8 @@ int map_input(const char *fn, std::vector<Rotary> &rots) {
     double it;
     const double ft = std::modf(_data[0], &it);
     rots.push_back(
-        {dso::TwoPartDate(it, ft),
-         Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(_data + 1)});
+        { dso::TwoPartDate(it, ft),
+            Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(_data + 1) });
   }
 
   printf("Number of records collected to compare: %d\n", (int)rots.size());

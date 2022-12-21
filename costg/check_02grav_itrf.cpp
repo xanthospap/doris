@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
 
     // find relative reference acceleration result
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &a) {
-      return std::abs(a.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(pos.mjd)) < 1e-3;
+      return std::abs(a.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(pos.mjd)) < 1e-6;
     });
     
     // compute differences
@@ -158,7 +158,7 @@ int map_input(const char *fn, std::vector<Acc> &accs) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 6; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data
@@ -207,7 +207,7 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 6; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data
