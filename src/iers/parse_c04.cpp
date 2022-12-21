@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 
+namespace {
 constexpr const std::size_t MAX_LINE_CHARS = 256;
 
 const char *next_num(const char *line) noexcept {
@@ -13,6 +14,7 @@ const char *next_num(const char *line) noexcept {
     ++ptr;
   return ptr;
 }
+}// unnamed namespace
 
 /// Example : https://datacenter.iers.org/data/224/eopc04_14_IAU2000.62-now.txt
 /// Format of data:
@@ -26,13 +28,11 @@ y Err   UT1-UTC Err  LOD Err     dX Err       dY Err "          "           s s
 0.000000   0.030000   0.030000  0.0020000  0.0014000    0.004774    0.002000
 1962   1   2  37666  -0.015900   0.214100   0.0320547   0.0016690   0.000000
 0.000000   0.030000   0.030000  0.0020000  0.0014000    0.004774    0.002000
-struct EopRecord {
-  double mjd, xp, yp, ut1, dx, dy, lod, omega;
-};
 */
+
 int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
                         dso::modified_julian_day end_mjd,
-                        dso::EopLookUpTable &eoptable) noexcept {
+                        dso::EopLookUpTable &eoptable, bool utc2tt) noexcept {
   // open file
   std::ifstream fin(c04fn);
   if (!fin.is_open()) {
@@ -49,7 +49,6 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
   eoptable.reserve(days);
 
   char line[MAX_LINE_CHARS];
-  constexpr const int utc2tt = true;
 
   dso::EopRecord rec;
   while (fin.getline(line, MAX_LINE_CHARS)) {
@@ -78,14 +77,9 @@ int dso::parse_iers_C04(const char *c04fn, dso::modified_julian_day start_mjd,
         error = 0;
         // do we need to transform the given UTC date to TT?
         if (utc2tt) {
-          //dso::modified_julian_day tai_mjd;
-          //const double tai_fday = dso::utc2tai(cmjd, 0e0, tai_mjd);
-          //const double tt_fday = tai_fday + (32.184e0 / 86400e0); // TAI to TT
-          //rec.mjd = dso::TwoPartDate(
-          //    static_cast<double>(tai_mjd.as_underlying_type()), tt_fday);
           rec.mjd = TwoPartDate((double)imjd, 0e0).utc2tt();
         } else {
-          rec.mjd = dso::TwoPartDate(static_cast<double>(imjd), 0e0);
+          rec.mjd = dso::TwoPartDate((double)imjd, 0e0);
         }
         double data[6];
         for (int i = 0; i < 6; i++) {

@@ -5,7 +5,7 @@
 #include <algorithm>
 
 namespace {
-int lag_int(const dso::TwoPartDate &tt_fmjd,
+int lag_int(const dso::TwoPartDate &fmjd,
             const std::vector<dso::TwoPartDate> &t,
             const std::vector<double> &y, int order, int &index,
             double &val) noexcept {
@@ -14,7 +14,7 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
 
   // find suitable index in input dates
   if (index < 0) {
-    auto it = std::lower_bound(t.begin(), t.end(), tt_fmjd);
+    auto it = std::lower_bound(t.begin(), t.end(), fmjd);
     if (it == t.end())
       return 1;
     index = std::distance(t.begin(), it);
@@ -30,12 +30,10 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
     const double l = y[i];
     double pval = 1e0;
     for (int j = index - window; j < i; j++) {
-      // pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
-      pval *= tt_fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
+      pval *= fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
     }
     for (int j = i + 1; j < index + window; j++) {
-      // pval *= (double)(tt_fmjd - t[j]) / (double)(t[i] - t[j]);
-      pval *= tt_fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
+      pval *= fmjd.diff<FD>(t[j]) / t[i].diff<FD>(t[j]);
     }
     val += l * pval;
   }
@@ -44,119 +42,75 @@ int lag_int(const dso::TwoPartDate &tt_fmjd,
 }
 } // unnamed namespace
 
-int dso::EopLookUpTable::interpolate_lagrange(const dso::TwoPartDate &tt_fmjd,
+int dso::EopLookUpTable::interpolate_lagrange(const dso::TwoPartDate &fmjd,
                                               dso::EopRecord &eopr,
                                               int order) const noexcept {
   int status = 0;
   int index = -1;
 
   // xp (pole)
-  status += lag_int(tt_fmjd, t, xp, order, index, eopr.xp);
+  status += lag_int(fmjd, t, xp, order, index, eopr.xp);
   // yp (pole)
-  status += lag_int(tt_fmjd, t, yp, order, index, eopr.yp);
+  status += lag_int(fmjd, t, yp, order, index, eopr.yp);
   // Dut1
-  status += lag_int(tt_fmjd, t, dut1, order, index, eopr.dut);
+  status += lag_int(fmjd, t, dut1, order, index, eopr.dut);
   // dX
-  status += lag_int(tt_fmjd, t, dX, order, index, eopr.dx);
+  status += lag_int(fmjd, t, dX, order, index, eopr.dx);
   // dY
-  status += lag_int(tt_fmjd, t, dY, order, index, eopr.dy);
+  status += lag_int(fmjd, t, dY, order, index, eopr.dy);
   // LOD
-  status += lag_int(tt_fmjd, t, lod, order, index, eopr.lod);
+  status += lag_int(fmjd, t, lod, order, index, eopr.lod);
 
   // remember to assign date to the filled-in instance
-  eopr.mjd = tt_fmjd;
+  eopr.mjd = fmjd;
 
   return 0;
 }
-
-/* this version is based on the interp.f routine but does not work well enough
-int dso::EopLookUpTable::interpolate2(double tt_fmjd, dso::EopRecord &eopr,
-                                     int order) const noexcept {
-
-  // perform simple interpolation (lagrangian)
-  dso::EopLookUpTable::interpolate_lagrange(tt_fmjd, eopr, order);
-
-  // TT as Julian centuries since J2000 (try to keep accuracy)
-  double it;
-  double ft = std::modf(tt_fmjd, &it);
-  const double t = (it - dso::j2000_mjd) / dso::days_in_julian_cent +
-                   ft / dso::days_in_julian_cent;
-
-  // compute the effects of zonal Earth tides on the rotation of the Earth.
-  // (assuming ERP values are regularized)
-  double dut1, // [seconds]
-      dlod,    // [seconds / day]
-      domega;  // [radians / second]
-  iers2010::rg_zont2(t, dut1, dlod, domega);
-
-  // add the effect to the ERP values
-  eopr.dut += dut1;     // [seconds]
-  eopr.lod += dlod;     // [seconds/day]
-  eopr.omega += domega; // [?]
-
-  // add effect of ocean tides (see iers2010::interp_pole and interp.f)
-  double cx, cy, cdut, clod;
-  iers2010::interp::pmut1_oceans(t, cx, cy, cdut, clod);
-  eopr.xp += cx;
-  eopr.yp += cy;
-  eopr.dut += cdut;
-  eopr.lod += clod;
-
-  // add lunisolar effect (libration)
-  iers2010::interp::pm_gravi(t, cx, cy);
-  eopr.xp += cx;
-  eopr.yp += cy;
-
-
-  eopr.mjd = tt_fmjd; // TT MJD
-
-  return 0;
-}*/
 
 // do not regularize EOPs before calling this function
-int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &tt_fmjd,
+int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &fmjd,
                                      dso::EopRecord &eopr,
                                      int order) const noexcept {
-
+  
   // perform simple interpolation (lagrangian)
-  dso::EopLookUpTable::interpolate_lagrange(tt_fmjd, eopr, order);
+  dso::EopLookUpTable::interpolate_lagrange(fmjd, eopr, order);
 
-  // note that groops performs the corrections in UTC
-  const auto utc_fmjd = tt_fmjd.tt2utc();
-
-{
-  printf("[DEBUG@] utc=%.15f tt =%.15f\n", utc_fmjd.mjd(), tt_fmjd.mjd());
-}
+//{
+//  printf("[DEBUG@] utc=%.15f tt =%.15f\n", utc_fmjd.mjd(), tt_fmjd.mjd());
+//  printf("[interp] xp = %.15f asec\n", eopr.xp);
+//  printf("[interp] yp = %.15f asec\n", eopr.yp);
+//  printf("[interp] dut= %.15f sec\n", eopr.dut);
+//}
 
   // call ortho_eop
   double dxoc, dyoc, dut1oc;
-  iers2010::ortho_eop(utc_fmjd, dxoc, dyoc, dut1oc); // [μas] and [μsec]
-{
-    printf("\t[ortho_eop] xp =%.15f\n", dxoc);
-    printf("\t[ortho_eop] yp =%.15f\n", dyoc);
-    printf("\t[ortho_eop] dUT=%.15f\n", dut1oc);
-}
+  iers2010::ortho_eop(fmjd, dxoc, dyoc, dut1oc); // [μas] and [μsec]
+//{
+//    printf("\t[ortho_eop] xp =%.15f\n", dxoc);
+//    printf("\t[ortho_eop] yp =%.15f\n", dyoc);
+//    printf("\t[ortho_eop] dUT=%.15f\n", dut1oc);
+//}
 
   // compute fundamental arguments (and gmst+π) needed for pmsdnut2 and
   // utlibr
   double fargs[6];
-  iers2010::utils::eop_fundarg(utc_fmjd, fargs);
+  iers2010::utils::eop_fundarg(fmjd, fargs);
 
   double dxlib, dylib;
   // iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]
-  iers2010::utils::pmsdnut2(utc_fmjd, fargs, dxlib, dylib);
-  {
-    printf("\t[pmsdnut2] xp =%.15f\n", dxlib);
-    printf("\t[pmsdnut2] yp =%.15f\n", dylib);
-  }
+  iers2010::utils::pmsdnut2(fmjd, fargs, dxlib, dylib);
+//  {
+//    printf("\t[pmsdnut2] xp =%.15f\n", dxlib);
+//    printf("\t[pmsdnut2] yp =%.15f\n", dylib);
+//  }
 
   double dut1lib, dlodlib;
   // iers2010::utlibr(tt_fmjd, dut1lib, dlodlib);
-  iers2010::utils::utlibr(utc_fmjd, fargs, dut1lib, dlodlib);
-{
-  printf("\t[utlibr] xp =%.15f\n", dut1lib);
-  printf("\t[utlibr] yp =%.15f\n", dlodlib);
-}
+  iers2010::utils::utlibr(fmjd, fargs, dut1lib, dlodlib);
+//{
+//  printf("\t[utlibr] xp =%.15f\n", dut1lib);
+//  printf("\t[utlibr] yp =%.15f\n", dlodlib);
+//}
 
   // corrections in [asec]
   const double dx = (dxoc + dxlib) * 1e-6;
@@ -172,26 +126,3 @@ int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &tt_fmjd,
 
   return 0;
 }
-
-/*void dso::EopLookUpTable::__regularize() noexcept {
-  dso::modified_julian_day tt_mjd;
-  double imjd;
-  for (int i = 0; i < sz; i++) {
-    // TT as Julian centuries since J2000 (try to keep accuracy)
-    const double tt_fday = std::modf(*mjd(i), &imjd);
-    const double jc2000 =
-        (imjd + dso::mjd0_jd - dso::j2000_jd) / 36525e0 + tt_fday / 36525e0;
-
-    // compute the effects of zonal Earth tides on the rotation of the Earth.
-    double dut1, // [seconds]
-        dlod,    // [seconds / day]
-        domega;  // [radians / second]
-    iers2010::rg_zont2(jc2000, dut1, dlod, domega);
-
-    // subtract the effect from the EOP values
-    *(dut(i)) -= dut1;     // [seconds]
-    *(lod(i)) -= dlod;     // [seconds/day]
-    *(omega(i)) -= domega; // [?]
-  }
-  return;
-}*/

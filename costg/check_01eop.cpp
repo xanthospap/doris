@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
   const int ref_mjd = d1.as_mjd();
   const int start = ref_mjd - 5;
   const int end = ref_mjd + 6;
-  // parse C04 EOPs and convert time-stamps to TT (not UTC)
+  // parse C04 EOPs
   if (parse_iers_C04(argv[1], start, end, eop_lut)) {
     fprintf(stderr, "ERROR. Failed collecting EOP data\n");
     return 1;
@@ -84,7 +84,9 @@ int main(int argc, char *argv[]) {
 
     // need to transform GPST to TT for our interpolation, also note that
     // costG uses an order-3 interpolation
-    if (eop_lut.interpolate(gps2tt(eop.mjd), myeop, 3)) {
+    // Note that we have to transform GPS time to UTC
+    const auto tt = gps2tt(eop.mjd);
+    if (eop_lut.interpolate(tt.tt2utc(), myeop, 3)) {
       fprintf(stderr, "ERROR. My interpolation failed!\n");
       return 1;
     }
