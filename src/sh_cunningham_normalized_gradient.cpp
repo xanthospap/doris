@@ -25,10 +25,10 @@ struct KahanSum {
 }; // KahanSum
 
 // compile-time factors for Normalized ALFs
-template <int N> struct NormalizedLegendreFactors {
-  std::array<double, N *(N + 1) / 2> fac1{};
-  std::array<double, N *(N + 1) / 2> fac2{};
-  std::array<double, N> fac3{};
+/*template <int N> struct NormalizedLegendreFactors {
+  std::array<double, N *(N + 1) / 2> fac1;
+  std::array<double, N *(N + 1) / 2> fac2;
+  std::array<double, N> fac3;
   constexpr int slice(int m) const noexcept { return m * N - m * (m - 1) / 2; }
   constexpr int nm2index(int n, int m) const noexcept {
 #ifdef DEBUG
@@ -51,10 +51,13 @@ template <int N> struct NormalizedLegendreFactors {
     return fac3[n];
   }
   constexpr NormalizedLegendreFactors() noexcept {
+    printf("Intializing via %s with N=%d\n", __func__, N);
     // factors for the recursion ( (2n+1)/2n )^(1/2)
     f1(1, 1) = std::sqrt(3e0);
-    for (int n = 2; n < N; n++)
+    for (int n = 2; n < N; n++) {
       f1(n, n) = std::sqrt((2 * n + 1) / (2e0 * n));
+      // printf("assigning (%d,%d) = %.15e\n", n, n, f1(n,n));
+    }
 
     // factors for the recursion
     for (int m = 0; m < N; m++) {
@@ -64,6 +67,7 @@ template <int N> struct NormalizedLegendreFactors {
         f1(n, m) = std::sqrt(f * (2 * n - 1));
         // f2_nm = B_nm / Bn-1m
         f2(n, m) = -std::sqrt(f * (n - m - 1) * (n + m - 1) / (2 * n - 3));
+        printf("assigning (%d,%d), f1=%.15e f2=%.15e\n", n, m, f1(n, m), f2(n, m));
       }
     }
 
@@ -72,34 +76,49 @@ template <int N> struct NormalizedLegendreFactors {
       fac3[n] = std::sqrt((double)(2 * n + 1) / (2 * n + 3));
   }
 }; // SHFactors
-} // namespace
-
-// class Factor {
-// public:
-//   double f1(int n, int m) const noexcept {
-//#ifdef DEBUG
-//     assert(n > 0 && m <= n);
-//#endif
-//     if (n == m)
-//       return (n == 1) ? std::sqrt(3.0) : std::sqrt((2. * n + 1.) / (2. * n));
-//     else
-//       return std::sqrt((2. * n + 1.) / static_cast<double>((n + m) * (n - m))
-//       *
-//                        (2. * n - 1.));
-//   }
-//   double f2(int n, int m) const noexcept {
-//     return -std::sqrt((2. * n + 1.) / static_cast<double>((n + m) * (n - m))
-//     *
-//                       (n - m - 1.) * (n + m - 1.) / (2. * n - 3.));
-//   }
-// };
+*/
 
 // Max size for ALF factors; if degree is mote than this (-2), then it must
 // be augmented. For now, OK
-constexpr const int MAX_SIZE_FOR_ALF_FACTORS = 125;
+constexpr const int MAX_SIZE_FOR_ALF_FACTORS = 185;
 
-// Factors up to degree/order 124
-static const NormalizedLegendreFactors<MAX_SIZE_FOR_ALF_FACTORS> F;
+struct NormalizedLegendreFactors {
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> f1;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> f2;
+  std::array<double, MAX_SIZE_FOR_ALF_FACTORS> f3;
+
+  NormalizedLegendreFactors() noexcept
+      : f1(MAX_SIZE_FOR_ALF_FACTORS, MAX_SIZE_FOR_ALF_FACTORS),
+        f2(MAX_SIZE_FOR_ALF_FACTORS, MAX_SIZE_FOR_ALF_FACTORS) {
+    constexpr const int N = MAX_SIZE_FOR_ALF_FACTORS;
+    f1.fill_with(0e0);
+    f2.fill_with(0e0);
+    
+    // factors for the recursion ( (2n+1)/2n )^(1/2)
+    f1(1, 1) = std::sqrt(3e0);
+    for (int n = 2; n < N; n++) {
+      f1(n, n) = std::sqrt((2e0 * n + 1e0) / (2e0 * n));
+    }
+
+    // factors for the recursion
+    for (int m = 0; m < N-1; m++) {
+      for (int n = m + 1; n < N; n++) {
+        const double f =
+            (2e0 * n + 1e0) / static_cast<double>((n + m) * (n - m));
+        // f1_nm = B_nm
+        f1(n, m) = std::sqrt(f * (2e0 * n - 1e0));
+        // f2_nm = B_nm / Bn-1m
+        f2(n, m) =
+            -std::sqrt(f * (n - m - 1e0) * (n + m - 1e0) / (2e0 * n - 3e0));
+      }
+    }
+
+    // factors for acceleration
+    for (int n = 0; n < N; n++)
+      f3[n] = std::sqrt((double)(2 * n + 1) / (2 * n + 3));
+  }
+}; // NormalizedLegendreFactors
+}//unnamed namespace
 
 /*            | dx/dx dx/dy dx/dz |
  * gradient = | dy/dx dy/dy dy/dz |
@@ -120,7 +139,11 @@ int gravacc3_impl(
     assert(false);
   }
 
+  // Factors up to degree/order MAX_SIZE_FOR_ALF_FACTORS
+  static const NormalizedLegendreFactors F;
+
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
+  //printf("Note that lp_degree=%d\n", lp_degree);
 
   W.fill_with(0e0);
   M.fill_with(0e0);
@@ -140,11 +163,12 @@ int gravacc3_impl(
       M(0, 0) = 1e280 / r.norm();
     else
       M(0, 0) = 1e0 / r.norm();
-    M(1, 0) = std::sqrt(3e0) * z * M(0, 0);
 
     // first fill m=0 terms; note that W(n,0) = 0 (already set)
-    for (int n = 2; n <= lp_degree; n++)
+    M(1, 0) = std::sqrt(3e0) * z * M(0, 0);
+    for (int n = 2; n <= lp_degree; n++) {
       M(n, 0) = F.f1(n, 0) * z * M(n - 1, 0) + F.f2(n, 0) * rr * M(n - 2, 0);
+    }
 
     // fill all elements for order m >= 1
     for (int m = 1; m < lp_degree; m++) {
@@ -174,6 +198,20 @@ int gravacc3_impl(
       W.multiply(1e-280);
     }
   } // end computing ALF
+
+//printf("\tHere are the first few Coeffs (W):\n");                               
+//printf("%.20e\n", W(0,0));                                                
+//printf("%.20e %.20e\n", W(1,0), W(1,1));                                
+//printf("%.20e %.20e %.20e\n", W(2,0), W(2,1), W(2,2));                
+//printf("%.20e %.20e %.20e %.20e\n", W(3,0), W(3,1), W(3,2), W(3,3));
+//printf("%.20e %.20e %.20e %.20e %.20e\n", W(4,0), W(4,1), W(4,2), W(4,3),W(4,4));
+//printf("\tHere are the first few Coeffs (M):\n");                               
+//printf("%.20e\n", M(0,0));                                                
+//printf("%.20e %.20e\n", M(1,0), M(1,1));                                
+//printf("%.20e %.20e %.20e\n", M(2,0), M(2,1), M(2,2));                
+//printf("%.20e %.20e %.20e %.20e\n", M(3,0), M(3,1), M(3,2), M(3,3));
+//printf("%.20e %.20e %.20e %.20e %.20e\n", M(4,0), M(4,1), M(4,2), M(4,3),M(4,4));
+
 
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
@@ -344,6 +382,7 @@ int gravacc3_impl(
       const double ax = cs.C(n, 0) * (-2e0 * Cp1);
       const double ay = cs.C(n, 0) * (-2e0 * Sp1);
       const double az = cs.C(n, 0) * (-2e0 * Cm0);
+      //printf("\tG(%d,%d) = %.20e %.20e %.20e\n", n,0,ax,ay,az);
 
 #ifdef KAHAN_SUM
       axs + ax *std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
@@ -385,6 +424,7 @@ int gravacc3_impl(
 
   // scale ...
   gradient *= GM / (4e0 * Re * Re * Re);
+  //printf("\tGravity %.20e %.20e %.20e [GM=%5.20e R=%.20e]\n", acc.x(), acc.y(), acc.z(), GM, Re);
   acc *= GM / (2e0 * Re * Re);
 #ifdef KAHAN_SUM
   Eigen::Matrix<double, 3, 1> ks({axs(), ays(), azs()});
