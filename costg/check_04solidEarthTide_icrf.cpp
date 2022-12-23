@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   // Load CSPICE/NAIF Kernels
   // -------------------------------------------------------------------------
-  int cerror = dso::cspice::load_if_unloaded_spk("data/jpl/de405.bsp");
+  int cerror = dso::cspice::load_if_unloaded_spk("data/jpl/de440.bsp");
   cerror += dso::cspice::load_if_unloaded_lsk("data/jpl/naif0012.tls");
   cerror += dso::cspice::load_if_unloaded_pck("data/jpl/gm_de431.tpc");
   // cerror += dso::cspice::load_if_unloaded_pck("data/jpl/earth_fixed.tf");
@@ -77,13 +77,16 @@ int main(int argc, char *argv[]) {
   if (map_position(argv[2], refpos))
     return 1;
 
+  // get gravitational constant for Sun and Moon, note that these are in 
+  // km^3/s^2
   double GMSun, GMMoon;
   if (dso::get_sun_moon_GM("data/jpl/gm_de431.tpc", GMSun, GMMoon)) {
     fprintf(stderr, "Failed getting gravitational constants\n");
     return 1;
   }
-  printf("Got Moon/Sun constants from %s\n", "data/jpl/gm_de431.tpc");
-  
+  printf("Got Moon/Sun constants from %s GMsun=%.6e GMmoon=%.6e\n",
+         "data/jpl/gm_de431.tpc", GMSun, GMMoon);
+
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
       dso::modified_julian_day(static_cast<int>(refpos[0].mjd._big)),
@@ -104,8 +107,9 @@ int main(int argc, char *argv[]) {
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
 
-  // A solid earth tide instance
-  dso::SolidEarthTide setide(0.3986004415E+15, 0.6378136460E+07, GMMoon, GMSun);
+  // A solid earth tide instance (km^3 to m^3)
+  dso::SolidEarthTide setide(0.3986004415E+15, 0.6378136460E+07, GMMoon * 1e9,
+                             GMSun * 1e9);
 
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
   for (const auto &pos : refpos) {
@@ -114,26 +118,64 @@ int main(int argc, char *argv[]) {
     double dummy;
     double rm[3], rs[3];
     double et = dso::cspice::jd2et(gps2tt(pos.mjd).mjd() + dso::mjd0_jd);
-    //spkezp_c(301, et, "IAU_EARTH", "NONE", 399, rm, &dummy);
-    //spkezp_c( 10, et, "IAU_EARTH", "NONE", 399, rs, &dummy);
+    
+    /* coordinates in km, ECI
     spkezp_c(301, et, "J2000", "NONE", 399, rm, &dummy);
     spkezp_c( 10, et, "J2000", "NONE", 399, rs, &dummy);
     Eigen::Matrix<double,3,1> rmoon(rm[0], rm[1], rm[2]); // [km]
     Eigen::Matrix<double,3,1> rsun(rs[0], rs[1], rs[2]);  // [km]
+    rmoon *= 1e3; rsun *= 1e3;
+    printf("\tTime is %.20f\n", gps2tt(pos.mjd).mjd());
+    printf("\tMoon at %.3f %.3f %.3f\n", rmoon(0), rmoon(1),rmoon(2));
+    printf("\tSun at  %.3f %.3f %.3f\n", rsun(0), rsun(1),rsun(2));
+    */
+    
+    /* ECI to ECEF */
+    if (dso::gcrs2itrs(gps2tai(pos.mjd), eop_lut, rc2i, era, rpom, xlod)) {
+      fprintf(stderr, "Failed transforming ECI to ECEF\n");
+      return 2;
+    }
+    /*
     rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
     rsun  = dso::rcel2ter(rsun, rc2i, era, rpom);
-
-    // ECEF coordinates of SV
-    assert(!dso::gcrs2itrs(gps2tai(pos.mjd), eop_lut, rc2i, era, rpom, xlod));
+    printf("\tMoon at %.3f %.3f %.3f\n", rmoon(0), rmoon(1),rmoon(2));
+    printf("\tSun at  %.3f %.3f %.3f\n", rsun(0), rsun(1),rsun(2));
+    double sph[3];
+    rm[0] = rmoon(0); rm[1]=rmoon(1); rm[2]=rmoon(2);
+    recsph_c(rm, &sph[0], &sph[1], &sph[2]);
+    printf("\tMoon at %.1f %.15e %.15e\n", sph[0], dso::rad2deg(sph[1]), dso::rad2deg(sph[2]));
+    */
+ 
+    /* directly in ECEF from CSPICE */   
+    spkezp_c(301, et, "IAU_EARTH", "NONE", 399, rm, &dummy);
+    spkezp_c( 10, et, "IAU_EARTH", "NONE", 399, rs, &dummy);
+    const Eigen::Matrix<double, 3, 1> rmoon =
+        Eigen::Matrix<double, 3, 1>(rm[0], rm[1], rm[2]) * 1e3; // [km]
+    const Eigen::Matrix<double, 3, 1> rsun =
+        Eigen::Matrix<double, 3, 1>(rs[0], rs[1], rs[2]) * 1e3; // [km]
+    //printf("\tMoon at %.3f %.3f %.3f\n", rmoon(0), rmoon(1),rmoon(2));
+    //printf("\tSun at  %.3f %.3f %.3f\n", rsun(0), rsun(1),rsun(2));
+    //rm[0] = rmoon(0); rm[1]=rmoon(1); rm[2]=rmoon(2);
+    //recsph_c(rm, &sph[0], &sph[1], &sph[2]);
+    //printf("\tMoon at %.1f %.15e %.15e\n", sph[0], dso::rad2deg(sph[1]), dso::rad2deg(sph[2]));
     
     // transform icrf-to-itrf
     [[maybe_unused]]const Eigen::Matrix<double, 3, 1> cpos =
         dso::rcel2ter(pos.xyz, rc2i, era, rpom);
 
     // compute acceleration due to solid earth tide (ECEF)
-    Eigen::Matrix<double,3,1> ecef_acc;
-    setide.acceleration(cpos, rmoon*1e3, rsun*1e3, ecef_acc);
-    
+    const auto tt = gps2tt(pos.mjd);
+    const auto utc = tt.tt2utc();
+    dso::EopRecord eops;
+    if (int error; (error = eop_lut.interpolate(utc, eops))) {
+      fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
+      return error;
+    }
+    const auto ut1 =
+        dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
+    Eigen::Matrix<double, 3, 1> ecef_acc;
+    setide.acceleration(tt, ut1, cpos, rmoon, rsun, ecef_acc);
+
     // acceleration, ITRF-to-ICRF
     Eigen::Matrix<double,3,1> acc = dso::rter2cel(ecef_acc, rc2i, era, rpom);
 
@@ -147,8 +189,10 @@ int main(int argc, char *argv[]) {
     if (cit != refaccs.cend()) {
       //printf("%.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(),
       //       acc(0) - cit->a(0), acc(1) - cit->a(1), acc(2) - cit->a(2));
-      printf("%.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(),
-             acc(0), acc(1), acc(2));
+      printf("[MINE] %.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(), acc(0),
+             acc(1), acc(2));
+      printf("[GRPS] %.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(), cit->a(0),
+             cit->a(1), cit->a(2));
       it = cit;
     }
   }
@@ -171,7 +215,7 @@ int map_input(const char *fn, std::vector<Acc> &accs) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 6; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data
@@ -220,7 +264,7 @@ int map_position(const char *fn, std::vector<Pos> &poss) {
   }
 
   // first five lines are GROOPS related
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 6; i++)
     fin.getline(line, MAX_CHARS);
 
   // read data

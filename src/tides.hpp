@@ -39,9 +39,9 @@ private:
                              double slon, std::array<double, 12> &dC,
                              std::array<double, 12> &dS) noexcept;
 
-  int solid_earth_tide_step2(const dso::datetime<dso::nanoseconds> &t_tt,
-                             double ut1_mjd, double &dC20, double &dC21,
-                             double &dS21, double &dC22,
+  int solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
+                             const dso::TwoPartDate &mjdut1, double &dC20,
+                             double &dC21, double &dS21, double &dC22,
                              double &dS22) const noexcept;
 
 public:
@@ -49,22 +49,25 @@ public:
   /// @param GMearth Standard gravitational parameter μ=GM for the Earth
   /// [m^2/s^2]
   /// @param Rearth Equatorial radius of Earth [m]
-  /// @param GMmoon Standard gravitational parameter μ=GM for the Moon [m^2/s^2]
-  /// @param GMsun Standard gravitational parameter μ=GM for the Moon [m^2/s^2]
+  /// @param GMmoon Standard gravitational parameter μ=GM for the Moon
+  ///        [m^2/s^2]
+  /// @param GMsun Standard gravitational parameter μ=GM for the Moon
+  ///        [m^2/s^2]
   SolidEarthTide(double GMearth, double Rearth, double GMmoon,
                  double GMsun) noexcept
       : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth),
         V(degree + 3, degree + 3), W(degree + 3, degree + 3), PM(degree),
         PS(degree) {}
 
-  int operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
-                 double ut1_mjd,*/
+  int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
                  const Eigen::Matrix<double, 3, 1> &rmoon,
                  const Eigen::Matrix<double, 3, 1> &rsun,
                  std::array<double, 12> &dC,
                  std::array<double, 12> &dS) noexcept;
 
-  int acceleration(const Eigen::Matrix<double, 3, 1> &rsat,
+  int acceleration(const dso::TwoPartDate &mjdtt,
+                   const dso::TwoPartDate &mjdut1,
+                   const Eigen::Matrix<double, 3, 1> &rsat,
                    const Eigen::Matrix<double, 3, 1> &rmoon,
                    const Eigen::Matrix<double, 3, 1> &rsun,
                    Eigen::Matrix<double, 3, 1> &acc) noexcept;

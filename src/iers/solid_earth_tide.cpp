@@ -4,6 +4,9 @@
 #include "iers2010/iau.hpp"
 #include "iers2010/iersc.hpp"
 #include "tides.hpp"
+#ifdef DEBUG
+#include "geodesy/units.hpp" // only for debugging
+#endif
 
 namespace {
 /// @param[in] dC   Normalized corrections to C coefficients, in the order:
@@ -52,8 +55,8 @@ int array2harmonics(const std::array<double, 12> &dC,
 ///             dC = C20,C21,C22,C30,C31,C32,C33,C40,C41,C42,0,0
 /// @param[out] dS   Normalized corrections to S coefficients, in the order:
 ///             dS = 0,S21,S22,S30,S31,S32,S33,S40,S41,S42,0,0
-int dso::SolidEarthTide::operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
-                               double ut1_mjd,*/
+int dso::SolidEarthTide::operator()(const dso::TwoPartDate &mjdtt,
+                                    const dso::TwoPartDate &mjdut1,
                                     const Eigen::Matrix<double, 3, 1> &rmoon,
                                     const Eigen::Matrix<double, 3, 1> &rsun,
                                     std::array<double, 12> &dC,
@@ -66,37 +69,41 @@ int dso::SolidEarthTide::operator()(/*dso::datetime<dso::nanoseconds> &t_tt,
   PM.at(Mrfl(1));
   PS.at(Srfl(1));
 
-  // Step 1 corrections
+  // Step 1 corrections, get δC and δC
   solid_earth_tide_step1(Mrfl(0), Srfl(0), Mrfl(2), Srfl(2), dC, dS);
 
   // Step 2 corrections
-  // double dc20,dc21,ds21,dc22,ds22;
-  // solid_earth_tide_step2(dc20,dc21,ds21,dc22,ds22);
+  double dc20, dc21, ds21, dc22, ds22;
+  solid_earth_tide_step2(mjdtt, mjdut1, dc20, dc21, ds21, dc22, ds22);
 
   // apply Step 2 corrections
-  // dC[0] += dc20;
-  // dC[1] += dc21;
-  // dS[1] += ds21;
-  // dC[2] += dc22;
-  // dS[2] += ds22;
+  dC[0] += dc20;
+  dC[1] += dc21;
+  dS[1] += ds21;
+  dC[2] += dc22;
+  dS[2] += ds22;
 
   return 0;
 }
 
 int dso::SolidEarthTide::acceleration(
+    const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
     const Eigen::Matrix<double, 3, 1> &rsat,
     const Eigen::Matrix<double, 3, 1> &rmoon,
     const Eigen::Matrix<double, 3, 1> &rsun,
     Eigen::Matrix<double, 3, 1> &acc) noexcept {
-  Eigen::Matrix<double, 3, 1> a;
+
+  Eigen::Matrix<double, 3, 1> a = Eigen::Matrix<double, 3, 1>::Zero();
   Eigen::Matrix<double, 3, 3> partials;
 
-  // compute SH coefficients (C and S)
+  // compute SH coefficient corrections (δC and δS) for Step1 and Step2
   std::array<double, 12> dC, dS;
-  this->operator()(rmoon, rsun, dC, dS);
+  this->operator()(mjdtt, mjdut1, rmoon, rsun, dC, dS);
+
+  // transform array to harmonics
   array2harmonics(dC, dS, cs);
 
-  // compute acceleration gradient (ITRF, cartesian)
+  // compute acceleration at satellite position (ITRF, cartesian)
   test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, partials, &V, &W);
 
   acc = a;

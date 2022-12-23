@@ -1,7 +1,11 @@
+#include "datetime/dtcalendar.hpp"
 #include "geodesy/geoconst.hpp"
 #include "iers2010/iau.hpp"
 #include "tides.hpp"
 #include <cmath>
+#ifdef DEBUG
+#include "geodesy/units.hpp" // for debugging
+#endif
 
 namespace {
 
@@ -101,13 +105,14 @@ double compute_step2_m0([[maybe_unused]] double gmst,
   // Note that here m*(θ + π) is 0
   for (int i = 0; i < szm20; i++) {
     const double theta =
-        -(ST2_m20[i].l * fundarg[0] + ST2_m20[i].lp * fundarg[1] +
-          ST2_m20[i].F * fundarg[2] + ST2_m20[i].D * fundarg[3] +
-          ST2_m20[i].Omega * fundarg[4]);
+        std::fmod(-(ST2_m20[i].l * fundarg[0] + ST2_m20[i].lp * fundarg[1] +
+                    ST2_m20[i].F * fundarg[2] + ST2_m20[i].D * fundarg[3] +
+                    ST2_m20[i].Omega * fundarg[4]),
+                  dso::D2PI);
     dC20 +=
         (ST2_m20[i].AIp * std::cos(theta) - ST2_m20[i].AOp * std::sin(theta));
   }
-  return dC20 * 1e-5;
+  return dC20 * 1e-12;
 }
 
 /// @brief Compute Step 2, m=1 ΔC_(21) and ΔS_21 corrections, using Eq. 6.8b
@@ -119,16 +124,17 @@ double compute_step2_m0([[maybe_unused]] double gmst,
 int compute_step2_m1(double gmst, const double *const fundarg, double &dC21,
                      double &dS21) noexcept {
   constexpr const int szm21 = sizeof(ST2_m21) / sizeof(ST2_m21[0]);
+  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
   dC21 = 0e0;
   dS21 = 0e0;
   // iterate through Table 6.5a
   for (int i = 0; i < szm21; i++) {
     // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5
     const double theta =
-        (gmst + dso::DPI / 2) -
-        (ST2_m21[i].l * fundarg[0] + ST2_m21[i].lp * fundarg[1] +
-         ST2_m21[i].F * fundarg[2] + ST2_m21[i].D * fundarg[3] +
-         ST2_m21[i].Omega * fundarg[4]);
+        std::fmod(g - (ST2_m21[i].l * fundarg[0] + ST2_m21[i].lp * fundarg[1] +
+                       ST2_m21[i].F * fundarg[2] + ST2_m21[i].D * fundarg[3] +
+                       ST2_m21[i].Omega * fundarg[4]),
+                  dso::D2PI);
     const double st = std::sin(theta);
     const double ct = std::cos(theta);
     dC21 += (ST2_m21[i].AIp * st + ST2_m21[i].AOp * ct);
@@ -149,23 +155,26 @@ int compute_step2_m1(double gmst, const double *const fundarg, double &dC21,
 /// @return
 int compute_step2_m2(double gmst, const double *const fundarg, double &dC22,
                      double &dS22) noexcept {
+  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
   dC22 = 0e0;
   dS22 = 0e0;
 
   // first for constituent N2 (245,655), see Table 6.5c
   // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5
-  const double theta_n2 = (gmst + dso::DPI / 2) -
-                          (1 * fundarg[0] + /*0 * fundarg[1]*/ +2 * fundarg[2] +
-                           /*0 * fundarg[3]*/ +2 * fundarg[4]);
+  const double theta_n2 =
+      std::fmod(g - (1 * fundarg[0] + /*0 * fundarg[1]*/ +2 * fundarg[2] +
+                     /*0 * fundarg[3]*/ +2 * fundarg[4]),
+                dso::D2PI);
+
   // note that we only have corrections for the real part !
   dC22 += -0.3e0 * std::cos(theta_n2);
   dS22 -= -0.3e0 * std::sin(theta_n2);
 
   // second constituent M2
-  const double theta_m2 =
-      (gmst + dso::DPI / 2) - (/*0 * fundarg[0] + 0 * fundarg[1] +*/
-                               2 * fundarg[2] + /*0 * fundarg[3] +*/
-                               2 * fundarg[4]);
+  const double theta_m2 = std::fmod(g - (/*0 * fundarg[0] + 0 * fundarg[1] +*/
+                                         2 * fundarg[2] + /*0 * fundarg[3] +*/
+                                         2 * fundarg[4]),
+                                    dso::D2PI);
   // note that we only have corrections for the real part !
   dC22 += -1.2e0 * std::cos(theta_m2);
   dS22 -= -1.2e0 * std::sin(theta_m2);
@@ -178,16 +187,39 @@ int compute_step2_m2(double gmst, const double *const fundarg, double &dC22,
 }
 } // unnamed namespace
 
-int dso::SolidEarthTide::solid_earth_tide_step2(
-    const dso::datetime<dso::nanoseconds> &t_tt, double ut1_mjd, double &dC20,
-    double &dC21, double &dS21, double &dC22, double &dS22) const noexcept {
+int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
+                                                const dso::TwoPartDate &mjdut1,
+                                                double &dC20, double &dC21,
+                                                double &dS21, double &dC22,
+                                                double &dS22) const noexcept {
 
-  // compute GMST using IAU 2006/2000A
-  const double gmst = iers2010::sofa::gmst06(dso::mjd0_jd, ut1_mjd,
-                                             dso::mjd0_jd, t_tt.as_mjd());
+  // compute GMST using IAU 2006/2000A [rad]
+  const auto jdtt = mjdtt.jd_sofa();
+  const auto jdut = mjdut1.jd_sofa();
+  const double gmst =
+      iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
+#ifdef DEBUG
+  const double T = mjdtt.jcenturies_sinceJ2000();
+  double GMST =
+      std::fmod(67310.54841e0 + T * ((8640184.812866e0 + 3155760000e0) +
+                                     T * (0.093104e0 + T * (-0.0000062))),
+                86400e0);
+  const double RAD2SEC = 86400e0 / dso::D2PI;
+  GMST /= RAD2SEC;
+  const double fg = std::fmod(GMST + dso::DPI, dso::D2PI);
+  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
+  // printf("\t> Note on GMST: F=%.6f M=%.9f diff=%.9f (GMST=%.6f)\n",
+  //        dso::rad2deg(GMST), dso::rad2deg(gmst), dso::rad2deg(fg - g),
+  //        dso::rad2deg(fg));
+  if (std::abs(dso::rad2deg(fg - g)) > 0.5e0) {
+    fprintf(stderr,
+            "[WARNING] Too big GMST difference (%.1f[deg]).... function: %s\n",
+            std::abs(dso::rad2deg(fg - g)), __func__);
+  }
+#endif
 
   // compute Julian centuries since J2000.0 (TT)
-  const double t = t_tt.jcenturies_sinceJ2000();
+  const double t = mjdtt.jcenturies_sinceJ2000();
 
   // compute fundamental arguments
   const double fundarg[] = {

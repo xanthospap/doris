@@ -83,6 +83,7 @@ int dso::cspice::load_if_unloaded_pck(const char *pck_kernel) noexcept {
   return 0;
 }
 
+// see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/bodvrd_c.html
 int dso::get_sun_moon_GM(const char *pck_kernel, double &GMSun,
                          double &GMMoon) noexcept {
   if (pck_kernel)
