@@ -63,7 +63,7 @@ int dso::moon_vector_approx(double t, double *rsun) noexcept {
   const double y = (r * sin(lambda) * cos(beta)) / 1e3;
   const double z = (r * sin(beta)) / 1e3;
 
-  constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
+  constexpr double ecliptic_obliquity = dso::deg2rad(23.43929111e0);
   const double C = cos(-ecliptic_obliquity);
   const double S = sin(-ecliptic_obliquity);
 
@@ -78,25 +78,25 @@ int dso::moon_vector_approx(double t, double *rsun) noexcept {
 int dso::moon_vector_vallado(double t, double *rmoon) noexcept {
   const double lecliptic =
       218.32e0 + 481'267.8813e0 * t +
-      6.29e0 * sin(dso::deg2rad<double>(134.9e0 + 477'198.85e0 * t)) -
-      1.27e0 * sin(dso::deg2rad<double>(259.2e0 - 413'335.38e0 * t)) +
-      0.66e0 * sin(dso::deg2rad<double>(235.7e0 + 890'534.23e0 * t)) +
-      0.21e0 * sin(dso::deg2rad<double>(269.9e0 + 954'397.70 * t)) -
-      0.19e0 * sin(dso::deg2rad<double>(357.5e0 + 35'999.05e0 * t)) -
-      0.11e0 * sin(dso::deg2rad<double>(186.6e0 + 966'404.05e0 * t)); // [deg]
+      6.29e0 * sin(dso::deg2rad(134.9e0 + 477'198.85e0 * t)) -
+      1.27e0 * sin(dso::deg2rad(259.2e0 - 413'335.38e0 * t)) +
+      0.66e0 * sin(dso::deg2rad(235.7e0 + 890'534.23e0 * t)) +
+      0.21e0 * sin(dso::deg2rad(269.9e0 + 954'397.70 * t)) -
+      0.19e0 * sin(dso::deg2rad(357.5e0 + 35'999.05e0 * t)) -
+      0.11e0 * sin(dso::deg2rad(186.6e0 + 966'404.05e0 * t)); // [deg]
 
   const double fecliptic =
-      5.13e0 * sin(dso::deg2rad<double>(93.3e0 + 483'202.03e0 * t)) +
-      0.28e0 * sin(dso::deg2rad<double>(228.2e0 + 960'400.87e0 * t)) -
-      0.28e0 * sin(dso::deg2rad<double>(318.3e0 + 6'003.18e0 * t)) -
-      0.17e0 * sin(dso::deg2rad<double>(217.6e0 - 407'332.20e0 * t)); // [deg]
+      5.13e0 * sin(dso::deg2rad(93.3e0 + 483'202.03e0 * t)) +
+      0.28e0 * sin(dso::deg2rad(228.2e0 + 960'400.87e0 * t)) -
+      0.28e0 * sin(dso::deg2rad(318.3e0 + 6'003.18e0 * t)) -
+      0.17e0 * sin(dso::deg2rad(217.6e0 - 407'332.20e0 * t)); // [deg]
 
   const double rho =
       0.9508e0 +
-      0.0518e0 * cos(dso::deg2rad<double>(134.9e0 + 477'198.85 * t)) +
-      0.0095e0 * cos(dso::deg2rad<double>(259.2e0 - 413'335.38e0 * t)) +
-      0.0078e0 * cos(dso::deg2rad<double>(235.7e0 + 890'534.23e0 * t)) +
-      0.0028e0 * cos(dso::deg2rad<double>(269.9e0 + 954'397.70e0 * t)); // [deg]
+      0.0518e0 * cos(dso::deg2rad(134.9e0 + 477'198.85 * t)) +
+      0.0095e0 * cos(dso::deg2rad(259.2e0 - 413'335.38e0 * t)) +
+      0.0078e0 * cos(dso::deg2rad(235.7e0 + 890'534.23e0 * t)) +
+      0.0028e0 * cos(dso::deg2rad(269.9e0 + 954'397.70e0 * t)); // [deg]
 
   const double obliquity =
       23.439291e0 + t * (-0.0130042e0 + t * (-1.64e-7 + 5.04e-7 * t)); // [deg]

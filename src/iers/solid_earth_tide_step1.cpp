@@ -61,7 +61,9 @@ int dso::SolidEarthTide::solid_earth_tide_step1(
   // n = 2, m = 0, fac = k_20 / 2*2+1
   double fac = (LoveK[0].knm) / (LoveK[0].n * 2e0 + 1);
   const double dc20_moon = fac * GMme * RRm3 * PM(2, 0);
-  const double dc20_sun = fac * GMse * RRs3 * PS(2, 0);
+  //const double dc20_sun = fac * GMse * RRs3 * PS(2, 0);
+  const double dc20_sun =
+      PS(2, 0) * 0.30190e0 * cml / 5e0;
 
   // n = 2, m = 1, fac = k_21 / 2*2+1
   fac = (LoveK[1].knm) / (LoveK[1].n * 2 + 1);
@@ -142,6 +144,16 @@ int dso::SolidEarthTide::solid_earth_tide_step1(
   dC[7] = dc40_moon * (GmMGmE * ReRm3) + dc40_sun * (GmSGmE * ReRs3);
   dC[8] = dc41_moon * (GmMGmE * ReRm3) + dc41_sun * (GmSGmE * ReRs3);
   dC[9] = dc42_moon * (GmMGmE * ReRm3) + dc42_sun * (GmSGmE * ReRs3);
+  printf("\tC(%d,%d) = %.15e (P(2,0)*cml=%.12e)\n", 2,0,dc20_sun * (GmSGmE * ReRs3), PS(2,0)*cml);
+  printf("\tC(%d,%d) = %.15e\n", 2,1,dc21_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 2,2,dc22_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 3,0,dc30_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 3,1,dc31_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 3,2,dc32_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 3,3,dc33_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 4,0,dc40_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 4,1,dc41_sun * (GmSGmE * ReRs3));
+  printf("\tC(%d,%d) = %.15e\n", 4,2,dc42_sun * (GmSGmE * ReRs3));
 
   std::fill(std::begin(dS), std::end(dS), 0e0);
   // dS[0] = 0e0;

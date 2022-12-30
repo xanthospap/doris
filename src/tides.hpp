@@ -5,9 +5,49 @@
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "harmonic_coeffs.hpp"
+#include "geodesy/units.hpp"
 #include <array>
 
 namespace dso {
+
+/// @brief Resolve a Doodson number string to 6 integers.
+/// These integers are actually the multipliers for the Doodson variables
+/// [τ, s, h, p, N', ps], in this order.
+/// @param[in] str A Doodson number as string. The string must be composed
+///                of 3 ints, followed by a '.' or ',' character, followed 
+///                by 3 ints.
+///                Ex. "055.555", "167,555"
+/// @param[out] arr The resulting array of 6 integers
+/// @return Anything other than 0 denotes an error
+int doodson2intarray(const char *const str, int *arr) noexcept;
+
+/// @brief Fundamental (Delaunay) arguments to Doodson variables.
+/// All angles are in [rad] in the range [0,2π)
+/// @param[in] fundarg Fundamental (Delaunay) arguments, in the order
+///             [l, lp, f, d, Ω], see notes.
+/// @param[out] doodson Corresponding Doodson variables, in the order
+///             [τ, s, h, p, N', ps]
+/// @note Explanation of symbols used:
+///   * [0] l  : Mean anomaly of the Moon [rad]
+///   * [1] lp : Mean anomaly of the Sun [rad]
+///   * [2] f  : L - Ω [rad]
+///   * [3] d  : Mean elongation of the Moon from the Sun [rad]
+///   * [4] Ω  : Mean longitude of the ascending node of the Moon [rad]
+///
+///   * [0] WARNING TODO this element uses gmst
+///   * [1] s  : Moon's mean longitude [rad]
+///   * [2] h  : Sun's mean longitude [rad]
+///   * [3] p  : Longitude of Moon's mean perigee
+///   * [4] N' : Negative longitude of Moon's mean node
+///   * [5] pl : Longitude of Sun's mean perigee
+inline int fundarg2doodson(const double* const fundarg, double *doodson) noexcept {
+  doodson[1] = dso::anp(fundarg[2] + fundarg[4]);
+  doodson[2] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3]);
+  doodson[3] = dso::anp(fundarg[2] + fundarg[4] - fundarg[0]);
+  doodson[4] = dso::anp(-fundarg[4]);
+  doodson[5] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3] - fundarg[1]);
+  return 0;
+}
 
 /// @brief Compute Pole Tides according to IERS 2010, Sec. 7.1.4
 Eigen::Matrix<double, 3, 1>

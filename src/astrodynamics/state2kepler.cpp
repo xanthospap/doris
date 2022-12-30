@@ -103,7 +103,7 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   const Vector3 h = r.cross_product(v);
   const double hmag = h.norm();
 
-  ele.Omega() = dso::norm_angle<double, dso::AngleUnit::Radians>(
+  ele.Omega() = dso::anp<dso::AngleUnit::Radians>(
       std::atan2(h.x(), -h.y()));
   ele.inclination() =
       std::atan2(std::sqrt(h.x() * h.x() + h.y() * h.y()), h.z());
@@ -125,11 +125,11 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   const double E = std::atan2(eSinE, eCosE);
 
   ele.mean_anomaly() =
-      dso::norm_angle<double, dso::AngleUnit::Radians>(E - eSinE);
+      dso::anp<dso::AngleUnit::Radians>(E - eSinE);
   const double true_anomaly =
       std::atan2(std::sqrt(1e0 - e2) * eSinE, eCosE - e2);
   ele.omega() =
-      dso::norm_angle<double, dso::AngleUnit::Radians>(u - true_anomaly);
+      dso::anp<dso::AngleUnit::Radians>(u - true_anomaly);
 
   return 0;
 }
@@ -145,7 +145,7 @@ dso::state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y) noexcept {
   dso::OrbitalElements ele;
 
   ele.Omega() =
-      dso::norm_angle<double, dso::AngleUnit::Radians>(std::atan2(h(0), -h(1)));
+      dso::anp<dso::AngleUnit::Radians>(std::atan2(h(0), -h(1)));
   ele.inclination() = std::atan2(std::sqrt(h(0) * h(0) + h(1) * h(1)), h(2));
 
   // argument of latitude
@@ -165,11 +165,11 @@ dso::state2elements(double GM, const Eigen::Matrix<double, 6, 1> &Y) noexcept {
   const double E = std::atan2(eSinE, eCosE);
 
   ele.mean_anomaly() =
-      dso::norm_angle<double, dso::AngleUnit::Radians>(E - eSinE);
+      dso::anp<dso::AngleUnit::Radians>(E - eSinE);
   const double true_anomaly =
       std::atan2(std::sqrt(1e0 - e2) * eSinE, eCosE - e2);
   ele.omega() =
-      dso::norm_angle<double, dso::AngleUnit::Radians>(u - true_anomaly);
+      dso::anp<dso::AngleUnit::Radians>(u - true_anomaly);
 
   return ele;
 }

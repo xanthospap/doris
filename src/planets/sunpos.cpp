@@ -33,7 +33,7 @@ int dso::sun_vector_montenbruck(double t, double *rsun) noexcept {
   const double x = (r * cos(L)) / 1e3;
   const double y = (r * sin(L)) / 1e3;
 
-  constexpr double ecliptic_obliquity = dso::deg2rad<double>(23.43929111e0);
+  constexpr double ecliptic_obliquity = dso::deg2rad(23.43929111e0);
   constexpr double C = gcem::cos(-ecliptic_obliquity);
   constexpr double S = gcem::sin(-ecliptic_obliquity);
 
@@ -58,10 +58,10 @@ int dso::sun_vector_vallado(double t, double *rsun) noexcept {
   const double r_au = 1.000140612e0 - 0.016708617e0 * cos(Mrad) -
                       0.000139589e0 * cos(2e0 * Mrad); // [degrees]
 
-  const double S = sin(dso::deg2rad<double>(l_ecliptic));
-  rsun[0] = r_au * cos(dso::deg2rad<double>(l_ecliptic));
-  rsun[1] = r_au * cos(dso::deg2rad<double>(epsilon)) * S;
-  rsun[2] = r_au * sin(dso::deg2rad<double>(epsilon)) * S;
+  const double S = sin(dso::deg2rad(l_ecliptic));
+  rsun[0] = r_au * cos(dso::deg2rad(l_ecliptic));
+  rsun[1] = r_au * cos(dso::deg2rad(epsilon)) * S;
+  rsun[2] = r_au * sin(dso::deg2rad(epsilon)) * S;
 
   // AU to km
   for (int i = 0; i < 3; i++)

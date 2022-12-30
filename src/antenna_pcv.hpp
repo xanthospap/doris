@@ -46,7 +46,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Alcatel, 1> {
   /// @return PCV value for this Antenna/Frequency in mm. If out_of_bounds set,
   ///         the functionwill return 0e0.
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
-    const double angle = dso::rad2deg<double>(zenith);
+    const double angle = dso::rad2deg(zenith);
     out_of_bounds = 0;
     if (zenith < 0e0 || zenith > dso::DPI / 2e0) {
       return 0e0;
@@ -98,7 +98,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_B, 1> {
   /// @return PCV value for this Antenna/Frequency in mm. If out_of_bounds set,
   ///         the functionwill return 0e0.
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
-    const double angle(dso::rad2deg<double>(zenith));
+    const double angle(dso::rad2deg(zenith));
     out_of_bounds = 0;
     if (zenith < 0e0 || zenith > dso::DPI / 2e0) {
       out_of_bounds = 1;
@@ -150,7 +150,7 @@ template <> struct AntennaOffsetTraits<GroundAntennaType::Starec_C, 1> {
   /// @return PCV value for this Antenna/Frequency in mm. If out_of_bounds set,
   ///         the functionwill return 0e0.
   static constexpr double pcv(double zenith, int &out_of_bounds) noexcept {
-    const double angle(dso::rad2deg<double>(zenith));
+    const double angle(dso::rad2deg(zenith));
     out_of_bounds = 0;
     if (zenith < 0e0 || zenith > dso::DPI / 2e0) {
       out_of_bounds = 1;

@@ -172,9 +172,9 @@ int main(int argc, char *argv[]) {
     if (cit != refaccs.cend()) {
       // printf("%.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(),
       //        acc(0) - cit->a(0), acc(1) - cit->a(1), acc(2) - cit->a(2));
-      printf("[MINE] %.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(), acc(0),
+      printf("[MINE] %.12f %+.15e %+.15e %+.15e\n", pos.mjd.mjd(), acc(0),
              acc(1), acc(2));
-      printf("[GRPS] %.12f %+.15f %+.15f %+.15f\n", pos.mjd.mjd(), cit->a(0),
+      printf("[GRPS] %.12f %+.15e %+.15e %+.15e\n", pos.mjd.mjd(), cit->a(0),
              cit->a(1), cit->a(2));
       it = cit;
     }
