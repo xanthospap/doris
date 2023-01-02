@@ -1,11 +1,8 @@
-#include "datetime/dtcalendar.hpp"
 #include "geodesy/geoconst.hpp"
 #include "iers2010/iau.hpp"
 #include "tides.hpp"
 #include <cmath>
-#ifdef DEBUG
-#include "geodesy/units.hpp" // for debugging
-#endif
+#include "geodesy/units.hpp"
 
 namespace {
 
@@ -19,6 +16,7 @@ struct Step2TidesCoeffs {
 }; // Step2Tides
 
 /// @brief Table 6.5b from IERS2010.
+/// @warning Units in In- and Out-of- phase are 1e-12
 const Step2TidesCoeffs ST2_m20[]{
     {/*55565*/ 0, 0, 0, 0, 1, 16.6e0, -6.7e0},
     {/*55575*/ 0, 0, 0, 0, 2, -0.1e0, 0.1e0},
@@ -44,6 +42,7 @@ const Step2TidesCoeffs ST2_m20[]{
 };
 
 /// @brief Table 6.5a from IERS2010.
+/// @warning Units in In- and Out-of- phase are 1e-12
 const Step2TidesCoeffs ST2_m21[]{{/*125755*/ 2, 0, 2, 0, 2, -0.1e0, 0.0e0},
                                  {/*127555*/ 0, 0, 2, 2, 2, -0.1e0, 0.0e0},
                                  {/*135645*/ 1, 0, 2, 0, 1, -0.1e0, 0.0e0},
@@ -105,10 +104,9 @@ double compute_step2_m0([[maybe_unused]] double gmst,
   // Note that here m*(θ + π) is 0
   for (int i = 0; i < szm20; i++) {
     const double theta =
-        std::fmod(-(ST2_m20[i].l * fundarg[0] + ST2_m20[i].lp * fundarg[1] +
+        dso::anp(-(ST2_m20[i].l * fundarg[0] + ST2_m20[i].lp * fundarg[1] +
                     ST2_m20[i].F * fundarg[2] + ST2_m20[i].D * fundarg[3] +
-                    ST2_m20[i].Omega * fundarg[4]),
-                  dso::D2PI);
+                    ST2_m20[i].Omega * fundarg[4]));
     dC20 +=
         (ST2_m20[i].AIp * std::cos(theta) - ST2_m20[i].AOp * std::sin(theta));
   }
@@ -124,17 +122,18 @@ double compute_step2_m0([[maybe_unused]] double gmst,
 int compute_step2_m1(double gmst, const double *const fundarg, double &dC21,
                      double &dS21) noexcept {
   constexpr const int szm21 = sizeof(ST2_m21) / sizeof(ST2_m21[0]);
-  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
+  // θ_g + π in [rad]
+  const double g = dso::anp(gmst + dso::DPI);
+  // initial values for geopotential correction
   dC21 = 0e0;
   dS21 = 0e0;
   // iterate through Table 6.5a
   for (int i = 0; i < szm21; i++) {
-    // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5
+    // compute angle : θ = m * (θg + π) - Σ(N_j F_j), j=1,...5 and here m=1
     const double theta =
-        std::fmod(g - (ST2_m21[i].l * fundarg[0] + ST2_m21[i].lp * fundarg[1] +
-                       ST2_m21[i].F * fundarg[2] + ST2_m21[i].D * fundarg[3] +
-                       ST2_m21[i].Omega * fundarg[4]),
-                  dso::D2PI);
+        dso::anp(g - (ST2_m21[i].l * fundarg[0] + ST2_m21[i].lp * fundarg[1] +
+                      ST2_m21[i].F * fundarg[2] + ST2_m21[i].D * fundarg[3] +
+                      ST2_m21[i].Omega * fundarg[4]));
     const double st = std::sin(theta);
     const double ct = std::cos(theta);
     dC21 += (ST2_m21[i].AIp * st + ST2_m21[i].AOp * ct);
@@ -155,26 +154,26 @@ int compute_step2_m1(double gmst, const double *const fundarg, double &dC21,
 /// @return
 int compute_step2_m2(double gmst, const double *const fundarg, double &dC22,
                      double &dS22) noexcept {
-  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
+  // θ_g + π in [rad]
+  const double g = dso::anp(gmst + dso::DPI);
   dC22 = 0e0;
   dS22 = 0e0;
 
   // first for constituent N2 (245,655), see Table 6.5c
-  // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5
+  // compute angle : θ = m*(θg + π) - Σ(N_j F_j), j=1,...5, here m=2
   const double theta_n2 =
-      std::fmod(g - (1 * fundarg[0] + /*0 * fundarg[1]*/ +2 * fundarg[2] +
-                     /*0 * fundarg[3]*/ +2 * fundarg[4]),
-                dso::D2PI);
+      dso::anp(2e0*g - (1 * fundarg[0] + /*0 * fundarg[1]*/ +2 * fundarg[2] +
+                     /*0 * fundarg[3]*/ +2 * fundarg[4]));
 
   // note that we only have corrections for the real part !
   dC22 += -0.3e0 * std::cos(theta_n2);
   dS22 -= -0.3e0 * std::sin(theta_n2);
 
   // second constituent M2
-  const double theta_m2 = std::fmod(g - (/*0 * fundarg[0] + 0 * fundarg[1] +*/
+  const double theta_m2 = dso::anp(2e0*g - (/*0 * fundarg[0] + 0 * fundarg[1] +*/
                                          2 * fundarg[2] + /*0 * fundarg[3] +*/
-                                         2 * fundarg[4]),
-                                    dso::D2PI);
+                                         2 * fundarg[4]));
+  
   // note that we only have corrections for the real part !
   dC22 += -1.2e0 * std::cos(theta_m2);
   dS22 -= -1.2e0 * std::sin(theta_m2);
@@ -221,7 +220,7 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
   // compute Julian centuries since J2000.0 (TT)
   const double t = mjdtt.jcenturies_sinceJ2000();
 
-  // compute fundamental arguments
+  // compute fundamental arguments (for given TT)
   const double fundarg[] = {
       iers2010::sofa::fal03(t),  // mean anomaly of moon, l
       iers2010::sofa::falp03(t), // mean anomaly of sun, l'
@@ -231,11 +230,16 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
           t) // Mean Longitude of the Ascending Node of the Moon, Ω
   };
 
+  // correction to C_20
   dC20 = compute_step2_m0(gmst, fundarg);
-
+  // correction to C_21 & S_21
   compute_step2_m1(gmst, fundarg, dC21, dS21);
-
+  // correction to C_22 & S_22
   compute_step2_m2(gmst, fundarg, dC22, dS22);
+
+  printf("\tStep2 C(2,0) = %.9e\n", dC20);
+  printf("\tStep2 C(2,1) = %.9e\n", dC21);
+  printf("\tStep2 C(2,2) = %.9e\n", dC22);
 
   return 0;
 }

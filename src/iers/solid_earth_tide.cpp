@@ -61,22 +61,15 @@ int dso::SolidEarthTide::operator()(const dso::TwoPartDate &mjdtt,
                                     const Eigen::Matrix<double, 3, 1> &rsun,
                                     std::array<double, 12> &dC,
                                     std::array<double, 12> &dS) noexcept {
-  // Spherical cordinates of Moon and Sun (ITRF)
-  const Eigen::Matrix<double, 3, 1> Mrfl = dso::car2sph(rmoon);
-  const Eigen::Matrix<double, 3, 1> Srfl = dso::car2sph(rsun);
-
-  // compute associated Legendre functions (given geocentric latitude, φ)
-  PM.at(Mrfl(1));
-  PS.at(Srfl(1));
-
+  
   // Step 1 corrections, get δC and δC
-  solid_earth_tide_step1(Mrfl(0), Srfl(0), Mrfl(2), Srfl(2), dC, dS);
+  solid_earth_tide_step1(rmoon, rsun, dC, dS);
 
   // Step 2 corrections
   double dc20, dc21, ds21, dc22, ds22;
   solid_earth_tide_step2(mjdtt, mjdut1, dc20, dc21, ds21, dc22, ds22);
 
-  // apply Step 2 corrections
+  // apply Step 2 corrections (to Step 1)
   dC[0] += dc20;
   dC[1] += dc21;
   dS[1] += ds21;

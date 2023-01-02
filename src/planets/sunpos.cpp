@@ -87,7 +87,7 @@ int dso::sun_vector_approx21(double t, double *rsun) noexcept {
   const double lon =
       std::fmod(normalize_deg(lon_arg) * pi2 + lambda, iers2010::D2PI);
 
-  const double e = dso::deg2rad<double>(23.439291e0 - 0.0130042e0 * t); // [rad]
+  const double e = dso::deg2rad(23.439291e0 - 0.0130042e0 * t); // [rad]
   const double r_au =
       1.000140612e0 - 0.016708617e0 * cos(M) - 0.000139589e0 * cos(2e0 * M);
 

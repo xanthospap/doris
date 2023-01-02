@@ -1,17 +1,102 @@
 #include "tides.hpp"
 
 namespace {
-///< Nominal values of solid Earth tide external potential Love numbers.
-///< IERS2010, Table 6.3
-struct {
-  int n, m;
-  double knm;
-} const LoveK[] = {
-    {2, 0, 0.29525e0},  {2, 1, 0.29470e0},  {2, 2, 0.29801e0},
-    {3, 0, 0.093e0},    {3, 1, 0.093e0},    {3, 2, 0.093e0},
-    {3, 3, 0.094e0},    {4, 0, -0.00087e0}, ///< k_20 ^(+), see Eq. 6.7
-    {4, 1, -0.00079e0},                     ///< k_21 ^(+)
-    {4, 2, -0.00057e0}};                    ///< k_22 ^(+)
+/// @brief Third body (Sun or Moon) Solid earth tide geopotential coefficient
+///        corrections, based on IERS 2010, Anelasti Earth
+/// @param[in] Re Equatorial radius of the Earth [m]
+/// @param[in] GM Gravitational constant of Earth
+/// @param[in] r_tb ECEF, cartesian position vector of third body (sun or
+///            Moon) [m]
+/// @param[in] GM_tb Gravitational constant of Third body
+/// @param[out] dC Array where the computed geopotential corrections ΔC are
+///            added. Expected size is 12, in the order:
+///             dC = C20,C21,C22,C30,C31,C32,C33,C40,C41,C42,C43,C44
+///      [indexes] : 0   1   2   3   4   5   6   7   8   9   10  11
+/// @param[out] dS Array where the computed geopotential corrections ΔS are
+///            added. Expected size is 12, in the order:
+///             dS = S20,S21,S22,0,S31,S32,S33,0,S41,S42,S43,S44
+/// @return Always 0
+int iers2010_solid_earth_tide_anelastic_tb(
+    double Re, double GM, const Eigen::Matrix<double, 3, 1> &r_tb, double GM_tb,
+    std::array<double, 12> &dC, std::array<double, 12> &dS) noexcept {
+  // compute associated Lagrange polynomials for n=2,3
+  const double rr = r_tb.norm();
+  const double sinphi = r_tb(2) / rr;
+  const double sinphi2 = sinphi * sinphi;
+  const double cosphi = std::sqrt(1e0 - sinphi * sinphi);
+  const double xlong = std::atan2(r_tb(1), r_tb(0));
+  const double Pnm20 = std::sqrt(5e0) * 0.5e0 * (3e0 * sinphi2 - 1e0); // P20
+  const double Pnm21 =
+      std::sqrt(5.e0 / 3.e0) * 3.e0 * sinphi * std::sqrt(1.e0 - sinphi2); // P21
+  const double Pnm22 = std::sqrt(5.e0 / 12.e0) * 3.e0 * (1.e0 - sinphi2); // P22
+  const double Pnm30 = std::sqrt(7.e0) * 0.5e0 *
+                       (5.e0 * sinphi2 * sinphi - 3.e0 * sinphi); // P30
+  const double Pnm31 =
+      std::sqrt(7.e0 / 6.e0) * 1.5e0 * (5.e0 * sinphi2 - 1.e0) * cosphi; // P31
+  const double Pnm32 =
+      std::sqrt(7.e0 / 60.e0) * 15.e0 * sinphi * cosphi * cosphi; // P32
+  const double Pnm33 = std::sqrt(7.e0 / 360.e0) * 15.e0 * std::pow(cosphi, 3);
+
+  // scale later on, watch only for the n=3 terms, which need an extra
+  // scaling of (Re/r_j)
+  constexpr const double fac2 = 1e0 / 5e0;
+  const double fac3 = Re / rr / 7e0;
+
+  // IERS 2010, Table 6.3: Nominal values of solid Earth
+  // tide external potential Love numbers. Anelastic
+  // Earth n  m  Re(k_nm)  Im(k_nm) k_nm^(+)
+  // ----------------------------------
+  // 2  0  0.30190    0.0
+  // 2  1  0.29830   -0.00144
+  // 2  2  0.30102   -0.00130
+  // 3  0  0.09300
+  // 3  1  0.09300
+  // 3  2  0.09300
+  // 3  3  0.09400
+  const double cl = std::cos(xlong);
+  const double sl = std::sin(xlong);
+  const double c2l = std::cos(2 * xlong);
+  const double s2l = std::sin(2 * xlong);
+  const double c3l = std::cos(3 * xlong);
+  const double s3l = std::sin(3 * xlong);
+
+  // temporary storage
+  std::array<double, 12> dCt = {0e0}, dSt = {0e0};
+
+  // order n = 2
+  dCt[0] = fac2 * Pnm20 * 0.30190e0;
+  dCt[1] = fac2 * Pnm21 * (0.29830e0 * cl + (-0.00144e0) * sl);
+  dSt[1] = fac2 * Pnm21 * (0.29830e0 * sl - (-0.00144e0) * cl);
+  dCt[2] = fac2 * Pnm22 * (0.30102e0 * c2l + (-0.00130e0) * s2l);
+  dSt[2] = fac2 * Pnm22 * (0.30102e0 * s2l - (-0.00130e0) * c2l);
+
+  // order n = 3
+  dCt[3] = (1e0 / 7e0) * Pnm30 * 0.093e0;
+  // dS30 = 0e0;
+  dCt[4] = fac3 * Pnm31 * 093e0 * cl;
+  dSt[4] = fac3 * Pnm31 * 093e0 * sl;
+  dCt[5] = fac3 * Pnm32 * 093e0 * c2l;
+  dSt[5] = fac3 * Pnm32 * 093e0 * s2l;
+  dCt[6] = fac3 * Pnm33 * 094e0 * c3l;
+  dSt[6] = fac3 * Pnm33 * 094e0 * s3l;
+
+  // order n = 4
+  dCt[7] = fac2 * Pnm20 * (-0.00089e0);
+  // dS40 = 0e0;
+  dCt[8] = fac2 * Pnm21 * (-0.00080e0) * cl;
+  dSt[8] = fac2 * Pnm21 * (-0.00080e0) * sl;
+  dCt[9] = fac2 * Pnm22 * (-0.00057e0) * c2l;
+  dSt[9] = fac2 * Pnm22 * (-0.00057e0) * s2l;
+
+  // scale and add to output arrays
+  const double fac = (GM_tb / std::pow(rr, 3)) * (std::pow(Re, 3) / GM);
+  std::transform(dCt.cbegin(), dCt.cend(), dC.cbegin(), dC.begin(),
+                 [fac](double dct, double dc) { return dc + dct * fac; });
+  std::transform(dSt.cbegin(), dSt.cend(), dS.cbegin(), dS.begin(),
+                 [fac](double dst, double ds) { return ds + dst * fac; });
+
+  return 0;
+}
 } // unnamed namespace
 
 /// @brief Compute the Step-1 effect of Solid Earth Tides, as in
@@ -34,138 +119,32 @@ struct {
 /// @param[out] dS   Normalized corrections to S coefficients, in the order:
 ///             dS = 0,S21,S22,0,S31,S32,S33,0,S41,S42,0,0
 int dso::SolidEarthTide::solid_earth_tide_step1(
-    double Rmoon, double Rsun, double mlon, double slon,
-    std::array<double, 12> &dC, std::array<double, 12> &dS) noexcept {
-  const double Re = cs._Re;
-  const double GM = cs._GM;
+    const Eigen::Matrix<double, 3, 1> &rMoon,
+    const Eigen::Matrix<double, 3, 1> &rSun, std::array<double, 12> &dC,
+    std::array<double, 12> &dS) noexcept {
 
-  const double RRm = Re / Rmoon;
-  const double RRs = Re / Rsun;
-  // do not use this factor, scale results later on
-  const double RRm3 = 1e0; // RRm * RRm * RRm;
-  // do not use this factor, scale results later on
-  const double RRs3 = 1e0; // RRs * RRs * RRs;
-  // do not use this factor, scale results later on
-  const double GMme = 1e0; // GM_moon / GM;
-  // do not use this factor, scale results later on
-  const double GMse = 1e0; // GM_sun / GM;
-  const double sml = std::sin(mlon);
-  const double ssl = std::sin(slon);
-  const double cml = std::cos(mlon);
-  const double csl = std::cos(slon);
-  const double s2ml = 2e0 * sml * cml;       // std::sin(2e0*mlon);
-  const double s2sl = 2e0 * ssl * ssl;       // std::sin(2e0*slon);
-  const double c2ml = 2e0 * cml * cml - 1e0; // std::cos(2e0*mlon);
-  const double c2sl = 2e0 * csl * csl - 1e0; // std::cos(2e0*slon);
+  // initialize corrections to zero
+  std::fill(dC.begin(), dC.end(), 0e0);
+  std::fill(dS.begin(), dS.end(), 0e0);
 
-  // n = 2, m = 0, fac = k_20 / 2*2+1
-  double fac = (LoveK[0].knm) / (LoveK[0].n * 2e0 + 1);
-  const double dc20_moon = fac * GMme * RRm3 * PM(2, 0);
-  //const double dc20_sun = fac * GMse * RRs3 * PS(2, 0);
-  const double dc20_sun =
-      PS(2, 0) * 0.30190e0 * cml / 5e0;
-
-  // n = 2, m = 1, fac = k_21 / 2*2+1
-  fac = (LoveK[1].knm) / (LoveK[1].n * 2 + 1);
-  const double dc21_moon = fac * GMme * RRm3 * PM(2, 1) * cml;
-  const double ds21_moon = fac * GMme * RRm3 * PM(2, 1) * sml;
-  const double dc21_sun = fac * GMse * RRs3 * PS(2, 1) * csl;
-  const double ds21_sun = fac * GMse * RRs3 * PS(2, 1) * ssl;
-
-  // n = 2, m = 2, fac = k_22 / 2*2+1
-  fac = (LoveK[2].knm) / (LoveK[2].n * 2 + 1);
-  const double dc22_moon = fac * GMme * RRm3 * PM(2, 2) * c2ml;
-  const double ds22_moon = fac * GMme * RRm3 * PM(2, 2) * s2ml;
-  const double dc22_sun = fac * GMse * RRs3 * PS(2, 2) * c2sl;
-  const double ds22_sun = fac * GMse * RRs3 * PS(2, 2) * s2sl;
-
-  // n = 3, m = 0, fac = k_30 / 2*3+1
-  const double RRm4 = RRm3 * RRm;
-  const double RRs4 = RRs3 * RRs;
-  fac = (LoveK[3].knm) / (LoveK[3].n * 2 + 1);
-  const double dc30_moon = fac * GMme * RRm4 * PM(3, 0);
-  const double dc30_sun = fac * GMse * RRs4 * PS(3, 0);
-
-  // n = 3, m = 1, fac = k_31 / 2*3+1
-  fac = (LoveK[4].knm) / (LoveK[4].n * 2 + 1);
-  const double dc31_moon = fac * GMme * RRm4 * PM(3, 1) * cml;
-  const double ds31_moon = fac * GMme * RRm4 * PM(3, 1) * sml;
-  const double dc31_sun = fac * GMse * RRs4 * PS(3, 1) * csl;
-  const double ds31_sun = fac * GMse * RRs4 * PS(3, 1) * ssl;
-
-  // n = 3, m = 2, fac = k_32 / 2*3+1
-  fac = (LoveK[5].knm) / (LoveK[5].n * 2 + 1);
-  const double dc32_moon = fac * GMme * RRm4 * PM(3, 2) * c2ml;
-  const double ds32_moon = fac * GMme * RRm4 * PM(3, 2) * s2ml;
-  const double dc32_sun = fac * GMse * RRs4 * PS(3, 2) * c2sl;
-  const double ds32_sun = fac * GMse * RRs4 * PS(3, 2) * s2sl;
-
-  // n = 3, m = 3, fac = k_33 / 2*3+1
-  fac = (LoveK[6].knm) / (LoveK[6].n * 2 + 1);
-  const double dc33_moon = fac * GMme * RRm4 * PM(3, 3) * std::cos(3e0 * mlon);
-  const double ds33_moon = fac * GMme * RRm4 * PM(3, 3) * std::sin(3e0 * mlon);
-  const double dc33_sun = fac * GMse * RRs4 * PS(3, 3) * std::cos(3e0 * slon);
-  const double ds33_sun = fac * GMse * RRs4 * PS(3, 3) * std::sin(3e0 * slon);
-
-  // n = 4, m = 0, fac = k_40 / 5
-  fac = (LoveK[7].knm) / 5e0;
-  const double dc40_moon = fac * GMme * RRm3 * PM(2, 0);
-  const double dc40_sun = fac * GMse * RRs3 * PS(2, 0);
-
-  // n = 4, m = 1, fac = k_41 / 5
-  fac = (LoveK[8].knm) / 5e0;
-  const double dc41_moon = fac * GMme * RRm3 * PM(2, 1) * cml;
-  const double ds41_moon = fac * GMme * RRm3 * PM(2, 1) * sml;
-  const double dc41_sun = fac * GMse * RRs3 * PS(2, 1) * csl;
-  const double ds41_sun = fac * GMse * RRs3 * PS(2, 1) * ssl;
-
-  // n = 4, m = 2, fac = k_42 / 5
-  fac = (LoveK[9].knm) / 5e0;
-  const double dc42_moon = fac * GMme * RRm3 * PM(2, 2) * c2ml;
-  const double ds42_moon = fac * GMme * RRm3 * PM(2, 2) * s2ml;
-  const double dc42_sun = fac * GMse * RRs3 * PS(2, 2) * c2sl;
-  const double ds42_sun = fac * GMse * RRs3 * PS(2, 2) * s2sl;
-
-  // scale
-  const double ReRm3 = RRm * RRm * RRm;
-  const double ReRs3 = RRs * RRs * RRs;
-  const double GmMGmE = GM_moon / GM;
-  const double GmSGmE = GM_sun / GM;
-
-  // assign corrections
-  std::fill(std::begin(dC), std::end(dC), 0e0);
-  dC[0] = dc20_moon * (GmMGmE * ReRm3) + dc20_sun * (GmSGmE * ReRs3);
-  dC[1] = dc21_moon * (GmMGmE * ReRm3) + dc21_sun * (GmSGmE * ReRs3);
-  dC[2] = dc22_moon * (GmMGmE * ReRm3) + dc22_sun * (GmSGmE * ReRs3);
-  dC[3] = dc30_moon * (GmMGmE * ReRm3) + dc30_sun * (GmSGmE * ReRs3);
-  dC[4] = dc31_moon * (GmMGmE * ReRm3) + dc31_sun * (GmSGmE * ReRs3);
-  dC[5] = dc32_moon * (GmMGmE * ReRm3) + dc32_sun * (GmSGmE * ReRs3);
-  dC[6] = dc33_moon * (GmMGmE * ReRm3) + dc33_sun * (GmSGmE * ReRs3);
-  dC[7] = dc40_moon * (GmMGmE * ReRm3) + dc40_sun * (GmSGmE * ReRs3);
-  dC[8] = dc41_moon * (GmMGmE * ReRm3) + dc41_sun * (GmSGmE * ReRs3);
-  dC[9] = dc42_moon * (GmMGmE * ReRm3) + dc42_sun * (GmSGmE * ReRs3);
-  printf("\tC(%d,%d) = %.15e (P(2,0)*cml=%.12e)\n", 2,0,dc20_sun * (GmSGmE * ReRs3), PS(2,0)*cml);
-  printf("\tC(%d,%d) = %.15e\n", 2,1,dc21_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 2,2,dc22_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 3,0,dc30_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 3,1,dc31_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 3,2,dc32_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 3,3,dc33_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 4,0,dc40_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 4,1,dc41_sun * (GmSGmE * ReRs3));
-  printf("\tC(%d,%d) = %.15e\n", 4,2,dc42_sun * (GmSGmE * ReRs3));
-
-  std::fill(std::begin(dS), std::end(dS), 0e0);
-  // dS[0] = 0e0;
-  dS[1] = ds21_moon * (GmMGmE * ReRm3) + ds21_sun * (GmSGmE * ReRs3);
-  dS[2] = ds22_moon * (GmMGmE * ReRm3) + ds22_sun * (GmSGmE * ReRs3);
-  // dS[3] = 0e0
-  dS[4] = ds31_moon * (GmMGmE * ReRm3) + ds31_sun * (GmSGmE * ReRs3);
-  dS[5] = ds32_moon * (GmMGmE * ReRm3) + ds32_sun * (GmSGmE * ReRs3);
-  dS[6] = ds33_moon * (GmMGmE * ReRm3) + ds33_sun * (GmSGmE * ReRs3);
-  // dS[7] =  0e0
-  dS[8] = ds41_moon * (GmMGmE * ReRm3) + ds41_sun * (GmSGmE * ReRs3);
-  dS[9] = ds42_moon * (GmMGmE * ReRm3) + ds42_sun * (GmSGmE * ReRs3);
+  // start with Sun geopotential corrections
+  iers2010_solid_earth_tide_anelastic_tb(cs._Re, cs._GM, rSun, GM_sun, dC, dS);
+  // add Moon
+  iers2010_solid_earth_tide_anelastic_tb(cs._Re, cs._GM, rMoon, GM_moon, dC,
+                                         dS);
+  // all done for step 1
+  {
+    printf("\tC(%d,%d) = %.15e\n", 2, 0, dC[0]);
+    printf("\tC(%d,%d) = %.15e\n", 2, 1, dC[1]);
+    printf("\tC(%d,%d) = %.15e\n", 2, 2, dC[2]);
+    printf("\tC(%d,%d) = %.15e\n", 3, 0, dC[3]);
+    printf("\tC(%d,%d) = %.15e\n", 3, 1, dC[4]);
+    printf("\tC(%d,%d) = %.15e\n", 3, 2, dC[5]);
+    printf("\tC(%d,%d) = %.15e\n", 3, 3, dC[6]);
+    printf("\tC(%d,%d) = %.15e\n", 4, 0, dC[7]);
+    printf("\tC(%d,%d) = %.15e\n", 4, 1, dC[8]);
+    printf("\tC(%d,%d) = %.15e\n", 4, 2, dC[9]);
+  }
 
   return 0;
 }

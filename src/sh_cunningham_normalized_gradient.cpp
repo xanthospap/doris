@@ -24,60 +24,6 @@ struct KahanSum {
   double operator()() const noexcept { return sum; }
 }; // KahanSum
 
-// compile-time factors for Normalized ALFs
-/*template <int N> struct NormalizedLegendreFactors {
-  std::array<double, N *(N + 1) / 2> fac1;
-  std::array<double, N *(N + 1) / 2> fac2;
-  std::array<double, N> fac3;
-  constexpr int slice(int m) const noexcept { return m * N - m * (m - 1) / 2; }
-  constexpr int nm2index(int n, int m) const noexcept {
-#ifdef DEBUG
-    assert(n > 0 && n < N && m <= n);
-#endif
-    return slice(m) + (n - m);
-  }
-  constexpr double &f1(int n, int m) noexcept { return fac1[nm2index(n, m)]; }
-  constexpr double f1(int n, int m) const noexcept {
-    return fac1[nm2index(n, m)];
-  }
-  constexpr double &f2(int n, int m) noexcept { return fac2[nm2index(n, m)]; }
-  constexpr double f2(int n, int m) const noexcept {
-    return fac2[nm2index(n, m)];
-  }
-  constexpr double f3(int n) const noexcept {
-#ifdef DEBUG
-    assert(n >= 0 && n < N);
-#endif
-    return fac3[n];
-  }
-  constexpr NormalizedLegendreFactors() noexcept {
-    printf("Intializing via %s with N=%d\n", __func__, N);
-    // factors for the recursion ( (2n+1)/2n )^(1/2)
-    f1(1, 1) = std::sqrt(3e0);
-    for (int n = 2; n < N; n++) {
-      f1(n, n) = std::sqrt((2 * n + 1) / (2e0 * n));
-      // printf("assigning (%d,%d) = %.15e\n", n, n, f1(n,n));
-    }
-
-    // factors for the recursion
-    for (int m = 0; m < N; m++) {
-      for (int n = m + 1; n < N; n++) {
-        const double f = (2 * n + 1) / ((n + m) * (n - m));
-        // f1_nm = B_nm
-        f1(n, m) = std::sqrt(f * (2 * n - 1));
-        // f2_nm = B_nm / Bn-1m
-        f2(n, m) = -std::sqrt(f * (n - m - 1) * (n + m - 1) / (2 * n - 3));
-        printf("assigning (%d,%d), f1=%.15e f2=%.15e\n", n, m, f1(n, m), f2(n, m));
-      }
-    }
-
-    // factors for acceleration
-    for (int n = 0; n < N; n++)
-      fac3[n] = std::sqrt((double)(2 * n + 1) / (2 * n + 3));
-  }
-}; // SHFactors
-*/
-
 // Max size for ALF factors; if degree is mote than this (-2), then it must
 // be augmented. For now, OK
 constexpr const int MAX_SIZE_FOR_ALF_FACTORS = 185;
@@ -143,7 +89,6 @@ int gravacc3_impl(
   static const NormalizedLegendreFactors F;
 
   const int lp_degree = degree + 2; // aka, [0,....degree+1]
-  //printf("Note that lp_degree=%d\n", lp_degree);
 
   W.fill_with(0e0);
   M.fill_with(0e0);
@@ -198,20 +143,6 @@ int gravacc3_impl(
       W.multiply(1e-280);
     }
   } // end computing ALF
-
-//printf("\tHere are the first few Coeffs (W):\n");                               
-//printf("%.20e\n", W(0,0));                                                
-//printf("%.20e %.20e\n", W(1,0), W(1,1));                                
-//printf("%.20e %.20e %.20e\n", W(2,0), W(2,1), W(2,2));                
-//printf("%.20e %.20e %.20e %.20e\n", W(3,0), W(3,1), W(3,2), W(3,3));
-//printf("%.20e %.20e %.20e %.20e %.20e\n", W(4,0), W(4,1), W(4,2), W(4,3),W(4,4));
-//printf("\tHere are the first few Coeffs (M):\n");                               
-//printf("%.20e\n", M(0,0));                                                
-//printf("%.20e %.20e\n", M(1,0), M(1,1));                                
-//printf("%.20e %.20e %.20e\n", M(2,0), M(2,1), M(2,2));                
-//printf("%.20e %.20e %.20e %.20e\n", M(3,0), M(3,1), M(3,2), M(3,3));
-//printf("%.20e %.20e %.20e %.20e %.20e\n", M(4,0), M(4,1), M(4,2), M(4,3),M(4,4));
-
 
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();

@@ -4,8 +4,8 @@
 #include "associated_legendre.hpp"
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
-#include "harmonic_coeffs.hpp"
 #include "geodesy/units.hpp"
+#include "harmonic_coeffs.hpp"
 #include <array>
 
 namespace dso {
@@ -14,7 +14,7 @@ namespace dso {
 /// These integers are actually the multipliers for the Doodson variables
 /// [τ, s, h, p, N', ps], in this order.
 /// @param[in] str A Doodson number as string. The string must be composed
-///                of 3 ints, followed by a '.' or ',' character, followed 
+///                of 3 ints, followed by a '.' or ',' character, followed
 ///                by 3 ints.
 ///                Ex. "055.555", "167,555"
 /// @param[out] arr The resulting array of 6 integers
@@ -40,7 +40,8 @@ int doodson2intarray(const char *const str, int *arr) noexcept;
 ///   * [3] p  : Longitude of Moon's mean perigee
 ///   * [4] N' : Negative longitude of Moon's mean node
 ///   * [5] pl : Longitude of Sun's mean perigee
-inline int fundarg2doodson(const double* const fundarg, double *doodson) noexcept {
+inline int fundarg2doodson(const double *const fundarg,
+                           double *doodson) noexcept {
   doodson[1] = dso::anp(fundarg[2] + fundarg[4]);
   doodson[2] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3]);
   doodson[3] = dso::anp(fundarg[2] + fundarg[4] - fundarg[0]);
@@ -71,12 +72,13 @@ class SolidEarthTide {
 private:
   const double GM_moon, GM_sun;
   dso::HarmonicCoeffs cs;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
-  AssociatedLegendreFunctions PM, PS;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
+  // AssociatedLegendreFunctions PM, PS;
 
-  int solid_earth_tide_step1(double Rmoon, double Rsun, double mlon,
-                             double slon, std::array<double, 12> &dC,
+  int solid_earth_tide_step1(const Eigen::Matrix<double, 3, 1> &rmoon,
+                             const Eigen::Matrix<double, 3, 1> &rsun,
+                             std::array<double, 12> &dC,
                              std::array<double, 12> &dS) noexcept;
 
   int solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
@@ -96,8 +98,9 @@ public:
   SolidEarthTide(double GMearth, double Rearth, double GMmoon,
                  double GMsun) noexcept
       : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth),
-        V(degree + 3, degree + 3), W(degree + 3, degree + 3), PM(degree),
-        PS(degree) {}
+        V(degree + 3, degree + 3), W(degree + 3, degree + 3) /*, PM(degree),
+         PS(degree)*/
+  {}
 
   int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
                  const Eigen::Matrix<double, 3, 1> &rmoon,
