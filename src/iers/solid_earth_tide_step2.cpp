@@ -197,25 +197,6 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
   const auto jdut = mjdut1.jd_sofa();
   const double gmst =
       iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
-#ifdef DEBUG
-  const double T = mjdtt.jcenturies_sinceJ2000();
-  double GMST =
-      std::fmod(67310.54841e0 + T * ((8640184.812866e0 + 3155760000e0) +
-                                     T * (0.093104e0 + T * (-0.0000062))),
-                86400e0);
-  const double RAD2SEC = 86400e0 / dso::D2PI;
-  GMST /= RAD2SEC;
-  const double fg = std::fmod(GMST + dso::DPI, dso::D2PI);
-  const double g = std::fmod(gmst + dso::DPI, dso::D2PI);
-  // printf("\t> Note on GMST: F=%.6f M=%.9f diff=%.9f (GMST=%.6f)\n",
-  //        dso::rad2deg(GMST), dso::rad2deg(gmst), dso::rad2deg(fg - g),
-  //        dso::rad2deg(fg));
-  if (std::abs(dso::rad2deg(fg - g)) > 0.5e0) {
-    fprintf(stderr,
-            "[WARNING] Too big GMST difference (%.1f[deg]).... function: %s\n",
-            std::abs(dso::rad2deg(fg - g)), __func__);
-  }
-#endif
 
   // compute Julian centuries since J2000.0 (TT)
   const double t = mjdtt.jcenturies_sinceJ2000();
@@ -236,10 +217,6 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
   compute_step2_m1(gmst, fundarg, dC21, dS21);
   // correction to C_22 & S_22
   compute_step2_m2(gmst, fundarg, dC22, dS22);
-
-  printf("\tStep2 C(2,0) = %.9e\n", dC20);
-  printf("\tStep2 C(2,1) = %.9e\n", dC21);
-  printf("\tStep2 C(2,2) = %.9e\n", dC22);
 
   return 0;
 }

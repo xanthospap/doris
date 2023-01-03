@@ -125,8 +125,8 @@ int main(int argc, char *argv[]) {
     Eigen::Matrix<double, 3, 1> rsun_icrf(rs[0], rs[1], rs[2]);  // [km]
     //printf("[ICRF] Moon %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rmoon_icrf(0)*1e3,
     //       rmoon_icrf(1)*1e3, rmoon_icrf(2)*1e3);
-    printf("[ICRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun_icrf(0)*1e3,
-           rsun_icrf(1)*1e3, rsun_icrf(2)*1e3);
+    //printf("[ICRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun_icrf(0)*1e3,
+    //       rsun_icrf(1)*1e3, rsun_icrf(2)*1e3);
 
     /* ECI to ECEF */
     if (dso::gcrs2itrs(gps2tai(pos.mjd), eop_lut, rc2i, era, rpom, xlod)) {
@@ -139,8 +139,8 @@ int main(int argc, char *argv[]) {
         dso::rcel2ter(rsun_icrf, rc2i, era, rpom) * 1e3;
     //printf("[ITRF] Moon %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rmoon(0),
     //       rmoon(1), rmoon(2));
-    printf("[ITRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun(0),
-           rsun(1), rsun(2));
+    //printf("[ITRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun(0),
+    //       rsun(1), rsun(2));
 
     // transform satellite position vector, icrf-to-itrf
     [[maybe_unused]] const Eigen::Matrix<double, 3, 1> cpos =
