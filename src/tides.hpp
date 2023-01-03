@@ -64,7 +64,13 @@ int pole_tide(const dso::datetime<dso::nanoseconds> &t, double xp, double yp,
 int permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
                    std::vector<Eigen::Matrix<double, 3, 1>> &Senu) noexcept;
 
-class OceanTide {}; // OceanTide
+struct DoodsonOceanTideConstituent {
+  int doodson[6];
+  int minl,maxl,maxm;
+}; // DoodsonOceanTideConstituent
+int inspect_octide_coefficients(const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept;
+class OceanTide {
+}; // OceanTide
 
 class SolidEarthTide {
   static constexpr const int degree = 4;

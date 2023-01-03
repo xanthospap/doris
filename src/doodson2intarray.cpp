@@ -5,6 +5,7 @@
 int dso::doodson2intarray(const char *const str, int *arr) noexcept {
   // check that the input string has size >=7 and that all but the 3rd char
   // are actually numeric values
+  // printf("\tResolving Doodson from: [%.7s]\n", str);
   for (int i=0; i<7; i++) {
     if ( !str[i] || !(std::isdigit(*(unsigned char*)(str+i)) || i==3) )
       return 1;
@@ -22,6 +23,8 @@ int dso::doodson2intarray(const char *const str, int *arr) noexcept {
   arr[3] = str[4] - '0' - 5;
   arr[4] = str[5] - '0' - 5;
   arr[5] = str[6] - '0' - 5;
+  //
+  //printf("\t                      : [%d%d%d.%d%d%d]\n",arr[0],arr[1],arr[2],arr[3],arr[4],arr[5]);
 
   // all done
   return 0;
