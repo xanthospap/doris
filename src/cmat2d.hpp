@@ -310,12 +310,11 @@ public:
 #endif
 
   Mat2D(int rows, int cols) noexcept
-      : m_storage(rows, cols), m_data(new double[m_storage.num_elements()])
-      {
+      : m_storage(rows, cols), m_data(new double[m_storage.num_elements()]) {
 #ifdef DEBUG
-        assert(m_storage.num_elements()>0);
+    assert(m_storage.num_elements() > 0);
 #endif
-      };
+  };
 
   ~Mat2D() noexcept {
     if (m_data)

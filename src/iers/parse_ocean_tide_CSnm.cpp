@@ -97,7 +97,7 @@ auto find_doodson_in_vec(
     const dso::DoodsonNumber &d,
     std::vector<dso::DoodsonOceanTideConstituent>::iterator guess) noexcept {
 
-  if (guess!=vec.end() && guess->doodson_number() == d) [[likely]]
+  if (guess != vec.end() && guess->doodson_number() == d) [[likely]]
     return guess;
 
   auto it = std::find_if(
@@ -164,7 +164,8 @@ int dso::memmap_octide_coefficients(
       } else {
         // else, add new constituent
         freqs.emplace_back(rec.doodson, max_degree, max_order);
-        //freqs.push_back(dso::DoodsonOceanTideConstituent(rec.doodson, max_degree, max_order));
+        // freqs.push_back(dso::DoodsonOceanTideConstituent(rec.doodson,
+        // max_degree, max_order));
         it = std::prev(freqs.end());
         it->print_matrix_sizes();
         if (rec.l <= max_degree && rec.m <= max_order) {

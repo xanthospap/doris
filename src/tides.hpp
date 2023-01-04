@@ -2,12 +2,12 @@
 #define __IERS2010_VAR_TIDE_MODELS_HPP__
 
 #include "associated_legendre.hpp"
+#include "base_error.hpp"
 #include "cmat2d.hpp"
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "geodesy/units.hpp"
 #include "harmonic_coeffs.hpp"
-#include "base_error.hpp"
 #include <array>
 #include <cstring>
 
@@ -26,11 +26,13 @@ namespace dso {
 
 class DoodsonNumber {
 private:
-  int iar[6]={0};
+  int iar[6] = {0};
+
 public:
-  explicit DoodsonNumber(const char* str);
-  explicit DoodsonNumber(const int* ar=nullptr) {
-    if (ar) std::memcpy(iar, ar, sizeof(int) * 6);
+  explicit DoodsonNumber(const char *str);
+  explicit DoodsonNumber(const int *ar = nullptr) {
+    if (ar)
+      std::memcpy(iar, ar, sizeof(int) * 6);
   }
   char *str(char *buf) const noexcept;
   bool operator==(const DoodsonNumber &other) const noexcept {
@@ -44,11 +46,11 @@ public:
   }
   int *multipliers(int *mults) const noexcept {
     mults[0] = iar[0];
-    mults[1] = iar[1]-5;
-    mults[2] = iar[2]-5;
-    mults[3] = iar[3]-5;
-    mults[4] = iar[4]-5;
-    mults[5] = iar[5]-5;
+    mults[1] = iar[1] - 5;
+    mults[2] = iar[2] - 5;
+    mults[3] = iar[3] - 5;
+    mults[4] = iar[4] - 5;
+    mults[5] = iar[5] - 5;
     return mults;
   }
 };
@@ -114,25 +116,39 @@ public:
   ~DoodsonOceanTideConstituent() noexcept;
   DoodsonOceanTideConstituent(const DoodsonOceanTideConstituent &) noexcept;
   DoodsonOceanTideConstituent(DoodsonOceanTideConstituent &&) noexcept;
-  DoodsonOceanTideConstituent& operator=(const DoodsonOceanTideConstituent &) noexcept;
-  DoodsonOceanTideConstituent& operator=(DoodsonOceanTideConstituent &&) noexcept;
+  DoodsonOceanTideConstituent &
+  operator=(const DoodsonOceanTideConstituent &) noexcept;
+  DoodsonOceanTideConstituent &
+  operator=(DoodsonOceanTideConstituent &&) noexcept;
 
-  int max_degree() const noexcept {return maxl;}
-  int max_order() const noexcept {return maxm;}
+  int max_degree() const noexcept { return maxl; }
+  int max_order() const noexcept { return maxm; }
   const DoodsonNumber &doodson_number() const noexcept { return doodson; }
   /// @warning Your fault if *DelCpl is NULL!
-  //const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCp() const noexcept { return *DelCpl; }
-  //const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSp() const noexcept { return *DelSpl; }
-  //const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCm() const noexcept { return *DelCmi; }
-  //const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSm() const noexcept { return *DelSmi; }
-  const double& delCp(int l, int m) const noexcept { return DelCpl->operator()(l,m); }
-  const double& delSp(int l, int m) const noexcept { return DelSpl->operator()(l,m); }
-  const double& delCm(int l, int m) const noexcept { return DelCmi->operator()(l,m); }
-  const double& delSm(int l, int m) const noexcept { return DelSmi->operator()(l,m); }
-  double& delCp(int l, int m) noexcept { return DelCpl->operator()(l,m); }
-  double& delSp(int l, int m) noexcept { return DelSpl->operator()(l,m); }
-  double& delCm(int l, int m) noexcept { return DelCmi->operator()(l,m); }
-  double& delSm(int l, int m) noexcept { return DelSmi->operator()(l,m); }
+  // const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCp()
+  // const noexcept { return *DelCpl; } const
+  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSp() const
+  // noexcept { return *DelSpl; } const
+  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCm() const
+  // noexcept { return *DelCmi; } const
+  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSm() const
+  // noexcept { return *DelSmi; }
+  const double &delCp(int l, int m) const noexcept {
+    return DelCpl->operator()(l, m);
+  }
+  const double &delSp(int l, int m) const noexcept {
+    return DelSpl->operator()(l, m);
+  }
+  const double &delCm(int l, int m) const noexcept {
+    return DelCmi->operator()(l, m);
+  }
+  const double &delSm(int l, int m) const noexcept {
+    return DelSmi->operator()(l, m);
+  }
+  double &delCp(int l, int m) noexcept { return DelCpl->operator()(l, m); }
+  double &delSp(int l, int m) noexcept { return DelSpl->operator()(l, m); }
+  double &delCm(int l, int m) noexcept { return DelCmi->operator()(l, m); }
+  double &delSm(int l, int m) noexcept { return DelSmi->operator()(l, m); }
 
   dso::iStatus resize(int maxDegree) noexcept;
 #ifdef DEBUG
@@ -140,12 +156,12 @@ public:
 #endif
 }; // DoodsonOceanTideConstituent
 
-/*int inspect_octide_coefficients(const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept;*/
+/*int inspect_octide_coefficients(const char *fn,
+ * std::vector<DoodsonOceanTideConstituent> &freqs) noexcept;*/
 int memmap_octide_coefficients(
     const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
     int max_degree, int max_order, int num_header_lines) noexcept;
-class OceanTide {
-}; // OceanTide
+class OceanTide {}; // OceanTide
 
 class SolidEarthTide {
   static constexpr const int degree = 4;
