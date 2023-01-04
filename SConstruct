@@ -105,7 +105,13 @@ branchless = ARGUMENTS.get('branchless', 1)
 env = denv.Clone() if int(debug) else penv.Clone()
 
 ## What compiler should we be using ?
-if GetOption('cxx') is not None: env['CXX'] = GetOption('cxx')
+if GetOption('cxx') is not None:
+    env['CXX'] = GetOption('cxx')
+    if env['CXX'] == "clang++" and '-Wno-class-memaccess' in env['CXXFLAGS']:
+        ## LLVM Compiler
+        print('Note: Removing flag \'-Wno-class-memaccess\' cause compiler is LLVM')
+        env['CXXFLAGS'] = env['CXXFLAGS'].replace('-Wno-class-memaccess', '')
+        env['CXXFLAGS'] = ' '.join([env['CXXFLAGS'], '-Wno-error=c++20-attribute-extensions'])
 
 ## Set the C++ standard
 cxxstd = GetOption('std')

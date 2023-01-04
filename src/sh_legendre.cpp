@@ -33,6 +33,7 @@ dPdphi(int n, int m, double tanf,
            *const p) noexcept {
   return _knm(n, m) * p->operator()(n, m + 1) - m * tanf * p->operator()(n, m);
 }
+/*
 inline double A(int n, int m) noexcept {
   const double u = (2 * n - 1) * (2 * n + 1);
   const double d = (n - m) * (n + m);
@@ -43,6 +44,7 @@ inline double B(int n, int m) noexcept {
   const double d = (n - m) * (n + m) * (2 * n - 3);
   return std::sqrt(u / d);
 }
+*/
 } // namespace
 
 #ifdef DEBUG
@@ -144,7 +146,7 @@ int test::gravacc1(const dso::HarmonicCoeffs &cs,
 #endif
     } // end loop on m
     Vl += m * (Am0 * sl - Bm0 * cl);
-    Vf += Amf * cl + Bm0 * sl;
+    Vf += Amf * cl + Bmf * sl;
     Vr += Amr * cl + Bmr * sl;
   } // end loop on n
   Vl *= -GM / r.norm();

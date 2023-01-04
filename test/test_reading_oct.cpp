@@ -8,7 +8,11 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<dso::DoodsonOceanTideConstituent> vdds;
-  if (dso::inspect_octide_coefficients(argv[1], vdds)) {
+  //if (dso::inspect_octide_coefficients(argv[1], vdds)) {
+  //  fprintf(stderr, "Failed reading inpit file!\n");
+  //  return 1;
+  //}
+  if (dso::memmap_octide_coefficients(argv[1], vdds, 10, 10, 3)) {
     fprintf(stderr, "Failed reading inpit file!\n");
     return 1;
   }
@@ -16,10 +20,8 @@ int main(int argc, char *argv[]) {
   int i = 0;
   for (const auto &d : vdds) {
     char buf[32];
-    sprintf(buf, "%d%+2d%+2d.%+2d%+2d%+2d", d.doodson[0], d.doodson[1], d.doodson[2],
-            d.doodson[3], d.doodson[4], d.doodson[5]);
-    printf("#%02d Doodson: %s minl:%d maxl:%d maxm:%d\n", i, buf, d.minl, d.maxl,
-           d.maxm);
+    printf("#%02d Doodson: %s -> maxl:%d maxm:%d\n", i, d.doodson_number().str(buf),
+           d.max_degree(), d.max_order());
     ++i;
   }
 

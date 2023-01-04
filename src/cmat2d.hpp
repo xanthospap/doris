@@ -264,6 +264,10 @@ public:
   double &operator()(int i, int j) noexcept {
 #ifdef DEBUG
     assert(i < rows() && j < cols());
+    if (!(m_storage.element_offset(i, j) >= 0 &&
+           m_storage.element_offset(i, j) < (int)m_storage.num_elements())) {
+      fprintf(stderr, "Failing: request element(%d,%d) index: %d, storage: %d\n", i,j,m_storage.element_offset(i, j), (int)m_storage.num_elements());
+    }
     assert(m_storage.element_offset(i, j) >= 0 &&
            m_storage.element_offset(i, j) < (int)m_storage.num_elements());
 #endif
@@ -343,6 +347,17 @@ public:
     m_storage.__set_dimensions(mat.rows(), mat.cols());
     mat.m_data = nullptr;
     return *this;
+  }
+
+  void resize(int rows, int cols) {
+    // de we need to re-allocate ?
+    if (m_storage.num_elements() !=
+        StorageImplementation<S>(rows, cols).num_elements()) {
+      if (m_data)
+        delete[] m_data;
+      m_data = new double[StorageImplementation<S>(rows, cols).num_elements()];
+    }
+    m_storage = StorageImplementation<S>(rows, cols);
   }
 
 #ifdef DEBUG

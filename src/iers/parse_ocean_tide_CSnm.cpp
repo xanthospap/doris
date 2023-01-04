@@ -1,30 +1,24 @@
 #include "tides.hpp"
+#include <algorithm>
 #include <charconv>
 #include <cstring>
+#include <exception>
 #include <fstream>
 #include <vector>
+//#include <functional>
+
+constexpr const int MAX_CHARS_IN_OCCOEFFS = 256;
 
 namespace {
 struct OcTideRecordLine {
-  int doodson[6];
+  dso::DoodsonNumber doodson;
   int l, m;
   double DelCpl, DelSpl, DelCmi, DelSmi;
 
   dso::DoodsonOceanTideConstituent as_constituent() const noexcept {
-    dso::DoodsonOceanTideConstituent d;
-    for (int i=0; i<6; i++) d.doodson[i] = doodson[i];
-    d.maxl = d.minl = l;
-    d.maxm = m;
-    return d;
+    return dso::DoodsonOceanTideConstituent(doodson, l, m);
   }
 }; // OcTideRecordLine
-
-bool sameDoodson(const int *i1, const int *i2) noexcept {
-  int diff = 0;
-  for (int i = 0; i < 6; i++)
-    diff += (i1[i] != i2[i]);
-  return (diff == 0);
-}
 
 int parse_line(const char *line, OcTideRecordLine &rec) noexcept {
   auto skipws = [](const char *str) noexcept -> const char * {
@@ -34,7 +28,9 @@ int parse_line(const char *line, OcTideRecordLine &rec) noexcept {
   };
 
   // read and resolve Doodson number
-  if (dso::doodson2intarray(skipws(line), rec.doodson)) {
+  try {
+    rec.doodson = dso::DoodsonNumber(skipws(line));
+  } catch (std::exception &) {
     fprintf(stderr,
             "[ERROR] Failed to resolve Doodson number from line: %s "
             "(traceback: %s)\n",
@@ -92,13 +88,102 @@ int parse_line(const char *line, OcTideRecordLine &rec) noexcept {
 
   return 0;
 }
-} // unnamed namespace
 
-constexpr const int MAX_CHARS_IN_OCCOEFFS = 256;
+/// @note The input argument vec cannot be declared const, cause then the
+///       return type of the find_if call will be an iterator to const,
+///       hence different from guess
+auto find_doodson_in_vec(
+    std::vector<dso::DoodsonOceanTideConstituent> &vec,
+    const dso::DoodsonNumber &d,
+    std::vector<dso::DoodsonOceanTideConstituent>::iterator guess) noexcept {
 
-int memmap_octide_coefficients(const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept {
+  if (guess!=vec.end() && guess->doodson_number() == d) [[likely]]
+    return guess;
+
+  auto it = std::find_if(
+      vec.begin(), vec.end(),
+      [D = std::cref(d)](const dso::DoodsonOceanTideConstituent &element) {
+        return (element.doodson_number() == D);
+      });
+  /*[=](const dso::DoodsonOceanTideConstituent &el) {
+    return el.doodson_number() == d;
+  });*/
+
+  return it;
 }
 
+} // unnamed namespace
+
+int dso::memmap_octide_coefficients(
+    const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
+    int max_degree, int max_order, int num_header_lines) noexcept {
+  std::ifstream fin(fn);
+  if (!fin.is_open()) {
+    fprintf(stderr, "[ERROR] Failed opening file: %s (traceback: %s)\n", fn,
+            __func__);
+    return 1;
+  }
+
+  freqs.clear();
+  char line[MAX_CHARS_IN_OCCOEFFS];
+
+  // read in header comments, first three lines
+  for (int i = 0; i < num_header_lines; i++)
+    fin.getline(line, MAX_CHARS_IN_OCCOEFFS);
+
+  // read in header line, should match!
+  const char *HEADER =
+      "Doodson Darw  l   m    DelC+     DelS+       DelC-     DelS-";
+  const int HSZ = std::strlen(HEADER);
+  fin.getline(line, MAX_CHARS_IN_OCCOEFFS);
+  if (std::strncmp(HEADER, line, HSZ)) {
+    fprintf(stderr, "[ERROR] Unexpected header in file %s! 9traceback: %s)\n",
+            fn, __func__);
+    fprintf(stderr, "Expected: %s\nFound   : %s\n", HEADER, line);
+    return 1;
+  }
+
+  // keep on reading constituents ...
+  OcTideRecordLine rec;
+  auto it = freqs.end();
+  int error = 0;
+  while (fin.getline(line, MAX_CHARS_IN_OCCOEFFS) && !error) {
+    error = parse_line(line, rec);
+    if (!error) {
+      // find constintuent in vector
+      it = find_doodson_in_vec(freqs, rec.doodson, it);
+      if (it != freqs.cend()) {
+        // constituent found, add elements for given degree and order
+        // (if needed)
+        if (rec.l <= max_degree && rec.m <= max_order) {
+          it->delCp(rec.l, rec.m) = rec.DelCpl;
+          it->delSp(rec.l, rec.m) = rec.DelSpl;
+          it->delCm(rec.l, rec.m) = rec.DelCmi;
+          it->delSm(rec.l, rec.m) = rec.DelSmi;
+        }
+      } else {
+        // else, add new constituent
+        freqs.emplace_back(rec.doodson, max_degree, max_order);
+        if (rec.l <= max_degree && rec.m <= max_order) {
+          it = freqs.end() - 1;
+          it->delCp(rec.l, rec.m) = rec.DelCpl;
+          it->delSp(rec.l, rec.m) = rec.DelSpl;
+          it->delCm(rec.l, rec.m) = rec.DelCmi;
+          it->delSm(rec.l, rec.m) = rec.DelSmi;
+        }
+      }
+    }
+  }
+
+  // have we read the file through ?
+  if (error)
+    return error;
+  if (!fin.good() && fin.eof())
+    return 0;
+  return 99;
+}
+
+/*
 int dso::inspect_octide_coefficients(
     const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept {
 
@@ -142,9 +227,9 @@ int dso::inspect_octide_coefficients(
   while (fin.getline(line, MAX_CHARS_IN_OCCOEFFS) && !error) {
     error = parse_line(line, rec);
     if (!error) {
-      if (sameDoodson((freqs.end() - 1)->doodson, rec.doodson)) {
-        (freqs.end() - 1)->maxl = std::max((freqs.end() - 1)->maxl, rec.l);
-        (freqs.end() - 1)->maxm = std::max((freqs.end() - 1)->maxm, rec.m);
+      if ((freqs.end() - 1)->doodson == rec.doodson) {
+        (freqs.end() - 1)->maxl() = std::max((freqs.end() - 1)->maxl, rec.l);
+        (freqs.end() - 1)->maxm() = std::max((freqs.end() - 1)->maxm, rec.m);
       } else {
         freqs.emplace_back(rec.as_constituent());
       }
@@ -158,3 +243,4 @@ int dso::inspect_octide_coefficients(
     return 0;
   return 99;
 }
+*/

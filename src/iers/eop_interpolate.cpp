@@ -64,7 +64,7 @@ int dso::EopLookUpTable::interpolate_lagrange(const dso::TwoPartDate &fmjd,
   // remember to assign date to the filled-in instance
   eopr.mjd = fmjd;
 
-  return 0;
+  return status;
 }
 
 // do not regularize EOPs before calling this function
