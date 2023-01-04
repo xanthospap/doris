@@ -103,6 +103,7 @@ private:
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *DelCpl{nullptr},
       *DelSpl{nullptr}, *DelCmi{nullptr}, *DelSmi{nullptr};
   void set_null() noexcept;
+  void deallocate() noexcept;
 
 public:
   DoodsonOceanTideConstituent() noexcept
@@ -134,6 +135,9 @@ public:
   double& delSm(int l, int m) noexcept { return DelSmi->operator()(l,m); }
 
   dso::iStatus resize(int maxDegree) noexcept;
+#ifdef DEBUG
+  void print_matrix_sizes() const noexcept;
+#endif
 }; // DoodsonOceanTideConstituent
 
 /*int inspect_octide_coefficients(const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept;*/

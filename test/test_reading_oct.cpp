@@ -1,6 +1,9 @@
 #include "tides.hpp"
 #include <cstdio>
 
+constexpr const int Degree = 5;
+constexpr const int Order = Degree;
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     fprintf(stderr, "Usage: %s <OCEAN TIDE FILE>\n", argv[0]);
@@ -12,7 +15,7 @@ int main(int argc, char *argv[]) {
   //  fprintf(stderr, "Failed reading inpit file!\n");
   //  return 1;
   //}
-  if (dso::memmap_octide_coefficients(argv[1], vdds, 10, 10, 3)) {
+  if (dso::memmap_octide_coefficients(argv[1], vdds, Degree, Order, 3)) {
     fprintf(stderr, "Failed reading inpit file!\n");
     return 1;
   }

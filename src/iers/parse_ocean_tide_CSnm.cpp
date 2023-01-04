@@ -164,8 +164,10 @@ int dso::memmap_octide_coefficients(
       } else {
         // else, add new constituent
         freqs.emplace_back(rec.doodson, max_degree, max_order);
+        //freqs.push_back(dso::DoodsonOceanTideConstituent(rec.doodson, max_degree, max_order));
+        it = std::prev(freqs.end());
+        it->print_matrix_sizes();
         if (rec.l <= max_degree && rec.m <= max_order) {
-          it = freqs.end() - 1;
           it->delCp(rec.l, rec.m) = rec.DelCpl;
           it->delSp(rec.l, rec.m) = rec.DelSpl;
           it->delCm(rec.l, rec.m) = rec.DelCmi;

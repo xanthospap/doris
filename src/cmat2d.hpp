@@ -264,10 +264,6 @@ public:
   double &operator()(int i, int j) noexcept {
 #ifdef DEBUG
     assert(i < rows() && j < cols());
-    if (!(m_storage.element_offset(i, j) >= 0 &&
-           m_storage.element_offset(i, j) < (int)m_storage.num_elements())) {
-      fprintf(stderr, "Failing: request element(%d,%d) index: %d, storage: %d\n", i,j,m_storage.element_offset(i, j), (int)m_storage.num_elements());
-    }
     assert(m_storage.element_offset(i, j) >= 0 &&
            m_storage.element_offset(i, j) < (int)m_storage.num_elements());
 #endif
@@ -314,7 +310,12 @@ public:
 #endif
 
   Mat2D(int rows, int cols) noexcept
-      : m_storage(rows, cols), m_data(new double[m_storage.num_elements()]){};
+      : m_storage(rows, cols), m_data(new double[m_storage.num_elements()])
+      {
+#ifdef DEBUG
+        assert(m_storage.num_elements()>0);
+#endif
+      };
 
   ~Mat2D() noexcept {
     if (m_data)
