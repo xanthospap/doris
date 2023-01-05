@@ -12,10 +12,12 @@
 /// C_n0     C_n1     C_n2     .... C_n(m-1) C_nm
 /// If degree > order, empty space is left between the S and C coefficients.
 
+
 #ifdef DEBUG
 #include <cassert>
 #include <cstdio>
 #endif
+#include <algorithm>
 #include <cstring>
 
 namespace dso {
@@ -104,6 +106,10 @@ public:
   void clear() noexcept {
     if (m_data)
       std::memset(m_data, 0, (m_degree + 1) * (m_degree + 1) * sizeof(double));
+  }
+  void scale(double factor) noexcept {
+    std::for_each(m_data, m_data + (m_degree + 1) * (m_degree + 1),
+                  [=](double &d) { d *= factor; });
   }
 
   /// @brief De-normalize harmonic coefficients.

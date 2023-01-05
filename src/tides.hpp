@@ -53,6 +53,13 @@ public:
     mults[5] = iar[5] - 5;
     return mults;
   }
+  /// @brief Compute θ_f = Σ(β_i * n_i), i=1,..,6
+  double theta_angle(const double *const doodson_vars) const noexcept {
+    return dso::anp(
+        doodson_vars[0] * iar[0] + doodson_vars[1] * (iar[1] - 5) +
+        doodson_vars[2] * (iar[2] - 5) + doodson_vars[3] * (iar[3] - 5) +
+        doodson_vars[4] * (iar[4] - 5) + doodson_vars[5] * (iar[5] - 5));
+  }
 };
 
 /// @brief Fundamental (Delaunay) arguments to Doodson variables.
@@ -68,19 +75,20 @@ public:
 ///   * [3] d  : Mean elongation of the Moon from the Sun [rad]
 ///   * [4] Ω  : Mean longitude of the ascending node of the Moon [rad]
 ///
-///   * [0] WARNING TODO this element uses gmst
+///   * [0] τ  : GMST + π - s
 ///   * [1] s  : Moon's mean longitude [rad]
 ///   * [2] h  : Sun's mean longitude [rad]
 ///   * [3] p  : Longitude of Moon's mean perigee
 ///   * [4] N' : Negative longitude of Moon's mean node
 ///   * [5] pl : Longitude of Sun's mean perigee
-inline int fundarg2doodson(const double *const fundarg,
+inline int fundarg2doodson(const double *const fundarg, double gmst,
                            double *doodson) noexcept {
   doodson[1] = dso::anp(fundarg[2] + fundarg[4]);
   doodson[2] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3]);
   doodson[3] = dso::anp(fundarg[2] + fundarg[4] - fundarg[0]);
   doodson[4] = dso::anp(-fundarg[4]);
   doodson[5] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3] - fundarg[1]);
+  doodson[0] = dso::anp(gmst + dso::DPI - doodson[1]);
   return 0;
 }
 
@@ -125,14 +133,6 @@ public:
   int max_order() const noexcept { return maxm; }
   const DoodsonNumber &doodson_number() const noexcept { return doodson; }
   /// @warning Your fault if *DelCpl is NULL!
-  // const dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCp()
-  // const noexcept { return *DelCpl; } const
-  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSp() const
-  // noexcept { return *DelSpl; } const
-  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delCm() const
-  // noexcept { return *DelCmi; } const
-  // dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>& delSm() const
-  // noexcept { return *DelSmi; }
   const double &delCp(int l, int m) const noexcept {
     return DelCpl->operator()(l, m);
   }
@@ -151,17 +151,38 @@ public:
   double &delSm(int l, int m) noexcept { return DelSmi->operator()(l, m); }
 
   dso::iStatus resize(int maxDegree) noexcept;
+  void clear_coefficients() noexcept;
+
 #ifdef DEBUG
   void print_matrix_sizes() const noexcept;
 #endif
 }; // DoodsonOceanTideConstituent
 
-/*int inspect_octide_coefficients(const char *fn,
- * std::vector<DoodsonOceanTideConstituent> &freqs) noexcept;*/
 int memmap_octide_coefficients(
     const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
-    int max_degree, int max_order, int num_header_lines) noexcept;
-class OceanTide {}; // OceanTide
+    int max_degree, int max_order, int num_header_lines, double scale=1e0) noexcept;
+
+class OceanTide {
+private:
+  std::vector<DoodsonOceanTideConstituent> doodsonFreqs;
+  dso::HarmonicCoeffs dCS;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
+public:
+  OceanTide(const std::vector<DoodsonOceanTideConstituent> &dfvec,
+            double GMearth, double Rearth, int max_degree,
+            int max_order) noexcept
+      : doodsonFreqs(dfvec), dCS(max_degree, max_order, GMearth, Rearth),
+        V(max_degree + 3, max_degree + 3), W(max_degree + 3, max_degree + 3) {}
+
+  int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
+                 int max_degree, int max_order) noexcept;
+  int acceleration(const dso::TwoPartDate &mjdtt,
+                   const dso::TwoPartDate &mjdut1,
+                   const Eigen::Matrix<double, 3, 1> &rsat,
+                   Eigen::Matrix<double, 3, 1> &acc, int max_degree,
+                   int max_order) noexcept;
+}; // OceanTide
 
 class SolidEarthTide {
   static constexpr const int degree = 4;

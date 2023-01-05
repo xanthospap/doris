@@ -65,6 +65,17 @@ void dso::DoodsonOceanTideConstituent::set_null() noexcept {
   maxl = maxm = 0;
 }
 
+void dso::DoodsonOceanTideConstituent::clear_coefficients() noexcept {
+  if (DelCpl)
+    DelCpl->fill_with(0e0);
+  if (DelSpl)
+    DelSpl->fill_with(0e0);
+  if (DelCmi)
+    DelCmi->fill_with(0e0);
+  if (DelSmi)
+    DelSmi->fill_with(0e0);
+}
+
 dso::DoodsonOceanTideConstituent::~DoodsonOceanTideConstituent() noexcept {
   deallocate();
   set_null();
@@ -73,20 +84,13 @@ dso::DoodsonOceanTideConstituent::~DoodsonOceanTideConstituent() noexcept {
 dso::DoodsonOceanTideConstituent::DoodsonOceanTideConstituent(
     const dso::DoodsonOceanTideConstituent &other) noexcept {
   if (other.maxl != 0) {
-    // use one of the matrices to check sizes. Asserts that all matrices are
-    // of equal size!
-    if (this->DelCpl->num_elements() != other.DelCpl->num_elements()) {
-      this->deallocate();
-      this->set_null();
-      assert(this->resize(other.maxl) == dso::iStatus::ok());
-    }
+    assert(this->resize(other.maxl) == dso::iStatus::ok());
     *DelCpl = *(other.DelCpl);
     *DelSpl = *(other.DelSpl);
     *DelCmi = *(other.DelCmi);
     *DelSmi = *(other.DelSmi);
   } else {
     assert(other.maxm == 0);
-    this->deallocate();
     this->set_null();
   }
   maxl = other.maxl;
@@ -98,9 +102,10 @@ dso::DoodsonOceanTideConstituent &dso::DoodsonOceanTideConstituent::operator=(
     const dso::DoodsonOceanTideConstituent &other) noexcept {
   if (this != &other) {
     if (other.maxl != 0) {
-      // use one of the matrices to check sizes. Asserts that all matrices are
-      // of equal size!
-      if (this->DelCpl->num_elements() != other.DelCpl->num_elements()) {
+      // we will need storage
+      const auto current_elements = (this->DelCpl)?(this->DelCpl->num_elements()):0;
+      const auto other_elements = other.DelCpl->num_elements();
+      if (current_elements != other_elements) {
         this->deallocate();
         this->set_null();
         assert(this->resize(other.maxl) == dso::iStatus::ok());

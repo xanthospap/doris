@@ -5,7 +5,6 @@
 #include <exception>
 #include <fstream>
 #include <vector>
-//#include <functional>
 
 constexpr const int MAX_CHARS_IN_OCCOEFFS = 256;
 
@@ -116,7 +115,7 @@ auto find_doodson_in_vec(
 
 int dso::memmap_octide_coefficients(
     const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
-    int max_degree, int max_order, int num_header_lines) noexcept {
+    int max_degree, int max_order, int num_header_lines, double scale) noexcept {
   std::ifstream fin(fn);
   if (!fin.is_open()) {
     fprintf(stderr, "[ERROR] Failed opening file: %s (traceback: %s)\n", fn,
@@ -156,10 +155,10 @@ int dso::memmap_octide_coefficients(
         // constituent found, add elements for given degree and order
         // (if needed)
         if (rec.l <= max_degree && rec.m <= max_order) {
-          it->delCp(rec.l, rec.m) = rec.DelCpl;
-          it->delSp(rec.l, rec.m) = rec.DelSpl;
-          it->delCm(rec.l, rec.m) = rec.DelCmi;
-          it->delSm(rec.l, rec.m) = rec.DelSmi;
+          it->delCp(rec.l, rec.m) = rec.DelCpl*scale;
+          it->delSp(rec.l, rec.m) = rec.DelSpl*scale;
+          it->delCm(rec.l, rec.m) = rec.DelCmi*scale;
+          it->delSm(rec.l, rec.m) = rec.DelSmi*scale;
         }
       } else {
         // else, add new constituent
@@ -167,12 +166,13 @@ int dso::memmap_octide_coefficients(
         // freqs.push_back(dso::DoodsonOceanTideConstituent(rec.doodson,
         // max_degree, max_order));
         it = std::prev(freqs.end());
-        it->print_matrix_sizes();
+        it->clear_coefficients();
+        // it->print_matrix_sizes();
         if (rec.l <= max_degree && rec.m <= max_order) {
-          it->delCp(rec.l, rec.m) = rec.DelCpl;
-          it->delSp(rec.l, rec.m) = rec.DelSpl;
-          it->delCm(rec.l, rec.m) = rec.DelCmi;
-          it->delSm(rec.l, rec.m) = rec.DelSmi;
+          it->delCp(rec.l, rec.m) = rec.DelCpl*scale;
+          it->delSp(rec.l, rec.m) = rec.DelSpl*scale;
+          it->delCm(rec.l, rec.m) = rec.DelCmi*scale;
+          it->delSm(rec.l, rec.m) = rec.DelSmi*scale;
         }
       }
     }
@@ -185,65 +185,3 @@ int dso::memmap_octide_coefficients(
     return 0;
   return 99;
 }
-
-/*
-int dso::inspect_octide_coefficients(
-    const char *fn, std::vector<DoodsonOceanTideConstituent> &freqs) noexcept {
-
-  std::ifstream fin(fn);
-  if (!fin.is_open()) {
-    fprintf(stderr, "[ERROR] Failed opening file: %s (traceback: %s)\n", fn,
-            __func__);
-    return 1;
-  }
-
-  freqs.clear();
-  char line[MAX_CHARS_IN_OCCOEFFS];
-
-  // read in header comments, first three lines
-  for (int i = 0; i < 3; i++)
-    fin.getline(line, MAX_CHARS_IN_OCCOEFFS);
-
-  // read in header line, should match!
-  const char *HEADER =
-      "Doodson Darw  l   m    DelC+     DelS+       DelC-     DelS-";
-  const int HSZ = std::strlen(HEADER);
-  fin.getline(line, MAX_CHARS_IN_OCCOEFFS);
-  if (std::strncmp(HEADER, line, HSZ)) {
-    fprintf(stderr, "[ERROR] Unexpected header in file %s! 9traceback: %s)\n",
-            fn, __func__);
-    fprintf(stderr, "Expected: %s\nFound   : %s\n", HEADER, line);
-    return 1;
-  }
-
-  // read in coefficients for first constituent
-  OcTideRecordLine rec;
-  fin.getline(line, MAX_CHARS_IN_OCCOEFFS);
-  if (parse_line(line, rec))
-    return 1;
-
-  // add this first constituent to the vector
-  freqs.emplace_back(rec.as_constituent());
-
-  // keep on reading constituents ...
-  int error = 0;
-  while (fin.getline(line, MAX_CHARS_IN_OCCOEFFS) && !error) {
-    error = parse_line(line, rec);
-    if (!error) {
-      if ((freqs.end() - 1)->doodson == rec.doodson) {
-        (freqs.end() - 1)->maxl() = std::max((freqs.end() - 1)->maxl, rec.l);
-        (freqs.end() - 1)->maxm() = std::max((freqs.end() - 1)->maxm, rec.m);
-      } else {
-        freqs.emplace_back(rec.as_constituent());
-      }
-    }
-  }
-
-  // have we read the file through ?
-  if (error)
-    return error;
-  if (!fin.good() && fin.eof())
-    return 0;
-  return 99;
-}
-*/
