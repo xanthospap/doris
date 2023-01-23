@@ -4,6 +4,7 @@
 #include <cstring>
 #include <exception>
 #include <fstream>
+#include <iers2010/doodson.hpp>
 #include <vector>
 
 constexpr const int MAX_CHARS_IN_OCCOEFFS = 256;
@@ -19,6 +20,42 @@ struct OcTideRecordLine {
   }
 }; // OcTideRecordLine
 
+int parse_doodson_iers_str(const char *str, dso::DoodsonNumber &d) noexcept {
+  // check that the input string has size >=7 and that all but the 3rd char
+  // are actually numeric values
+  for (int i = 0; i < 7; i++) {
+    if (!str[i] || !(std::isdigit(*(unsigned char *)(str + i)) || i == 3)) {
+      fprintf(stderr,
+              "[ERROR] Failed to resolve Doodson number from string %s "
+              "(traceback: %s)\n",
+              str, __func__);
+      return 1;
+    }
+  }
+
+  // first three ints, for variables τ, s, h
+  d(0) = str[0] - '0';
+  d(1) = str[1] - '0' - 5;
+  d(2) = str[2] - '0' - 5;
+
+  // 4th character should be either a '.' or a ','
+  if (str[3] != '.' && str[3] != ',') {
+    fprintf(stderr,
+            "[ERROR] Failed to resolve Doodson number from string %s "
+            "(traceback: %s)\n",
+            str, __func__);
+    return 1;
+  }
+
+  // next three characters, for variables p, N', ps
+  d(3) = str[4] - '0' - 5;
+  d(4) = str[5] - '0' - 5;
+  d(5) = str[6] - '0' - 5;
+
+  // all done
+  return 0;
+}
+
 int parse_line(const char *line, OcTideRecordLine &rec) noexcept {
   auto skipws = [](const char *str) noexcept -> const char * {
     while (*str && *str == ' ')
@@ -26,10 +63,8 @@ int parse_line(const char *line, OcTideRecordLine &rec) noexcept {
     return str;
   };
 
-  // read and resolve Doodson number
-  try {
-    rec.doodson = dso::DoodsonNumber(skipws(line));
-  } catch (std::exception &) {
+  // read and resolve Doodson number. IERS-2010 uses +5 for the Doodson number
+  if (parse_doodson_iers_str(skipws(line), rec.doodson)) {
     fprintf(stderr,
             "[ERROR] Failed to resolve Doodson number from line: %s "
             "(traceback: %s)\n",

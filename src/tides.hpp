@@ -1,6 +1,7 @@
 #ifndef __IERS2010_VAR_TIDE_MODELS_HPP__
 #define __IERS2010_VAR_TIDE_MODELS_HPP__
 
+#include "iers2010/doodson.hpp"
 #include "associated_legendre.hpp"
 #include "base_error.hpp"
 #include "cmat2d.hpp"
@@ -23,8 +24,7 @@ namespace dso {
 /// @param[out] arr The resulting array of 6 integers
 /// @return Anything other than 0 denotes an error
 /// int doodson2intarray(const char *const str, int *arr) noexcept;
-
-class DoodsonNumber {
+/*class DoodsonNumber {
 private:
   int iar[6] = {0};
 
@@ -60,7 +60,7 @@ public:
         doodson_vars[2] * (iar[2] - 5) + doodson_vars[3] * (iar[3] - 5) +
         doodson_vars[4] * (iar[4] - 5) + doodson_vars[5] * (iar[5] - 5));
   }
-};
+};*/
 
 /// @brief Fundamental (Delaunay) arguments to Doodson variables.
 /// All angles are in [rad] in the range [0,2π)
@@ -81,7 +81,7 @@ public:
 ///   * [3] p  : Longitude of Moon's mean perigee
 ///   * [4] N' : Negative longitude of Moon's mean node
 ///   * [5] pl : Longitude of Sun's mean perigee
-inline int fundarg2doodson(const double *const fundarg, double gmst,
+/*inline int fundarg2doodson(const double *const fundarg, double gmst,
                            double *doodson) noexcept {
   doodson[1] = dso::anp(fundarg[2] + fundarg[4]);
   doodson[2] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3]);
@@ -90,7 +90,7 @@ inline int fundarg2doodson(const double *const fundarg, double gmst,
   doodson[5] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3] - fundarg[1]);
   doodson[0] = dso::anp(gmst + dso::DPI - doodson[1]);
   return 0;
-}
+}*/
 
 /// @brief Compute Pole Tides according to IERS 2010, Sec. 7.1.4
 Eigen::Matrix<double, 3, 1>
@@ -175,10 +175,10 @@ public:
       : doodsonFreqs(dfvec), dCS(max_degree, max_order, GMearth, Rearth),
         V(max_degree + 3, max_degree + 3), W(max_degree + 3, max_degree + 3) {}
 
-  int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
+  int operator()(const dso::TwoPartDate &mjdtt,/* const dso::TwoPartDate &mjdut1,*/
                  int max_degree, int max_order) noexcept;
   int acceleration(const dso::TwoPartDate &mjdtt,
-                   const dso::TwoPartDate &mjdut1,
+                   /*const dso::TwoPartDate &mjdut1,*/
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    Eigen::Matrix<double, 3, 1> &acc, int max_degree,
                    int max_order) noexcept;

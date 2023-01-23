@@ -5,9 +5,12 @@
 ## Read-in, parse and dump station information from a list of IDS log files
 ##
 
-import pydoris.log.ids_log_parser as idslog
+import datetime
 import argparse
 import sys, os
+
+def snx_stamp2dt(sxn_str):
+  return datetime.datetime.strptime(snx_str, "%y:%j:%S")
 
 class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
                   argparse.RawTextHelpFormatter):

@@ -3,12 +3,12 @@
 #include "iers2010/iau.hpp"
 
 int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
-                                 const dso::TwoPartDate &mjdut1,
+                                 /*const dso::TwoPartDate &mjdut1,*/
                                  const Eigen::Matrix<double, 3, 1> &rsat,
                                  Eigen::Matrix<double, 3, 1> &acc,
                                  int max_degree, int max_order) noexcept {
   // compute geopotential corrections ΔC and ΔS
-  this->operator()(mjdtt,mjdut1,max_degree,max_order);
+  this->operator()(mjdtt,/*mjdut1,*/max_degree,max_order);
   // dCS.scale(1e-11);
 
   //printf("DC coefficients:\n");
@@ -23,8 +23,10 @@ int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
   return 0;
 }
 
+/// TODO What GMST anle should we use here? HARDISP and Groops(?) seem to 
+/// be using a different angle than the one defines in IERS2010
 int dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
-                               const dso::TwoPartDate &mjdut1,
+                               /*const dso::TwoPartDate &mjdut1,*/
                                int max_degree, int max_order) noexcept {
   // compute Julian centuries since J2000.0 (TT)
   const double t = mjdtt.jcenturies_sinceJ2000();
@@ -40,10 +42,11 @@ int dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
   };
   
   // compute GMST using IAU 2006/2000A [rad]
-  const auto jdtt = mjdtt.jd_sofa();
-  const auto jdut = mjdut1.jd_sofa();
+  // const auto jdtt = mjdtt.jd_sofa();
+  // const auto jdut = mjdut1.jd_sofa();
   const double gmst =
-      iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
+      /* iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small); */
+      dso::gmst_utc(mjdtt.tt2utc());
 
   // Doodson fundamental arguments (β_i = [τ,s,h,p,N',pl])
   double beta[6];
@@ -55,7 +58,7 @@ int dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
   // start iterating through all constituents ...
   for (const auto &ddson : doodsonFreqs) {
     // find angle θ_f(t) for given Doodson number
-    const double theta = ddson.doodson_number().theta_angle(beta);
+    const double theta = ddson.doodson_number()./*theta_angle*/phase(beta);
     // trigonometric numbers
     const double st = std::sin(theta);
     const double ct = std::cos(theta);

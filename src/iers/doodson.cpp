@@ -4,6 +4,7 @@
 #include <cassert>
 #include "tides.hpp"
 
+/*
 dso::DoodsonNumber::DoodsonNumber(const char *const str) {
   // check that the input string has size >=7 and that all but the 3rd char
   // are actually numeric values
@@ -38,6 +39,7 @@ char *dso::DoodsonNumber::str(char *buf) const noexcept {
   assert(written == 7);
   return buf;
 }
+*/
 
 /*
 int dso::doodson2intarray(const char *const str, int *arr) noexcept {

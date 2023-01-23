@@ -124,10 +124,10 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
       return error;
     }
-    const auto ut1 =
-        dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
+    //const auto ut1 =
+    //    dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
     Eigen::Matrix<double, 3, 1> ecef_acc;
-    octide.acceleration(tt, ut1, cpos, ecef_acc, Degree, Order);
+    octide.acceleration(tt, /*ut1,*/ cpos, ecef_acc, Degree, Order);
 
     // acceleration, ITRF-to-ICRF
     Eigen::Matrix<double, 3, 1> acc = dso::rter2cel(ecef_acc, rc2i, era, rpom);
