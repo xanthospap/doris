@@ -130,11 +130,11 @@ int dso::Icgem::parse_data(int l, int m,
     error = 1;
   }
 
-  if (coeffs->degree() < l) {
+  if (coeffs->max_degree() < l) {
     fprintf(stderr,
             "[ERROR] Cannot read harmonics of degree %d to HarmonicsCoeffs of "
             "degree %d (traceback: %s)\n",
-            l, coeffs->degree(), __func__);
+            l, coeffs->max_degree(), __func__);
     error = 1;
   }
 

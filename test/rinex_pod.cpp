@@ -15,11 +15,13 @@
 #include "integrators.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
+#include "tides.hpp"
 #include "sp3/sp3.hpp"
 #include "sp3/sv_interpolate.hpp" /* debug mode */
 #include "var_utils.hpp"
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <datetime/dtcalendar.hpp>
 
 constexpr const int Np = 1;
@@ -368,6 +370,16 @@ beaconcrs2cchar_vec(const std::vector<dso::BeaconCoordinates> &bcv) noexcept {
   return site_names;
 }
 
+auto find_site_blq(const std::vector<dso::BlqSiteInfo> &blqInfoVec,
+                   const char *site4id) noexcept {
+  auto it = std::find_if(blqInfoVec.begin(), blqInfoVec.end(),
+                         [&](const dso::BlqSiteInfo &b) {
+                           return !std::strncmp(b.site, site4id);
+                         });
+  assert(it != blqInfoVec.end());
+  return it;
+}
+
 int main(int argc, char *argv[]) {
   // check input
   if (argc != 2) {
@@ -521,6 +533,49 @@ int main(int argc, char *argv[]) {
   dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
   dso::JasonQuaternionHunter qhunt(buf);
 
+  // Ocean Tides Deformation
+  dso::get_yaml_value_depth2(config, "ocean-tides", "blq", buf);
+  std::vector<dso::BlqSiteInfo> blqInfoVec;
+  dso::Hardisp ocdeform;
+  {
+    // a vector containing all 4-char site names, to extract BLQ info for
+    char *namepool = new char[rnx.stations().size()*5];
+    std::memset(namepool, '\0', rnx.stations().size()*5);
+    int i = 0;
+    for (const auto &s : rnx.stations()) {
+      std::memcpy(namepool+i*5, s.m_station_id, sizeof(char)*4);
+      ++i;
+    }
+    std::vector<const char *> sites;
+    sites.reserve(rnx.stations().size());
+    for (int j=0; j<(int)rnx.stations().size(); j++)
+      sites.push_back(namepool+j*5);
+    if (dso::parse_blq(blq, blqInfoVec, &sites)) {
+      fprintf(stderr, "Failed reading BLQ file %s\n", buf);
+      return 1;
+    }
+    delete[] namepool;
+  }
+
+  // Ocean Tides Geopotential
+  int oc_degree, oc_order;
+  std::vector<dso::DoodsonOceanTideConstituent> vdds;
+  dso::get_yaml_value_depth2(config, "ocean-tides", "harmonics", buf);
+  error = dso::get_yaml_value_depth2<int>(config, "ocean-tides", "degree", oc_degree);
+  error += dso::get_yaml_value_depth2<int>(config, "ocean-tides", "order", oc_order);
+  if (error || (oc_order > oc_degree)) {
+    fprintf(stderr, "Invalid ocean tide degree/order, %d/%d!\n", oc_degree, oc_order);
+    return 1;
+  }
+  if (dso::memmap_octide_coefficients(buf, vdds, oc_degree, oc_order, 3, 1e-11)) {
+    fprintf(stderr, "Failed reading ocean tide loading file %s!\n", buf);
+    return 1;
+  }
+  // An ocean tide instance
+  dso::OceanTide octide(vdds, harmonics.GM(), harmonics.Re(), oc_degree, oc_order);
+  // Warning! this instance, needs to be assigned to the intergation parameters
+  // later on
+
   // Previous Observation relating Beacon/Satellite (to compute Ndop)
   // -------------------------------------------------------------------------
   std::vector<SatBeacon> prevec;
@@ -637,6 +692,15 @@ int main(int argc, char *argv[]) {
   // IntegrationParams.estimates = &Filter.x;
   IntegrationParams.drag_coef = &(Filter._ekf._ekf.x(Filter.drag_coef_index()));
 
+  // Important !! OC-TIDES
+  IntegrationParams.octide = &octide;
+
+  // Setup Solid Earth Tide
+  dso::SolidEarthTide setide(harmonics.GM(), harmonics.Re(),
+                             IntegrationParams.GMMon * 1e9,
+                             IntegrationParams.GMSun * 1e9);
+  IntegrationParams.setide = &setide;
+
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
   // get an iterator to the RINEXs data blocks
@@ -675,6 +739,7 @@ int main(int argc, char *argv[]) {
     // aka proper-time to coordinate-time
     const auto tl1 = it.corrected_l1_epoch(); // as datetime instance
     const auto tl1c = dso::TwoPartDate(tl1); // as TwoPartDate instance
+    const auto tl1_utc = tl1c.tai2utc(); // UTC
 
     // current proper time (aka tau)
     const auto tproper = it.proper_time();
@@ -721,25 +786,19 @@ int main(int argc, char *argv[]) {
 
     // needed for tides ...
     // Various variables to be used, depending only on the current epoch
-    // Eigen::Matrix<double, 3, 1> rmoon, rsun; // [km], ITRF
-    // dso::datetime<dso::nanoseconds> tt(tl1);
-    // double utc_fhours;
-    //{
-    //  tt.add_seconds(dso::nanoseconds(32184 * 1'000'000L));
-    //  double vec[3];
-    //  int terror = dso::moon_vector_cspice(tt, vec);
-    //  rmoon = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
-    //  terror += dso::sun_vector_cspice(tt, vec);
-    //  rsun = Eigen::Matrix<double, 3, 1>(vec); // [km] GCRF
-    //  assert(!terror);
-    //  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    //  double era, lod;
-    //  assert(!gcrs2itrs(tl1.as_mjd(), eop_lut, rc2i, era, rpom, lod));
-    //  rmoon = dso::rcel2ter(rmoon, rc2i, era, rpom);
-    //  rsun = dso::rcel2ter(rsun, rc2i, era, rpom);
-    //  dso::modified_julian_day mjdi;
-    //  utc_fhours = dso::tai2utc(tl1, mjdi) * 24e0;
-    //}
+    Eigen::Matrix<double, 3, 1> rmoon, rsun; // [m], ITRF
+    {
+      double rm[3], rs[3], dummy;
+      double et = dso::cspice::jd2et(tl1c.tai2tt().mjd() + dso::mjd0_jd);
+      /* coordinates in km, ECI */
+      spkezp_c(301, et, "J2000", "NONE", 399, rm, &dummy);
+      Eigen::Matrix<double, 3, 1> rmoon_icrf(rm[0], rm[1], rm[2]); // [km]
+      spkezp_c(10, et, "J2000", "NONE", 399, rs, &dummy);
+      Eigen::Matrix<double, 3, 1> rsun_icrf(rs[0], rs[1], rs[2]); // [km]
+      /* ECI to ECEF [m] */
+      rmoon = dso::rcel2ter(rmoon_icrf, rc2i_now, era_now, rpom_now) * 1e3;
+      rsun = dso::rcel2ter(rsun_icrf, rc2i_now, era_now, rpom_now) * 1e3;
+    }
 
     // Kalman filter time update:
     // estimates: the state part is updated using the result of integration;
@@ -809,12 +868,14 @@ int main(int argc, char *argv[]) {
             beacon_coordinates(beacon_it->m_station_id, beaconCrdVec);
 
         // add tidal displacement (dehanttideinel)
-        // if (1==2) {
-        //  Eigen::Matrix<double, 3, 1> toff = iers2010::dehanttideinel_impl(
-        //      bxyz_sta, rsun * 1e3, rmoon * 1e3, tt.jcenturies_sinceJ2000(),
-        //      utc_fhours);
-        //  bxyz_sta = bxyz_sta + toff;
-        //}
+        std::vector<Eigen::Matrix<double, 3, 1>> vsta(1, bxyz_sta), vcor;
+        iers2010::dehanttideinel_impl(tl1c.tai2tt().jcenturies_sinceJ2000(),
+                                      tl1_utc._small / 24e0, rsun, rmoon, vsta,
+                                      vcor);
+        bxyz_sta += vcor[0];
+
+        // add ocean tide deformation
+        ocdeform(tl1c.tai2tt());
 
         // Iono-Free phase center, ECEF (changeme)
         Eigen::Matrix<double, 3, 1> bxyz_ion =

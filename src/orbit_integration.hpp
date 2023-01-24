@@ -5,6 +5,7 @@
 #include "egravity.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "eop.hpp"
+#include "tides.hpp"
 #include "planetpos.hpp"
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
@@ -31,7 +32,7 @@ struct IntegrationParameters {
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
   ///< degree and order of geopotential harmonics
   int degree, order;
-  ///< Sun/Moon gravitational parameters
+  ///< Sun/Moon gravitational parameters, in [km^3/ sec^2]
   double GMSun, GMMon;
   ///< Satellite Macromodel and number of individual flat plates
   const MacroModelComponent *macromodel{nullptr};
@@ -43,6 +44,10 @@ struct IntegrationParameters {
       dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
   dso::Nrlmsise00 *nrlmsise00;
   const double *drag_coef{nullptr};
+  // Ocean Tides
+  dso::OceanTide *octide;
+  // Earth Tides
+  dso::SolidEarthTide *setide;
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
@@ -54,9 +59,9 @@ struct IntegrationParameters {
         W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
             degree_ + 3, degree_ + 3)),
         degree(degree_), order(order_) {
-    assert(degree_ == harmonics_.degree());
+    assert(degree_ == harmonics_.max_degree());
     // gravitational parameters
-    assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon));
+    assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon)); // [km^3/ sec^2]
   };
 
   // TODO
@@ -133,10 +138,11 @@ yter2cel(const Eigen::Matrix<double, 6, 1> y,
 /// @param[out] sun_pos Sun position in J2000 [m]
 /// @param[out] mon_partials Partials of the Moon-induced acceleration w.r.t
 ///       satellite position vecot (=r), aka d(acc)/dr
-void SunMoon(double mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
+void SunMoon(/*double mjd_tai*/const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
              double GMSun, double GMMon, Eigen::Matrix<double, 3, 1> &sun_acc,
              Eigen::Matrix<double, 3, 1> &mon_acc,
              Eigen::Matrix<double, 3, 1> &sun_pos,
+             Eigen::Matrix<double, 3, 1> &mon_pos,
              Eigen::Matrix<double, 3, 3> &mon_partials) noexcept;
 
 void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,

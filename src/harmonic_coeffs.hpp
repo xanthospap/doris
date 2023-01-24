@@ -95,7 +95,8 @@ public:
   ///        needed. m_degree set to new value.
   void resize(int degree, int order) noexcept;
 
-  int degree() const noexcept { return m_degree; }
+  int max_degree() const noexcept { return m_degree; }
+  int max_order() const noexcept { return m_order; }
   double GM() const noexcept { return _GM; }
   double Re() const noexcept { return _Re; }
   bool normalized() const noexcept { return _cnormalized; }

@@ -7,6 +7,8 @@ int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
                                  const Eigen::Matrix<double, 3, 1> &rsat,
                                  Eigen::Matrix<double, 3, 1> &acc,
                                  int max_degree, int max_order) noexcept {
+  if (max_degree<0) max_degree = this->max_degree();
+  if (max_order<0) max_order = this->max_order();
   // compute geopotential corrections ΔC and ΔS
   this->operator()(mjdtt,/*mjdut1,*/max_degree,max_order);
   // dCS.scale(1e-11);

@@ -169,6 +169,8 @@ private:
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
 public:
+  int max_degree() const noexcept {return dCS.max_degree();}
+  int max_order() const noexcept {return dCS.max_order();}
   OceanTide(const std::vector<DoodsonOceanTideConstituent> &dfvec,
             double GMearth, double Rearth, int max_degree,
             int max_order) noexcept
@@ -180,8 +182,8 @@ public:
   int acceleration(const dso::TwoPartDate &mjdtt,
                    /*const dso::TwoPartDate &mjdut1,*/
                    const Eigen::Matrix<double, 3, 1> &rsat,
-                   Eigen::Matrix<double, 3, 1> &acc, int max_degree,
-                   int max_order) noexcept;
+                   Eigen::Matrix<double, 3, 1> &acc, int max_degree=-1,
+                   int max_order=-1) noexcept;
 }; // OceanTide
 
 class SolidEarthTide {

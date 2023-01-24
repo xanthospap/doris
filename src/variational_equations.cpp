@@ -48,11 +48,35 @@ void dso::VariationalEquations(
 
   // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
   Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
+  Eigen::Matrix<double, 3, 1> rmon; // position of moon, [m] in celestial RF
   Eigen::Matrix<double, 3, 1> sun_acc;
   Eigen::Matrix<double, 3, 1> mon_acc;
   Eigen::Matrix<double, 3, 3> tb_partials;
-  dso::SunMoon(cmjd.mjd(), r, params.GMSun, params.GMMon, sun_acc, mon_acc,
-               rsun, tb_partials);
+  dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc,
+               rsun, rmon, tb_partials);
+
+  // oean tides on geopotential, gravity
+  Eigen::Matrix<double, 3, 1> gacc_oc,tmp;
+  params.octide->acceleration(cmjd.tai2tt(), /*ut1,*/ r_geo, tmp);
+  gacc_oc = rter2cel(tmp, rc2i, era, rpom);
+  
+  // earth tides on geopotential, gravity
+  Eigen::Matrix<double, 3, 1> gacc_ec;
+  {
+    // Sun and Moon position in ECEF
+    const Eigen::Matrix<double, 3, 1> rm_ecef =
+        dso::rcel2ter(rmon, rc2i, era, rpom);
+    const Eigen::Matrix<double, 3, 1> rs_ecef =
+        dso::rcel2ter(rsun, rc2i, era, rpom);
+    const auto utc = cmjd.tai2utc();
+    dso::EopRecord eops;
+    assert(!params.eopLUT.interpolate(utc, eops));
+    const auto ut1 =
+        dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
+    params.setide->acceleration(cmjd.tai2tt(), ut1, r_geo, rm_ecef, rs_ecef,
+                                tmp);
+    gacc_ec = rter2cel(tmp, rc2i, era, rpom);
+  }
 
   // Drag
   // Warning only valid for Jason-3
@@ -176,7 +200,7 @@ void dso::VariationalEquations(
 
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
-  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag;
+  yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag + gacc_oc + gacc_ec;
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
