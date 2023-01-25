@@ -6,12 +6,14 @@
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
 #include "filters/filters.hpp"
+#include "tides.hpp"
 #include "geodesy/geoconst.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iers2010.hpp"
 #include "iers2010/iersc.hpp"
 #include "iers2010/tropo.hpp"
+#include "iers2010/hardisp.hpp"
 #include "integrators.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
@@ -374,7 +376,7 @@ auto find_site_blq(const std::vector<dso::BlqSiteInfo> &blqInfoVec,
                    const char *site4id) noexcept {
   auto it = std::find_if(blqInfoVec.begin(), blqInfoVec.end(),
                          [&](const dso::BlqSiteInfo &b) {
-                           return !std::strncmp(b.site, site4id);
+                           return !std::strncmp(b.site, site4id, 4);
                          });
   assert(it != blqInfoVec.end());
   return it;
@@ -550,7 +552,7 @@ int main(int argc, char *argv[]) {
     sites.reserve(rnx.stations().size());
     for (int j=0; j<(int)rnx.stations().size(); j++)
       sites.push_back(namepool+j*5);
-    if (dso::parse_blq(blq, blqInfoVec, &sites)) {
+    if (dso::parse_blq(buf, blqInfoVec, &sites)) {
       fprintf(stderr, "Failed reading BLQ file %s\n", buf);
       return 1;
     }
@@ -875,7 +877,18 @@ int main(int argc, char *argv[]) {
         bxyz_sta += vcor[0];
 
         // add ocean tide deformation
-        ocdeform(tl1c.tai2tt());
+        {
+          double dr, dw, ds;
+          ocdeform(tl1c.tai2tt());
+          ocdeform.hardisp(*find_site_blq(blqInfoVec, beacon_it->m_station_id),
+                           dr, dw, ds);
+          const Eigen::Matrix<double, 3, 1> lfh__ =
+              dso::car2ell<dso::ellipsoid::grs80>(bxyz_sta);
+          const Eigen::Matrix<double, 3, 3> R__ =
+              dso::topocentric_matrix(lfh__);
+          bxyz_sta +=
+              R__.transpose() * Eigen::Matrix<double, 3, 1>({-dw, -ds, dr});
+        }
 
         // Iono-Free phase center, ECEF (changeme)
         Eigen::Matrix<double, 3, 1> bxyz_ion =

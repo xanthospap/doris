@@ -19,12 +19,12 @@ ocean-tides:
   harmonics: data/oceanTide_FES2014b.potential.iers.txt
   degree: 80
   order: 80
-  blq: data/fes2014b.blq
+  blq: data/fes14b.blq
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
