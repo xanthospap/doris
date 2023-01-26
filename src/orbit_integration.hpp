@@ -100,6 +100,10 @@ int gcrs2itrs(const dso::TwoPartDate &mjd_tai,
               const dso::EopLookUpTable &eop_table,
               Eigen::Matrix<double, 3, 3> &rc2i, double &era,
               Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
+int gcrs2itrs(const dso::TwoPartDate &mjd_tai,
+              const dso::EopRecord &eop,double X, double Y, double s, double sprime,
+              Eigen::Matrix<double, 3, 3> &rc2i, double &era,
+              Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
 #endif
 
 Eigen::Matrix<double, 3, 1>

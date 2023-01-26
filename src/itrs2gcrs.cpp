@@ -77,7 +77,8 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
                    Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
 
   // TAI to TT
-  const dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
+  // const dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
+  const dso::TwoPartDate mjd_tt = mjd_tai.tai2tt();
 
   // TAI to UTC
   const dso::TwoPartDate mjd_utc = mjd_tai.tai2utc();
@@ -122,6 +123,61 @@ int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
 
   // Estimate s' [radians]
   const double sp = iers2010::sofa::sp00(sofajd._big, sofajd._small);
+
+  // Form the polar motion matrix (W); note that we need angular units in
+  // radians
+  rpom =
+      iers2010::sofa::pom00_e(dso::sec2rad(eops.xp), dso::sec2rad(eops.yp), sp);
+
+  return 0;
+}
+
+// IAU 2006/2000A, CIO based, using X,Y series
+int dso::gcrs2itrs(const dso::TwoPartDate &mjd_tai,
+                   const dso::EopRecord &eops, double X, double Y, double s, double sprime,
+                   Eigen::Matrix<double, 3, 3> &rc2i, double &era,
+                   Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept {
+
+  // TAI to TT
+  // const dso::TwoPartDate mjd_tt(mjd_tai._big, mjd_tai._small + TAI2TTFDAYS);
+  //const dso::TwoPartDate mjd_tt = mjd_tai.tai2tt();
+
+  // TAI to UTC
+  const dso::TwoPartDate mjd_utc = mjd_tai.tai2utc();
+
+  // assign interpolated LOD value, [sec/day]
+  xlod = eops.lod;
+
+  // split date as in SOFA Date&Time idiom
+  // auto sofajd = mjd_tt.jd_sofa();
+
+  // X,Y coordinates of celestial intermediate pole from series based
+  // on IAU 2006 precession and IAU 2000A nutation.
+  //double X, Y;
+  //iers2010::sofa::xy06(sofajd._big, sofajd._small, X, Y);
+
+  // The CIO locator s, positioning the Celestial Intermediate Origin on
+  // the equator of the Celestial Intermediate Pole, given the CIP's X,Y
+  // coordinates. Compatible with IAU 2006/2000A precession-nutation.
+  //const double s = iers2010::sofa::s06(sofajd._big, sofajd._small, X, Y);
+
+  // Add CIP corrections (arcsec to radians)
+  //X += dso::sec2rad(eops.dx);
+  //Y += dso::sec2rad(eops.dy);
+
+  // Form the celestial to intermediate-frame-of-date matrix given the CIP
+  // X,Y and the CIO locator s.
+  // [TRS] = RPOM * R_3(ERA) * rc2i * [CRS]  = RC2T * [CRS]
+  rc2i = iers2010::sofa::c2ixys_e(X, Y, s);
+
+  // call ERA00 to get the ERA rotation angle (need UT1 datetime)
+  dso::TwoPartDate ut1 = mjd_utc;
+  ut1._small += eops.dut / 86400e0; // add UT1-UTC, interpolated
+  const auto sofa_ut1jd = ut1.normalized().jd_sofa();
+  era = iers2010::sofa::era00(sofa_ut1jd._big, sofa_ut1jd._small);
+
+  // Estimate s' [radians]
+  const double sp = sprime;// iers2010::sofa::sp00(sofajd._big, sofajd._small);
 
   // Form the polar motion matrix (W); note that we need angular units in
   // radians
