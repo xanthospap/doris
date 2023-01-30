@@ -1,0 +1,57 @@
+\subsection{Orbital Elements}
+\label{ssec:orbital-elements}
+
+A total of six independent parameters are needed to to describe the motion of 
+an orbiting body. Two parameters, eccentricity $e$ and angular momentum $h$ (or 
+alternatively the semi-major axis, $\alpha$) define the form of the orbit. To 
+locate a point on the orbit requires a third parameter, the true 
+anomaly $\theta$. Describing the orientation of an orbit in three dimensions 
+requires three additional parameters, inclination $i$, argument of perigee $\omega$ 
+and right ascension of the ascending node, $\Omega$. These parameters are called 
+the \emph{orbital elements} (see \ref{fig:orbital-elements-3d} and 
+\ref{fig:orbital-elements-Ooi}).
+
+\begin{figure}
+  \centering
+  \input{tikz/orbital_elements_3d.tex}
+  \caption{Geometry of Orbital Elements}
+  \label{fig:orbital-elements-3d}
+\end{figure}
+
+$\Omega$, $\omega$ and $i$, which define the orientation of the orbit in space 
+are sometimes called \emph{Euler angles}. Given these six elements, it is always 
+possible to uniquely calculate the state vector. 
+
+\begin{description}
+  \item $\bm{\alpha}$: the \emph{semi-major axis} (sometimes $\bm{h}$, the specific 
+  \emph{angular momentum} is used instead),
+  \item $\bm{i}$: \emph{inclination},
+  \item $\bm{\Omega}$: \emph{right ascension of the ascending node},
+  \item $\bm{e}$: \emph{eccentricity},
+  \item $\bm{\omega}$: \emph{argument of perigee},
+  \item $\bm{\theta}$\footnote{True anomaly is often deisgnated with the letter 
+  $\bm{\nu}$ of $\bm{f}$, but here we are following the notation $\bm{\theta}$}.: 
+  \emph{true anomaly} (sometimes $\bm{M}$, the \emph{mean anomaly} 
+  is used instead)
+\end{description}
+
+\begin{figure}
+  \centering
+  \input{tikz/orbital_elements_Ooi.tex}
+  \caption{Orbital Elements $\Omega$, $\omega$ and $i$}
+  \label{fig:orbital-elements-Ooi}
+\end{figure}
+
+To avoid confusion, we are going to adopt the distinction of orbital elements 
+sets proposed by \cite{Vallado} and clarify between the following cases:
+\begin{description}
+  \item \textbf{two-body elements} are the elements derived from or used with 
+    the two-body equations of motion,
+  \item \textbf{osculating elements} are the \emph{instaneous} elements, under 
+    the influence of perturbations, and
+  \item \textbf{mean elements} are the elements obtained when averaging the 
+    effect of perturbations over a specified time interval
+\end{description}
+
+Hence, it is clear that the osculating elements \emph{describe the perturbed 
+motion and are defined for a prticular instant in time} (\cite{Vallado}).

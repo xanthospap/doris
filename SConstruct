@@ -94,7 +94,7 @@ hdr_src_files = glob.glob(r"src/*.hpp")
 
 ## Environments ...
 denv = Environment(CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -Wdisabled-optimization -DDEBUG')
-penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native')
+penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DRANDOM_RFO')
 
 ## Command line arguments ...
 debug = ARGUMENTS.get('debug', 0)
@@ -127,9 +127,9 @@ for key, value in ARGLIST:
 if eigen:
     math_lib = ''
     env.Append(CXXFLAGS=' -DUSE_EIGEN')
-else:
-    math_lib = 'matvec'
-if branchless: env.Append(CXXFLAGS=' -DBRANCHLESS')
+#else:
+#    math_lib = 'matvec'
+#if branchless: env.Append(CXXFLAGS=' -DBRANCHLESS')
 
 ## (shared) library ...
 vlib = env.SharedLibrary(source=lib_src_files, target=lib_name, CPPPATH=['src/'], SHLIBVERSION=lib_version)
@@ -157,7 +157,7 @@ if len(include_test_list):
 env.Append(RPATH=root_dir)
 for tsource in test_sources:
     ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
-    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
 
 ## Unit Tests (only build if user selected)
 if ARGUMENTS.get('make-check', 0):
@@ -169,7 +169,7 @@ if ARGUMENTS.get('make-check', 0):
         pth = os.path.dirname(tsource)
         bsn = os.path.basename(tsource)
         ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
-        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
 
 if GetOption('costg'):
     print("Building cost-G test programs ...")
@@ -180,4 +180,4 @@ if GetOption('costg'):
         pth = os.path.dirname(tsource)
         bsn = os.path.basename(tsource)
         ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
-        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'matvec', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')
+        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')

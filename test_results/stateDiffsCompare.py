@@ -108,27 +108,19 @@ def ColStatistics(dct,col,fac=1e0):
       array = colAsArray(dct,col,fac)
     else:
       array = col
-    #sum = 0e0
-    #sumSquared = 0e0
-    #max = -1e99
-    #min = 1e99
-    #for value in array:
-    #    sum += value
-    #    sumSquared += value * value
-    #    if value > max: max = value
-    #    if value < min: min = value
-    #n = float(len(array))
-    #return min, max, sum / n, math.sqrt(sumSquared / n)
     return stats.describe(array)
 
 def remove_outliers(dct, col, fac=1e0):
-  min, max, sumDn, sigma = ColStatistics(dct,col,fac)
+  #min, max, sumDn, sigma = ColStatistics(dct,col,fac)
+  vstats = ColStatistics(dct,col,fac)
+  sigma = math.sqrt(vstats.variance)
   xs=[];ys=[]
   for t,vals in dct.items():
     if abs(vals[col]*fac) < 3e0 * sigma:
       xs.append(t)
       ys.append(vals[col]*fac)
-  min, max, sumDn, sigma = ColStatistics(None,ys,fac)
+  vstats = ColStatistics(None,ys,fac)
+  sigma = math.sqrt(vstats.variance)
   xsnew=[];ysnew=[]
   for entry in zip(xs,ys):
     if abs(entry[1]*fac) < 3e0 * sigma:

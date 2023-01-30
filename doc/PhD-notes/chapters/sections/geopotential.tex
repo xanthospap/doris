@@ -1,0 +1,150 @@
+\subsubsection{Geopotential}
+\label{sssec:geopotential}
+
+In the two-body problem (\ref{ssec:two-body-problem}) we are assuming a radially 
+symmetric gravity force. For precise orbit determination however, we need to 
+drop this assumption and take into account that the Earth is not a perfect sphere, 
+but rather resembles an oblate spheroid, with different equatorial and polar 
+diameter. To derive a more realistic model, it is convenient to use an equivalent 
+representation involving the gradient of the corresponding gravity potential $U$ 
+(\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:geopotential}
+  \ddot{\bm{r}} = \nabla U \textrm{ where } U = G M_{\Earth} \frac{1}{r}
+\end{equation}
+so that 
+$\bm{F} = \begin{pmatrix} \frac{\partial U}{\partial x} & \frac{\partial U}{\partial y} & \frac{\partial U}{\partial z} \end{pmatrix}$
+This formulation enables the replacement of the three components of the vector 
+$\bm{F}$ by a signle function $U$, thus simplifying notation and further 
+developments. The geopotential is widely used in geodesy (see e.g. \cite{moritz}).
+
+
+Models for the geopotential usually describe the static part of the field. For 
+precision applications, time varying effects should also be taken into account. 
+According to \cite{iers2010}, these are:
+\begin{itemize}
+  \item secular variations of coefficients,
+  \item solid Earth tides,
+  \item ocean tides,
+  \item solid Earth pole tide and
+  \item ocean pole tide
+\end{itemize}
+
+The expression for the potential (\ref{eq:geopotential}) may easily be 
+generalized to an arbitrary mass distribution by summing up the contributions 
+created by individual mass elements
+\(dm = \rho(\vec{s}) d^3 \vec{s}\) according to (\cite{Montenbruck2000})
+\begin{equation}
+    U = G \int{\frac{\rho(\vec{s}) d^3 \vec{s}}{\lvert \vec{r} - \vec{s} \rvert}}
+\end{equation}
+
+
+\subsection{Earth's Geopotential Models}
+The geopotential field $U$ at the point $(r, \phi , \lambda )$ is expanded in 
+spherical harmonics up to degree $N$, as
+\begin{equation}
+  \label{eq:iers201061}
+  U(r, \phi , \lambda ) = \frac{G M_{\Earth}}{r} \sum_{n=0}^N 
+    {\left(\frac{\alpha _e}{r}\right)}^n 
+     \sum_{m=0}^n \left[ \bar{C}_{nm} \cos {m \lambda} + \bar{S}_{nm} \sin{m \lambda} \right] 
+     \bar{P}_{nm}( \sin \phi )
+\end{equation}
+with $\bar{S}_{n0} = 0$ and $\bar{C}_{nm}$, $\bar{S}_{nm}$ the normalized
+\footnote{Since the geopotential coefficients $C_{nm}$ and $S_{nm}$ span ten or 
+more orders of magnitude (\cite{Montenbruck2000}), making the computation 
+susceptible to overflow and round-off errors, we usually use the corresponding 
+normalized values. The latter are much more uniform in magnitude, and their 
+size is approximately given by the empirical \emph{Kaula rule} (see 
+\cite{Montenbruck2000} and \cite{Kaula2000}):
+\begin{equation} \bar{C}_{nm} , \bar{S}_{nm} \approx \frac{10^{-5}}{n^2} \end{equation}}
+geopotential coefficients the normalized. $\bar{P}_{nm}$ are the normalized 
+associated Legendre functions, related to the unnormalized ones by:
+\begin{subequations}
+  \begin{align}
+    \bar{P}_{nm} &= N_{nm} P_{nm} \label{eq:iers201062a} \\
+    N_{nm} &= \sqrt{\frac{(n-m)!(2n+1)(2-\delta _{0m})}{(n+m)!}} 
+      \quad \delta _{0m} = 
+        \begin{cases}
+          1 \quad \text{ if } m = 0 \\
+          0 \quad \text{ if } m \neq 0
+        \end{cases}
+        \label{eq:iers201062b}
+  \end{align}
+\end{subequations}
+Correspondingly, the normalized and unnormalized geopotential coefficients are 
+related by:
+\begin{subequations}
+  \begin{align}
+    C_{nm} &= N_{nm} \bar{C}_{nm} \\
+    S_{nm} &= N_{nm} \bar{S}_{nm}
+  \end{align}
+\end{subequations}
+
+For all \emph{zonal} terms, we have:
+\begin{equation}
+  S_{n,0} = 0 \quad C_{n,0} = -J_n
+\end{equation}
+where we use the ``traditional'' notation $J_n$ for \emph{zonal coefficients}. 
+All $S_{n0}$ coefficients vanish (due to their definition).
+
+Coefficients for $m<n$ are known as ``\emph{tesseral}'', while when $m=n$, the 
+respective coefficients are called ``\emph{sectorial}''.
+
+
+\subsubsection{Static Geopotential Models}
+For computations, the Earth's gravity potential at point $(r, \phi , \lambda )$
+can be approximated using a spherical harmonics expansion 
+(e.g. \cite{Montenbruck2000})
+\begin{equation}
+    U = \frac{G M_{\Earth}}{r} \sum_{n=0}^\infty \sum_{m=0}^n 
+    \frac{R_{\Earth}^n}{r^n} P_{nm} \left( \sin \phi \right) 
+    \left( C_{nm} \cos{m\lambda} + S_{nm} \sin{m\lambda} \right)
+\end{equation}
+
+with the coefficients \(C_{nm}\) and \(S_{nm}\) describing the dependence on the 
+Earth's internal mass distribution. These coefficients can be extracted from a 
+suitable geopotential model.
+
+Note that Geopotential coefficients with \(m=0\) are called  \emph{zonal} coefficients, 
+since they describe the part of the potential that does not depend on the longitude. 
+All \(S_{n0}\) vanish due to their definition, and the notation \(J_n = -C_{n0}\) 
+is commonly used for the remaining zonal terms. The other geopotential coefficients
+are known as \emph{tesseral} and \emph{sectorial} coefficients for \(m<n\) and 
+\(m = n\), respectively.
+
+\fbox{\begin{minipage}{.9\textwidth}
+To compute the acceleration \(\ddot{\vec{r}}\), which is equal to the 
+gradient of \(U\), we use the recursion formulas described in \cite{Montenbruck2000}.
+Note that these expressions, use the \underline{non-normalized} harmonic 
+coefficients. 
+\end{minipage}}
+
+%\subsubsection{Gravity Models}
+The \href{http://icgem.gfz-potsdam.de/home}{International Centre for Global Earth Models (ICGEM)}  
+(\cite{icgempub}) web service hosts a large number of gravity field models, 
+published in what is called the \emph{The ICGEM-format}(\cite{ICGEMFormat}). 
+
+Such static model files can be parsed and the respective harmonic coeefficients 
+(\(C_{nm}\) and \(S_{nm}\)) be used to compute satellite acceleration induced by 
+the geopotential.
+
+Practicaly, the degree and order used depends on the accuracy of the 
+application and can be truncated. According to \cite{iers2010}, truncation levels 
+providing a 3-dimensional orbit accuracy of better than \SI{0.5}{\mm} as a 
+function of orbit radius, are listed in \ref{table:egm2008-truncation-levels} 
+for EGM2008 (\cite{pavlisegm08}).
+
+\begin{table}
+\centering
+\begin{tabular}{c c c}
+ \hline
+ Orbit radius [km] & Example Satellite & Truncation level \\
+ \hline
+  7331  & Starlette & 90 \\
+  12270 & Lageos    & 20 \\
+  26600 & GPS       & 12 \\
+ \hline
+\end{tabular}
+\caption{Suggested truncation levels for use of EGM2008 at different orbits according to \cite{iers2010}.}
+\label{table:egm2008-truncation-levels}
+\end{table}

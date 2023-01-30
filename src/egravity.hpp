@@ -6,7 +6,6 @@
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "harmonic_coeffs.hpp"
-#include "matvec/matvec.hpp"
 #include <cassert>
 #ifdef DEBUG
 #include <cstdio>
@@ -65,7 +64,7 @@ int parse_gravity_model(const char *model_fn, int degree, int order,
 /// @param[in] robj Point mass position vector (e.g. moon)
 /// @return A vector containing the acceleration components
 /// @see e.g. Curtis, Chapter 10.10
-inline Vector3 point_mass_accel(const Vector3 &rsat, const Vector3 &robj,
+inline Eigen::Matrix<double,3,1> point_mass_accel(const Eigen::Matrix<double,3,1> &rsat, const Eigen::Matrix<double,3,1> &robj,
                                 double GM) noexcept {
   //  Relative position vector of satellite w.r.t. point mass
   auto d = rsat - robj;

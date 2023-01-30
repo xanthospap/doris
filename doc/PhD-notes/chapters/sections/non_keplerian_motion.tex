@@ -1,0 +1,48 @@
+\subsection{Non-Keplerian Motion}
+\label{ssec:non-keplerian}
+
+The two-body problem (\ref{ssec:two-body-problem}) is the basis for most 
+trajectory problems, due to (\cite{hintz}):
+\begin{enumerate}
+  \item the relative two-body problem can be solved analytically,
+  \item it is often a good approximation to the real solution (central body 
+    gravitational force is dominant compared to perurbing forces),
+  \item provides a clear and illustritive picture of the situation, and
+  \item it can be used as a reference trajectory for precise orbit 
+    determination techniques
+\end{enumerate}
+
+In the framework of Newtonian physics, the motion of a satellite under the influence 
+of a force $\bm{F}$ is described by the differential equation (\cite{Montenbruck2000})
+\begin{equation}
+  \bm{\ddot{r}} = \frac{\bm{F} (t, \bm{r}, \bm{v})}{m}
+\end{equation}
+in a \emph{non-rotating} reference system ($m$ being the satellite's mass).
+In the \ref{ssec:two-body-problem}, we consider only the gravitational force 
+\ref{eq:mont32}, assuming point masses or a radially symmetric force, obtaining 
+an elliptic satellite orbit with fixed orbital plane.
+
+In real world, satellite orbits are \emph{perturbed} away from Keplerian 
+orbits, due to forces other than the central body's gravitational force, i.e. 
+other than those that cause it to move along a reference trajectory.
+
+A perturbing force is \emph{conservative}\footnote{
+A force field $\bm{F}$ is is called a conservative force if it meets one of the 
+following three demands:
+  \begin{enumerate}
+    \item the \emph{curl} of $\bm{F}$ is zero:\begin{equation}\vec{\nabla} \times \bm{F} = \bm{0}\end{equation}
+    \item there is zero net work done by the force when moving a particle 
+      through a loop trajectory:\begin{equation}W \equiv \oint _C \bm{F}d\bm{r}=0 \end{equation}
+    \item the force can be written as the gradient of a potential:\begin{equation}\bm{F}=-\vec{\nabla} U\end{equation}
+  \end{enumerate}
+  } if it is derivable from a scalar 
+function:
+\begin{equation}
+  \bm{F} = -\nabla U(\bm{r})
+\end{equation}
+
+The perturbing forces caused by third bodies are conservative field forces. 
+There are also non-conservative perturbing forces such as atmospheric drag.
+
+In the following, we are going to discuss the \emph{Force Model} acting on an 
+Earth orbiting satellite.

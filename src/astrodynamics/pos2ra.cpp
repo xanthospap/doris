@@ -4,7 +4,7 @@
 #include <cassert>
 #endif
 
-int dso::pos2ad(const Vector3 &pos, double &a, double &d) noexcept {
+int dso::pos2ad(const Eigen::Matrix<double,3,1> &pos, double &a, double &d) noexcept {
   // calculate the magnitude of r
   const double r = pos.norm();
 

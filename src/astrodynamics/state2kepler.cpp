@@ -1,7 +1,6 @@
 #include "astrodynamics.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/iersc.hpp"
-#include "matvec/matvec.hpp"
 #include <cmath>
 #include <limits>
 #ifdef ASSERT_ERROR
@@ -11,10 +10,8 @@
 #include <cstdio>
 #endif
 
-using dso::Vector3;
-
 int dso::elements2state(const dso::OrbitalElements &ele, double dt,
-                        dso::Vector3 &r, dso::Vector3 &v, double GM) noexcept {
+                        Eigen::Matrix<double,3,1> &r, Eigen::Matrix<double,3,1> &v, double GM) noexcept {
   // mean anomaly M at time t
   const double a = ele.semimajor();
   const double M = ele.mean_anomaly() + std::sqrt(GM / (a * a * a)) * dt;
@@ -30,9 +27,9 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
   const double sE = std::sin(E);
   const double f = std::sqrt((1e0 - e) * (1e0 + e)); // aka (1-e^2)^(1/2)
   const double rmag = a * (1e0 - e * cE);
-  const dso::Vector3 rf({a * (cE - e), a * f * sE, 0e0});
+  const Eigen::Matrix<double,3,1> rf({a * (cE - e), a * f * sE, 0e0});
   const double vmag = std::sqrt(GM * a) / rmag;
-  const dso::Vector3 vf({-vmag * sE, vmag * f * cE, 0e0});
+  const Eigen::Matrix<double,3,1> vf({-vmag * sE, vmag * f * cE, 0e0});
 
   // matrix Rz(-Ω)Rx(-i)Rz(-ω)=T , see Gurfil et al, eq. 5.2
   const double sO = std::sin(ele.Omega());
@@ -41,9 +38,10 @@ int dso::elements2state(const dso::OrbitalElements &ele, double dt,
   const double co = std::cos(ele.omega());
   const double si = std::sin(ele.inclination());
   const double ci = std::cos(ele.inclination());
-  const dso::Mat3x3 T({cO * co - sO * so * ci, -cO * so - sO * co * ci, sO * si,
-                       sO * co + cO * so * ci, -sO * so + cO * co * ci,
-                       -cO * si, so * si, co * si, ci});
+  Eigen::Matrix<double,3,3> T;
+  T << cO * co - sO * so * ci, -cO * so - sO * co * ci, sO * si,
+      sO * co + cO * so * ci, -sO * so + cO * co * ci, -cO * si, so * si,
+      co * si, ci;
 
   // rotate to get equatorial, aka geocentric/(quasi-)inertial
   r = T * rf;
@@ -98,9 +96,9 @@ Eigen::Matrix<double, 6, 1> dso::elements2state(double GM, double dt,
   return Y;
 }
 
-int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
+int dso::state2elements(const Eigen::Matrix<double,3,1> &r, const Eigen::Matrix<double,3,1> &v,
                         dso::OrbitalElements &ele, double GM) noexcept {
-  const Vector3 h = r.cross_product(v);
+  const auto h = r.cross(v);
   const double hmag = h.norm();
 
   ele.Omega() = dso::anp<dso::AngleUnit::Radians>(
@@ -112,11 +110,11 @@ int dso::state2elements(const dso::Vector3 &r, const dso::Vector3 &v,
   const double u = std::atan2(r.z() * hmag, -r.x() * h.y() + r.y() * h.x());
 
   const double rmag = r.norm();
-  ele.semimajor() = 1e0 / (2e0 / rmag - v.dot_product(v) / GM);
+  ele.semimajor() = 1e0 / (2e0 / rmag - v.dot(v) / GM);
   const double a = ele.semimajor();
 
   const double eCosE = 1e0 - rmag / a;
-  const double eSinE = r.dot_product(v) / std::sqrt(GM * a);
+  const double eSinE = r.dot(v) / std::sqrt(GM * a);
   const double e2 = eCosE * eCosE + eSinE * eSinE;
 
   ele.eccentricity() = std::sqrt(e2);
@@ -178,25 +176,25 @@ int dso::alternatives::state2kepler_montenbruck(const double *state,
                                                 double *keplerian,
                                                 double m) noexcept {
   // split to position and velocity vectors
-  const Vector3 r(Vector3::to_vec3(state));
-  const Vector3 v(Vector3::to_vec3(state + 3));
+  Eigen::Matrix<double,3,1> r; r<<state[0],state[1],state[2];
+  Eigen::Matrix<double,3,1> v; v<<state[3],state[4],state[5];
   const double rmag = r.norm();
 
-  const Vector3 h = r.cross_product(v);
+  const auto h = r.cross(v);
   const double hmag = h.norm();
   keplerian[0] = hmag;
-  const Vector3 W{{h.x() / hmag, h.y() / hmag, h.z() / hmag}};
+  Eigen::Matrix<double,3,1> W; W<<h.x() / hmag, h.y() / hmag, h.z() / hmag;
 
   keplerian[1] = std::atan2(std::sqrt(W.x() * W.x() + W.y() * W.y()), W.z());
   keplerian[2] = std::atan2(W.x(), -W.y());
 
-  const double p = h.norm_squared() / m;
-  const double a = 1e0 / ((2e0 / rmag) - (v.norm_squared() / m));
+  const double p = h.squaredNorm() / m;
+  const double a = 1e0 / ((2e0 / rmag) - (v.squaredNorm() / m));
   const double n = std::sqrt(m / (a * a * a));
   const double e = std::sqrt(1e0 - (p / a));
   keplerian[3] = e;
 
-  const double E = atan2(r.dot_product(v) / a * a / n, 1e0 - rmag / a);
+  const double E = atan2(r.dot(v) / a * a / n, 1e0 - rmag / a);
   const double sE = std::sin(E);
   // const double M = E - e * sE;
 
@@ -212,19 +210,19 @@ int dso::alternatives::state2kepler_vallado(const double *state,
                                             double *keplerian,
                                             double m) noexcept {
   // split to position and velocity vectors
-  const Vector3 r(Vector3::to_vec3(state));
-  const Vector3 v(Vector3::to_vec3(state + 3));
+  Eigen::Matrix<double,3,1> r; r<<state[0],state[1],state[2];
+  Eigen::Matrix<double,3,1> v; v<<state[3],state[4],state[5];
   const double rnorm = r.norm();
 
-  const Vector3 h = r.cross_product(v);
+  const auto h = r.cross(v);
   const double hnorm = h.norm();
   keplerian[0] = hnorm;
 
-  const Vector3 n{{-h.y(), h.x(), 0e0}}; // N = k_unit x h
+  Eigen::Matrix<double,3,1> n; n<<-h.y(), h.x(), 0e0; // N = k_unit x h
   const double nnorm = n.norm();
 
-  Vector3 e = r * (v.norm_squared() - m / rnorm) - v * (r.dot_product(v));
-  e /= m;
+  Eigen::Matrix<double,3,1> e = r * (v.squaredNorm() - m / rnorm) - v * (r.dot(v));
+  e = e / m;
   double enorm = e.norm();
   keplerian[3] = enorm;
 
@@ -250,13 +248,13 @@ int dso::alternatives::state2kepler_vallado(const double *state,
     Omega = iers2010::D2PI - Omega;
   keplerian[2] = Omega;
 
-  double omega = std::acos(n.dot_product(e) / (nnorm * enorm));
+  double omega = std::acos(n.dot(e) / (nnorm * enorm));
   if (e.z() < 0e0)
     omega = iers2010::D2PI - omega;
   keplerian[4] = omega;
 
-  double ni = std::acos(e.dot_product(r) / (enorm * rnorm));
-  if (r.dot_product(v) < 0e0)
+  double ni = std::acos(e.dot(r) / (enorm * rnorm));
+  if (r.dot(v) < 0e0)
     ni = iers2010::D2PI - ni;
   keplerian[5] = ni;
 
@@ -266,8 +264,8 @@ int dso::alternatives::state2kepler_vallado(const double *state,
 int dso::state2kepler(const double *state, double *keplerian,
                       double m) noexcept {
   // split to position and velocity vectors
-  Vector3 pos(Vector3::to_vec3(state));
-  Vector3 vel(Vector3::to_vec3(state + 3));
+  Eigen::Matrix<double,3,1> pos; pos<<state[0],state[1],state[2];
+  Eigen::Matrix<double,3,1> vel; vel<<state[3],state[4],state[5];
 
   // calculate distance and speed
   const double r = pos.norm();
@@ -276,10 +274,10 @@ int dso::state2kepler(const double *state, double *keplerian,
   // calculate radial velocity, v_r = (r * v) / |r|
   // Note that if vr > 0, the spacecraft is flying away from perigee. If
   // vr < 0, it is flying toward perigee.
-  const double vr = pos.dot_product(vel) / r;
+  const double vr = pos.dot(vel) / r;
 
   // Calculate the specific angular momentum, h = r x v
-  const Vector3 hv = pos.cross_product(vel);
+  const Eigen::Matrix<double,3,1> hv = pos.cross(vel);
   // and its magnitude (h); This is the first orbital element.
   keplerian[0] = hv.norm();
 
@@ -294,7 +292,7 @@ int dso::state2kepler(const double *state, double *keplerian,
   keplerian[1] = std::acos(hv.z() / keplerian[0]);
 
   // calculate N = k x h ; this vector defines the node line.
-  const Vector3 Nv{{-hv.y(), hv.x(), 0e0}};
+  Eigen::Matrix<double,3,1> Nv;Nv<<-hv.y(), hv.x(), 0e0;
   const double N = Nv.norm();
 
   // Calculate the right ascension of the ascending node (Omega).
@@ -315,7 +313,7 @@ int dso::state2kepler(const double *state, double *keplerian,
 #endif
 
   // Calculate the eccentricity vector e
-  const Vector3 ev = (pos * (v * v - (m / r)) - vel * (r * vr)) / m;
+  const auto ev = (pos * (v * v - (m / r)) - vel * (r * vr)) / m;
   // or ... just compute the magnitude ...., the forth orbital element
   // keplerian[3] = std::sqrt(1e0 + (h/m)*(h/m)*(v*v - (2e0*m) / r));
   const double e = ev.norm();
@@ -329,7 +327,7 @@ int dso::state2kepler(const double *state, double *keplerian,
   // positive Z direction) and that perigee lies below the plane
   // (180°  ω < 360°) if e points down. Therefore, eZ >=  0 implies that
   // 0° < ω < 180°, whereas eZ < 0 implies that 180° < ω < 360°.
-  const double Of = std::acos(Nv.dot_product(ev) / N / e);
+  const double Of = std::acos(Nv.dot(ev) / N / e);
 #ifdef BRANCHLESS
   const double retO[] = {Of, iers2010::D2PI - Of};
   keplerian[4] = retO[ev.z() < 0e0];
@@ -344,7 +342,7 @@ int dso::state2kepler(const double *state, double *keplerian,
   // satellite is flying away from perigee (r*v >= 0), then 0 <  θ < 180°,
   // whereas if the satellite is flying toward perigee (r*v < 0), then
   // 180° < θ < 360°.
-  const double Tf = std::acos(ev.dot_product(pos) / e / r);
+  const double Tf = std::acos(ev.dot(pos) / e / r);
 #ifdef BRANCHLESS
   const double retT[] = {Tf, iers2010::D2PI - Tf};
   keplerian[5] = retT[vr < 0e0];

@@ -193,22 +193,22 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
                                                 double &dS22) const noexcept {
 
   // compute GMST using IAU 2006/2000A [rad]
-  const auto jdtt = mjdtt.jd_sofa();
-  const auto jdut = mjdut1.jd_sofa();
+  //const auto jdtt = mjdtt.jd_sofa();
+  //const auto jdut = mjdut1.jd_sofa();
   const double gmst =
-      iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
+      iers2010::sofa::gmst06(/*jdut._big, jdut._small, jdtt._big, jdtt._small*/mjdut1,mjdtt);
 
   // compute Julian centuries since J2000.0 (TT)
-  const double t = mjdtt.jcenturies_sinceJ2000();
+  // const double t = mjdtt.jcenturies_sinceJ2000();
 
   // compute fundamental arguments (for given TT)
   const double fundarg[] = {
-      iers2010::sofa::fal03(t),  // mean anomaly of moon, l
-      iers2010::sofa::falp03(t), // mean anomaly of sun, l'
-      iers2010::sofa::faf03(t),  // L - Ω, F
-      iers2010::sofa::fad03(t),  // Mean Elongation of the Moon from the Sun, D
+      iers2010::sofa::fal03(mjdtt),  // mean anomaly of moon, l
+      iers2010::sofa::falp03(mjdtt), // mean anomaly of sun, l'
+      iers2010::sofa::faf03(mjdtt),  // L - Ω, F
+      iers2010::sofa::fad03(mjdtt),  // Mean Elongamjdttion of mjdtthe Moon from mjdtthe Sun, D
       iers2010::sofa::faom03(
-          t) // Mean Longitude of the Ascending Node of the Moon, Ω
+          mjdtt) // Mean Longimjdttude of mjdtthe Ascending Node of mjdtthe Moon, Ω
   };
 
   // correction to C_20

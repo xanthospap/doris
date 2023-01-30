@@ -1108,7 +1108,7 @@ int main(int argc, char *argv[]) {
 #ifdef RANDOM_RFO
                 // dz/dDf
                 dHdX(Filter.rfoff_index(receiver_number)) =
-                    (iers2010::C / feN) * (NdopDt + frT);
+                    -(iers2010::C / feN) * (NdopDt + frT);
 #else
                 const int _idx = Filter.rfoff_index(receiver_number);
                 // dz/dDf -- a term in y = a + b*t
