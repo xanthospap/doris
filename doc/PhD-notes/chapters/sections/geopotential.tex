@@ -15,10 +15,114 @@ representation involving the gradient of the corresponding gravity potential $U$
 so that 
 $\bm{F} = \begin{pmatrix} \frac{\partial U}{\partial x} & \frac{\partial U}{\partial y} & \frac{\partial U}{\partial z} \end{pmatrix}$
 This formulation enables the replacement of the three components of the vector 
-$\bm{F}$ by a signle function $U$, thus simplifying notation and further 
+$\bm{F}$ by a single function $U$, thus simplifying notation and further 
 developments. The geopotential is widely used in geodesy (see e.g. \cite{moritz}).
 
+Given an arbitrary mass distribution, we can sum up the individual elementary 
+mass contributions $dm = \rho (\bm{s}) d^3 s$, and express the potential as:
+\begin{equation}
+  U = G \int \frac{\rho (\bm{s})}{\norm{\bm{r}-\bm{s}}} \, d^3 s
+\end{equation}
+where $\bm{r}$ is the vector from the mass center to the attracted body (i.e. satellite) 
+and $\bm{s}$ is the geocentric vector the the elementary mass $dm$.
 
+For any point $\bm{r}$ outside the mass, $r > s$, we can expand the inverse of the 
+distance using a series of \emph{Legendre polynomials}, as
+\begin{equation}
+  \frac{1}{\norm{\bm{r}-\bm{s}}} = \frac{1}{r} \sum_{n=0}^{\infty} 
+    \left( \frac{s}{r} \right) ^n  P_n ( \cos \gamma )
+\end{equation}
+where $\cos \gamma = \frac{\bm{r} \cdot \bm{s}}{rs}$ (the angle between $\bm{r}$
+and $\bm{s}$) and $P_n(u)$ is the Legendre polynomial of degree $n$. Making use of 
+the addition theorem of Legendre polynomials (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont38}
+  P_n (\cos \gamma ) = \sum_{m=0}^{n} \left( 2 - \delta _{0m} \right) 
+    P_{nm} (\sin \phi ) P_{nm} (\sin{\phi ^\prime}) 
+    \cos{m \left( \lambda - \lambda ^\prime \right) }
+\end{equation}
+with $P_{nm}$ the \emph{associated Legendre polynomials} of degree $n$ and order 
+$m$ and $\begin{pmatrix} \phi & \lambda \end{pmatrix}$ and 
+$\begin{pmatrix} \phi ^\prime & \lambda ^\prime \end{pmatrix}$ being the longitude 
+and geocentric latitudes of points $\bm{r}$ and $\bm{s}$ respectively.
+
+We can now write the Earth's gravity potential as:
+\begin{equation}
+  U = \frac{G M_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
+      \left( \frac{R_{\Earth}}{r} \right) ^n P_{nm} (\sin \phi )
+      \left( C_{nm} \cos {m\lambda} + S_{nm} \sin{m\lambda} \right)
+\end{equation}
+with coefficients\footnote{The coefficients $C_{nm}$ and $S_{nm}$ are often called 
+\emph{Stokes' coefficients}, e.g. \cite{Barthelmes2018}.}:
+\begin{equation}
+  \begin{aligned}
+    C_{nm} = \frac{2 - \delta _{0m}}{M_{\Earth}} \frac{(n-m)!}{(n+m)!} 
+      \int \left({\frac{s}{R_{\Earth}}}\right)^n P_{nm} (\sin \phi ^\prime) \cos {m\lambda ^\prime} \rho (\bm{s}) \, d^3 s \\
+    S_{nm} = \frac{2 - \delta _{0m}}{M_{\Earth}} \frac{(n-m)!}{(n+m)!} 
+      \int \left({\frac{s}{R_{\Earth}}}\right)^n P_{nm} (\sin \phi ^\prime) \sin {m\lambda ^\prime} \rho (\bm{s}) \, d^3 s
+  \end{aligned}
+\end{equation}
+which describe the dependence on the Earth's internal mass distribution. In geodetic 
+applications, we most oftenly the \emph{normalized} geopotential coefficients 
+$\bar{C}_{nm}$ and ${\bar{S}}_{nm}$, defined as
+\begin{equation}
+  \begin{Bmatrix} \bar{C}_{nm} & \bar{S}_{nm} \end{Bmatrix} = 
+  \sqrt{\frac{(n+m)!}{\left(2-\delta _{0m}\right) \left(2n+1\right) \left(n-m\right)!}}
+  \begin{Bmatrix} C_{nm} & S_{nm} \end{Bmatrix}
+\end{equation}
+which are much more unifom in magnitude.
+
+We can now write the acceleration due to the Earth's gravity potential as 
+(\cite{Montenbruck2000})
+\begin{equation}
+  \bm{\ddot{r}} = \nabla \frac{GM_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
+    \left(\frac{R_{\Earth}}{r}\right) ^n \bar{P}_{nm} (\sin \phi )
+    \left( \bar{C}_{nm} \cos{m\lambda} + \bar{S}_{nm} \sin{m\lambda} \right)
+\end{equation}
+where we use the \emph{normalized} associated Legendre functions
+\begin{equation}
+  \bar{P}_{nm} = \sqrt{\frac{\left(2-\delta _{0m}\right) \left(2n+1\right) \left(n-m\right)!}{(n+m)!}} P_{nm}
+\end{equation}
+
+\paragraph{Gravity Models}
+\label{par:gravity-models}
+
+Earth gravity models, contain the potential coefficients $\bar{C}_{nm}$ and $\bar{S}_{nm}$ 
+up to a given degree $n$ and order $m$ (with $m \le n$) and the parameters $GM_{\Earth}$ 
+and $R_{\Earth}$ via which one can compute the geopotential or the induced acceleration 
+on a satellite given its position vector $\bm{r}$. Gravity models are derived from:
+\begin{description}
+  \item \emph{Satellite data}, making use of the fact that the Earth's gravity field 
+    can produce perturbations ``seen'' in satellite orbits via \gls{pod}. It is worth 
+    noting that since the Gravity Recovery and Climate Experiment (GRACE) was launched 
+    in March 2002, satellite gravimetry has brought a new era of studying global mass 
+    variation and redistribution through measuring the time-variable gravity field with 
+    unprecedented accuracy (see e.g. \cite{Chen2022} and \cite{Jaggi2023}). GRACE is a 
+    twin satellites mission, accurately tracking variations of inter-satellite range between 
+    the two satellites via a K-band ranging system.
+  \item \emph{Terrestrial observations} (surface gravimetry), providing precise local 
+    and regional (short-wavelength) information on the gravity field. Due to their 
+    inhomogenous distribution though, deriving a global gravity model is quite challenging.
+  \item \emph{Altimeter data}, which provide detailed information about the form of the 
+    geoid, which may in turn be used to derive geopotential coefficients.
+  \item \emph{Combinations} of the above methods/data.
+\end{description}
+
+Within the framework of this Thesis, we will make use of two Earth gravity field 
+models, namely \emph{EIGEN6-C} \cite{Eigen6} and \emph{CNES/GRGS RL04 \cite{lemoine-rl04}.
+
+\paragraph{The \gls{icgem}}
+\label{par:icgem}
+The \href{http://icgem.gfz-potsdam.de/home}{\gls{icgem}} (\cite{icgempub}) hosts a large 
+number of gravity field models, published in what is called the 
+\emph{The ICGEM-format}(\cite{ICGEMFormat}). \gls{icgem} is one of five services coordinated 
+by the \gls{igfs} of the \gls{iag}. Among other services, \gls{icgem} collects and 
+archives all existing global gravity field models and provides a web interface for 
+getting access.
+
+
+
+%% -------------------------------------------------------------------- %%
 Models for the geopotential usually describe the static part of the field. For 
 precision applications, time varying effects should also be taken into account. 
 According to \cite{iers2010}, these are:
