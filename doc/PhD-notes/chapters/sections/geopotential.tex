@@ -1,5 +1,4 @@
-\subsubsection{Geopotential}
-\label{sssec:geopotential}
+\subsubsection{Geopotential}\label{sssec:geopotential}
 
 In the two-body problem (\ref{ssec:two-body-problem}) we are assuming a radially 
 symmetric gravity force. For precise orbit determination however, we need to 
@@ -20,7 +19,7 @@ developments. The geopotential is widely used in geodesy (see e.g. \cite{moritz}
 
 Given an arbitrary mass distribution, we can sum up the individual elementary 
 mass contributions $dm = \rho (\bm{s}) d^3 s$, and express the potential as:
-\begin{equation}
+\begin{equation}\label{eq:mont34}
   U = G \int \frac{\rho (\bm{s})}{\norm{\bm{r}-\bm{s}}} \, d^3 s
 \end{equation}
 where $\bm{r}$ is the vector from the mass center to the attracted body (i.e. satellite) 
@@ -47,8 +46,8 @@ $\begin{pmatrix} \phi ^\prime & \lambda ^\prime \end{pmatrix}$ being the longitu
 and geocentric latitudes of points $\bm{r}$ and $\bm{s}$ respectively.
 
 We can now write the Earth's gravity potential as:
-\begin{equation}
-  U = \frac{G M_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
+\begin{equation}\label{eq:mont310}
+  U (r, \phi, \lambda ) = \frac{G M_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
       \left( \frac{R_{\Earth}}{r} \right) ^n P_{nm} (\sin \phi )
       \left( C_{nm} \cos {m\lambda} + S_{nm} \sin{m\lambda} \right)
 \end{equation}
@@ -74,8 +73,8 @@ which are much more unifom in magnitude.
 
 We can now write the acceleration due to the Earth's gravity potential as 
 (\cite{Montenbruck2000})
-\begin{equation}
-  \bm{\ddot{r}} = \nabla \frac{GM_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
+\begin{equation}\label{eq:mont315}
+  \bm{\ddot{r}} (r, \phi, \lambda ) = \nabla \frac{GM_{\Earth}}{r} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
     \left(\frac{R_{\Earth}}{r}\right) ^n \bar{P}_{nm} (\sin \phi )
     \left( \bar{C}_{nm} \cos{m\lambda} + \bar{S}_{nm} \sin{m\lambda} \right)
 \end{equation}
@@ -84,8 +83,7 @@ where we use the \emph{normalized} associated Legendre functions
   \bar{P}_{nm} = \sqrt{\frac{\left(2-\delta _{0m}\right) \left(2n+1\right) \left(n-m\right)!}{(n+m)!}} P_{nm}
 \end{equation}
 
-\paragraph{Gravity Models}
-\label{par:gravity-models}
+\paragraph{Gravity Models}\label{par:gravity-models}
 
 Earth gravity models, contain the potential coefficients $\bar{C}_{nm}$ and $\bar{S}_{nm}$ 
 up to a given degree $n$ and order $m$ (with $m \le n$) and the parameters $GM_{\Earth}$ 
@@ -108,21 +106,80 @@ on a satellite given its position vector $\bm{r}$. Gravity models are derived fr
   \item \emph{Combinations} of the above methods/data.
 \end{description}
 
-Within the framework of this Thesis, we will make use of two Earth gravity field 
-models, namely \emph{EIGEN6-C} \cite{Eigen6} and \emph{CNES/GRGS RL04 \cite{lemoine-rl04}.
+Recent advantages in gravity models and estimation, have enabled temporal modeling 
+of the geopotential coefficients. Thus, the parameters $\bar{C}_{nm}$ and 
+$\bar{S}_{nm}$ are not constant but slightly varying with time. Most oftenly, the 
+parametrization of the coefficients consists of two parts, 
+\begin{itemize}
+  \item a \emph{linear} part, including terms for a ``bias'' and a drift coefficient, pertaining 
+    to a given validity interval; normally, the bias and drift are in general coherent 
+    so that the result is a piece wise linear function, except in the case of earthquakes.
+    E.g., for the case of \emph{CNES/GRGS RL04} (\cite{lemoine-rl04}), three major 
+    earthquakes have been introduced in the modelling: Sumatra on 2004/12/26, Concepcion 
+    on 2010/02/27 and Sendai on 2011/03/11.
+  \item a \emph{harmonic} part, most often containing two annual and two semi-annual 
+    coefficients for each year.
+\end{itemize}
 
-\paragraph{The \gls{icgem}}
-\label{par:icgem}
-The \href{http://icgem.gfz-potsdam.de/home}{\gls{icgem}} (\cite{icgempub}) hosts a large 
-number of gravity field models, published in what is called the 
-\emph{The ICGEM-format}(\cite{ICGEMFormat}). \gls{icgem} is one of five services coordinated 
-by the \gls{igfs} of the \gls{iag}. Among other services, \gls{icgem} collects and 
-archives all existing global gravity field models and provides a web interface for 
-getting access.
+In these \gls{tvg} models, the normalized Stoke's coefficients are given by:
+\begin{equation}\label{eq:tvg-stokes}
+  \begin{aligned}
+    \bar{C}_{nm} (t) = \bar{C}_{nm}\at{t_0,k} + V_{\bar{C}_{nm},k} \cdot (t-t_0) + 
+      \sum_{j=0}^{N} \left( A_{\bar{C}_{nm},j} \sin \left( \frac{2\pi}{T} \delta t \right)
+      + B_{\bar{C}_{nm},j} \cos \left( \frac{2\pi}{T} \delta t \right) \right) \\
+    \bar{S}_{nm} (t) = \bar{S}_{nm}\at{t_0,k} + V_{\bar{S}_{nm},k} \cdot (t-t_0) + 
+      \sum_{j=0}^{N} \left( A_{\bar{S}_{nm},j} \sin \left( \frac{2\pi}{T} \delta t \right)
+      + B_{\bar{S}_{nm},j} \cos \left( \frac{2\pi}{T} \delta t \right) \right)
+  \end{aligned}
+\end{equation}
+for each validity interval $k$ valid within the period $t_{start}, t_{end}$, 
+where $t_{start} < t < t_{end}$ and
+\begin{description}
+  \item $\bar{C}_{nm}\at{t_0}$ and $\bar{S}_{nm}\at{t_0}$ are the constant, ``bias'' 
+    terms for the given interval and degree/order coefficient $(n,m)$,
+  \item $V_{\bar{C}_{nm}}$ and $V_{\bar{S}_{nm}}$ are the drift terms for the 
+    given interval and degree/order coefficient $(n,m)$,
+  \item $j$ is the number of harmonics signals (frequencies) included in the model,
+  \item $A_{\bar{C}_{nm},j}$ and $A_{\bar{S}_{nm},j}$ are the in-phase amplitudes of 
+    the frequency $j$, for the degree/order coefficient $(n,m)$ coefficient,
+  \item $B_{\bar{C}_{nm},j}$ and $B_{\bar{S}_{nm},j}$ are the out-of-phase amplitudes of 
+    the frequency $j$, for the degree/order coefficient $(n,m)$ coefficient,
+  \item $t_0$ is the reference epoch for the given validity interval,
+  \item $\delta t$ is the difference between the epoch $t$ and the start of the 
+    current year (in years)
+\end{description}
 
+\paragraph{The \gls{icgem}}\label{par:icgem}
+\gls{icgem} (\cite{icgempub}) is one of five services coordinated by the 
+\gls{igfs} of the \gls{iag}. Among other services, \gls{icgem} collects and 
+archives all existing global gravity field models and provides a web interface 
+for getting access to them.
+Gravity models are published in what is called the \emph{ICGEM-format} 
+(\cite{ICGEMFormat}), an effort to standarize the distribution of such models, 
+that is gaining evermore attraction in recent years. This format offers great 
+advantages since it is standarized, well documented, generic and can be used to 
+publish and/or parse (with slught extensions) coeeficients other than gravity 
+models (e.f. ocean tides).
 
+\paragraph{Implementation}\label{par:implementation}
+For the purposes of the current Thesis, software has been developed to handle the 
+modeling of the Earth's gravity models. Highlights of the software are:
+\begin{itemize}
+  \item handling (parsing) of gravity models published in the \emph{ICGEM-format} (see \ref{par:icgem}), and
+  \item handling of both static and \gls{tvg} models; for the latter, we use the 
+    formulation \ref{eq:tvg-stokes}, to account for temporal modelling of the 
+    Stoke's coefficients
+\end{itemize}
+
+We make use of two gravity models, namely \emph{EIGEN6-C} \cite{Eigen6} and \emph{CNES/GRGS RL04}, 
+the former mainly for validation purposes, while the latter is the most recent 
+recommendation of the \gls{ids} (see \cite{ids-standards-itrf2020}, \cite{stepanek2022}) 
+and used in the latest processing campaign for ITRF2020. Note though, that the software 
+is designed in a generic way, allowing the introduction of any gravity field model 
+structured in the \emph{ICGEM-format}.
 
 %% -------------------------------------------------------------------- %%
+\iffalse
 Models for the geopotential usually describe the static part of the field. For 
 precision applications, time varying effects should also be taken into account. 
 According to \cite{iers2010}, these are:
@@ -141,7 +198,6 @@ created by individual mass elements
 \begin{equation}
     U = G \int{\frac{\rho(\vec{s}) d^3 \vec{s}}{\lvert \vec{r} - \vec{s} \rvert}}
 \end{equation}
-
 
 \subsection{Earth's Geopotential Models}
 The geopotential field $U$ at the point $(r, \phi , \lambda )$ is expanded in 
@@ -252,3 +308,4 @@ for EGM2008 (\cite{pavlisegm08}).
 \caption{Suggested truncation levels for use of EGM2008 at different orbits according to \cite{iers2010}.}
 \label{table:egm2008-truncation-levels}
 \end{table}
+\fi
