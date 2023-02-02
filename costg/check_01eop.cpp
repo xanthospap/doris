@@ -93,14 +93,16 @@ int main(int argc, char *argv[]) {
 
     // compute X,Y from series, IAU2006/2000A
     double X, Y;
-    const dso::TwoPartDate jd = gps2tt(eop.mjd).jd_sofa();
-    iers2010::sofa::xy06(jd._big, jd._small, X, Y);
+    // const dso::TwoPartDate jd = gps2tt(eop.mjd).jd_sofa();
+    // iers2010::sofa::xy06(jd._big, jd._small, X, Y);
+    iers2010::sofa::xy06(gps2tt(eop.mjd), X, Y);
     
     // compute CIO locator, s [radians]
-    const double s = iers2010::sofa::s06(jd._big, jd._small, X, Y);
+    // const double s = iers2010::sofa::s06(jd._big, jd._small, X, Y);
+    const double s = iers2010::sofa::s06(gps2tt(eop.mjd), X, Y);
     
     // compute TIO locator, s' [radians]
-    const double sp = iers2010::sofa::sp00(jd._big, jd._small);
+    const double sp = iers2010::sofa::sp00(gps2tt(eop.mjd));
 
     // add corrections (from EOP interpolation) to X,Y
     X += dso::sec2rad(myeop.dx);

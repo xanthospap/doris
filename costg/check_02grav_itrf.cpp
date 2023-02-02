@@ -10,10 +10,11 @@
 #include <datetime/dtfund.hpp>
 #include <fstream>
 #include <vector>
+
 using namespace std::chrono;
 
-constexpr const int degree = 120;
-constexpr const int order = 120;
+constexpr const int degree = 180;
+constexpr const int order = 180;
 
 struct Acc {
   dso::TwoPartDate mjd;
@@ -38,6 +39,7 @@ dso::TwoPartDate gps2tt(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (32.184e0 + 19e0) / 86400e0;
   return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
 }
+
 dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
   constexpr const double offset = (19e0) / 86400e0;
   return dso::TwoPartDate(gpst._big, gpst._small + offset).normalized();
@@ -104,7 +106,9 @@ int main(int argc, char *argv[]) {
 
     // compute differences
     if (cit != refaccs.cend()) {
-      printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd.mjd(),
+      //printf("%.12f %+.15f %+.15f %+.15f [32]\n", pos.mjd.mjd(),
+      //       acc32(0) - cit->a(0), acc32(1) - cit->a(1), acc32(2) - cit->a(2));
+      printf("%.12f %+.5e %+.5e %+.5e [32]\n", pos.mjd.mjd(),
              acc32(0) - cit->a(0), acc32(1) - cit->a(1), acc32(2) - cit->a(2));
       it = cit;
     }

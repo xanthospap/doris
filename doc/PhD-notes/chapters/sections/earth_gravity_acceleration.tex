@@ -175,3 +175,28 @@ and for the acceleration
 \begin{equation}
   \bm{\ddot{r}}_{sf} = \bm{R}^T \cdot \bm{\ddot{r}}_{ef}
 \end{equation}
+
+\paragraph{Validation}\label{sssec:gravity-acceleration-acceleration}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{02gravityfield_itrf}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ccccc}
+      %\hline
+      \textbf{Component} & \textbf{Min} & \textbf{Max} & \textbf{Mean} & \textbf{Std. Deviation}\\
+      & \multicolumn{4}{c}{\si{\metre\per\square\second}} \\
+      \hline
+      $\ddot{x}$ & -1.28e-15 & +1.79e-15 & -1.00e-18 & 2.64e-16 \\
+      $\ddot{y}$ & -1.52e-15 & +1.32e-15 & -3.43e-18 & 2.58e-16 \\
+      $\ddot{z}$ & -1.14e-15 & +1.00e-15 & -5.81e-18 & 2.19e-16 \\
+      \hline
+  \end{tabular}
+  \caption{DORIS ground antennae Phase Center Offsets, \cite{DORISGSM}.}
+  \label{table:antenna-pco}
+\end{table}
