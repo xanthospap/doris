@@ -1,4 +1,4 @@
-\subsubsection{Third Body Attraction}\label{sssec:third-body-attraction}
+\subsubsection{Third Body Attraction}\label{sssec:third-body-perturbations}
 
 The presence of other bodies in the gravitational ﬁeld exerted by a main central
 body makes the problem of orbit determination a $N$-body problem, which however, as known, 
@@ -20,8 +20,9 @@ hence
 \begin{equation}\label{eq:mont337}
     \bm{\ddot{r}} = GM_{pb} \left( 
         \frac{\bm{s}-\bm{r}}{\norm{\bm{s}-\bm{r}}^3} 
-        - \frac{s}{\norm{s}^3} \right)
+        - \frac{\bm{s}}{\norm{\bm{s}}^3} \right)
 \end{equation}
+
 
 \paragraph{\gls{jpl} Ephemerides}\label{par:jpl-ephemerides}
 
@@ -44,7 +45,22 @@ For the purposes of this Thesis, we have developed software to interact with the
 \gls{jpl} DE files, generic enough to handle all versions of the ephemerides. 
 We use an interface to the \gls{jpl}-provided Observation Geometry System
 for Space Science Missions (\href{https://naif.jpl.nasa.gov/naif/}{SPICE}) 
-software library \footnote{based on the C version of the the 
+software library \footnote{Based on the C version of the the 
 \href{https://naif.jpl.nasa.gov/naif/toolkit_C.html}{Navigation and Ancillary Information Facilty (NAIF)}} 
 to extract Sun, Moon and planet coordinates, and respective constants. Tests and 
 validation are performed using the \texttt{DE421} ephemerides (\cite{Folkner2009}).
+
+\paragraph{Partial Derivatives of Third Body Perturbations}\label{par:third-body-perturbations-partials}
+
+As can be shown from \ref{eq:mont337}, the partial derivative of the third body 
+perurbation w.r.t to the satellite state vector $\bm{x}=\begin{pmatrix}\bm{r} & \bm{v} \end{pmatrix}^T$ is given by
+\begin{equation}
+  \begin{aligned}
+    \frac{\partial \bm{\ddot{r}}}{\partial \bm{r}} &= 
+      -GM_{pb} \left( \frac{1}{\norm{\bm{r}-\bm{s}}^3} \bm{I}_{3\times 3} 
+      -3 \left(\bm{r}-\bm{s} \right) \frac{\left(\bm{r}-\bm{s} \right)^T}{\norm{\bm{r}-\bm{s}}^5}
+      \right) \\
+    \frac{\partial \bm{\ddot{r}}}{\partial \bm{v}} &= \bm{0}
+  \end{aligned}
+\end{equation}
+
