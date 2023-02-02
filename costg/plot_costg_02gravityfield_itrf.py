@@ -15,7 +15,7 @@ import fileinput
 from scipy import stats
 
 # scale for x, y and z acclerations (m/s2)
-scale = 1e0
+scale = 1e15
 
 ## use TeX to render Matplotlib text
 plt.rcParams['text.usetex'] = True
@@ -65,14 +65,13 @@ for y in ['xacc', 'yacc', 'zacc']:
     x = component(y, dct, scale)
     sts = stats.describe(x)
     print('Component: {:} #pts {:} | Min {:+.2e} Max {:+.2e} Mean {:.2e} Std. Deviation {:.2e}'.format(y[0],sts.nobs, sts.minmax[0], sts.minmax[1], sts.mean, math.sqrt(sts.variance)))
-    #_stats = ' {:+.1e} +- {:.1e}, |max|: {:.1e}'.format(sts.mean, math.sqrt(sts.variance), max(abs(sts.minmax[0]), abs(sts.minmax[1])))
-    #print(_stats)
+    axs[r].grid(axis='y', color='0.85')
     axs[r].scatter(t,x,s=1,color='black')
-    axs[r].set_ylabel(tex_ytitle(y))
+    axs[r].set_ylabel(tex_ytitle(y), fontsize=14)
     # use formatters to specify major and minor ticks
     axs[r].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     axs[r].xaxis.set_minor_locator(mdates.HourLocator())
-axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")))
+axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")), fontsize=12)
 
 ## Rotate date labels automatically
 fig.suptitle('COST-G Benchmark Diffs\nGravity Acceleration Comparisson', fontsize=16)

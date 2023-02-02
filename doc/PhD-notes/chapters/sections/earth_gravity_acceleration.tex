@@ -1,4 +1,4 @@
-\subsubsection{Geopotential Acceleration}\label{sssec:geopotential-acceleration}
+\subsubsection{Gravity Acceleration}\label{sssec:gravity-acceleration}
 
 The acceleration of an Earth orbiting satellite due to the Earth's gravity field, 
 can be computed using the potential $U$ (see \ref{eq:geopotential})
@@ -147,14 +147,14 @@ can be deduced considering earth's gravitational potential expressed as \ref{eq:
 components that have to be considered in the computation from nine to five. 
 
 Deriving the partials is quite tedius. For the computation, we follow the development 
-used in \ref{sssec:geopotential-acceleration}, follwing a normalized version of 
+used in \ref{sssec:gravity-acceleration}, follwing a normalized version of 
 \cite{Cunningham1970} to compute the quantities $\frac{\partial \ddot{x}_{nm}}{\partial x}$, 
 $\frac{\partial \ddot{x}_{nm}}{\partial y}$, $\frac{\partial \ddot{x}_{nm}}{\partial z}$, 
 $\frac{\partial \ddot{y}_{nm}}{\partial z}$ and $\frac{\partial \ddot{z}_{nm}}{\partial z}$.
 
 \paragraph{Earth Rotation}\label{sssec:gravity-acceleration-earth-rotation}
 
-Formulas presented in the current section, \ref{sssec:geopotential-acceleration}, 
+Formulas presented in the current section, \ref{sssec:gravity-acceleration}, 
 are valid in an \gls{ecef} frame, that is ignore Earth's rotation (aka $\bm{r}$ is 
 the satellite's position vector in \gls{ecef} coordinates). We are now designating 
 the $\bm{r}$ vector as $\bm{r}_{ef}$ and introducing $\bm{r}_{sf}$ to designate the 
@@ -178,11 +178,24 @@ and for the acceleration
 
 \paragraph{Validation}\label{sssec:gravity-acceleration-acceleration}
 
+The acceleration induced to an earth orbiting satellite by the earth's gravity 
+field, is by far the largest in magnitude, hence it should be computed with utmost 
+precision. To test our implementation, we checked our results against the \emph{COST-G} 
+benchmark test. Input data for the test is a one day orbit arc of \gls{grace} paired
+with the earth gravity model \emph{EIGEN-6C4}. Acceleration is evaluated from degree
+and order 2 to 180 (i.e. leaving out the largest in magnitude central term). According 
+to \cite{Lasser23}, accelerations should be consistent to at least \SI{10e-12}{\metre\per\square\second}.
+The discrepancies between our implementation and the benchmark test are depicted in 
+\ref{fig:costg-benchmark-02gravityfield-itrf} and \ref{table:costg-benchmark-02gravityfield-itrf}. 
+It is clear that results obtained lie within the accuracy demands of the benchmark test.
+
 \begin{figure}
-\centering
-\includegraphics[width=\textwidth]{02gravityfield_itrf}
-\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
-\label{fig:alcatel-antenna}
+  \centering
+  \includegraphics[width=\textwidth]{02gravityfield_itrf}
+  \caption{Earth gravity acceleration descripancies against the \emph{COST-G} 
+    benchmark test. Gravity model is \emph{EIGEN-6C4} from degree and order 2 to 180. 
+    Comparing results for a one day orbit arc of \gls{grace} in \gls{itrf}.}
+  \label{fig:costg-benchmark-02gravityfield-itrf}
 \end{figure}
 
 \begin{table}[h!]
@@ -197,6 +210,6 @@ and for the acceleration
       $\ddot{z}$ & -1.14e-15 & +1.00e-15 & -5.81e-18 & 2.19e-16 \\
       \hline
   \end{tabular}
-  \caption{DORIS ground antennae Phase Center Offsets, \cite{DORISGSM}.}
-  \label{table:antenna-pco}
+  \caption{Earth gravity acceleration descripancies against the \emph{COST-G} benchmark test.}
+  \label{table:costg-benchmark-02gravityfield-itrf}
 \end{table}

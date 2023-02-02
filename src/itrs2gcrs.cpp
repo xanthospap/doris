@@ -7,9 +7,9 @@
 #include <datetime/dtcalendar.hpp>
 #include <iers2010/iersc.hpp>
 
-namespace {
-const double TAI2TTFDAYS = 32.184e0 / 86400e0;
-}
+//namespace {
+//const double TAI2TTFDAYS = 32.184e0 / 86400e0;
+//}
 
 inline double OmegaEarth(double xlod) noexcept {
   // return iers2010::OmegaEarth * (1e0 - xlod / 86400e0);
