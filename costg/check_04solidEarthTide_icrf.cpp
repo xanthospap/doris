@@ -15,6 +15,10 @@
 
 using namespace std::chrono;
 
+// constants from README
+const double GM_Sun = 1.32712442076e20;
+const double GM_Moon = 0.49028010560e13;
+
 struct Acc {
   dso::TwoPartDate mjd;
   Eigen::Matrix<double, 3, 1> a;
@@ -78,13 +82,13 @@ int main(int argc, char *argv[]) {
 
   // get gravitational constant for Sun and Moon, note that these are in
   // km^3/s^2
-  double GMSun, GMMoon;
-  if (dso::get_sun_moon_GM("data/jpl/gm_de431.tpc", GMSun, GMMoon)) {
-    fprintf(stderr, "Failed getting gravitational constants\n");
-    return 1;
-  }
-  printf("Got Moon/Sun constants from %s GMsun=%.6e GMmoon=%.6e\n",
-         "data/jpl/gm_de431.tpc", GMSun, GMMoon);
+  //double GMSun, GMMoon;
+  //if (dso::get_sun_moon_GM("data/jpl/gm_de431.tpc", GMSun, GMMoon)) {
+  //  fprintf(stderr, "Failed getting gravitational constants\n");
+  //  return 1;
+  //}
+  //printf("Got Moon/Sun constants from %s GMsun=%.6e GMmoon=%.6e\n",
+  //       "data/jpl/gm_de431.tpc", GMSun, GMMoon);
 
   // fist date in file as datetime instance
   dso::datetime<dso::nanoseconds> d1(
@@ -107,40 +111,29 @@ int main(int argc, char *argv[]) {
   double era, xlod;
 
   // A solid earth tide instance (km^3 to m^3)
-  dso::SolidEarthTide setide(0.3986004415E+15, 0.6378136460E+07, GMMoon * 1e9,
-                             GMSun * 1e9);
+  dso::SolidEarthTide setide(0.3986004415e+15, 0.6378136460e+07, GM_Moon * 1e9,
+                             GM_Sun * 1e9);
 
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
   for (const auto &pos : refpos) {
 
     // get Sun and Moon coordinates in ECEF (Cartesian, km)
-    double dummy;
     double rm[3], rs[3];
-    double et = dso::cspice::jd2et(gps2tt(pos.mjd).mjd() + dso::mjd0_jd);
-
-    /* coordinates in km, ECI */
-    spkezp_c(301, et, "J2000", "NONE", 399, rm, &dummy);
-    Eigen::Matrix<double, 3, 1> rmoon_icrf(rm[0], rm[1], rm[2]); // [km]
-    spkezp_c(10, et, "J2000", "NONE", 399, rs, &dummy);
-    Eigen::Matrix<double, 3, 1> rsun_icrf(rs[0], rs[1], rs[2]);  // [km]
-    //printf("[ICRF] Moon %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rmoon_icrf(0)*1e3,
-    //       rmoon_icrf(1)*1e3, rmoon_icrf(2)*1e3);
-    //printf("[ICRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun_icrf(0)*1e3,
-    //       rsun_icrf(1)*1e3, rsun_icrf(2)*1e3);
-
-    /* ECI to ECEF */
+    const double jd = gps2tt(crf.mjd).mjd() + dso::mjd0_jd;
+    // position vector of moon, in J2000, [km]
+    dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, rm);
+    dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, rs);
+    Eigen::Matrix<double, 3, 1> rMon(rm); // [km]
+    Eigen::Matrix<double, 3, 1> rSun(rs); // [km]
+    // ECI to ECEF, resulkt in [m]
     if (dso::gcrs2itrs(gps2tai(pos.mjd), eop_lut, rc2i, era, rpom, xlod)) {
       fprintf(stderr, "Failed transforming ECI to ECEF\n");
       return 2;
     }
     const Eigen::Matrix<double, 3, 1> rmoon =
-        dso::rcel2ter(rmoon_icrf, rc2i, era, rpom) * 1e3;
+        dso::rcel2ter(rMon, rc2i, era, rpom) * 1e3;
     const Eigen::Matrix<double, 3, 1> rsun =
-        dso::rcel2ter(rsun_icrf, rc2i, era, rpom) * 1e3;
-    //printf("[ITRF] Moon %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rmoon(0),
-    //       rmoon(1), rmoon(2));
-    //printf("[ITRF] Sun %.20f %.3f %.3f %.3f\n", pos.mjd.mjd(), rsun(0),
-    //       rsun(1), rsun(2));
+        dso::rcel2ter(rSun, rc2i, era, rpom) * 1e3;
 
     // transform satellite position vector, icrf-to-itrf
     [[maybe_unused]] const Eigen::Matrix<double, 3, 1> cpos =

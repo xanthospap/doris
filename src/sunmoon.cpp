@@ -3,7 +3,7 @@
 #include <cmath>
 #include <datetime/dtcalendar.hpp>
 
-void dso::SunMoon(/*double mjd_tai*/const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
+void dso::SunMoon(const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
                   double GMSun, double GMMoon,
                   Eigen::Matrix<double, 3, 1> &sun_acc,
                   Eigen::Matrix<double, 3, 1> &moon_acc,
@@ -11,17 +11,6 @@ void dso::SunMoon(/*double mjd_tai*/const dso::TwoPartDate &mjd_tai, const Eigen
                   Eigen::Matrix<double, 3, 1> &mon_pos,
                   Eigen::Matrix<double, 3, 3> &mon_partials) noexcept {
 
-  /*
-  // split TAI to integral and fractional part
-  double mjd_days;
-  const double taif = std::modf(mjd_tai, &mjd_days);
-  // compute (fractional part) of TT
-  const double ttf = taif + (32184e-3 / 86400e0);
-  // make TT date as MJD
-  const double mjd_tt = mjd_days + ttf;
-  // TT to MJD
-  const double jd = mjd_tt + dso::mjd0_jd; // date as JD (TT)
-  */
   const auto mjd_tt = mjd_tai.tai2tt();
   const double jd = (mjd_tt._big + dso::mjd0_jd) + mjd_tt._small;
   double rsun[3], rmon[3];

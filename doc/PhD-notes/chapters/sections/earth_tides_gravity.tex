@@ -1,0 +1,150 @@
+\subsubsection{Earth Tide}\label{sssec:earth-tide-perturbations}
+
+Apart from the direct force third bodies (Moon and Sun) induce on earth orbiting 
+satellites (see \ref{sssec:third-body-perturbations}), they also have an effect on 
+the body of the earth, resulting in \emph{tidal} phenomena. The latter produce 
+small periodic deformations of the solid body of the Earth called \emph{earth tides} 
+which lead to periodic variations in the Earth's gravity field. These tidal perturbations 
+have to be addressed in the case of \gls{pod}.
+
+The perturbations of satellite orbits from the lunisolar solid Earth tides are
+derived by an expansion of the tidal-induced gravity potential using spherical har-
+monics in a similar way as for the static gravity field of the Earth (\cite{Montenbruck2000}).
+The contributions $\Delta C_{nm}$ and $\Delta S_{nm}$ from the tides are expressible 
+in terms of the \emph{Love} number $\lovek$ (two $k$ parameters are needed for 
+$n=2$ namely $\lovek ^{(0)}_{nm}$ and $\lovek ^{(+)}_{nm}$, while three such parameters 
+are needed for $n \ne 2$, namely $\lovek ^{(0)}_{nm}$, $\lovek ^{(+)}_{nm}$ and 
+$\lovek ^{(-)}_{nm}$, the latter being $0$ in the case of $n=2$). These parameters include 
+a small imaginary part, due to the mantle's anelasticity (reflecting a
+phase lag in the deformational response of the Earth to tidal forces) \cite{iers2010}.
+
+Solid earth tide effects, include the direct attraction of the tide generating poitential, 
+as well as deformations and associated geopotential changes arising from oceanic loading 
+(which cause a loading of the crust) and wobbles of the mantle and the core regions 
+(causing incremental centrifugal potentials). More information on tidal theory can 
+be found in \cite{Wilhelm1997}, \cite{iers2010} and references therein.
+
+Here, we are going to adopt the treatment of earth tides as described in 
+\cite{iers2010}. Practicaly, the computation of the tidal contributions to the 
+geopotential coefficients is most efficiently done by a three-step procedure:
+ 
+\paragraph{Step 1 Corrections}\label{par:step1-corr-earth-tides}
+In Step 1, the $(2m)$ part of the tidal potential is evaluated in the 
+time domain for each $m$ using lunar and solar ephemerides, and the 
+corresponding changes $\Delta \bar{C}_{2m}$ and $\Delta \bar{S}_{2m}$ are 
+computed using frequency independent nominal values $\lovek _{2m}$ for the 
+respective $\lovek ^{(0)}_{2m}$. The contributions of the degree 3 tides to
+$\bar{C}_{3m}$ and $\bar{S}_{3m}$ through $\lovek ^{(0)}_{3m}$ and also of 
+those of the degree 2 tides to $\bar{C}_{4m}$ and $\bar{S}_{4m}$ though 
+$\lovek ^{(+)}_{2m}$ may be computed by a similar procedure.
+
+With frequency-independent values $\lovek _{nm}$, changes induced by the 
+$(nm)$ part of the \gls{tgp} in the \emph{normalized} geopotentials 
+coefficients of the same degree and order $(nm)$, are given in the time 
+domain by (\cite{iers2010}):
+\begin{equation}
+\Delta \bar{C}_{nm} - \iim \Delta \bar{S}_{nm} = \frac{\lovek _{nm}}{2n+1}
+  \sum^{3}_{j=2} \frac{GM_j}{GM_\Earth} \left( \frac{R_e}{r_j} \right) ^{n+1} 
+  \bar{P}_{nm} \left( \sin \Phi _j \right) e^{-\iim m \lambda _j}
+  \label{eq:iers1066}
+\end{equation}
+where:
+\begin{description}
+  \item $\lovek _{nm}$\footnote{Tables of relevant Love numbers are listed 
+    in \cite{iers2010}, Table 6.3.} is the nominal Love number for degree 
+    $n$ and order $m$, 
+  \item $R_e$ and $GM_{\Earth}$ are the equatorial radius and the 
+    gravitational parameter of the Earth,
+  \item $GM_j$ is the gravitational parameter of the Moon and Sun, for 
+    $j=2$ and $j=3$ respectively,
+  \item $\Phi _j$ is the body-fixed geocentric latitude of the Moon and 
+    Sun ($j$ indexes as above), and
+  \item $\lambda _j$ is the body-fixed (east) logitude of the Moon and 
+    Sun ($j$ indexes as above)
+\end{description}
+
+For $n=4$, formula \ref{eq:iers1066} becomes (\cite{iers2010}):
+\begin{equation}
+\Delta \bar{C}_{4m} - \iim \Delta \bar{S}_{4m} = \frac{\lovek _{nm}}{5}
+  \sum^{3}_{j=2} \frac{GM_j}{GM_\Earth} \left( \frac{R_e}{r_j} \right) ^{3} 
+  \bar{P}_{2m} \left( \sin \Phi _j \right) e^{-\iim m \lambda _j} \text{ for } m=0,1,2
+  \label{eq:iers1067}
+\end{equation}
+to account for the changes in the degree 4 coefficients produced by the 
+degree 2 tides.
+
+In Step 1, we compute corrections for 
+\begin{equation}
+  \Delta \bar{C}_{nm}, \Delta \bar{S}_{nm} \text{ for }
+    \begin{cases}
+      n=2 & m=0,1,2 \\
+      n=3 & m=0,1,2,3 \\
+      n=4 & m=0,1,2\\
+    \end{cases}
+\end{equation} 
+
+\paragraph{Step 2 Corrections}\label{par:step2-corr-earth-tides}
+in Step 2 we compute corrections for the deviations of the 
+$\lovek ^{(0)}_{21}$ from the constant nominal value $\lovek _{21}$ 
+assumed (for this band) in the first step. Similar corrections need to be 
+applied to a few of the constituents of the other two bands also.
+
+The contribution to $\Delta \bar{C}_{20}$ from the long period tidal 
+constituents, each with a frequency $f$, can be computed by (\cite{iers2010}):
+\begin{equation}
+  \Re \Bigl\{ \sum _{f(2,0)}(A_0 \delta k_f H_f) e^{\iim \theta _f} \Bigr\} = 
+    \sum_{f(2,0)} \left[ \left(A_0 H_h \delta k^\Re _f \right) \cos \theta _f 
+      - \left(A_0 H_h \delta k^\Im _f \right) \sin \theta _f 
+    \right]
+  \label{eq:iers1068a}
+\end{equation}
+
+We can further compute the contribution for $(nm)=(21)$ from the 
+diurnal tidal constituents and to $(22)$ from the semidiurnal, using 
+(\cite{iers2010}):
+\begin{equation}
+  \Delta \bar{C}_{2m} - \iim \Delta \bar{C}_{2m} = 
+    \eta _m \cdot \sum _{f(2,m)} \left( A_m \delta k_f H_f\right) e^{\iim \theta _f} 
+    \text{ for } m=1,2
+  \label{eq:iers1068b}
+\end{equation}
+where 
+\begin{description}
+  \item $\delta k_f = \delta k^\Re _f + \iim \delta k^\Im _f$ is the difference 
+  between $k_f$ defined as $k^{(0)}_{2m}$ at frequency $f$ and the 
+  nominal value ($k_f - k_{2m}$), plus a contribution from ocean 
+  loading\footnote{\label{fn:set-coefs}Values of the imaginary and real part, $\delta k^\Re _f$ and 
+  $\delta k^\Im _f$ respectively, can be found in \cite{iers2010}, Tables 6.5a 
+  through 6.5c. Note however, that in the computation we use the amplitude values 
+  for the in-phase and out-of-phase components ($A_{in-phase} = \left(A_m H_f \delta k^\Re _f \right)$ 
+  and $A_{out-of-phase} = \left( A_m H_f \delta k^\Im _f \right)$) directly, recorded 
+  in the same tables.}
+  \item $H_f$ is the amplitude (in meters) of the term at frequency $f$
+  \item $\theta _f$ is given by 
+  \begin{equation} \theta _f = m \cdot ( \theta _g + \pi ) - \sum ^5_{j=1} N_j F_j \end{equation}
+  \footnote{Here we use the expression based on the expansion using the Fundamental 
+  Arguments. For alternate formulations, e.g using the \emph{Doodson} fundamental 
+  arguments, see \cite{iers2010}, Sec. 6.2.1.}
+  where $\theta _g$ is the \gls{gmst} expressed in angle units
+
+  \item The terms $\eta _m$ and $A_m$, are given by: 
+  \begin{equation}
+  \eta _m = 
+    \begin{cases} -\iim , m=1 \\ 1 , m=2\end{cases}
+  \end{equation} and
+  \begin{equation} 
+    A_m = \begin{cases} 
+        \frac{1}{R_{\Earth}\sqrt{4 \pi}}, m=0\\
+        \frac{(-1)^m}{R_{\Earth}\sqrt{8 \pi}}, m \ne 0
+    \end{cases}
+  \end{equation}\footnote{As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
+  (see \ref{fn:set-coefs}), explicit computation of $A_m$ is not needed if the 
+  amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
+  \cite{iers2010} Tables 6.5a through 6.5c.}
+\end{description}
+
+Steps 1 and 2 can be used to compute the total tidal contribution, including 
+the time independent (permanent) contribution to the geopotential coefficient 
+$\bar{C}_{20}$, which is adequate for a ``conventional tide free'' model. 
+When using a ``zero tide'' model, this permanent part should not be counted 
+twice.

@@ -180,9 +180,9 @@ and for the acceleration
 
 The acceleration induced to an earth orbiting satellite by the earth's gravity 
 field, is by far the largest in magnitude, hence it should be computed with utmost 
-precision. To test our implementation, we checked our results against the \emph{COST-G} 
+precision. To test our implementation, we checked our results against the \texttt{COST-G} 
 benchmark test. Input data for the test is a one day orbit arc of \gls{grace} paired
-with the earth gravity model \emph{EIGEN-6C4}. Acceleration is evaluated from degree
+with the earth gravity model \texttt{EIGEN-6C4}. Acceleration is evaluated from degree
 and order 2 to 180 (i.e. leaving out the largest in magnitude central term). According 
 to \cite{Lasser23}, accelerations should be consistent to at least \SI{10e-12}{\metre\per\square\second}.
 The discrepancies between our implementation and the benchmark test are depicted in 
@@ -192,8 +192,8 @@ It is clear that results obtained lie within the accuracy demands of the benchma
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{02gravityfield_itrf}
-  \caption{Earth gravity acceleration descripancies against the \emph{COST-G} 
-    benchmark test. Gravity model is \emph{EIGEN-6C4} from degree and order 2 to 180. 
+  \caption{Earth gravity acceleration descripancies against the \texttt{COST-G} 
+    benchmark test. Gravity model is \texttt{EIGEN-6C4} from degree and order 2 to 180. 
     Comparing results for a one day orbit arc of \gls{grace} in \gls{itrf}.}
   \label{fig:costg-benchmark-02gravityfield-itrf}
 \end{figure}
@@ -210,6 +210,6 @@ It is clear that results obtained lie within the accuracy demands of the benchma
       $\ddot{z}$ & -1.14e-15 & +1.00e-15 & -5.81e-18 & 2.19e-16 \\
       \hline
   \end{tabular}
-  \caption{Earth gravity acceleration descripancies against the \emph{COST-G} benchmark test.}
+  \caption{Earth gravity acceleration descripancies against the \texttt{COST-G} benchmark test.}
   \label{table:costg-benchmark-02gravityfield-itrf}
 \end{table}

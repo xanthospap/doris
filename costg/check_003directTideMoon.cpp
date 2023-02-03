@@ -43,18 +43,55 @@ dso::TwoPartDate gps2tai(const dso::TwoPartDate &gpst) noexcept {
 int main(int argc, char *argv[]) {
 
   // check input
-  if (argc != 4) {
+  if (argc != 5) {
     fprintf(stderr,
-            "USAGE: %s [gravity field (.gfc)] [00orbit_itrf.txt] "
-            "[02gravityfield_itcrf.txt]\n",
+            "USAGE: %s [00orbit_icrf.txt] "
+            "[03directTideMoon_icrf.txt] [spk kernel, de421] [lsk kernel, naif0012.tls]\n",
             argv[0]);
     return 1;
   }
+  
+  // parse reference position (icrf)
+  std::vector<Pos> icrf;
+  if (map_position(argv[1], icrf))
+    return 1;
 
   // parse reference results (gravity acceleration)
-  std::vector<Acc> refaccs;
-  if (map_input(argv[3], refaccs))
+  std::vector<Acc> accs;
+  if (map_input(argv[2], accs))
     return 1;
+
+  // load NAIF kernels
+  dso::cspice::load_if_unloaded_spk(argv[3]);
+  dso::cspice::load_if_unloaded_lsk(argv[4]);
+  
+  Eigen::Matrix<double, 3, 1> moon_acc;
+  Eigen::Matrix<double, 3, 3> partials;
+  auto acc_it = accs.cbegin();
+  for (const auto &crf : icrf) {
+    double rmon[3];
+    const double jd = gps2tt(crf.mjd).mjd() + dso::mjd0_jd;
+
+    // position vector of moon, in J2000, [km]
+    dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, rmon);
+
+    // Moon-induced acceleration [m/sec^2]
+    Eigen::Matrix<double, 3, 1> rMon(rmon); // [km]
+    moon_acc =
+        dso::point_mass_accel(0.49028010560e13, crf.xyz, rMon * 1e3, partials);
+    
+    auto ait = std::find_if(acc_it, accs.cend(), [&](const Acc &p) {
+      return std::abs(p.mjd.diff<dso::DateTimeDifferenceType::FractionalDays>(crf.mjd)) < 1e-6;
+    });
+
+    if (ait != accs.cend()) {
+      printf("%.12f %.5e %.5e %.5e\n", crf.mjd.mjd(), ait->a(0)-moon_acc(0),ait->a(1)-moon_acc(1),ait->a(2)-moon_acc(2));
+      // printf("%.12f %.15e %.15e %.15e\n", crf.mjd.mjd(), moon_acc(0),moon_acc(1),moon_acc(2));
+      acc_it = ait;
+    }
+  }
+
+  return 0;
 }
 
 // file: 03directTideMoon_icrf.txt

@@ -23,6 +23,10 @@ hence
         - \frac{\bm{s}}{\norm{\bm{s}}^3} \right)
 \end{equation}
 
+For the current Thesis, we only consider third body perurbations from Moon and Sun. 
+In a similar fashion (using the software that has already been developed), third body 
+attraction can be computed for all planets, though their effect can be safely neglected 
+for \gls{leo} satellites, and applications of 
 
 \paragraph{\gls{jpl} Ephemerides}\label{par:jpl-ephemerides}
 
@@ -50,6 +54,15 @@ software library \footnote{Based on the C version of the the
 to extract Sun, Moon and planet coordinates, and respective constants. Tests and 
 validation are performed using the \texttt{DE421} ephemerides (\cite{Folkner2009}).
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{03directMoonTide}
+  \caption{Third body acceleration from Moon on \gls{grace} for a one day arc in 
+    \gls{icrf}. \gls{grace} orbit is extracted from the \texttt{COST-G} benchmark 
+    test. Moon ephemerides extracted from \texttt{DE421}.}
+  \label{fig:directMoonTideIcrf}
+\end{figure}
+
 \paragraph{Partial Derivatives of Third Body Perturbations}\label{par:third-body-perturbations-partials}
 
 As can be shown from \ref{eq:mont337}, the partial derivative of the third body 
@@ -63,4 +76,53 @@ perurbation w.r.t to the satellite state vector $\bm{x}=\begin{pmatrix}\bm{r} & 
     \frac{\partial \bm{\ddot{r}}}{\partial \bm{v}} &= \bm{0}
   \end{aligned}
 \end{equation}
+
+\paragraph{Validation}\label{sssec:third-body-perurbation-validation}
+
+To test our implementation, we checked our results against the \texttt{COST-G} 
+benchmark test, considering third bidy perturbing accelerations from Moon and Sun. 
+Input data for the test is a one day orbit arc of \gls{grace} in \gls{icrf} and 
+the DE ephemerides file \texttt{DE421} (see \ref{par:jpl-ephemerides}). 
+The differences are depicted in \ref{fig:directMoonTideIcrfVsCostg} and \ref{fig:directSunTideIcrfVsCostg} 
+and information is tabulated in \ref{fig:directMoonTideIcrfVsCostg}.
+\ref{fig:directMoonTideIcrfVsCostg} and \ref{fig:directSunTideIcrfVsCostg} reveal a 
+harmonic behavior of the differences, but since the values are close to machine precision, 
+no safe conclusion can be drawn.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ccccc}
+      %\hline
+      \textbf{Component} & \textbf{Min} & \textbf{Max} & \textbf{Mean} & \textbf{Std. Deviation}\\
+      & \multicolumn{4}{c}{\si{\metre\per\square\second}} \\
+      \hline
+      $\ddot{x}_{Moon}$ & -1.72e-16 & +1.80e-16 & -1.02e-18 & 7.20e-17 \\ 
+      $\ddot{y}_{Moon}$ & -2.25e-16 & +2.45e-16 & 4.14e-18  & 1.31e-16 \\
+      $\ddot{z}_{Moon}$ & -1.27e-16 & +1.39e-16 & 2.32e-18  & 7.17e-17 \\
+      $\ddot{x}_{Sun}$  & -5.34e-18 & +4.59e-18 & 3.95e-20  & 2.03e-18 \\
+      $\ddot{x}_{Sun}$  & -9.95e-18 & +1.05e-17 & 2.39e-20  & 3.65e-18 \\
+      $\ddot{x}_{Sun}$  & -4.21e-18 & +4.70e-18 & 8.50e-21  & 1.59e-18 \\
+      \hline
+  \end{tabular}
+  \caption{Moon \& Sun direct tide acceleration differences against the \texttt{COST-G} benchmark test.}
+  \label{table:directMoonTideIcrfVsCostg}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{03directMoonTideVsCostg}
+  \caption{Third body acceleration induced by Moon on \gls{grace}; descripancies 
+   against the \texttt{COST-G} benchmark test. Moon ephemerides extracted from \texttt{DE421}.
+   Comparing results for a one day orbit arc of \gls{grace} in \gls{icrf}.}
+  \label{fig:directMoonTideIcrfVsCostg}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{03directSunTideVsCostg}
+  \caption{Third body acceleration induced by Sun on \gls{grace}; descripancies 
+   against the \texttt{COST-G} benchmark test. Sun ephemerides extracted from \texttt{DE421}.
+   Comparing results for a one day orbit arc of \gls{grace} in \gls{icrf}.}
+  \label{fig:directSunTideIcrfVsCostg}
+\end{figure}
 
