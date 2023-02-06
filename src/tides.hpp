@@ -205,6 +205,10 @@ private:
                              const dso::TwoPartDate &mjdut1, double &dC20,
                              double &dC21, double &dS21, double &dC22,
                              double &dS22) const noexcept;
+  int solid_earth_tide_step2_d(const dso::TwoPartDate &mjdtt,
+                             double &dC20,
+                             double &dC21, double &dS21, double &dC22,
+                             double &dS22) const noexcept;
 
 public:
   /// @brief Constructor

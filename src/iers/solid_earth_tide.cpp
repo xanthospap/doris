@@ -56,7 +56,7 @@ int array2harmonics(const std::array<double, 12> &dC,
 /// @param[out] dS   Normalized corrections to S coefficients, in the order:
 ///             dS = 0,S21,S22,S30,S31,S32,S33,S40,S41,S42,0,0
 int dso::SolidEarthTide::operator()(const dso::TwoPartDate &mjdtt,
-                                    const dso::TwoPartDate &mjdut1,
+                                    [[maybe_unused]]const dso::TwoPartDate &mjdut1,
                                     const Eigen::Matrix<double, 3, 1> &rmoon,
                                     const Eigen::Matrix<double, 3, 1> &rsun,
                                     std::array<double, 12> &dC,
@@ -68,6 +68,11 @@ int dso::SolidEarthTide::operator()(const dso::TwoPartDate &mjdtt,
   // Step 2 corrections
   double dc20, dc21, ds21, dc22, ds22;
   solid_earth_tide_step2(mjdtt, mjdut1, dc20, dc21, ds21, dc22, ds22);
+  //printf("dC20=%.12e dC21=%.12e dC22=%.12e\n", dc20, dc21, dc22);
+  //printf("dS20=%.12e dS21=%.12e dS22=%.12e\n", 0e0, ds21, ds22);
+  //solid_earth_tide_step2_d(mjdtt, dc20, dc21, ds21, dc22, ds22);
+  //printf("dC20=%.12e dC21=%.12e dC22=%.12e\n", dc20, dc21, dc22);
+  //printf("dS20=%.12e dS21=%.12e dS22=%.12e\n", 0e0, ds21, ds22);
 
   // apply Step 2 corrections (to Step 1)
   dC[0] += dc20;

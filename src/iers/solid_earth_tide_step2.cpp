@@ -16,6 +16,7 @@ struct Step2TidesCoeffs {
 }; // Step2Tides
 
 /// @brief Table 6.5b from IERS2010.
+/// Columns are: l l' F D Ω Amp(in-phase)*1e-12, Amp(out-of-phase)*1e-12
 /// @warning Units in In- and Out-of- phase are 1e-12
 const Step2TidesCoeffs ST2_m20[]{
     {/*55565*/ 0, 0, 0, 0, 1, 16.6e0, -6.7e0},
@@ -42,6 +43,7 @@ const Step2TidesCoeffs ST2_m20[]{
 };
 
 /// @brief Table 6.5a from IERS2010.
+/// Columns are: l l' F D Ω Amp(in-phase)*1e-12, Amp(out-of-phase)*1e-12
 /// @warning Units in In- and Out-of- phase are 1e-12
 const Step2TidesCoeffs ST2_m21[]{{/*125755*/ 2, 0, 2, 0, 2, -0.1e0, 0.0e0},
                                  {/*127555*/ 0, 0, 2, 2, 2, -0.1e0, 0.0e0},
@@ -193,13 +195,9 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
                                                 double &dS22) const noexcept {
 
   // compute GMST using IAU 2006/2000A [rad]
-  //const auto jdtt = mjdtt.jd_sofa();
-  //const auto jdut = mjdut1.jd_sofa();
   const double gmst =
-      iers2010::sofa::gmst06(/*jdut._big, jdut._small, jdtt._big, jdtt._small*/mjdut1,mjdtt);
-
-  // compute Julian centuries since J2000.0 (TT)
-  // const double t = mjdtt.jcenturies_sinceJ2000();
+      iers2010::sofa::gmst06(mjdut1,mjdtt);
+      //dso::gmst_utc(mjdtt.tt2utc());
 
   // compute fundamental arguments (for given TT)
   const double fundarg[] = {

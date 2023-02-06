@@ -48,13 +48,13 @@ int iers2010_solid_earth_tide_anelastic_tb(
   // tide external potential Love numbers. Anelastic
   // Earth n  m  Re(k_nm)  Im(k_nm) k_nm^(+)
   // ----------------------------------
-  // 2  0  0.30190    0.0
-  // 2  1  0.29830   -0.00144
-  // 2  2  0.30102   -0.00130
-  // 3  0  0.09300
-  // 3  1  0.09300
-  // 3  2  0.09300
-  // 3  3  0.09400
+  //       2  0  0.30190    0.0
+  //       2  1  0.29830   -0.00144
+  //       2  2  0.30102   -0.00130
+  //       3  0  0.09300
+  //       3  1  0.09300
+  //       3  2  0.09300
+  //       3  3  0.09400
   const double cl = std::cos(xlong);
   const double sl = std::sin(xlong);
   const double c2l = std::cos(2 * xlong);

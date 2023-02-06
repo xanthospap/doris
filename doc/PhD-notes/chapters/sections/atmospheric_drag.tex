@@ -1,0 +1,79 @@
+\subsubsection{Atmospheric Drag}\label{sssec:atmospheric-drag}
+
+For \gls{leo} satellites, the largest non-gravitational force is the atmospheric 
+drag. Despite its significance though, accurate modelling of aerodynamic forces 
+is a very perplex problem, requiring knowledge of the physical properties of the 
+(upper) atmosphere, interaction of neutral gas and charged particles with the satellite's 
+surfaces and precise knowledge of attitude with respect to atmospheric particle 
+flux (\cite{Montenbruck2000}).
+
+Drag is a decelerating force, directed opposite to the velocity ofathe satellite 
+with respect to atmospheric flux. Minor contributions, including lift and binormal 
+forces, can be safely ignored. A simple derivation of the acceleration induced 
+to a satellite due to atmospheric drag can be found in \cite{Montenbruck2000}; 
+following this formulation, we end up with the acceleration
+\begin{equation}\label{eq:mont397}
+  \bm{\ddot{r}} = -\frac{1}{2} C_{d} \frac{A}{m} \rho v_{r}^{2} \bm{\hat{e}}_v
+\end{equation}
+where
+\begin{description}
+  \item $\rho$ is the atmospheric density at the location of the satellite,
+  \item $A$ is the satellite's cross-sectional area,
+  \item $v_r$ is the velocity of the satellite relative to the atmosphere,
+  \item $\bm{\hat{e}}_v = \bm{v}_r / \norm{\bm{v}_r}$ is the unit vector in the 
+    direction of $v_r$
+  \item $C_d$ is the \emph{drag coefficient}, a dimensionless quantity describing the 
+    interation of the atmosphere with the satellite's surface material. This parameter 
+    is normally estimated during \gls{pod} procedure.
+\end{description}
+
+With the assumption that the atmosphere co-rotates with the Earth (thus partly 
+ignoring the complex atmosphere dynamics), the relative velocity of the satellite 
+with respect to the atmosphere, $\bm{v}_r$, is given by
+\begin{equation}
+  \bm{v}_r = \bm{v} - \bm{\omega}_{\Earth} \times \bm{r}
+\end{equation}
+which is a very good approximation even for \gls{pod} applications\footnote{According 
+to \cite{Montenbruck2000}, the maximum observed deviations from this assumption 
+lead to uncertainties in the drag force of less than 5\%.}. $\bm{v}$ and $\bm{r}$ 
+are the inertial satellite velocity and position vectors, while 
+$\bm{\omega}_{\Earth}$ is the Earth's angular velocity vector.
+
+\paragraph{Atmospheric Models}\label{par:atmospheric-models}
+The most challenging term in \ref{eq:mont397}, is the atmospheric density $\rho$ 
+(at the location of satellite). This requires the modeling of complex properties 
+and dynamics of the Earth's atmosphere. The latter is a highly demanding task, and 
+a number of models have been introduced (often including empirical data) to 
+target the question. In the upper atmosphere ($>\SI{100}{\km}$), apart from spatial 
+and temporal variances, the density also depends on solar soft x-ray and extreme 
+ultraviolet (EUV) output, as well as the geomagnetic activity. Hence, the density is 
+considered as a function of altitude, solar ten centimetre flux and the geomagnetic 
+activity index ($A_p$). 
+
+Different (upper) atmospheric models are available (for comparisson and overview, see e.g. 
+\cite{Doornbos2009}, \cite{Yang2022} and \cite{Vallado2014}) varying in methodologies, 
+data application criteria and demands and complexity. In this Thesis, we are using 
+the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model to compute atmospheric density, which is
+an empirical atmospheric model that extends from the ground to the exobase and describes 
+the average observed behavior of temperature, various species densities, and mass density 
+via a parametric analytic formulation. The model inputs are location, date and time, 
+solar activity, and geomagnetic activity. It was developed by the US Naval Research Laboratory.
+
+In order to use the \texttt{NRLMSISE-00} model, we need space weather data, including 
+an 81-day average of F10.7 flux\footnote{The solar radio flux at \SI{10.7}{\cm} (\SI{2800}{\MHz}) 
+is an excellent indicator of solar activity. Often called the F10.7 index, it is 
+one of the longest running records of solar activity, reported in ``solar flux units''. 
+The F10.7 Index has proven very valuable in specifying and forecasting space weather, 
+and tracks well with Extreme UltraViolet (EUV) emissions that impact the ionosphere 
+and modify the upper atmosphere} (centered on day), daily F10.7 solar flux for previous 
+day and daily magnetic index. This data can be obtained via the ``Space Weather Data'' 
+records archived by \href{https://celestrak.org/}{CelesTrack} (\cite{Vallado2013}).
+
+\paragraph{Implementation}\label{par:atmospheric-drag-implementation}
+
+Implementing the \texttt{NRLMSISE-00} model is a challenging task. Not only due to
+model complexity and the large number of computations involved, but also because 
+it needs to be paired with space weather data spanning various months (e.g. we need a 
+81-day average). Obviously, the complete scheme must be efficient and robust.
+Source code for implementing the above has been designed and implemented from scratch.
+

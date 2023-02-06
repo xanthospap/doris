@@ -1,0 +1,111 @@
+\subsubsection{Ocean Tide}\label{sssec:ocean-tide-perturbations}
+
+As in the case of Earth tides (see \ref{sssec:earth-tide-perturbations}), the 
+dynamical effects of ocean tides can be modeled as periodic variations in the 
+Stoke's coefficients $\Delta \bar{C}_{nm}$ and $\Delta \bar{S}_{nm}$ (for 
+degree $n$ and order $m$). Here, we are adopting the development presented in 
+\cite{iers2010}
+\begin{equation}
+  \label{eq:iers10615}
+  \left( \Delta \bar{C}_{nm} - \iim \Delta \bar{S}_{nm} \right) (t) =
+    \sum_{f} \sum_{+}^{-} \left( 
+      \mathcal{C}_{f,nm}^{\pm} \mp \mathcal{S}_{f,nm}^{\pm} \right)
+    e^{\pm \iim \theta _f (t)}
+\end{equation}
+where
+\begin{description}
+  \item $f$ is a given tidal constituent,
+  \item $\theta _f (t)$ is the argument of the constituent $f$ at epoch $t$, and
+  \item $\mathcal{C}_{f,nm}^{\pm}$ and $\mathcal{S}_{f,nm}^{\pm}$ are the geopotential 
+    harmonic amplitudes
+\end{description}
+
+Typically, ocean tide models provide maps for only the largest tides or main waves 
+as spherical harmonic coefficients of the geopotential.
+
+\paragraph{Ocean Tide Models}\label{par:ocean-tide-models}
+
+Ocean tide models are defined using an underlying tide height model, and further 
+include the  maximum degree and order of the expansion and identification of the 
+main, pivot waves. Since the mid-1990s, a series of \texttt{FES} (finite element 
+solution) global ocean tidal atlases has been produced and released with the primary 
+objective to provide altimetry missions with tidal de-aliasing correction at the 
+best possible accuracy. In this Thesis, we will make use of the latest model in 
+this series, labeled \texttt{FES2014} (\cite{Lyard2021}). \ref{table:tidal-constituents-fes14b} 
+lists the tidal constituents contained within the aforementioned data file.
+
+\begin{figure}
+  \begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
+  \begin{BVerbatim}
+  Coefficients to compute variations in normalized Stokes coefficients (unit = 10^-11)
+  Ocean tide model: FES2014b up to (180,180)
+  Doodson Darw  l   m    DelC+     DelS+       DelC-     DelS-
+  055.565 om1   1   0  -0.84987   0.00000    -0.84987   0.00000
+  055.565 om1   2   0   2.55417  -0.00000     2.55417  -0.00000
+  055.565 om1   3   0   0.02827  -0.00000     0.02827  -0.00000
+  055.565 om1   4   0  -0.25307   0.00000    -0.25307   0.00000
+  055.565 om1   5   0   0.34383  -0.00000     0.34383  -0.00000
+  ...
+  055.575 om2   1   0   0.00830   0.00000     0.00830   0.00000   
+  055.575 om2   2   0  -0.02493   0.00000    -0.02493   0.00000   
+  055.575 om2   3   0  -0.00028   0.00000    -0.00028   0.00000   
+  055.575 om2   4   0   0.00247   0.00000     0.00247   0.00000   
+  055.575 om2   5   0  -0.00336   0.00000    -0.00336   0.00000   
+  \end{BVerbatim}
+  \end{adjustbox}
+  \caption{Part of \texttt{FES2014b} geopotential harmonic amplitudes
+  $\mathcal{C}_{f,nm}^{\pm}$ and $\mathcal{S}_{f,nm}^{\pm}$ for tidal constituents
+  055.565 and 055.575. File retrived from the \texttt{COST-G} benchmark test 
+  repository, \url{ftp://ftp.tugraz.at/outgoing/ITSG/COST-G/}.}
+\end{figure}
+
+Admittance waves an be taken into account to commplement the model, via interpolation 
+based on the main, pivot constituents.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ccc}
+      \hline
+      \textbf{Doodson Number} & \textbf{Darwin Symbol} & \textbf{Description} \\
+      %& \multicolumn{4}{c}{\si{\metre\per\square\second}} \\
+      \hline
+      055.565 & $\Omega _1$ & Lunar Saros \\
+      055.575 & $\Omega _2$ & \\
+      056.554 & $S_a$ & Solar annual \\
+      057.555 & $S_{sa}$ & Solar semiannual \\
+      065.455 & $M_m$ & Lunar monthly \\
+      075.555 & $M_f$ & Lunisolar fortnightly \\
+      085.455 & $M_{tm}$ & \\
+      093.555 & $M_{sqm}$ & \\
+      135.655 & $Q_1$ & Larger lunar elliptic diurnal \\
+      145.555 & $O_1$ & Principal lunar declinational \\
+      163.555 & $P_1$ & Principal solar declination \\
+      164.555 & & \\
+      165.555 & $K_1$ & Lunisolar diurnal \\
+      175.455 & $J_1$ & Smaller lunar elliptic diurnal \\
+      227.655 & $\epsilon _2$ & \\
+      235.755 & $2N_2$ & Lunar elliptical semidiurnal second-order \\
+      237.555 & $\mu _2$ & Variational \\
+      245.655 & $N_2$ & Larger lunar elliptic semidiurnal \\
+      247.455 & $\nu _2$ & Larger lunar evectional \\
+      255.555 & $M_2$ & Principal lunar semidiurnal \\
+      263.655 & $\lambda _2$ & Smaller lunar evectional \\
+      265.455 & $L_2$ & Smaller lunar elliptic semidiurnal \\
+      272.556 & $T_2$ & \\
+      273.555 & $S_2$ & Principal solar semidiurnal \\
+      274.554 & $R_2$ & \\
+      275.555 & $K_2$ & Lunisolar semidiurnal \\
+      355.555 & $M_3$ & Lunar terdiurnal \\
+      435.755 & & \\
+      445.655 & $M_{N4}$ & Shallow water quarter diurnal \\
+      455.555 & $M_4$ & Shallow water overtides of principal lunar \\
+      473.555 & $M_{s4}$ & Shallow water quarter diurnal \\
+      491.555 & $S_4$ & Shallow water overtides of principal solar \\
+      655.555 & $M_6$ & Shallow water overtides of principal lunar \\
+      855.555 & $M_8$ & Shallow water eighth diurnal\\
+      \hline
+  \end{tabular}
+  \caption{List of tidal constituents contained listed in \texttt{FES2014b} published 
+    file via \texttt{COST-G}. Description is extracted from \cite{Beauducel2023}.}
+  \label{table:tidal-constituents-fes14b}
+\end{table}

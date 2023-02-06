@@ -22,7 +22,7 @@ Solid earth tide effects, include the direct attraction of the tide generating p
 as well as deformations and associated geopotential changes arising from oceanic loading 
 (which cause a loading of the crust) and wobbles of the mantle and the core regions 
 (causing incremental centrifugal potentials). More information on tidal theory can 
-be found in \cite{Wilhelm1997}, \cite{iers2010} and references therein.
+be found in \cite{Wilhelm1997}, \cite{iers2010} and references therein. 
 
 Here, we are going to adopt the treatment of earth tides as described in 
 \cite{iers2010}. Practicaly, the computation of the tidal contributions to the 
@@ -51,7 +51,18 @@ domain by (\cite{iers2010}):
 where:
 \begin{description}
   \item $\lovek _{nm}$\footnote{Tables of relevant Love numbers are listed 
-    in \cite{iers2010}, Table 6.3.} is the nominal Love number for degree 
+    in \cite{iers2010}, Table 6.3. Note that in the $n=2$ case, $k_{2m}$ have a 
+    non-zero imaginary part $k_{2m} = \Re(k_{2m}) + i\Im(k_{2m})$, hence 
+    \ref{eq:iers1066} expands to
+    \begin{equation}
+      \begin{Bmatrix} \Delta \bar{C}_{nm} \\ \Delta \bar{S}_{nm} \end{Bmatrix}
+      = \frac{1}{5} \frac{GM_j}{GM_\Earth} \left( \frac{R_e}{r_j} \right) ^{3} \bar{P}_{2m} 
+      \begin{Bmatrix}
+        \Re(k_{2m}) \cos{m\lambda _j} + \Im(k_{2m}) \sin{m\lambda _j} \\
+        \Re(k_{2m}) \sin{m\lambda _j} - \Im(k_{2m}) \cos{m\lambda _j}
+      \end{Bmatrix}
+    \end{equation}
+    } is the nominal Love number for degree 
     $n$ and order $m$, 
   \item $R_e$ and $GM_{\Earth}$ are the equatorial radius and the 
     gravitational parameter of the Earth,
@@ -148,3 +159,41 @@ the time independent (permanent) contribution to the geopotential coefficient
 $\bar{C}_{20}$, which is adequate for a ``conventional tide free'' model. 
 When using a ``zero tide'' model, this permanent part should not be counted 
 twice.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{04solidEarthTide_icrf}
+  \caption{Acceleration due to solid Earth tide computed on a one-day arc of \gls{grace}.}
+  \label{fig:04solidEarthTide-icrf}
+\end{figure}
+
+\paragraph{Validation}\label{sssec:solid-earth-acceleration}
+
+To test our implementation, we checked our results against the \texttt{COST-G} 
+benchmark test. Input data for the test is a one day orbit arc of \gls{grace} 
+along with the Sun and Moon ephemerides from \texttt{DE 421}. 
+The discrepancies between our implementation and the benchmark test are depicted in 
+\ref{fig:costg-benchmark-04solidEarthTide-icrf} and \ref{table:costg-benchmark-04solidEarthTide-icrf}. 
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{04solidEarthTide_icrfVsCostg}
+  \caption{Acceleration due to solid Earth tide computed on a one-day arc of}
+  \label{fig:costg-benchmark-04solidEarthTide-icrf}
+\end{figure}
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ccccc}
+      %\hline
+      \textbf{Component} & \textbf{Min} & \textbf{Max} & \textbf{Mean} & \textbf{Std. Deviation}\\
+      & \multicolumn{4}{c}{\si{\metre\per\square\second}} \\
+      \hline
+      $\ddot{x}$ & -5.36e-13 & +5.45e-13 &  3.51e+00 & 2.71e-13 \\
+      $\ddot{y}$ & -5.56e-13 & +5.56e-13 & -4.58e+00 & 3.39e-13 \\
+      $\ddot{z}$ & -5.43e-13 & +5.47e-13 & -9.51e-01 & 3.39e-13 \\
+      \hline
+  \end{tabular}
+  \caption{Earth tide acceleration descripancies against the \texttt{COST-G} benchmark test.}
+  \label{table:costg-benchmark-04solidEarthTide-icrf}
+\end{table}

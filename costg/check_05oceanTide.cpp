@@ -15,8 +15,8 @@
 
 using namespace std::chrono;
 
-const int Degree = 80;
-const int Order = 80;
+const int Degree = 180;
+const int Order = 180;
 
 struct Acc {
   dso::TwoPartDate mjd;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   if (argc != 5) {
     fprintf(stderr,
             "USAGE: %s [eopc04_14_IAU2000.62-now] [oceanTide_FES2014b.potential.iers.txt] [00orbit_icrf.txt] "
-            "[04solidEarthTide_icrf.txt]\n",
+            "[11oceanTide_fes2014b_34major_icrf.txt]\n",
             argv[0]);
     return 1;
   }
@@ -90,18 +90,13 @@ int main(int argc, char *argv[]) {
 
   // read ocean tide file
   std::vector<dso::DoodsonOceanTideConstituent> vdds;
-  if (dso::memmap_octide_coefficients(argv[2], vdds, Degree, Order, 3, 1e-11)) {
+  if (dso::memmap_octide_coefficients(argv[2], vdds, Degree, Order, 2, 1e-11)) {
     fprintf(stderr, "Failed reading inpit file %s!\n", argv[2]);
     return 1;
   }
-  //char buf[64];
-  //for (const auto &d : vdds) {
-  //  printf("%s dC+=%.6e dS+=%.6e dC-=%.6e dS-=%.6e\n", d.doodson_number().str(buf), d.delCp(0,0), d.delSp(0,0), d.delCm(0,0), d.delSm(0,0));
-  //}
-  //return 2;
 
   // An ocean tide instance
-  dso::OceanTide octide(vdds, 0.3986004415E+15, 0.6378136460E+07, Degree, Order);
+  dso::OceanTide octide(vdds, 0.3986004415e+15, 0.6378136460e+07, Degree, Order);
 
   std::vector<Acc>::const_iterator it = refaccs.cbegin();
   for (const auto &pos : refpos) {
@@ -124,10 +119,8 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "ERROR. Failed getting EOP values (status: %d)\n", error);
       return error;
     }
-    //const auto ut1 =
-    //    dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
     Eigen::Matrix<double, 3, 1> ecef_acc;
-    octide.acceleration(tt, /*ut1,*/ cpos, ecef_acc, Degree, Order);
+    octide.acceleration(tt, cpos, ecef_acc, Degree, Order);
 
     // acceleration, ITRF-to-ICRF
     Eigen::Matrix<double, 3, 1> acc = dso::rter2cel(ecef_acc, rc2i, era, rpom);
@@ -136,7 +129,7 @@ int main(int argc, char *argv[]) {
     auto cit = std::find_if(it, refaccs.cend(), [&](const Acc &p) {
       return std::abs(
                  p.mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-                     pos.mjd)) < 1e-3;
+                     pos.mjd)) < 1e-6;
     });
 
     if (cit != refaccs.cend()) {
