@@ -1,0 +1,71 @@
+\subsubsection{\gls{eop} Information \& Interpolation}\label{ssec:eop-interpolation}
+
+\Gls{eop} information for formulating the Celestial-to-Terrestrial transformation 
+matrix, is extracted from the \gls{iers} \texttt{C04} files (\cite{Bizouard2019}).
+These files contain tabulated \gls{eop} values at 0\textsuperscript{h} \gls{utc}. 
+
+These files can be read into an \texttt{dso::EopLookUpTable} instance, using 
+the function \texttt{dso::parse\_iers\_C04}. The function will parse the file 
+for the requested date range, transform \gls{utc} dates to \gls{tt} and conviniently 
+store them in an \texttt{dso::EopLookUpTable} instance. $\Delta UT$ and LOD values 
+can be ``regularized'', aka have the zonal Earth tide effects removed, via the 
+\texttt{dso::EopLookUpTable::regularize} function.
+
+To interpolate \gls{eop} values from an \texttt{dso::EopLookUpTable} instance, 
+users can call the \texttt{dso::EopLookUpTable::interpolate} function, given 
+a datetime instance in \gls{tt}, also specifying the order of Lagrangian 
+interpolation. Effects for ocean tides and libration (see \ref{ssec:polar-motion-matrix} 
+and \ref{ssec:earth-rotation-matrix}) are handled in the function. The output 
+is a complete set of \gls{eop}s, containing $x_p$, $y_p$, $\Delta UT$, $\delta X$ 
+and $\delta Y$ at given $t$. A list of relevant function and data structures 
+used to manipulate \gls{eop} is presented in \ref{table:eop-handling-fds}. The 
+parsing and interpolation procedures are listed in \ref{fig:handling-eop}.
+
+\begin{table}
+\centering
+\begin{tabular}{|p{3cm}|p{3cm}|p{2.5cm}|p{5cm}|}
+    \hline
+    \textbf{Function/Data Structure} & \textbf{Header File} & \textbf{Repository/ Library} & \textbf{Comment} \\
+    \hline
+    \texttt{EopLookUpTable} & \texttt{eop.hpp} & \texttt{doris} & 
+    Contains all relevant declerations, data structures and algorithms to handle 
+    \gls{eop} information. \\
+
+    \hline
+    \texttt{parse\_iers\_C04} & \texttt{eop.hpp} & \texttt{doris} & \\
+
+    \hline
+    \texttt{ortho\_eop} & \texttt{iers2010.hpp} & \texttt{iers2010} &
+    compute the diurnal and semidiurnal variations in \gls{eop} ($x$,$y$, $UT1$) from
+    ocean tides; translated from \texttt{ORTHO\_EOP.F} \footref{fn:ortho-eop-f} \\
+
+    \hline
+    \texttt{pmsdnut2} & \texttt{iers2010.hpp} & \texttt{iers2010} &
+    evaluate the model of polar motion for a nonrigid Earth due to tidal gravitation; 
+    translated from \texttt{PMSDNUT2.F} \footref{fn:pmsdnut2-f} \\ 
+
+    \hline
+    \texttt{utlibr} & \texttt{iers2010.hpp} & \texttt{iers2010} & 
+    compute subdiurnal libration in the axial component of rotation, expressed by 
+    \gls{ut1} and LOD. This effect is due to the influence of tidal gravitation on the
+    departures of the Earth's mass distribution from the rotational
+    symmetry, expressed by the non-zonal components of geopotential. Translated 
+    from \texttt{UTLIBR.F} \footref{fn:utlibr-f} \\
+
+    \hline
+    \texttt{interp\_pole} (and \texttt{interp} namespace) & \texttt{iers2010.hpp} & \texttt{iers2010} & 
+    account for ocean tidal and libration effects in \gls{eop}; translated from \texttt{INTERP.F} \footref{fn:interp-f}\\
+
+    \hline
+\end{tabular}
+\caption{List of functions and data structures relevant to handling \gls{eop} information.}
+\label{table:eop-handling-fds}
+\end{table}
+
+
+\begin{figure}
+\centering
+\input{tikz/handling_eop.tex}
+\caption{Extracting \gls{eop} information from \gls{iers} \texttt{C04} data files.}
+\label{fig:handling-eop}
+\end{figure}
