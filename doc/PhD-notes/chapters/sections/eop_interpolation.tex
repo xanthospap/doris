@@ -32,7 +32,7 @@ semi-diurnal signals.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{eop_interpolation}
+    \includegraphics[height=.4\textheight,keepaspectratio]{eop_interpolation}
     \caption{Interpolation of \gls{eop} parameters $x_p$, $y_p$, $\delta UT1$ and $LOD$ 
         perfromed by the software developed, following \ref{fig:handling-eop}. Red crosses 
         represent the input, reference \gls{eop} values.}
@@ -52,7 +52,7 @@ outlined in \cite{iers2010}; the former is achieved by a software routined desig
 on the basis of the \texttt{ORTHO\_EOP}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/ORTHO_EOP.F}, provided by R. Eanes.\label{fn:ortho-eop-f}} 
 to compute the diurnal and semidiurnal variations in the Earth orientation, while the latter 
 is based on \texttt{PMSDNUT2}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/PMSDNUT2.F}, provided by A. Brzezinski. \label{fn:pmsdnut2-f}}
-to compute the diurnal lunisolar effect on polar motion, see \ref{fig:handling-eop}.
+to compute the diurnal lunisolar effect on polar motion, see \autoref{fig:handling-eop}.
 
 Similarily, for the $\delta UT1$ and $LOD$ values, 
 \begin{equation}
