@@ -94,7 +94,7 @@ int dso::EopLookUpTable::interpolate(const dso::TwoPartDate &fmjd,
   // compute fundamental arguments (and gmst+π) needed for pmsdnut2 and
   // utlibr
   double fargs[6];
-  iers2010::utils::eop_fundarg(fmjd, fargs);
+  iers2010::utils::eop_fundarg(fmjd.utc2tai().tai2tt(), fargs);
 
   double dxlib, dylib;
   // iers2010::pmsdnut2(tt_fmjd, dxlib, dylib); // [μas]

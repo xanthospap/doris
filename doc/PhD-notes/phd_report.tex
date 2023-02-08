@@ -28,6 +28,7 @@
 \usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
 \usepackage{tabularx}
 \usepackage{multirow}  %% for tabular
+\usepackage{colortbl} %% for \arrayrulecolor, colored hlines
 \usepackage{todonotes} %% fancy, right-margin notes
 \usepackage{csquotes}  %% for quoting
 \usepackage{wasysym}   %% zodiac symbols (equinox, etc ...)
@@ -163,6 +164,7 @@
 \newacronym{irf}{IRF}{Inertial Reference Frame}
 \newacronym{trf}{TRF}{Terrestrial Reference Frame}
 \newacronym{tcb}{TCB}{Barycentric Coordinate Time}
+\newacronym{tdb}{TDB}{Barycentric Dynamical Time}
 \newacronym{tcg}{TCG}{Geocentric Coordinate Time}
 \newacronym{tt}{TT}{Terestrial Time}
 \newacronym{tai}{TAI}{International Atomic Time}
@@ -187,6 +189,8 @@
 \newacronym{grace}{GRACE}{Gravity Recovery and Climate Experiment}
 \newacronym{jpl}{JPL}{Jet Propulsion Laboratory}
 \newacronym{iugg}{IUGG}{International Union of Geodesy and Geophysics}
+\newacronym{jd}{JD}{Julian Date}
+\newacronym{mjd}{MJD}{Modified Julian Date}
 %\newacronym{}{}{}
 
 
@@ -217,12 +221,15 @@
       \include{chapters/sections/ocean_tides_gravity}
       \include{chapters/sections/atmospheric_drag}
       \subsubsection{Solar Radiation Pressure}
-    \section{Celestial Reference Frame}
+    \section{The Celestial Reference Frame}
       \include{chapters/sections/icrf}
       \include{chapters/sections/earth_attitude}
       \include{chapters/sections/terrestrial_to_celestial}
       \include{chapters/sections/eop_interpolation}
+    
     \section{Time Systems and Scales}
+      \include{chapters/sections/time_systems}
+      \include{chapters/sections/time_scales_implementation}
 
 %\include{chapters/satellite_orbits}
 %\include{chapters/orbit_intergators}

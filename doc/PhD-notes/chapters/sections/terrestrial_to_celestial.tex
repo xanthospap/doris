@@ -1,4 +1,4 @@
-\subsubsection{Terrestrial to Celestial Transformation}\label{sssec:itrs-to-gcrs}
+\subsection{Terrestrial to Celestial Transformation}\label{ssec:itrs-to-gcrs}
 
 The definition of the \gls{gcrs} and \gls{itrs} and the procedures for the \gls{itrs} 
 to \gls{gcrs} transformation that are provided in this section comply with the 
@@ -94,20 +94,7 @@ where $s'$ is the ``\gls{tio} locator'' and $x_p$, $y_p$ are the
 ``polar coordinates'' of the \gls{cip} in the \gls{itrs}. The latter values, 
 if not estimated, should be the ones published by the \gls{iers}, corrected for 
 the effect of ocean tides and forced terms (aka ``libration''), with periods 
-less than two days in space (\cite{iers2010}), so that:
-\begin{equation}
-    \begin{pmatrix} x_p & y_p \end{pmatrix} = 
-    \begin{pmatrix} x & y \end{pmatrix}_{IERS} + 
-    \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{ocean\text{ }tides} + 
-    \begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{libration} 
-\end{equation}
-Handling of ocean tides and forced terms is performed similar to the \gls{iers}-published 
-\texttt{INTERP.F}\footnote{Available from IERS at \url{https://hpiers.obspm.fr/iers/models/interp.f} \label{fn:interp-f}} routine. 
-In principle, the same result should be obtained by computing the respective 
-corrections from calling \texttt{ORTHO\_EOPF}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/ORTHO_EOP.F}, provided by R. Eanes.\label{fn:ortho-eop-f}} 
-to compute the diurnal and semidiurnal variations in the Earth orientation
-and \texttt{PMSDNUT2.F}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/PMSDNUT2.F}, provided by A. Brzezinski. \label{fn:pmsdnut2-f}}
-to compute the diurnal lunisolar effect on polar motion, see \ref{fig:handling-eop}.
+less than two days in space (\cite{iers2010}), see \ref{ssec:eop-interpolation}.
 
 The \gls{tio} locator $s'$, positioning the \gls{tio} on the equator of the \gls{cip}, 
 is necessary to provide an exact realization of the ``instantaneous prime meridian'', 
@@ -151,29 +138,12 @@ $UT1=UTC+(UT1-UTC)$.
 
 Similarly to polar motion, additional components should 
 be added to the values published by \gls{iers} for $\Delta UT$ to account for 
-the effects of ocean tides and libration. These can be computed using the 
-\gls{iers}-published \texttt{INTERP.F}\footnote{Available from IERS at \url{https://hpiers.obspm.fr/iers/models/interp.f} \label{fn:interp-f}} 
-routine, or via a call to \texttt{ORTHO\_EOP}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/ORTHO_EOP.F}, provided by R. Eanes.} 
-(to compute the diurnal and semidiurnal variations in the Earth orientation) 
-followed by a call to \texttt{UTLIBR}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/UTLIBR.F}, provided by A. Brzezinski.\label{fn:utlibr-f}} 
-to account for the subdiurnal librations in UT1. These corrections are applied 
-after the interpolation, see \ref{fig:handling-eop}.
-
-Note that according to \cite{Bradley2016}:
-\begin{displayquote}
-    Prior to the interpolation of DUT1 and LOD, the tabulated values
-    should be smoothed through regularization to enhance the
-    interpolation accuracy. Regularization is the removal of
-    zonal tidal variations with frequencies ranging from 5 days
-    to 18.6 years.
-\end{displayquote}
-This ``regularization'' is implemented in the \gls{eop} interpolation proccess, 
-see \ref{fig:handling-eop}.
+the effects of ocean tides and libration, see \ref{ssec:eop-interpolation}. 
 
 \paragraph{Celestial Motion Matrix $Q(t)$}\label{par:celestial-motion-matrix}
 The \gls{cio} based transformation matrix arising from the motion of the \gls{cip} 
 in the \gls{gcrs} (i.e. relating \gls{cirs} and \gls{gcrs}), can be expressed as
-\cite{iers2010}):
+(\cite{iers2010}):
 \begin{equation}
   \bm{Q}(t) = \bm{R}_z (-E) \cdot 
               \bm{R}_y (-d) \cdot 
@@ -266,7 +236,8 @@ where $\bm{Q}_{IAU}$ represents the $\bm{Q}(t)$ matrix based on the IAU 2006/200
 precession-nutation model.
 
 The ``\gls{cio} locator'' $s$, providing the position of the \gls{cio} in the 
-\gls{gcrs} can also be computed using a developement described in \cite{Capitaineetal2003a}\footnote{\gls{sofa} (\cite{SOFA20210125}) supplies an implementation of the formula named \texttt{iauS06} function}.
+\gls{gcrs} can also be computed using a developement described in \cite{Capitaineetal2003a}
+\footnote{\gls{sofa} (\cite{SOFA20210125}) supplies an implementation of the formula named \texttt{iauS06} function}.
 
 %\begin{figure}
 %     \centering

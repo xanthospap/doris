@@ -1,0 +1,49 @@
+\begin{tikzpicture}[
+  every node/.style = {
+    draw=black, 
+    rounded corners, 
+    fill=gray!20,
+    minimum width=2cm,
+    minimum height=0.5cm,
+    align=center},
+    every path/.style = {draw, -latex}
+  ]
+  
+  \node[fill=red!5] (c04) [] {
+    Interpolate \gls{iers} \texttt{C04} file to get $x_p$, $y_p$, $\Delta UT$, 
+    $\delta X$ and $\delta Y$ at given $t$, see \ref{fig:handling-eop}
+  };
+
+  \node (gcrs) [below=of c04] {\acrfull{gcrs}};
+  
+  \node[fill=gray!5] (gcrs2cirs) [below =of gcrs] {
+    compute IAU 2006/2000A $X$, $Y$ from series (\ref{eq:tn36516a} and \ref{eq:tn36516b})\\ 
+    compute $s$ \\
+    apply corrections $\delta X$ and $\delta Y$\\
+    compute \& apply matrix $\bm{Q}(t)$, see \ref{par:celestial-motion-matrix}
+  };
+
+  \node (cirs) [below =of gcrs2cirs] {\acrfull{cirs}};
+
+  \node[fill=gray!5] (cirs2tirs) [below =of cirs] {
+    apply matrix $\bm{R}(t)$, using the \gls{era} and $\Delta UT$\\
+    $\bm{R}(t) = R_3 (ERA) $, see \ref{par:earth-rotation-matrix}
+  };
+  
+  \node (tirs) [below =of cirs2tirs] {\acrfull{tirs}};
+
+  \node[fill=gray!5] (tirs2itrs) [below =of tirs] {
+    compute $s'$ and use $x_p$ and $y_p$ to\\
+    apply matrix $\bm{W}(t)$, see \ref{par:polar-motion-matrix}
+  };
+  
+  \node (itrs) [below =of tirs2itrs] {\acrfull{itrs}};
+
+  \draw (gcrs) -- (gcrs2cirs);
+  \draw (gcrs2cirs) -- (cirs);
+  \draw (cirs) -- (cirs2tirs);
+  \draw (cirs2tirs) -- (tirs);
+  \draw (tirs) -- (tirs2itrs);
+  \draw (tirs2itrs) -- (itrs);
+
+\end{tikzpicture}
