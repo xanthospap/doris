@@ -1,7 +1,7 @@
-\subsubsection{Gravity Acceleration}\label{sssec:gravity-acceleration}
+\subsubsection{Computing Gravity Acceleration}\label{sssec:gravity-acceleration}
 
 The acceleration of an Earth orbiting satellite due to the Earth's gravity field, 
-can be computed using the potential $U$ (see \ref{eq:geopotential})
+can be computed using the potential $U$ (see \autoref{eq:geopotential})
 \begin{equation}
   \bm{\ddot{r}} =  
     \begin{pmatrix} \ddot{x} & \ddot{y} & \ddot{z} \end{pmatrix} = 
@@ -9,13 +9,15 @@ can be computed using the potential $U$ (see \ref{eq:geopotential})
 \end{equation}
 
 The classical formulation of the gravitational acceleration derived from the spherical 
-harmonics model (see \ref{eq:mont315}) employs the geocentric spherical coordinate 
-representation. This formulation results in two singularities at the north and 
+harmonics expansion (see \autoref{eq:mont315}) employs the geocentric spherical coordinate 
+representation. This approach can result in singularities at the north and 
 south poles (\cite{Atallah2022}). To avoid this problem, our implementation of the 
-computation algorithm is based on a development based on Cartesian components, introduced by 
-Cunningham (\cite{Cunningham1970}), which is singularity-free. However, this formulation 
-is in un-normalized form; an equivalent, normalized form was derived and implemented, 
-taking into account \cite{Atallah2022}.
+computation algorithm is based on a development based on Cartesian components, 
+introduced by \cite{Cunningham1970} and also presented in \cite{Montenbruck2000}, 
+which is singularity-free. However, the derivation and results described therein 
+use the un-normalized form; an equivalent, normalized form was derived and implemented, 
+taking into account \cite{Atallah2022}. In the following, we derive the algorithmic 
+approach adopted in the design of the software built for the current Thesis.
 
 If we define 
 \begin{equation}
@@ -24,7 +26,7 @@ If we define
       \left( \cos (m\lambda) + i \sin (m\lambda) \right)
 \end{equation}
 
-we can rewrite the potential (see \ref{eq:mont310}), as
+we can rewrite the potential (see \autoref{eq:mont310}), as
 \begin{equation}
   U = \Re \left( \frac{GM_{\Earth}}{R_{\Earth}} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
     \left( \bar{C}_{nm} - i \bar{S}_{nm} \right) \bar{V}_{nm} \right)
@@ -35,7 +37,7 @@ using normalized coefficients, so that the acceleration is given by
     \left( \bar{C}_{nm} - i \bar{S}_{nm} \right) \nabla \bar{V}_{nm} \right)
 \end{equation}
 
-Ommiting intermidiate results (see e.g. \cite{Atallah2022}), we end up in the 
+Omitting intermediate results (see e.g. \cite{Atallah2022}), we end up in the 
 recurrence relations:
 \begin{equation}
   \begin{aligned}
@@ -72,7 +74,7 @@ The recurrence starts with initial conditions
   \end{aligned}
 \end{equation}
 
-Now we can use the $\bar{M}_{nm}$ and $\bar{W}_{nm}$ to compute the acceleration 
+Now we can use the $\bar{M}_{nm}$ and $\bar{W}_{nm}$ to compute the Cartesian acceleration 
 components using
 \begin{equation}
   \begin{aligned}
@@ -117,8 +119,8 @@ where $N_{nm}$ is the normalization factor for degree $n$ and order $m$
 \paragraph{Derivative of Acceleration}\label{sssec:derivative-geopotential-acceleration}
 
 Partial derivatives of the acceleration need to be computed, with respect to the 
-satellite state vector, $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$ for the variational 
-equations. For the central term
+satellite state vector, $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$ for the 
+variational equations. For the central term
 \begin{equation}
   \bm{\ddot{r}} = - \frac{GM_{\Earth}}{r^3}\bm{r}
 \end{equation}
@@ -142,28 +144,30 @@ if follows that
   \end{aligned}
 \end{equation}
 which shows that the gravity gradient is symmetric and with a zero trace. The same result 
-can be deduced considering earth's gravitational potential expressed as \ref{eq:mont34} 
+can be deduced considering Earth's gravitational potential expressed as \autoref{eq:mont34} 
 (see \cite{Montenbruck2000}). The two properties reduce the number of independent 
 components that have to be considered in the computation from nine to five. 
 
-Deriving the partials is quite tedius. For the computation, we follow the development 
-used in \ref{sssec:gravity-acceleration}, follwing a normalized version of 
-\cite{Cunningham1970} to compute the quantities $\frac{\partial \ddot{x}_{nm}}{\partial x}$, 
+Deriving the partials is quite tedious and requires analytical work. For the computation, 
+we proceed on the basis of the development used in \autoref{sssec:gravity-acceleration}, 
+following a normalized version of \cite{Cunningham1970} to compute the quantities 
+$\frac{\partial \ddot{x}_{nm}}{\partial x}$, 
 $\frac{\partial \ddot{x}_{nm}}{\partial y}$, $\frac{\partial \ddot{x}_{nm}}{\partial z}$, 
 $\frac{\partial \ddot{y}_{nm}}{\partial z}$ and $\frac{\partial \ddot{z}_{nm}}{\partial z}$.
 
 \paragraph{Earth Rotation}\label{sssec:gravity-acceleration-earth-rotation}
 
-Formulas presented in the current section, \ref{sssec:gravity-acceleration}, 
-are valid in an \gls{ecef} frame, that is ignore Earth's rotation (aka $\bm{r}$ is 
+Formulas presented in the current section, \autoref{sssec:gravity-acceleration}, 
+are valid in an \gls{ecef} frame, that is ignoring Earth's rotation (aka $\bm{r}$ is 
 the satellite's position vector in \gls{ecef} coordinates). We are now designating 
 the $\bm{r}$ vector as $\bm{r}_{ef}$ and introducing $\bm{r}_{sf}$ to designate the 
-correspongind celestial, ``space-fixed'' vector, with 
+corresponding celestial, ``space-fixed'' vector, with 
 \begin{equation}
   \bm{r}_{ef} = \bm{R} \cdot \bm{r}_{sf}
 \end{equation}
-where $\bm{R}$ is the terretrial-to-celestial transformation matrix. The partial 
-derivatives $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$ is the ``space-fixed'' 
+where $\bm{R}$ is the terrestrial-to-celestial transformation matrix (see 
+\autoref{ssec:itrs-to-gcrs}). The partial derivatives 
+$\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$ is the ``space-fixed'' 
 frame, would then be given by
 \begin{equation}
   \left( \frac{\partial \bm{\ddot{r}}}{\partial \bm{r}} \right) _{sf} = 
@@ -178,27 +182,27 @@ and for the acceleration
 
 \paragraph{Validation}\label{sssec:gravity-acceleration-acceleration}
 
-The acceleration induced to an earth orbiting satellite by the earth's gravity 
+The acceleration induced to an earth orbiting satellite by the Earth's gravity 
 field, is by far the largest in magnitude, hence it should be computed with utmost 
-precision. To test our implementation, we checked our results against the \texttt{COST-G} 
-benchmark test. Input data for the test is a one day orbit arc of \gls{grace} paired
+precision. To test the implementation, results obtained we checked against the \texttt{COST-G} 
+benchmark test. Input data for the test is a one-day orbital arc of \gls{grace}, paired
 with the earth gravity model \texttt{EIGEN-6C4}. Acceleration is evaluated from degree
 and order 2 to 180 (i.e. leaving out the largest in magnitude central term). According 
 to \cite{Lasser23}, accelerations should be consistent to at least \SI{10e-12}{\metre\per\square\second}.
 The discrepancies between our implementation and the benchmark test are depicted in 
-\ref{fig:costg-benchmark-02gravityfield-itrf} and \ref{table:costg-benchmark-02gravityfield-itrf}. 
+\autoref{fig:costg-benchmark-02gravityfield-itrf} and \autoref{table:costg-benchmark-02gravityfield-itrf}. 
 It is clear that results obtained lie within the accuracy demands of the benchmark test.
 
 \begin{figure}
   \centering
   \includegraphics[height=.4\textheight,keepaspectratio]{02gravityfield_itrf}
-  \caption{Earth gravity acceleration descripancies against the \texttt{COST-G} 
+  \caption{Earth gravity acceleration discrepancies against the \texttt{COST-G} 
     benchmark test. Gravity model is \texttt{EIGEN-6C4} from degree and order 2 to 180. 
-    Comparing results for a one day orbit arc of \gls{grace} in \gls{itrf}.}
+    Comparing results for a one-day orbit arc of \gls{grace} in \gls{itrf}.}
   \label{fig:costg-benchmark-02gravityfield-itrf}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[]
   \centering
   \begin{tabular}{ccccc}
       %\hline
@@ -210,6 +214,6 @@ It is clear that results obtained lie within the accuracy demands of the benchma
       $\ddot{z}$ & -1.14e-15 & +1.00e-15 & -5.81e-18 & 2.19e-16 \\
       \hline
   \end{tabular}
-  \caption{Earth gravity acceleration descripancies against the \texttt{COST-G} benchmark test.}
+  \caption{Earth gravity acceleration discrepancies against the \texttt{COST-G} benchmark test.}
   \label{table:costg-benchmark-02gravityfield-itrf}
 \end{table}

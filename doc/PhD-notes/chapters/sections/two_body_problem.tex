@@ -2,85 +2,35 @@
 \label{ssec:two-body-problem}
 
 The main features of the motion of artificial satellites can be described by a
-reasonably simple approximation,due to the fact that the force induced by the 
-Earth's gravity field outrules all other forces (acting on the satellite) by 
-several orders of magnitude. The problem of determining the motion of two 
-bodies, due solely to their own mutual gravitational attraction, is usually 
-reffered to as the \emph{Two-Body Problem} or \emph{Kepler's Problem}. In the 
-case of Earth orbiting satellites, we will be approximating Earth's gravity as 
-if it were a spherically symmetric force field, induced by a central mass.
+reasonably simple approximation, due to the fact that the force induced by the 
+Earth's gravity field outrules all other forces by several orders of magnitude. 
+Assume that the masses are spherically symmetrical, thus acting like point masses, 
+and isolated, so the only force acting is gravitational attraction along the line 
+joining the centers. The problem of predicting the orbit of the masses, given the 
+described setup, is usually referred to as the \emph{Two-Body Problem} (or 
+\emph{Kepler Problem} since the attracting force is gravity) and lies in the core 
+of celestial mechanics. The solution can be expressed as a \emph{Kepler orbit}, using 
+six \emph{orbital elements} (see \autoref{ssec:orbital-elements}).
 
-In the \emph{Two-Body Problem}, we are considering a satellite of mass $m$, 
-where $m \ll M_{\Earth}$. Assuming a spherical Earth, the acceleration of the 
-satellite $\bm{\ddot{r}}$ is given by Newton's law of gravitational attraction:
+In the case of an Earth orbiting satellite, we can safely assume that the mass of 
+the satellite $m$ is insignificant compared to Earth's mass, $m \ll M_{\Earth}$, 
+(thus considering what is often called a \emph{central-force problem}). The 
+acceleration of the satellite $\bm{\ddot{r}}$ is given by Newton's law of gravitational 
+attraction
 \begin{equation}
   \label{eq:mont32}
   \bm{\ddot{r}} = - \frac{G M_{\Earth}}{r^3} \bm{r}
 \end{equation}
 
-A full treatment of the \emph{Two-Body Problem} is beyond the scope of this 
-thesis and well documented in e.g. \cite{curtisb} and \cite{chobotov}. It can 
-be shown that the path of the satellite, relative to the Earth, is a conic section 
+A full treatment of the Two-Body Problem is beyond the scope of this thesis and 
+well documented in e.g. \cite{curtisb} and \cite{chobotov}. It can be shown that 
+the path of the satellite, relative to the Earth, is a conic section 
 (ellipse) whose shape is determined by the \emph{eccentricity}. Using the laws 
 of conservation of angular momentum and energy, the period of the elliptic orbit 
 can also be deduced.
 
-\iffalse
-\subsection{Two-Body Problem}
-\label{ssec:keplerian-orbits}
-Starting from Newton's law of gravitation for two masses $M$ and $m$ at 
-distance $r$, assuming an inertial reference frame, the gravitational 
-attraction is:
-\begin{equation}
-  \label{eq:chobotov31}
-  \bm{F} = \frac{G M m_1}{r^3} \bm{r}
-\end{equation}
-where $G$ is the gravitational constant. The force acts along the line joining 
-the centers of the two masses. The force exerted on $M$ by $m$, is:
-\begin{equation}\label{eq:curtis29}
-  \bm{F}_{Mm} = \frac{G M m}{r^3} \bm{r}
-\end{equation}
-and analogously, the force exerted on $m$ by $M$, is
-\begin{equation}\label{eq:curtis210}
-  \bm{F}_{mM} = -\frac{G M m}{r^3} \bm{r}
-\end{equation}
-By Newton's third law (action-reactin principle) the two forces are equal in 
-magnitude with oppposite directions. Additionaly, Newton's second law of motion
-dictates that:
-\begin{equation}\label{eq:curtis2105}
-  \bm{F}_{Mm} = M \ddot{\bm{r}}_M \quad \bm{F}_{mM} = m \ddot{\bm{r}}_m
-\end{equation}
-hence:
-\begin{subequations}
-  \begin{align}
-    M \ddot{\bm{r}}_M &= \frac{G M m}{r^3} \bm{r} \label{eq:curtis211} \\
-    m \ddot{\bm{r}}_m &= \frac{G M m}{r^3} \bm{r} \label{eq:curtis212}
-  \end{align}
-\end{subequations}
-Note that by addition of \ref{eq:curtis211} and \ref{eq:curtis212}, we get that:
-\begin{equation}
-  M \ddot{\bm{r}}_M + m \ddot{\bm{r}}_m = \bm{0}
-\end{equation}
-i.e., the acceleration of the barycenter is zero (see \ref{eq:curtis24}), a 
-condition holding for any system free of external forces.
-
-The \emph{barycenter} of the (two-body) system is defined by the formula,
-\begin{equation}\label{eq:curtis22}
-  \bm{r}_{cm} = \frac{M \bm{r}_M + m \bm{r}_m }{M + m}
-\end{equation}
-with absolute\footnote{\emph{Absolute} means that the quantities are measured relative to an inertial reference frame.} 
-velocity and acceleration:
-\begin{subequations}
-  \begin{align}
-    \dot{\bm{r}}_{cm} &= \frac{M \dot{\bm{r}}_M + m \dot{\bm{r}}_m }{M + m} \label{eq:curtis23} \\
-    \ddot{\bm{r}}_{cm} &= \frac{M \ddot{\bm{r}}_M + m \ddot{\bm{r}}_m }{M + m} \label{eq:curtis24}
-  \end{align}
-\end{subequations}
-
-\begin{figure}
-\centering
-\input{tikz/ellipse-geometry.tex}
-\caption{Ellipse geometry (\cite{chobotov})}
-\label{fig:ellipse-geometry}
-\end{figure}
-\fi
+The Two-Body Problem results in what is called the \emph{Keplerian orbit}.
+In this ideal case, a set of six parameters is required to uniquely identify a specific 
+orbit. This parameter set in not unique (there are different ways to mathematically 
+describe the same orbit), but the most oftenly used set is the \emph{Keplerian elements} 
+(see \autoref{ssec:orbital-elements}).

@@ -1,33 +1,29 @@
-\subsection{Non-Keplerian Motion}
-\label{ssec:non-keplerian}
+\subsection{Perturbed Motion}
+\label{ssec:perturbed-motion}
 
-The two-body problem (\ref{ssec:two-body-problem}) is the basis for most 
+The Two-Body problem (\autoref{ssec:two-body-problem}) is the basis for most 
 trajectory problems, due to (\cite{hintz}):
 \begin{enumerate}
   \item the relative two-body problem can be solved analytically,
   \item it is often a good approximation to the real solution (central body 
-    gravitational force is dominant compared to perurbing forces),
-  \item provides a clear and illustritive picture of the situation, and
+    gravitational force is dominant compared to perturbing forces),
+  \item provides a clear and illustrative picture of the situation, and
   \item it can be used as a reference trajectory for precise orbit 
     determination techniques
 \end{enumerate}
 
-In the framework of Newtonian physics, the motion of a satellite under the influence 
-of a force $\bm{F}$ is described by the differential equation (\cite{Montenbruck2000})
-\begin{equation}
-  \bm{\ddot{r}} = \frac{\bm{F} (t, \bm{r}, \bm{v})}{m}
-\end{equation}
-in a \emph{non-rotating} reference system ($m$ being the satellite's mass).
-In the \ref{ssec:two-body-problem}, we consider only the gravitational force 
-\ref{eq:mont32}, assuming point masses or a radially symmetric force, obtaining 
-an elliptic satellite orbit with fixed orbital plane.
+In real world, a satellite orbiting the Earth departs from the Two-Body problem 
+scenario; neither is the system isolated, acting only on mutual gravitational attraction, 
+nor can the gravitational attraction of the Earth be attributed to a point-like mass. 
+The force field acting on the satellite in this case, has to be augmented to account for 
+forces other than the ones considered in the Two-Body problem. As a result, satellite 
+orbits are \emph{perturbed} away from Keplerian orbits, making the actual motion 
+follow a complex, ``disturbed'' trajectory. In \gls{pod}, effects other than a
+spherical Earth central gravitational attraction are treated as perturbations of 
+the hypothetical unperturbed motion of the satellite around the Earth. 
 
-In real world, satellite orbits are \emph{perturbed} away from Keplerian 
-orbits, due to forces other than the central body's gravitational force, i.e. 
-other than those that cause it to move along a reference trajectory.
-
-A perturbing force is \emph{conservative}\footnote{
-A force field $\bm{F}$ is is called a conservative force if it meets one of the 
+A perturbing force can either be \emph{conservative}\footnote{
+A force field $\bm{F}$ is called a conservative force if it meets one of the 
 following three demands:
   \begin{enumerate}
     \item the \emph{curl} of $\bm{F}$ is zero:\begin{equation}\vec{\nabla} \times \bm{F} = \bm{0}\end{equation}
@@ -35,14 +31,37 @@ following three demands:
       through a loop trajectory:\begin{equation}W \equiv \oint _C \bm{F}d\bm{r}=0 \end{equation}
     \item the force can be written as the gradient of a potential:\begin{equation}\bm{F}=-\vec{\nabla} U\end{equation}
   \end{enumerate}
-  } if it is derivable from a scalar 
-function:
+} (e.g. third body attraction) or \emph{non-conservative} (e.g. atmospheric drag). 
+Systems driven by conservative forces have a constant total energy (kinetic and potential), 
+whereas in the non-conservative case, energy may be gained or lost mainly through 
+heat exchange (friction) or external sources (thrust). Conservative forces are 
+derivable from a scalar function
 \begin{equation}
   \bm{F} = -\nabla U(\bm{r})
 \end{equation}
+a fact that will be used later on, when dealing with perturbing forces.
 
-The perturbing forces caused by third bodies are conservative field forces. 
-There are also non-conservative perturbing forces such as atmospheric drag.
+The fundamental problem in perturbation analysis is orbit propagation. Unlike the 
+Two-Body case, the most accurate way to analyze perturbations is numerically (\cite{Vallado}).
+In general, solution techniques for the perturbation problem fall into two categories 
+\begin{description}
+  \item[Special perturbation techniques] where we numerically integrate the equations 
+  of motion including all necessary perturbing accelerations, and
+  \item[General perturbation techniques] where we consider an analytical approximation and 
+  integration over some time interval
+\end{description}
+
+In this Thesis, we will be approximating the problem of perturbed orbit motion 
+using special perturbation techniques. This approach is more recent (compared to 
+the general perturbation approach), since it requires significant computational 
+power. Today, with the limitations on computing power pretty much raised, a new 
+era in analyzing perturbations has emerged. A drawback of this technique, is its 
+specificity; new data means new integration, which can add lengthy computing times. 
+Additionally, as most numerical methods, it suffers from errors that build up with 
+truncation and round-off due to floating point arithmetic. These errors build up 
+with the lengthening of integration intervals, and can cause a degradation of the 
+solution accuracy. Even so however, they offer significantly better accuracy than 
+the analytical approach. A nice overview of both approaches is given in \cite{Vallado}.
 
 In the following, we are going to discuss the \emph{Force Model} acting on an 
-Earth orbiting satellite.
+Earth orbiting satellite, departing from the Two-Body problem.

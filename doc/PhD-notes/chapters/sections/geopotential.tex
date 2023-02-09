@@ -1,10 +1,10 @@
 \subsubsection{Geopotential}\label{sssec:geopotential}
 
-In the two-body problem (\ref{ssec:two-body-problem}) we are assuming a radially 
-symmetric gravity force. For precise orbit determination however, we need to 
-drop this assumption and take into account that the Earth is not a perfect sphere, 
-but rather resembles an oblate spheroid, with different equatorial and polar 
-diameter. To derive a more realistic model, it is convenient to use an equivalent 
+In the two-body problem (\autoref{ssec:two-body-problem}) we are assuming a radially 
+symmetric gravity force, acting like a point mass. For precise orbit determination 
+however, we need to drop this assumption and take into account that the Earth is 
+not a perfect sphere, but rather resembles an oblate spheroid, with different equatorial 
+and polar diameter. To derive a more realistic model, it is convenient to use an equivalent 
 representation involving the gradient of the corresponding gravity potential $U$ 
 (\cite{Montenbruck2000}):
 \begin{equation}
@@ -23,7 +23,7 @@ mass contributions $dm = \rho (\bm{s}) d^3 s$, and express the potential as:
   U = G \int \frac{\rho (\bm{s})}{\norm{\bm{r}-\bm{s}}} \, d^3 s
 \end{equation}
 where $\bm{r}$ is the vector from the mass center to the attracted body (i.e. satellite) 
-and $\bm{s}$ is the geocentric vector the the elementary mass $dm$.
+and $\bm{s}$ is the geocentric vector the elementary mass $dm$.
 
 For any point $\bm{r}$ outside the mass, $r > s$, we can expand the inverse of the 
 distance using a series of \emph{Legendre polynomials}, as
@@ -62,14 +62,14 @@ with coefficients\footnote{The coefficients $C_{nm}$ and $S_{nm}$ are often call
   \end{aligned}
 \end{equation}
 which describe the dependence on the Earth's internal mass distribution. In geodetic 
-applications, we most oftenly the \emph{normalized} geopotential coefficients 
+applications, we most oftenly use the \emph{normalized} geopotential coefficients 
 $\bar{C}_{nm}$ and ${\bar{S}}_{nm}$, defined as
 \begin{equation}
-  \begin{Bmatrix} \bar{C}_{nm} & \bar{S}_{nm} \end{Bmatrix} = 
+  \begin{Bmatrix} \bar{C}_{nm} \\ \bar{S}_{nm} \end{Bmatrix} = 
   \sqrt{\frac{(n+m)!}{\left(2-\delta _{0m}\right) \left(2n+1\right) \left(n-m\right)!}}
-  \begin{Bmatrix} C_{nm} & S_{nm} \end{Bmatrix}
+  \begin{Bmatrix} C_{nm} \\ S_{nm} \end{Bmatrix}
 \end{equation}
-which are much more unifom in magnitude.
+which are much more uniform in magnitude, thus helping reduce round-off errors.
 
 We can now write the acceleration due to the Earth's gravity potential as 
 (\cite{Montenbruck2000})
@@ -88,19 +88,18 @@ where we use the \emph{normalized} associated Legendre functions
 Earth gravity models, contain the potential coefficients $\bar{C}_{nm}$ and $\bar{S}_{nm}$ 
 up to a given degree $n$ and order $m$ (with $m \le n$) and the parameters $GM_{\Earth}$ 
 and $R_{\Earth}$ via which one can compute the geopotential or the induced acceleration 
-on a satellite given its position vector $\bm{r}$. Gravity models are derived from:
+on an orbiting satellite, given its position vector $\bm{r}$. Gravity models are derived from:
 \begin{description}
   \item \emph{Satellite data}, making use of the fact that the Earth's gravity field 
     can produce perturbations ``seen'' in satellite orbits via \gls{pod}. It is worth 
-    noting that since the \gls{grace} (\cite{Tapley2004b}) was launched 
-    in March 2002, satellite gravimetry has brought a new era of studying global mass 
-    variation and redistribution through measuring the time-variable gravity field with 
-    unprecedented accuracy (see e.g. \cite{Chen2022} and \cite{Jaggi2023}). \gls{grace} is a 
-    twin satellites mission, accurately tracking variations of inter-satellite range between 
-    the two satellites via a K-band ranging system.
+    noting that since \gls{grace} (\cite{Tapley2004b}) was launched in March 2002, satellite 
+    gravimetry has brought a new era of studying global mass variation and redistribution 
+    through measuring the time-variable gravity field with unprecedented accuracy 
+    (see e.g. \cite{Chen2022} and \cite{Jaggi2023}). This progress was further enhanced 
+    with the launch of \gls{goce} (\cite{Johannessen2003}) in 2009.
   \item \emph{Terrestrial observations} (surface gravimetry), providing precise local 
     and regional (short-wavelength) information on the gravity field. Due to their 
-    inhomogenous distribution though, deriving a global gravity model is quite challenging.
+    inhomogeneous distribution though, deriving a global gravity model is quite challenging.
   \item \emph{Altimeter data}, which provide detailed information about the form of the 
     geoid, which may in turn be used to derive geopotential coefficients.
   \item \emph{Combinations} of the above methods/data.
@@ -117,8 +116,8 @@ parametrization of the coefficients consists of two parts,
     E.g., for the case of \emph{CNES/GRGS RL04} (\cite{lemoine-rl04}), three major 
     earthquakes have been introduced in the modelling: Sumatra on 2004/12/26, Concepcion 
     on 2010/02/27 and Sendai on 2011/03/11.
-  \item a \emph{harmonic} part, most often containing two annual and two semi-annual 
-    coefficients for each year.
+  \item a \emph{harmonic} part, usually including two annual and two semi-annual 
+    coefficients for each year (in- and out-of-phase).
 \end{itemize}
 
 In these \gls{tvg} models, the normalized Stoke's coefficients are given by:
@@ -154,26 +153,41 @@ where $t_{start} < t < t_{end}$ and
 \gls{igfs} of the \gls{iag}. Among other services, \gls{icgem} collects and 
 archives all existing global gravity field models and provides a web interface 
 for getting access to them.
+
 Gravity models are published in what is called the \emph{ICGEM-format} 
-(\cite{ICGEMFormat}), an effort to standarize the distribution of such models, 
-that is gaining evermore attraction in recent years. This format offers great 
-advantages since it is standarized, well documented, generic and can be used to 
-publish and/or parse (with slught extensions) coeeficients other than gravity 
-models (e.f. ocean tides).
+(\cite{ICGEMFormat}), an effort to standardize the distribution of such models, 
+that is gaining evermore attention in recent years. This format offers great 
+advantages since it is standardized, well documented, generic and can be used to 
+publish and/or parse (with slight extensions) coefficients other than gravity 
+models (e.g. ocean tides).
 
 \paragraph{Implementation}\label{par:implementation}
-For the purposes of the current Thesis, software has been developed to handle the 
-modeling of the Earth's gravity models. Highlights of the software are:
+For the purposes of the current Thesis, software has been designed and developed 
+to handle the modeling of the Earth's gravity models. Highlights of the software 
+are:
 \begin{itemize}
-  \item handling (parsing) of gravity models published in the \emph{ICGEM-format} (see \ref{par:icgem}), and
-  \item handling of both static and \gls{tvg} models; for the latter, we use the 
-    formulation \ref{eq:tvg-stokes}, to account for temporal modelling of the 
-    Stoke's coefficients
+  \item Handling (parsing) of gravity models published in the \emph{ICGEM-format} 
+    (see \autoref{par:icgem}). This approach enables genericity, since any (recently 
+    published) gravity model can be used as input to compute satellite acceleration.
+    This important feature, makes the software highly suitable for scientific studies.
+  \item Handling of both static and \gls{tvg} models; for the latter, we use the 
+    formulation \autoref{eq:tvg-stokes}, to account for temporal modelling of the 
+    Stoke's coefficients.
+  \item Efficient memory handling and introduction of special data structures to 
+    store and retrieve coefficients, directly targeting and exploiting their intrinsic
+    characteristics (e.g. $\bar{S}_{0m}$ are not stored).
+  \item Direct retrieval and usage of the data structures to compute acceleration, 
+    as well as partials (i.e. $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$), 
+    in one step.
+  \item Algorithmic design to account for efficiency, yet with as close as possible 
+    minimal loss of precision due to truncation errors (e.g. employ a 
+    \emph{Kahan summation} algorithm \cite{Klein2006}).
 \end{itemize}
 
-We make use of two gravity models, namely \emph{EIGEN-6C4} \cite{Forste2014} and \emph{CNES/GRGS RL04}, 
-the former mainly for validation purposes, while the latter is the most recent 
-recommendation of the \gls{ids} (see \cite{ids-standards-itrf2020}, \cite{stepanek2022}) 
+In the current Thesis, make use of two gravity models, namely \emph{EIGEN-6C4} 
+\cite{Forste2014} and \emph{CNES/GRGS RL04}, the former mainly for validation 
+purposes (see \autoref{sssec:gravity-acceleration}), while the latter is the most 
+recent recommendation of the \gls{ids} (see \cite{ids-standards-itrf2020}, \cite{stepanek2022}) 
 and used in the latest processing campaign for ITRF2020. Note though, that the software 
 is designed in a generic way, allowing the introduction of any gravity field model 
 structured in the \emph{ICGEM-format}.
