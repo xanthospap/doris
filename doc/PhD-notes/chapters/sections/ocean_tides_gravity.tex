@@ -1,10 +1,13 @@
 \subsubsection{Ocean Tide}\label{sssec:ocean-tide-perturbations}
 
-As in the case of Earth tides (see \ref{sssec:earth-tide-perturbations}), the 
+As in the case of Earth tides (see \autoref{sssec:earth-tide-perturbations}), the 
 dynamical effects of ocean tides can be modeled as periodic variations in the 
 Stoke's coefficients $\Delta \bar{C}_{nm}$ and $\Delta \bar{S}_{nm}$ (for 
-degree $n$ and order $m$). Here, we are adopting the development presented in 
-\cite{iers2010}
+degree $n$ and order $m$). To compute these values, the prograde and retrograde 
+geopotential harmonic amplitudes $\mathcal{C}^{\pm}$ and $\mathcal{S}^{\pm}$ for 
+$\mathcal{C}$ and $\mathcal{S}$ respectively are needed, for each tidal constituent 
+$f$ involved. Adopting the development presented in \cite{iers2010}, we can compute 
+the variations from
 \begin{equation}
   \label{eq:iers10615}
   \left( \Delta \bar{C}_{nm} - \iim \Delta \bar{S}_{nm} \right) (t) =
@@ -20,8 +23,40 @@ where
     harmonic amplitudes
 \end{description}
 
-Typically, ocean tide models provide maps for only the largest tides or main waves 
-as spherical harmonic coefficients of the geopotential.
+Note that not all of the available ocean loading models are published in the form of 
+$\mathcal{C}_{f,nm}^{\pm}$ and $\mathcal{S}_{f,nm}^{\pm}$ coefficients
+\footnote{Typically, most are developed and distributed as gridded maps of tide 
+height amplitudes. These models provide in-phase and quadrature amplitudes of tide 
+heights for selected, main tidal frequencies (or main tidal waves), on a variable 
+grid spacing over the oceans (\cite{iers2010}).}. However, using spherical harmonic 
+decomposition and with the use of an Earth loading model, the maps of ocean tide 
+height amplitudes have been converted to spherical harmonic coefficients for use 
+in \autoref{eq:iers10615}. The procedure is outlined in e.g. \cite{iers2010}.
+
+Typically, ocean tide models provide maps for only the largest tides or ``main waves''. 
+Interpolation from the main waves to the smaller, ``secondary waves'' can be performed, 
+using an assumption of linear variation of tidal admittance between closely spaced 
+tidal frequencies. Through this method, the spectrum of tidal geopotential perturbations 
+can be completed to the requested degree. For a secondary wave $f$, the needed 
+coefficients can be computed as
+\begin{equation}\label{eq:iers10616}
+  \begin{aligned}
+    \mathcal{C}_{f,nm}^{\pm} = \frac{\dot{\theta}_f - \dot{\theta}_1}{\dot{\theta}_2 - 
+        \dot{\theta}_1} \frac{H_f}{H_2} \mathcal{C}_{2,nm}^{\pm} 
+        + \frac{\dot{\theta}_2 - \dot{\theta}_f}{\dot{\theta}_2 - \dot{\theta}_1}
+        \frac{H_f}{H_1} \mathcal{C}_{1,nm}^{\pm} \\
+    \mathcal{S}_{f,nm}^{\pm} = \frac{\dot{\theta}_f - \dot{\theta}_1}{\dot{\theta}_2 - \dot{\theta}_1} 
+      \frac{H_f}{H_2} \mathcal{S}_{2,nm}^{\pm} 
+      + \frac{\dot{\theta}_2 - \dot{\theta}_f}{\dot{\theta}_2 - \dot{\theta}_1} 
+      \frac{H_f}{H_1} \mathcal{S}_{1,nm}^{\pm}
+  \end{aligned}
+\end{equation}
+where the subscript $1$ and $2$ denote the two nearby main lines, or \emph{pivot waves} 
+and $H$ is the astronomic amplitude of the considered wave.
+
+As in the case of solid Earth tides (\autoref{sssec:earth-tide-perturbations}), 
+ocean loading can induce deformation on the Earth's crust and thus displacements 
+on instrumentation sites. These effects are treated in ??.
 
 \paragraph{Ocean Tide Models}\label{par:ocean-tide-models}
 
@@ -31,7 +66,8 @@ main, pivot waves. Since the mid-1990s, a series of \texttt{FES} (finite element
 solution) global ocean tidal atlases has been produced and released with the primary 
 objective to provide altimetry missions with tidal de-aliasing correction at the 
 best possible accuracy. In this Thesis, we will make use of the latest model in 
-this series, labeled \texttt{FES2014} (\cite{Lyard2021}). \ref{table:tidal-constituents-fes14b} 
+this series, labeled \texttt{FES2014} (\cite{Lyard2021}), since it is the one suggested 
+from the \gls{ids} for the ITRF2020 processing campaign. \autoref{table:tidal-constituents-fes14b} 
 lists the tidal constituents contained within the aforementioned data file.
 
 \begin{figure}
@@ -55,14 +91,12 @@ lists the tidal constituents contained within the aforementioned data file.
   \end{adjustbox}
   \caption{Part of \texttt{FES2014b} geopotential harmonic amplitudes
   $\mathcal{C}_{f,nm}^{\pm}$ and $\mathcal{S}_{f,nm}^{\pm}$ for tidal constituents
-  055.565 and 055.575. File retrived from the \texttt{COST-G} benchmark test 
+  055.565 and 055.575. File retrieved from the \texttt{COST-G} benchmark test 
   repository, \url{ftp://ftp.tugraz.at/outgoing/ITSG/COST-G/}.}
+  \label{fig:part-of-fes2014b}
 \end{figure}
 
-Admittance waves an be taken into account to commplement the model, via interpolation 
-based on the main, pivot constituents.
-
-\begin{table}[h!]
+\begin{table}[]
   \centering
   \begin{tabular}{ccc}
       \hline
@@ -105,7 +139,32 @@ based on the main, pivot constituents.
       855.555 & $M_8$ & Shallow water eighth diurnal\\
       \hline
   \end{tabular}
-  \caption{List of tidal constituents contained listed in \texttt{FES2014b} published 
+  \caption{List of ``main'' tidal constituents contained listed in \texttt{FES2014b}; published 
     file via \texttt{COST-G}. Description is extracted from \cite{Beauducel2023}.}
   \label{table:tidal-constituents-fes14b}
 \end{table}
+
+\paragraph{Implementation}\label{par:ocean-tide-acceleration-implementation}
+Design and implementation of the procedure outlined above for the computation of 
+variations in the Stoke's coefficients $\Delta \bar{C}_{nm}$ and $\Delta \bar{S}_{nm}$, 
+poses a series of challenges. First off, a decision must be made to allow for the 
+distinction between different tidal waves. This allows for efficiency, adaptability, 
+extensibility and ease of use. To that end, a generic class was designed to represent 
+different waves, based on the Doodson number; this approach offers several advantages, 
+as well as the ability to compute arguments of the tide constituents (e.g. $\theta$ 
+in \autoref{eq:iers10615}), via the Doodson multipliers, which are in turn obtained 
+through the computation of the fundamental arguments of nutation theory or 
+\emph{Delaunay variables} $l$, $l_0$, $F$, $D$ and $\Omega$, augmented by the \gls{gmst}. 
+These values are computed using the latest formulations (\cite{iers2010}).
+
+Next, efficient mapping/loading of the coefficients $\mathcal{C}_{f,nm}^{\pm}$ and 
+$\mathcal{S}_{f,nm}^{\pm}$ must be developed. Note that we have four such coefficients 
+per tidal wave, and for every combination of degree and order $(n,m)$; as can be seen 
+in \autoref{fig:part-of-fes2014b}, the maximum degree and order in this case is 180;
+that amounts to a huge number of floating point numerics that need to be stored 
+and loaded to/from memory. The software developed, uses efficient data structures and 
+contiguous memory chunks to speed-up computations and only allocate the memory needed.
+
+Computation of $\Delta \bar{C}_{nm}$ and $\Delta \bar{S}_{nm}$ values follows 
+\autoref{eq:iers10615}. When needed, interpolation through tidal admittance (see 
+\autoref{eq:iers10616}) is also handled in the software, per user/application needs. 

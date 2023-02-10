@@ -2,16 +2,16 @@
 
 For \gls{leo} satellites, the largest non-gravitational force is the atmospheric 
 drag. Despite its significance though, accurate modelling of aerodynamic forces 
-is a very perplex problem, requiring knowledge of the physical properties of the 
+is a very complex problem, requiring knowledge of the physical properties of the 
 (upper) atmosphere, interaction of neutral gas and charged particles with the satellite's 
 surfaces and precise knowledge of attitude with respect to atmospheric particle 
 flux (\cite{Montenbruck2000}).
 
-Drag is a decelerating force, directed opposite to the velocity ofathe satellite 
+Drag is a decelerating force, directed opposite to the velocity of the satellite 
 with respect to atmospheric flux. Minor contributions, including lift and binormal 
 forces, can be safely ignored. A simple derivation of the acceleration induced 
 to a satellite due to atmospheric drag can be found in \cite{Montenbruck2000}; 
-following this formulation, we end up with the acceleration
+following this formulation, we can compute the related acceleration from
 \begin{equation}\label{eq:mont397}
   \bm{\ddot{r}} = -\frac{1}{2} C_{d} \frac{A}{m} \rho v_{r}^{2} \bm{\hat{e}}_v
 \end{equation}
@@ -23,14 +23,14 @@ where
   \item $\bm{\hat{e}}_v = \bm{v}_r / \norm{\bm{v}_r}$ is the unit vector in the 
     direction of $v_r$
   \item $C_d$ is the \emph{drag coefficient}, a dimensionless quantity describing the 
-    interation of the atmosphere with the satellite's surface material. This parameter 
+    interaction of the atmosphere with the satellite's surface material. This parameter 
     is normally estimated during \gls{pod} procedure.
 \end{description}
 
 With the assumption that the atmosphere co-rotates with the Earth (thus partly 
 ignoring the complex atmosphere dynamics), the relative velocity of the satellite 
 with respect to the atmosphere, $\bm{v}_r$, is given by
-\begin{equation}
+\begin{equation}\label{eq:mont398}
   \bm{v}_r = \bm{v} - \bm{\omega}_{\Earth} \times \bm{r}
 \end{equation}
 which is a very good approximation even for \gls{pod} applications\footnote{According 
@@ -38,6 +38,34 @@ to \cite{Montenbruck2000}, the maximum observed deviations from this assumption
 lead to uncertainties in the drag force of less than 5\%.}. $\bm{v}$ and $\bm{r}$ 
 are the inertial satellite velocity and position vectors, while 
 $\bm{\omega}_{\Earth}$ is the Earth's angular velocity vector.
+
+\paragraph{Partials}\label{par:atmospheric-drag-partials}
+Differentiation of \autoref{eq:mont397} with respect to the $C_d$ parameter, yields
+\begin{equation}
+  \frac{\partial \ddot{\bm{r}}}{\partial C_d} = 
+    -\frac{1}{2} \frac{A}{m} \rho \norm{v_r} \bm{v_r}
+\end{equation}
+
+From \autoref{eq:mont397} and \autoref{eq:mont398}, we can analytically derive the 
+partials of the acceleration with respect to the satellite velocity vector
+\begin{equation}
+  \frac{\partial \ddot{\bm{r}}}{\partial \bm{v}} = 
+  -\frac{1}{2} C_d \frac{A}{m} \rho \left( \frac{\bm{v_r}\bm{v}^T_r}{\norm{\bm{v_r}}} 
+    + \norm{\bm{v_r}} \cdot \bm{I}_{3\times 3} \right)
+\end{equation}
+
+Correspondingly, the partial of the acceleration with respect to the satellite position 
+vector, is given by
+\begin{equation}
+  \begin{aligned}
+    \frac{\partial \ddot{\bm{r}}}{\partial \bm{r}} &= 
+    -\frac{1}{2} C_d \frac{A}{m} \rho \norm{v_r} \bm{v_r} \frac{\partial \rho}{\partial \bm{r}}
+    -\frac{1}{2} C_d \frac{A}{m} \rho \left( \frac{\bm{v_r}\bm{v}^T_r}{\norm{\bm{v_r}}} 
+    + \norm{\bm{v_r} \cdot \bm{I}_{3\times 3}} \right) \frac{\partial \bm{v}_r}{\partial \bm{r}} \\
+    & = -\frac{1}{2} C_d \frac{A}{m} \rho \norm{v_r} \bm{v_r} \frac{\partial \rho}{\partial \bm{r}}
+      -\frac{\partial \ddot{\bm{r}}}{\partial \bm{v}} \bm{\omega} 
+  \end{aligned}
+\end{equation}
 
 \paragraph{Atmospheric Models}\label{par:atmospheric-models}
 The most challenging term in \ref{eq:mont397}, is the atmospheric density $\rho$ 
