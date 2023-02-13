@@ -14,10 +14,20 @@
 \usepackage{adjustbox}  %% e.g. wrap verbatim larger than linewidth
 \usepackage{fancyvrb}   %% Verbatim and coloring therein
 \usepackage{hyperref}
-\usepackage{imakeidx}   %% for index
-\makeindex[columns=3, title=Alphabetical Index]
+%\usepackage{imakeidx}   %% for index
+%\makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul}       %% allow wrapping of underlined text, via \ul{...}
-\usepackage{natbib}     %% for bibliography
+%\usepackage{natbib}     %% for bibliography
+% the following is for biblatex, see
+% https://www.overleaf.com/learn/latex/Biblatex_bibliography_styles
+\usepackage[
+  backend=biber,
+  style=authoryear-icomp
+]{biblatex}
+\addbibresource{doris.bib}
+\usepackage[intoc]{nomencl}  %% for nomenclature
+\makenomenclature
+\usepackage{etoolbox} %% for grouping nomenclature, see nomgroup
 %\usepackage[left=2cm,right=2cm]{geometry} % somewhat wider text to allow code
 \usepackage{geometry}   %% somewhat wider text to allow code
 \usepackage[per-mode=symbol]{siunitx}    %% SI Units
@@ -132,6 +142,19 @@
 \newcommand\hcancel[2][black]{\setbox0=\hbox{$#2$}%
 \rlap{\raisebox{.45\ht0}{\textcolor{#1}{\rule{\wd0}{1pt}}}}#2}
 
+%% Nomenclature
+%% This code creates the groups, see 
+%% https://www.overleaf.com/learn/latex/Nomenclatures
+% -----------------------------------------
+%\makenomenclature
+\renewcommand\nomgroup[1]{%
+  \item[\bfseries
+  \ifstrequal{#1}{P}{Physics constants}{%
+  \ifstrequal{#1}{V}{Vectors and Matrices}{%
+  \ifstrequal{#1}{O}{Other symbols}{}}}%
+]}
+% -----------------------------------------
+
 \makeglossaries
 \newacronym{ids}{IDS}{International DORIS Service}
 \newacronym{antex}{ANTEX}{Antenna Exchange Format}
@@ -200,6 +223,15 @@
 
 \begin{document}
 
+%% Nomenclature
+\nomenclature[P]{$c$}{Speed of light in a vacuum}
+\nomenclature[P]{$G$}{Gravitational constant}
+\nomenclature[P]{$M_{\Earth}$}{Earth's mass}
+\nomenclature[P]{$R_{\Earth}$}{Earth's equatorial radius}
+\nomenclature[V]{$\bm{x}$}{Bold leters denote vectors}
+\nomenclature[V]{$\bm{X}$}{Bold, capital leters denote matrices}
+\nomenclature[V]{$\bm{R}_x$, $\bm{R}_y$, $\bm{R}_z$}{Elementary rotation matrix, around the $x-$, $y-$ and $z-$axis respectively}
+
 \begin{titlepage}
 \maketitle
 \end{titlepage}
@@ -209,8 +241,17 @@
 \listoffigures
 \listoftables
 
-\chapter{Fundamental Astrodynamics} \label{ch:fundamental-astrodynamics}
-  \section{Orbital Mechanics} \label{ssec:orbital-mechanics}
+%% for this to work, the following command must be issued:
+%% makeindex phd_report.nlo -s nomencl.ist -o phd_report.nls
+\printnomenclature
+
+\chapter{Introduction}\label{ch:introduction}
+\input{chapters/sections/introduction}
+\input{chapters/sections/the_software}
+\input{chapters/sections/costg_benchmark_test}
+
+\chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
+  \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
     \input{chapters/sections/non_keplerian_motion}
@@ -231,6 +272,8 @@
       \input{chapters/sections/time_systems}
       \input{chapters/sections/time_scales_implementation}
 
+\chapter{Orbit Integration}\label{ch:orbit-integration}
+    \input{chapters/sections/integration_introduction}
 %\include{chapters/satellite_orbits}
 %\include{chapters/orbit_intergators}
 %\include{chapters/orbit_modeling}
@@ -249,12 +292,13 @@
 %\include{chapters/orbdet}
 %\include{chapters/troposphere}
 
-\bibliographystyle{agsm} 
-\bibliography{doris}
+%\bibliographystyle{agsm} 
+%\bibliography{doris}
+\printbibliography
 
 \glsaddall
 \printglossary[type=\acronymtype,title=Acronyms]
 
-\printindex
+%\printindex
 
 \end{document}

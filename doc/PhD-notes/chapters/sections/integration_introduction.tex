@@ -1,0 +1,50 @@
+\section{Introduction}\label{sec:integration-introduction}
+
+The equations of motion governing the orbital path followed by an Earth orbiting 
+satellite, constitute a system of \glspl{ode}. To ``propagate'' the orbit, we need 
+to solve this system, using a reference trajectory at a given instant $t=t_0$ as 
+\emph{initial conditions}. The high accuracy that is nowadays required for \gls{pod} 
+applications, can only be achieved via numerical methods (\cite{Montenbruck2000}).
+
+A variety of methods have been successefuly applied to the problem of orbit 
+propagation, each with its own drawbacks, limitations and advantages. Thus, in 
+general, it is not possible to simply select one method as best suited for the 
+prediction of satellite motion.
+
+In this Thesis, we investigate two kind of integration techniques, namely:
+\begin{description}
+    \item[Runge—Kutta] methods, that have the advantage of being well established 
+      and easy to implement, and
+    \item[multistep] methods, that a high efficiency and accuracy at a cost of 
+      increased implementation complexity
+\end{description}
+Both of these techniques, are further subdivided into more specialized algorithms, 
+depending on problem constraints, choice of parameters and algorithmic approach. 
+Typically, application needs indicate the apropriate methodology.
+
+It should be noted that the equations of motions considered, constitute a system 
+of \glspl{ode} of seconds degree. Even though methods for direct integration of 
+such equations exist, they will not be considered here, since such methods assume 
+that forces acting on a satellite do not depend on its velocity (an assumprion not 
+fullfilled in the \gls{pod} case, see e.g. \autoref{sssec:atmospheric-drag}).
+For a more detailed and general discussion on numerical methods for \glspl{ode}, 
+see \cite{Hairer2009I} and \cite{Hairer2010II}.
+
+A first order system of \glspl{ode} can always be obtained from a respective second 
+order, by combining the position $\bm{r}$ and velocity $\bm{\dot{r}}$ vectors into 
+the 6-dimensional \emph{state vector} $\bm{y}$
+\begin{equation}
+    \bm{y} = \begin{pmatrix}\bm{r}\\ \bm{\dot{r}} \end{pmatrix}
+\end{equation}
+with 
+\begin{equation}
+    \bm{\dot{y}} = \bm{f}(t,\bm{y}) = \begin{pmatrix}\bm{\dot{r}} \\ \bm{a}(t, \bm{r}, \bm{\dot{r}}) \end{pmatrix}
+\end{equation}
+so that the original system
+\begin{equation}
+    \bm{\ddot{r}} = \bm{a}(t, \bm{r}, \bm{\dot{r}})
+\end{equation}
+can be written in the general form
+\begin{equation}
+    \bm{\dot{y}} = \bm{f}(t,\bm{y}), \text{ with } \bm{y}, \bm{\dot{y}}, \bm{f} \in \Re
+\end{equation}
