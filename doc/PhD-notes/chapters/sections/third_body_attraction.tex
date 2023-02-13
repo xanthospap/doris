@@ -10,15 +10,15 @@ perturbing acceleration can be simplified when considering the third or \emph{pe
 as a point mass. Third body perturbing acceleration from Sun and Moon, are often 
 called \emph{Direct Tides}.
 
-If we introduce the vectors $\bm{r}$ and $\bm{s}$, to describe the geocentric 
-coordinates of the satellite and the third-body respectively, then according to 
-Newton's law, the acceleration of the satellite by the third-body (or \emph{perturbing body}), 
+Introducing vectors $\bm{r}$ and $\bm{s}$, to describe the geocentric coordinates 
+of the satellite and the third-body respectively, then according to Newton's law, 
+the acceleration of the satellite by the third-body (or \emph{perturbing body}), 
 considered as a point mass, is (the subscript $pb$ denotes the perturbing body)
 \begin{equation}
     \bm{\ddot{r}} = GM_{pb} \frac{\bm{s}-\bm{r}}
         {\norm{\bm{s}-\bm{r}}^3}
 \end{equation}
-where we have to also account for Earth's acceleration due to the perturbing body, 
+where Earth's acceleration due to the perturbing body should also be account for, 
 hence
 \begin{equation}\label{eq:mont337}
     \bm{\ddot{r}} = GM_{pb} \left( 
@@ -26,15 +26,15 @@ hence
         - \frac{\bm{s}}{\norm{\bm{s}}^3} \right)
 \end{equation}
 
-For the current Thesis, we only consider third body perturbations from Moon and Sun. 
-In a similar fashion (using the software that has already been developed), third body 
-attraction can be computed for all planets, though their effect can be safely neglected 
+For the current Thesis, we third body perturbations from Moon and Sun are considered. 
+In a similar fashion using the software developed, third body attraction can be 
+computed for all planets, though their effect can be safely neglected 
 for \gls{leo} satellites.
 
 \paragraph{\gls{jpl} Ephemerides}\label{par:jpl-ephemerides}
 
-To compute third body perturbations, as evident from \autoref{eq:mont337}, we need to 
-know the coordinates of the perturbing body at a given instant $t$. For high 
+To compute third body perturbations, as evident from \autoref{eq:mont337}, 
+coordinates of the perturbing bodies at a given instant $t$ need to be known. For high 
 precision applications, Sun, Moon and planetary ephemerides are used and interpolated 
 for the requested epoch.
 
@@ -43,18 +43,18 @@ designates one of a series of mathematical models of the Solar System produced a
 \href{https://www.jpl.nasa.gov/}{\gls{jpl}} for use in spacecraft navigation and astronomy. 
 The models consist of numeric representations of positions, velocities and accelerations 
 of major Solar System bodies, tabulated at equally spaced intervals of time, covering 
-a specified span of years (\cite{wiki-jplde}). Further information and a description of 
+a specified span of years. Further information and a description of 
 available ephemerides, can be found at the 
 \href{https://ssd.jpl.nasa.gov/planets/eph_export.html}{\gls{jpl} Planetary and Lunar Ephemerides} 
 website.
 
-For the purposes of this Thesis, we have developed software to interact with the 
+For the purposes of this Thesis, software was developed to interact with the 
 \gls{jpl} DE files, generic enough to handle all versions of the ephemerides. 
-We use an interface to the \gls{jpl}-provided Observation Geometry System
+An interface to the \gls{jpl}-provided Observation Geometry System
 for Space Science Missions (\href{https://naif.jpl.nasa.gov/naif/}{SPICE}) 
 software library \footnote{Based on the C version of the 
 \href{https://naif.jpl.nasa.gov/naif/toolkit_C.html}{Navigation and Ancillary Information Facilty (NAIF)}} 
-to extract Sun, Moon and planet coordinates, and respective constants. Tests and 
+was designed to extract Sun, Moon and planet coordinates, and respective constants. Tests and 
 validation are performed using the \texttt{DE421} ephemerides (\cite{Folkner2009}).
 
 \begin{figure}
@@ -87,7 +87,7 @@ benchmark test, considering third body perturbing accelerations both from Moon a
 Input data for the test is a one-day orbit arc of \gls{grace} in \gls{icrf} and 
 the DE ephemeris file \texttt{DE421} (see \autoref{par:jpl-ephemerides}). 
 The differences are depicted in \autoref{fig:directMoonTideIcrfVsCostg} and \autoref{fig:directSunTideIcrfVsCostg} 
-and information is tabulated in \autoref{fig:directMoonTideIcrfVsCostg}.
+and information is tabulated in \autoref{tab:directMoonTideIcrfVsCostg}.
 \autoref{fig:directMoonTideIcrfVsCostg} and \autoref{fig:directSunTideIcrfVsCostg} reveal a 
 harmonic behavior of the differences, but since the values are close to machine precision, 
 no safe conclusion can be drawn.
@@ -108,7 +108,7 @@ no safe conclusion can be drawn.
       \hline
   \end{tabular}
   \caption{Moon \& Sun direct tide acceleration differences against the \texttt{COST-G} benchmark test.}
-  \label{table:directMoonTideIcrfVsCostg}
+  \label{tab:directMoonTideIcrfVsCostg}
 \end{table}
 
 \begin{figure}

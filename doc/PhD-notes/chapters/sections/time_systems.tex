@@ -1,5 +1,11 @@
 \subsection{A Short Introduction to Time Scales}\label{ssec:time-scales}
 
+This section only touches upon the fundamentals of time scales used in Satellite Geodesy 
+(see \autoref{table:time-scales}) 
+and relevant transformation algorithms, as applied in the software designed for the 
+purposes of this Thesis. An extensive discussion on the subject can be found in 
+\cite{Urban2013}.
+
 Historically, solar time was the basis of time keeping, based on the diurnal rotation
 of the Earth. However, with the  discovery of the variability of the 
 rate of rotation of the Earth and later on the development of atomic clocks, 
@@ -7,29 +13,29 @@ ans the SI second different time systems and scales have been introduced to matc
 ever growing precision demands.
 
 \begin{table}[h!]
-    \centering
-    \begin{tabular}{p{7cm}p{5cm}p{1cm}}
-        %\hline
-        \textbf{Time Scale} & \textbf{Usage\footnote{As in \cite{sofa2021ts}.}} & \textbf{Type} \\
-        \hline
-        \gls{tai} & the official timekeeping standard & Atomic \\
-        %\arrayrulecolor{gray}\hline
-        \gls{utc} & the basis of civil time & Atomic/Solar hybrid\\
-        %\arrayrulecolor{gray}\hline
-        \gls{ut1} & based on Earth rotation & Solar \\
-        %\arrayrulecolor{gray}\hline
-        \gls{tt}  & used for solar system ephemeris look-up & Dynamical\\
-        %\arrayrulecolor{gray}\hline
-        \gls{tcg} & used for calculations centered on the Earth in space  & Dynamical\\
-        %\arrayrulecolor{gray}\hline
-        \gls{tcb} & used for calculations beyond Earth orbit  & Dynamical\\
-        %\arrayrulecolor{gray}\hline
-        \gls{tdb} & a scaled form of \gls{tcb} that keeps in step with \gls{tt} on the average  & Dynamical\\
-        \hline
-    \end{tabular}
-    \caption{Fundamental time scales used in Geodesy and Astronomy.}
-    \label{table:time-scales}
-  \end{table}
+  \centering
+  \begin{tabular}{p{7cm}p{5cm}p{1cm}}
+      %\hline
+      \textbf{Time Scale} & \textbf{Usage\footnote{As in \cite{sofa2021ts}.}} & \textbf{Type} \\
+      \hline
+      \gls{tai} & the official timekeeping standard & Atomic \\
+      %\arrayrulecolor{gray}\hline
+      \gls{utc} & the basis of civil time & Atomic/Solar hybrid\\
+      %\arrayrulecolor{gray}\hline
+      \gls{ut1} & based on Earth rotation & Solar \\
+      %\arrayrulecolor{gray}\hline
+      \gls{tt}  & used for solar system ephemeris look-up & Dynamical\\
+      %\arrayrulecolor{gray}\hline
+      \gls{tcg} & used for calculations centered on the Earth in space  & Dynamical\\
+      %\arrayrulecolor{gray}\hline
+      \gls{tcb} & used for calculations beyond Earth orbit  & Dynamical\\
+      %\arrayrulecolor{gray}\hline
+      \gls{tdb} & a scaled form of \gls{tcb} that keeps in step with \gls{tt} on the average  & Dynamical\\
+      \hline
+  \end{tabular}
+  \caption{Fundamental time scales used in Geodesy and Astronomy.}
+  \label{table:time-scales}
+\end{table}
 
 \paragraph{\gls{tai}}\label{par:tai}
 The unit of \gls{tai} is the SI second, defined as ``the duration of 9,192,631,770 periods 
@@ -42,7 +48,7 @@ geoid, and is an appropriate choice for terrestrial applications (\cite{sofa2021
 
 \paragraph{\gls{utc}}\label{par:utc}
 \gls{utc} is a compromise between the demands of precise timekeeping and the desire to maintain
-the current relationship between civil time and daylight. Untill 1972, rate changes were 
+the current relationship between civil time and daylight. Until 1972, rate changes were 
 introduced to keep \gls{utc} roughly in step with \gls{ut1}; since then, adjustments have been 
 made by occasionally inserting a whole second, called a \emph{leap second}, a procedure 
 that can be thought of as stopping the \gls{utc} clock for a second to let the Earth catch 
@@ -82,7 +88,6 @@ $LG = 6.969290134 \times 10-10$. The rate change $LG$ means that \gls{tcg} gains
 the combined effect on the terrestrial clock of the gravitational potential from the 
 Earth and the observatory's diurnal speed (\cite{sofa2021ts}).
 
-
 \paragraph{\gls{tt}}\label{par:tt}
 \gls{tt}, is the theoretical time scale for clocks at sea-level (on the geoid): for 
 practical purposes it is tied to \gls{tai} through
@@ -90,8 +95,7 @@ practical purposes it is tied to \gls{tai} through
     TT = TAI + \SI{32.184}{\second}
 \end{equation}
 
-
-Note that UTC has to be expressed as hours, minutes and seconds (or at least in seconds in a
+Note that \gls{utc} has to be expressed as hours, minutes and seconds (or at least in seconds in a
 given day) if leap seconds are to be taken into account in the correct manner. In particular, it
 is inappropriate to express UTC as a Julian Date, because there will be an ambiguity during a
 leap second—so that for example 1994 June 30 23h 59m 60s.0 and 1994 July 1 00h 00m 00s.0 would

@@ -11,22 +11,23 @@ can be computed using the potential $U$ (see \autoref{eq:geopotential})
 The classical formulation of the gravitational acceleration derived from the spherical 
 harmonics expansion (see \autoref{eq:mont315}) employs the geocentric spherical coordinate 
 representation. This approach can result in singularities at the north and 
-south poles (\cite{Atallah2022}). To avoid this problem, our implementation of the 
-computation algorithm is based on a development based on Cartesian components, 
-introduced by \cite{Cunningham1970} and also presented in \cite{Montenbruck2000}, 
-which is singularity-free. However, the derivation and results described therein 
-use the un-normalized form; an equivalent, normalized form was derived and implemented, 
-taking into account \cite{Atallah2022}. In the following, we derive the algorithmic 
-approach adopted in the design of the software built for the current Thesis.
+south poles (\cite{Atallah2022}). To avoid this problem, the implementation adopted 
+for this Thesis employs a computation algorithm based on a development using 
+Cartesian components, which is singularity-free. The method was introduced by 
+\cite{Cunningham1970} and also presented in \cite{Montenbruck2000}. The derivation 
+and results described therein use the un-normalized form; an equivalent, normalized 
+form was derived and implemented, taking into account \cite{Atallah2022}. In the 
+following, the algorithmic approach adopted in the design of the software built 
+for the current Teshesis is derived.
 
-If we define 
+Defining
 \begin{equation}
   \bar{V}_{nm} = \bar{M}_{nm} + i \bar{W}_{nm} = 
     \left( \frac{R_{\Earth}}{r} \right) ^{n+1} \bar{P}_{nm} (\sin \phi) 
       \left( \cos (m\lambda) + i \sin (m\lambda) \right)
 \end{equation}
 
-we can rewrite the potential (see \autoref{eq:mont310}), as
+the potential (see \autoref{eq:mont310}) can be written as 
 \begin{equation}
   U = \Re \left( \frac{GM_{\Earth}}{R_{\Earth}} \sum_{n=0}^{\infty} \sum_{m=0}^{n} 
     \left( \bar{C}_{nm} - i \bar{S}_{nm} \right) \bar{V}_{nm} \right)
@@ -74,8 +75,8 @@ The recurrence starts with initial conditions
   \end{aligned}
 \end{equation}
 
-Now we can use the $\bar{M}_{nm}$ and $\bar{W}_{nm}$ to compute the Cartesian acceleration 
-components using
+$\bar{M}_{nm}$ and $\bar{W}_{nm}$ can now be used to compute the Cartesian acceleration 
+components via
 \begin{equation}
   \begin{aligned}
     \ddot{x} & = \sum_{n=0}^{\infty} \sum_{m=0}^{n} \ddot{x}_{nm} \\
@@ -148,20 +149,23 @@ can be deduced considering Earth's gravitational potential expressed as \autoref
 (see \cite{Montenbruck2000}). The two properties reduce the number of independent 
 components that have to be considered in the computation from nine to five. 
 
-Deriving the partials is quite tedious and requires analytical work. For the computation, 
-we proceed on the basis of the development used in \autoref{sssec:gravity-acceleration}, 
-following a normalized version of \cite{Cunningham1970} to compute the quantities 
+Deriving the partials is quite tedious and requires analytical work. For the 
+derivation of the formulae, the development presented in \autoref{sssec:gravity-acceleration} 
+can act as reference, following a normalized version of the algorithm presented 
+in \cite{Cunningham1970} and \cite{Montenbruck2000}. The partials 
 $\frac{\partial \ddot{x}_{nm}}{\partial x}$, 
 $\frac{\partial \ddot{x}_{nm}}{\partial y}$, $\frac{\partial \ddot{x}_{nm}}{\partial z}$, 
-$\frac{\partial \ddot{y}_{nm}}{\partial z}$ and $\frac{\partial \ddot{z}_{nm}}{\partial z}$.
+$\frac{\partial \ddot{y}_{nm}}{\partial z}$ and $\frac{\partial \ddot{z}_{nm}}{\partial z}$ 
+are needed to to compute $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$, taking 
+into account the symmetric nature and zero trace of the matrix.
 
 \paragraph{Earth Rotation}\label{sssec:gravity-acceleration-earth-rotation}
 
-Formulas presented in the current section, \autoref{sssec:gravity-acceleration}, 
+Formulae presented in the current section, \autoref{sssec:gravity-acceleration}, 
 are valid in an \gls{ecef} frame, that is ignoring Earth's rotation (aka $\bm{r}$ is 
-the satellite's position vector in \gls{ecef} coordinates). We are now designating 
-the $\bm{r}$ vector as $\bm{r}_{ef}$ and introducing $\bm{r}_{sf}$ to designate the 
-corresponding celestial, ``space-fixed'' vector, with 
+the satellite's position vector in \gls{ecef} coordinates). Letting 
+$\bm{r}_{ef} \equiv \bm{r}$ and introducing $\bm{r}_{sf}$ to denote the corresponding 
+celestial, ``space-fixed'' vector, with
 \begin{equation}
   \bm{r}_{ef} = \bm{R} \cdot \bm{r}_{sf}
 \end{equation}
@@ -184,14 +188,16 @@ and for the acceleration
 
 The acceleration induced to an earth orbiting satellite by the Earth's gravity 
 field, is by far the largest in magnitude, hence it should be computed with utmost 
-precision. To test the implementation, results obtained we checked against the \texttt{COST-G} 
-benchmark test. Input data for the test is a one-day orbital arc of \gls{grace}, paired
-with the earth gravity model \texttt{EIGEN-6C4}. Acceleration is evaluated from degree
-and order 2 to 180 (i.e. leaving out the largest in magnitude central term). According 
-to \cite{Lasser23}, accelerations should be consistent to at least \SI{10e-12}{\metre\per\square\second}.
-The discrepancies between our implementation and the benchmark test are depicted in 
-\autoref{fig:costg-benchmark-02gravityfield-itrf} and \autoref{table:costg-benchmark-02gravityfield-itrf}. 
-It is clear that results obtained lie within the accuracy demands of the benchmark test.
+precision. To test the implementation, results obtained were checked against the 
+\texttt{COST-G} benchmark test. Input data for the test is a one-day orbital arc 
+of \gls{grace}, paired with the earth gravity model \texttt{EIGEN-6C4}. Acceleration 
+is evaluated from degree and order 2 to 180 (i.e. leaving out the largest in 
+magnitude central term). According to \cite{Lasser23}, accelerations should be 
+consistent to at least \SI{10e-12}{\metre\per\square\second}. The discrepancies 
+between our implementation and the benchmark test are depicted in 
+\autoref{fig:costg-benchmark-02gravityfield-itrf} and 
+\autoref{table:costg-benchmark-02gravityfield-itrf}. It is clear that results 
+obtained lie within the accuracy demands of the benchmark test.
 
 \begin{figure}
   \centering

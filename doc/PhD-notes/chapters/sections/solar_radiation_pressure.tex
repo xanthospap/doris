@@ -1,0 +1,195 @@
+\subsubsection{Solar Radiation Pressure}\label{sssec:solar-radiation-pressure}
+
+Quantum mechanics says that each photon of frequency \(\nu\) and wavelength
+\(\lambda = c / \nu\) (where \(c\) is the speed of light in vacuum) carries the energy
+\begin{equation}
+    E = h \nu
+\end{equation}
+and the linear momentum
+\begin{equation}
+    \bm{p} = \frac{h \nu}{c} \bm{e}
+\end{equation}
+where \(h=6.62\cdot10^{-34}\) Js is Planck's constant and \(\bm{e}\) is the unit 
+vector of the propagation of the photon.
+
+The momentum transferred per time unit onto a unit surface in a radiation
+ﬁeld is called radiation pressure (hence a vectorial quantity).
+
+In a general radiation ﬁeld it may be quite an elaborate task to calculate
+the radiation pressure acting on a surface element. The underlying principle
+is simple, however (the subsequent elaboration follows \cite{BeutlerVII}): 
+We have to calculate the change \(\Delta \bm{p} = \bm{p}_a -\bm{p}_b\) of 
+linear momentum \(\bm{p}\) for each of the photons hitting the surface element 
+\(S\) (the index \(b\) characterizes the momentum before, \(a\) that after 
+hitting the surface). The momentum transferred to the surface element must be 
+\(\bm{p_s} \equiv - \Delta \bm{p} = \bm{p}_b -\bm{p}_a \).
+After having computed the momentum transferred by each of the photons
+we simply have to compute the vectorial sum of the momenta \(\bm{p_s}\).
+
+According to the law of conservation of linear momentum \(-\Delta \bm{p}\) is 
+the momentum gained by the surface element. If the photon is absorbed by the surface, 
+\(\bm{p}_a = 0\) and the surface gains the momentum \(\bm{p}_{abs} = \bm{p}_b\).
+If the photon is reﬂected by the surface, the photon is reﬂected according to Snellius' law
+of reﬂection. The surface gains linear momentum normal to its surface with
+absolute value \(2 \lvert \vec{p}_b \rvert cos\alpha = \lvert \bm{p}_{ref} \rvert\).
+
+The primary radiation source to be considered in satellite geodesy is the
+Sun. The radiation pressure due to the direct solar radiation is also referred
+to as \emph{direct radiation pressure}. Other sources of radiation are the Earth, which
+reﬂects and/or re-emits the radiation received by the Sun, or to a much lesser
+extent, the Moon, reﬂecting the solar radiation.
+
+The radiation ﬁeld due to the direct solar radiation may be considered as
+parallel to the direction \(Sun \to Satellite\). Consequently, the momentum trans-
+ferred per second to a unit surface normal to this direction may be expressed
+by the solar constant \(S = \SI{1368}{\watt\per\square\m}\), giving the energy 
+ﬂowing through this surface per time unit at the distance of 
+\SI{1}{\astronomicalunit}.
+
+If 100\% of the radiation is absorbed,  the linear momentum
+\begin{equation}
+    \bm{p} = \frac{S}{c} \bm{e}
+\end{equation}
+is gained in one second by a surface element of \SI{1}{\square\metre} normal to 
+the direction \(Sun \to Satellite\) element at \SI{1}{\astronomicalunit}. The 
+absolute value of the vector is
+\begin{equation}
+  \label{eq:beutler3141}
+    P_{\Sun} \equiv \norm{\bm{p}} = \frac{S}{c} = \SI{4.56316e-6}{\N\per\square\m}
+\end{equation}
+Obviously, the surface of the cross section of the satellite normal to the 
+direction \(Sun \to Satellite\) and the mass \(m\) of the satellite play the same roles as 
+the corresponding quantities when dealing with drag (\ref{ssec:acceleration-due-to-drag}).
+
+Assuming rotational symmetry of the satellite w.r.t. the axis \(Sun \to Satellite\), 
+the acceleration due to the direct solar radiation may be written as (\cite{BeutlerVII})
+\footnote{Note that \cite{Vallado} uses an alternate formulation for \ref{eq:beutler3142}, 
+namely: 
+\( \bm{\alpha}_{srp} =  - \frac{p_{srp} C_R A_{\Sun}}{m} \frac{\bm{r}_{sat\Sun}}{\lvert \bm{r}_{sat\Sun} \rvert} \), 
+where \(p_{srp} \approx \SI{4.57e-6}{\N\per\square\m}\) is the solar pressure force 
+per unit area, or the change in momentum, \(C_R\) is the \emph{reflectivity} and 
+\(A_{\Sun}\) the exposed area to the Sun. Determining \(C_R\) is extremely
+difficult. It changes over time and is virtually impossible to predict. This is especially
+true for complex satellites made of various materials, that enter and exit eclipse regions,
+and have a constantly changing orientation. For this reason, it's almost always a solution
+parameter, determined in differential correction (just like the drag coefficient).}:
+\begin{equation}
+    \label{eq:beutler3142}
+    \bm{\alpha}_{rad} = \frac{\tilde{C}}{2} 
+    \frac{{AU}^2}{{\norm{\bm{r} - \bm{r}_{\Sun}}}^2}
+    \frac{S}{c} \frac{A}{m}
+    \frac{\bm{r} - \bm{r}_{\Sun}}{\norm{\bm{r} - \bm{r}_{\Sun}}}
+\end{equation}
+where:
+\begin{itemize}
+\item[\(\tilde{C}\)] depends on the reﬂective properties of the satellite surface,
+\item[\(\bm{r}\)] is the geocentric position vector of the satellite,
+\item[\(\bm{r_{\Sun}}\)] is the geocentric position vector of the Sun,
+\item[\(AU\)] is the Astronomical Unit,
+\item[\(m\)] is the mass of the satellite, and
+\item[\(A\)] is the cross section of the satellite normal to the direction \(Sun \to Satellite\)
+\end{itemize}
+
+Using \ref{eq:beutler3141}, \ref{eq:beutler3142} can be simplified to:
+\begin{equation}
+  \label{eq:mont375}
+  \bm{\alpha}_{rad} = \norm{\bm{p}} \tilde{C} \frac{A}{m} \frac{\bm{r} - \bm{r}_{\Sun}}{\norm{\bm{r} - \bm{r}_{\Sun}} ^3} {AU}^2
+\end{equation}
+
+Rotational symmetry w.r.t. the axis \(Sun \to Satellite\) may not always
+be assumed. Nevertheless, formula \ref{eq:beutler3142} is in practice an excellent ﬁrst-
+order approximation to take radiation pressure into account. If the radiation
+is mainly absorbed (as it should be the case, e.g., for solar panels), formula 
+\ref{eq:beutler3142} is correct for satellites of arbitrary shape (\cite{BeutlerVII}).
+Note that in contrast to atmospheric drag, direct radiation pressure practically does 
+not depend on the height of the satellite above the Earth's surface. This is one of 
+the reasons why radiation pressure is the dominating non-gravitational perturbation 
+above heights of about \SI{600}{\km} (\cite{BeutlerVII}).
+
+Radiation pressure obviously is ``turned oﬀ'' if the radiation is blocked by an 
+``obstacle'', i.e the Moon or Earth, between the Sun and the satellite. 
+
+\subsection{Solar Radiation Pressure Partials}
+\label{ssec:solar-radiation-pressure-partials}
+Starting from \ref{eq:mont375}, the acceleration due to solar radiation pressure 
+aries with the satellite position in the same way as the gravitational attraction
+of the Sun, with derivatives given by (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont777}
+  \frac{\partial \ddot{\bm{r}}}{\partial \bm{r}} = 
+  P_{\Sun} C \frac{A}{m} {AU}^2 \left( 
+    \frac{1}{\norm{\bm{r} - \bm{r}_{\Sun}}^3} \bm{I}_{3\times 3}
+    -3 \left( \bm{r} - \bm{r}_{\Sun} \right) 
+      \frac{\left( \bm{r} - \bm{r}_{\Sun} \right) ^T}{\norm{\bm{r} - \bm{r}_{\Sun}}^5}
+      \right)
+\end{equation}
+
+Here $\bm{r}$ and $\bm{r}_{\Sun}$ are the geocentric coordinates of the 
+satellite and the Sun, respectively.
+
+Due to the fact that the radiation pressure coefficient $C$ is usually estimated 
+during orbit determination, the derivative of the acceleration w.r.t $C$ must 
+be calculated. The respective partials are (\cite{Montenbruck2000}):
+\begin{equation}
+  \label{eq:mont778}
+  \frac{\partial \ddot{\bm{r}}}{\partial C} = \frac{1}{C} \ddot{\bm{r}} = 
+  -P_{\Sun} \frac{A}{m} 
+  \frac{\bm{r} - \bm{r}_{\Sun}}{\norm{\bm{r} - \bm{r}_{\Sun}}^3} {AU}^2
+\end{equation}
+required to compute the influence of variations in the radiation pressure
+coefficient on the satellite trajectory.
+
+\section{Satellite Eclispes and Earth Shadow}
+Satellites routinely enter eclipse periods during their orbits, and
+this can cause a great fluctuation in the available solar radiation for the solar 
+arrays.
+
+Examining \ref{fig:eclipse-geometry}, we are interested in two main regions: the 
+\emph{umbra} is totally eclipsed by the primary body (Earth); the \emph{penumbra} 
+is only partially obscured by the primary.
+\begin{equation}
+    \sin({\alpha}_{umb}) = \frac{r_S - r_E}{R} \text{ and }
+    \sin({\alpha}_{pen}) = \frac{r_S + r_E}{R}
+\end{equation}
+
+If we consider the the primary (or occulting) body to be the Earth and the 
+secondary body to be the Sun, then:
+\begin{equation}
+    \sin({\alpha}_{umb}) = \frac{r_{\Sun} - r_{\Earth}}{R_{\Earth\Sun}} 
+    \Rightarrow {\alpha}_{umb} \approx \SI{0.264}{\degree}
+    \text{ and }
+    \sin({\alpha}_{pen}) = \frac{r_{\Sun} + r_{\Earth}}{R_{\Earth\Sun}}
+    \Rightarrow {\alpha}_{pen} \approx \SI{0.269}{\degree}
+\end{equation}
+
+\begin{figure}
+\centering
+\input{tikz/eclipse-geometry.tikz}
+\caption{Eclipse Geometry; \emph{scales are greatly exaggerated}}
+\label{fig:eclipse-geometry}
+\end{figure}
+
+The distance from the occulting planet to the vertex (\(V\)) can be found via 
+using the similar triangles (see \ref{fig:eclipse-geometry}):
+\begin{equation}
+    \label{eq:val501}
+    \frac{\overline{EV}}{r_{E}} = \frac{\overline{SV}}{r_S} \Rightarrow \overline{EV} = \overline{SV} \frac{r_E}{r_S}
+\end{equation}
+We know the (ralative) position of the two (primary and secondary) planets, hence:
+\(\overline{SV} = R + \overline{EV}\); substituting into \ref{eq:val501} yields:
+\begin{align*}
+    \label{eq:val51}
+    \overline{EV} &= R \frac{r_E}{r_S} + \overline{EV} \frac{r_E}{r_S} \\
+    \overline{EV} (1-\frac{r_E}{r_S}) &= R \frac{r_E}{r_S} \\
+    \overline{EV} &= R \frac{r_E}{r_S - r_E}
+\end{align*}
+
+Using values for the Earth and the Sun, we find \(\overline{PV}\) to 
+be \SI{1.384e6}{\km}. This is almost four times the distance from the 
+Earth to the Moon (\SI{3.8268e5}{\km}) (\cite{Vallado}). Hence, it comes as little surprise 
+that the Earth's shadow sometimes completely obscures the Moon, causing a 
+lunar eclipse. Using values for the Moon and the Sun, 
+\ref{eq:val51} yields a value of about \SI{3.735e5}{\km} (\cite{Vallado}) 
+which is not too far from the Earth-Moon distance (approximately 
+\SI{3.844e5}{\km}). When the Moon obscures part of the Earth's surface with its 
+shadow, it causes a \emph{solar eclipse}.

@@ -1,23 +1,24 @@
 \subsection{Implementing Time Scales}\label{ssec:time-scales-implementation}
 
 Designing and implementing software for handling dates, time scales and related transformations 
-is a rather challenging task. The complexity is evident, if we consider:
+is a rather challenging task. The complexity is evident, considering:
 \begin{itemize}
     \item The long list of different time-scales involved in Satellite Geodesy and 
         Astronomy (see \ref{ssec:time-scales})
-    \item The different representation convensions (e.g. \gls{jd}, \gls{mjd}, year/month/day and hour/minute/seconds)
+    \item The different representation conventions (e.g. \gls{jd}, \gls{mjd}, year/month/day and hour/minute/seconds)
     \item The accuracy required when transforming between different time scales 
     \item The heavy usage of dates and time in a \gls{pod} process (i.e. efficiency)
 \end{itemize}
-All of the above have to be considered in software design, thus making the ``datetime'' 
-problem a field of continuous. Despite the fact that there are a few datetime libraries, 
+
+All of the above must be taken into account in software design, making the ``datetime'' 
+problem a field of continuous investigation. Despite the fact that there are a few datetime libraries, 
 (some languages have even relevant implementations in their standard libraries), none 
 complies with the accuracy and complexity involved in Satellite Geodesy. The exception 
 is the official \gls{iau} implementation of Fundamental Astronomy, i.e. the \gls{sofa} 
 library (\cite{sofa2021}). However, \gls{sofa} is implemented in the FORTRAN (and C) 
 programming languages and has to reserve a level of ``backwards compatibility'', thus 
-its design paradigm is rather outdated (e.g. no Object Oriented Design). Additionaly, 
-the package provides core functionality, hence one should implement various utlity functions 
+its design paradigm is rather outdated (e.g. no Object Oriented Design). Additionally, 
+the package provides core functionality, hence one should implement various utility functions 
 (e.g. parsers) to interact with this functions.
 
 For all the above, a decision was taken to design and implement a new software library, 
@@ -26,12 +27,12 @@ and paradigms in Software Engineering, such as Template Metaprogramming
 (\cite{Vandevoorde2017}). The library is open and free for any interested user.
 
 A ``datetime'' or \emph{epoch} within the library is represented as an \gls{mjd}, 
-where the integral and fractional part of day are stored seperately, to preserve 
+where the integral and fractional part of day are stored separately, to preserve 
 precision. In the special case of \gls{utc} dates, the epoch can be stored in the 
 Year Month Date plus Hours Minutes Seconds (YMD/HMS) format. Depending on the user/application 
 needs, the fractional part of the day can be stored as either a floating point numeric 
 value, or the accumulated number of \si{\second}, \si{\milli\second}, \si{\micro\second} or 
-\si{\nano\second}, since the begining of the day. Both implementations are supported by 
+\si{\nano\second}, since the beginning of the day. Both implementations are supported by 
 individual ``classes''; the latter is achieved via heavy template usage. 
 
 While storing the fractional part of day as a floating point number is intuitive and 

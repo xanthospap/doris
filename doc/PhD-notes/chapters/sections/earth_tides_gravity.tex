@@ -30,12 +30,14 @@ of $n=2$). These parameters include a small imaginary part, due to the mantle's
 anelasticity (reflecting a phase lag in the deformational response of the Earth 
 to tidal forces) \cite{iers2010}.
 
-Here, we are going to adopt the treatment of earth tides as described in 
-\cite{iers2010}. Practically, the computation of the tidal contributions to the 
+Hereafter, the treatment of earth tides as described in \cite{iers2010} is
+adopted. Practically, the computation of the tidal contributions to the 
 geopotential coefficients is most efficiently done by a three-step procedure. 
-In the following, we are only summarizing the process of computing the contributions 
+In the following, a summary of the process for computing the contributions 
 $\Delta C_{nm}$ and $\Delta S_{nm}$, as performed in the software developed for 
-this Thesis; further information can be found in \cite{iers2010}.
+this Thesis is presented; further information can be found in \cite{iers2010}. 
+Results for a one-day arc of \gls{grace} are given in \autoref{fig:04solidEarthTide-icrf}; 
+dataset was chosen to match the \texttt{COST-G} benchmark test.
  
 \paragraph{Step 1 Corrections}\label{par:step1-corr-earth-tides}
 In Step 1, the $(2m)$ part of the tidal potential is evaluated in the 
@@ -93,7 +95,7 @@ For $n=4$, formula \autoref{eq:iers1066} becomes (\cite{iers2010}):
 to account for the changes in the degree 4 coefficients produced by the 
 degree 2 tides.
 
-In summary, via Step 1 we compute corrections for 
+In summary, via Step 1, corrections for 
 \begin{equation}
   \Delta \bar{C}_{nm}, \Delta \bar{S}_{nm} \text{ for }
     \begin{cases}
@@ -102,12 +104,13 @@ In summary, via Step 1 we compute corrections for
       n=4 & m=0,1,2\\
     \end{cases}
 \end{equation} 
+are computed.
 
 \paragraph{Step 2 Corrections}\label{par:step2-corr-earth-tides}
-In Step 2 we compute corrections for the deviations of the 
-$\lovek ^{(0)}_{21}$ from the constant nominal value $\lovek _{21}$ 
-assumed (for this band) in the first step. Similar corrections need to be 
-applied to a few of the constituents of the other two bands also.
+In Step 2, corrections for the deviations of the $\lovek ^{(0)}_{21}$ from the 
+constant nominal value $\lovek _{21}$ assumed (for this band) in the first step 
+are computed. Similar corrections need to be applied to a few of the constituents 
+of the other two bands also.
 
 The contribution to $\Delta \bar{C}_{20}$ from the long period tidal 
 constituents, each with a frequency $f$, can be computed by (\cite{iers2010}):
@@ -119,8 +122,8 @@ constituents, each with a frequency $f$, can be computed by (\cite{iers2010}):
   \label{eq:iers1068a}
 \end{equation}
 
-We can further compute the contribution for $(nm)=(21)$ from the 
-diurnal tidal constituents and to $(22)$ from the semidiurnal, using 
+Furthermore, computation of the contribution for $(nm)=(21)$ from the 
+diurnal tidal constituents and to $(22)$ from the semidiurnal can be computed using 
 (\cite{iers2010}):
 \begin{equation}
   \Delta \bar{C}_{2m} - \iim \Delta \bar{C}_{2m} = 
@@ -131,36 +134,35 @@ diurnal tidal constituents and to $(22)$ from the semidiurnal, using
 where 
 \begin{description}
   \item $\delta k_f = \delta k^\Re _f + \iim \delta k^\Im _f$ is the difference 
-  between $k_f$ defined as $k^{(0)}_{2m}$ at frequency $f$ and the 
-  nominal value ($k_f - k_{2m}$), plus a contribution from ocean 
-  loading\footnote{\label{fn:set-coefs}Values of the imaginary and real part, $\delta k^\Re _f$ and 
-  $\delta k^\Im _f$ respectively, can be found in \cite{iers2010}, Tables 6.5a 
-  through 6.5c. Note however, that in the computation we use the amplitude values 
-  for the in-phase and out-of-phase components ($A_{in-phase} = \left(A_m H_f \delta k^\Re _f \right)$ 
-  and $A_{out-of-phase} = \left( A_m H_f \delta k^\Im _f \right)$) directly, recorded 
-  in the same tables.}
+    between $k_f$ defined as $k^{(0)}_{2m}$ at frequency $f$ and the 
+    nominal value ($k_f - k_{2m}$), plus a contribution from ocean 
+    loading. Values of the imaginary and real part, $\delta k^\Re _f$ and 
+    $\delta k^\Im _f$ respectively, can be found in \cite{iers2010}, Tables 6.5a 
+    through 6.5c. Note however, that in the computation we use the amplitude values 
+    for the in-phase and out-of-phase components ($A_{in-phase} = \left(A_m H_f \delta k^\Re _f \right)$ 
+    and $A_{out-of-phase} = \left( A_m H_f \delta k^\Im _f \right)$) directly, recorded 
+    in the same tables.
   \item $H_f$ is the amplitude (in meters) of the term at frequency $f$
   \item $\theta _f$ is given by 
-  \begin{equation} \theta _f = m \cdot ( \theta _g + \pi ) - \sum ^5_{j=1} N_j F_j \end{equation}
-  \footnote{Here we use the expression based on the expansion using the Fundamental 
-  Arguments. For alternate formulations, e.g. using the \emph{Doodson} fundamental 
-  arguments, see \cite{iers2010}, Sec. 6.2.1.}
-  where $\theta _g$ is the \gls{gmst} expressed in angle units
-
+    \begin{equation} \theta _f = m \cdot ( \theta _g + \pi ) - \sum ^5_{j=1} N_j F_j \end{equation}
+    where $\theta _g$ is the \gls{gmst} expressed in angle units.
+    Here we use the expression based on the expansion using the \emph{Fundamental Arguments}. 
+    For alternate formulations, e.g. using the \emph{Doodson} arguments, see 
+    \cite{iers2010}, Sec. 6.2.1.
   \item The terms $\eta _m$ and $A_m$, are given by: 
-  \begin{equation}
-  \eta _m = 
-    \begin{cases} -\iim , m=1 \\ 1 , m=2\end{cases}
-  \end{equation} and
-  \begin{equation} 
-    A_m = \begin{cases} 
-        \frac{1}{R_{\Earth}\sqrt{4 \pi}}, m=0\\
-        \frac{(-1)^m}{R_{\Earth}\sqrt{8 \pi}}, m \ne 0
-    \end{cases}
-  \end{equation}\footnote{As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
-  (see \autoref{fn:set-coefs}), explicit computation of $A_m$ is not needed if the 
-  amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
-  \cite{iers2010} Tables 6.5a through 6.5c.}
+    \begin{equation}
+    \eta _m = 
+      \begin{cases} -\iim , m=1 \\ 1 , m=2\end{cases}
+    \end{equation} and\footnote{As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
+    explicit computation of $A_m$ is not needed if the 
+    amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
+    \cite{iers2010} Tables 6.5a through 6.5c.}
+    \begin{equation} 
+      A_m = \begin{cases} 
+          \frac{1}{R_{\Earth}\sqrt{4 \pi}}, m=0\\
+          \frac{(-1)^m}{R_{\Earth}\sqrt{8 \pi}}, m \ne 0
+      \end{cases}
+    \end{equation}
 \end{description}
 
 Steps 1 and 2 can be used to compute the total tidal contribution, including 
@@ -184,12 +186,12 @@ computed geopotential coefficient corrections is very small, while computations
 involve values spanning a wide range of orders of magnitude, thus making the computations 
 susceptible to round-off errors.
 
-To test our implementation, we checked our results against the \texttt{COST-G} 
+To test the implementation developed for this Thesis, results were checked against the \texttt{COST-G} 
 benchmark test. Input data for the test is a one-day orbit arc of \gls{grace} 
 along with the Sun and Moon ephemerides, extracted from \texttt{DE 421}. 
 The discrepancies between our implementation and the benchmark test are depicted in 
 \autoref{fig:costg-benchmark-04solidEarthTide-icrf} and \autoref{table:costg-benchmark-04solidEarthTide-icrf}. 
-We have to note here that the benchmark test at hand, involves a number of steps in 
+It should be noted here that the benchmark test considered, involves a number of steps in 
 which different software implementations can produce slightly different results, 
 as are e.g. computation of Sun and Moon position, handling of datetimes and \gls{icrf}-to-
 \gls{itrf} transformations.

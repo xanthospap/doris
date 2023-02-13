@@ -2,7 +2,7 @@
 \label{ssec:perturbed-motion}
 
 The Two-Body problem (\autoref{ssec:two-body-problem}) is the basis for most 
-trajectory problems, due to (\cite{hintz}):
+trajectory problems, due to (\cite{Hintz2016}):
 \begin{enumerate}
   \item the relative two-body problem can be solved analytically,
   \item it is often a good approximation to the real solution (central body 
@@ -42,26 +42,26 @@ derivable from a scalar function
 a fact that will be used later on, when dealing with perturbing forces.
 
 The fundamental problem in perturbation analysis is orbit propagation. Unlike the 
-Two-Body case, the most accurate way to analyze perturbations is numerically (\cite{Vallado}).
+Two-Body case, the most accurate way to analyze perturbations is numerically (\cite{Vallado2001}).
 In general, solution techniques for the perturbation problem fall into two categories 
 \begin{description}
-  \item[Special perturbation techniques] where we numerically integrate the equations 
-  of motion including all necessary perturbing accelerations, and
-  \item[General perturbation techniques] where we consider an analytical approximation and 
-  integration over some time interval
+  \item[Special perturbation techniques] where numerical integration of the equations 
+  of motion is performed, including all necessary perturbing accelerations, and
+  \item[General perturbation techniques] where analytical approximation and 
+  integration s considered, over some time interval
 \end{description}
 
-In this Thesis, we will be approximating the problem of perturbed orbit motion 
+In this Thesis, the problem of perturbed orbit motion will be approximated 
 using special perturbation techniques. This approach is more recent (compared to 
 the general perturbation approach), since it requires significant computational 
-power. Today, with the limitations on computing power pretty much raised, a new 
+power. To-date, with the limitations on computing power pretty much raised, a new 
 era in analyzing perturbations has emerged. A drawback of this technique, is its 
 specificity; new data means new integration, which can add lengthy computing times. 
 Additionally, as most numerical methods, it suffers from errors that build up with 
 truncation and round-off due to floating point arithmetic. These errors build up 
 with the lengthening of integration intervals, and can cause a degradation of the 
 solution accuracy. Even so however, they offer significantly better accuracy than 
-the analytical approach. A nice overview of both approaches is given in \cite{Vallado}.
+the analytical approach. A nice overview of both approaches is given in \cite{Vallado2001}.
 
-In the following, we are going to discuss the \emph{Force Model} acting on an 
-Earth orbiting satellite, departing from the Two-Body problem.
+In the following, the \emph{Force Model} acting on an Earth orbiting satellite 
+is discussed, departing from the Two-Body problem.

@@ -1,7 +1,7 @@
 \subsubsection{Atmospheric Drag}\label{sssec:atmospheric-drag}
 
 For \gls{leo} satellites, the largest non-gravitational force is the atmospheric 
-drag. Despite its significance though, accurate modelling of aerodynamic forces 
+drag. Despite its significance though, accurate modeling of aerodynamic forces 
 is a very complex problem, requiring knowledge of the physical properties of the 
 (upper) atmosphere, interaction of neutral gas and charged particles with the satellite's 
 surfaces and precise knowledge of attitude with respect to atmospheric particle 
@@ -11,7 +11,7 @@ Drag is a decelerating force, directed opposite to the velocity of the satellite
 with respect to atmospheric flux. Minor contributions, including lift and binormal 
 forces, can be safely ignored. A simple derivation of the acceleration induced 
 to a satellite due to atmospheric drag can be found in \cite{Montenbruck2000}; 
-following this formulation, we can compute the related acceleration from
+following this formulation, drag induced acceleration can be computed from
 \begin{equation}\label{eq:mont397}
   \bm{\ddot{r}} = -\frac{1}{2} C_{d} \frac{A}{m} \rho v_{r}^{2} \bm{\hat{e}}_v
 \end{equation}
@@ -39,7 +39,7 @@ lead to uncertainties in the drag force of less than 5\%.}. $\bm{v}$ and $\bm{r}
 are the inertial satellite velocity and position vectors, while 
 $\bm{\omega}_{\Earth}$ is the Earth's angular velocity vector.
 
-\paragraph{Partials}\label{par:atmospheric-drag-partials}
+\paragraph{Partial Derivatives}\label{par:atmospheric-drag-partials}
 Differentiation of \autoref{eq:mont397} with respect to the $C_d$ parameter, yields
 \begin{equation}
   \frac{\partial \ddot{\bm{r}}}{\partial C_d} = 
@@ -57,37 +57,68 @@ partials of the acceleration with respect to the satellite velocity vector
 Correspondingly, the partial of the acceleration with respect to the satellite position 
 vector, is given by
 \begin{equation}
+  \label{eq:mont784}
   \begin{aligned}
     \frac{\partial \ddot{\bm{r}}}{\partial \bm{r}} &= 
-    -\frac{1}{2} C_d \frac{A}{m} \rho \norm{v_r} \bm{v_r} \frac{\partial \rho}{\partial \bm{r}}
+    -\frac{1}{2} C_d \frac{A}{m} \norm{v_r} \bm{v_r} \frac{\partial \rho}{\partial \bm{r}}
     -\frac{1}{2} C_d \frac{A}{m} \rho \left( \frac{\bm{v_r}\bm{v}^T_r}{\norm{\bm{v_r}}} 
-    + \norm{\bm{v_r} \cdot \bm{I}_{3\times 3}} \right) \frac{\partial \bm{v}_r}{\partial \bm{r}} \\
+    + \norm{\bm{v_r}} \cdot \bm{I}_{3\times 3} \right) \frac{\partial \bm{v}_r}{\partial \bm{r}} \\
     & = -\frac{1}{2} C_d \frac{A}{m} \rho \norm{v_r} \bm{v_r} \frac{\partial \rho}{\partial \bm{r}}
       -\frac{\partial \ddot{\bm{r}}}{\partial \bm{v}} \bm{\omega} 
   \end{aligned}
 \end{equation}
 
+In \autoref{eq:mont784}, the $\frac{\partial \rho}{\partial \bm{r}}$ term describes 
+the dependence of atmospheric density on satellite position. Analytical derivation 
+of this term is nearly impossible, due to the complexity of the atmospheric model 
+used. Therefore, a numerical approach is followed to derive the density gradient, 
+using the \emph{Difference Quotient Approximation}. We thus use the formula
+\begin{equation}
+  \begin{aligned}
+  \frac{\partial \rho}{\partial \bm{r}}(\bm{r},t) 
+    &= 
+      \frac{\rho (\bm{r}+\delta \bm{r}, t)}{\delta \bm{r}} \\
+    &= \begin{pmatrix}
+      \frac{\rho (\bm{r}+\delta \bm{r}_x)}{\norm{\delta \bm{r}_x}} &
+      \frac{\rho (\bm{r}+\delta \bm{r}_y)}{\norm{\delta \bm{r}_y}} &
+      \frac{\rho (\bm{r}+\delta \bm{r}_z)}{\norm{\delta \bm{r}_z}} 
+    \end{pmatrix}^T
+  \end{aligned}
+\end{equation}
+where $\delta \bm{r}_x$, $\delta \bm{r}_y$ and $\delta \bm{r}_z$ are vectors along 
+the $x$, $y$ and $z$ axis respectively, and $\bm{r}$ is the satellite's position 
+vector at instant $t$. The values of the vector components along the three axis, 
+should be small enough to approximate the derivative (or more precisely the gradient) 
+at the given point. Using unit vectors (of length \SI{1}{\meter} per component, i.e 
+$\delta \bm{r}_x = \hat{\bm{x}}$), should yield realistic results; this the 
+default value used in our implementation. It should be noted that we are here 
+implicitly assuming that the density function $\rho$ is differentiable within the 
+given interval. In reality this means that no ``abrupt'' changes should occur within 
+the spatial/temporal span considered.
+
 \paragraph{Atmospheric Models}\label{par:atmospheric-models}
-The most challenging term in \ref{eq:mont397}, is the atmospheric density $\rho$ 
+The most challenging term in \autoref{eq:mont397}, is the atmospheric density $\rho$ 
 (at the location of satellite). This requires the modeling of complex properties 
 and dynamics of the Earth's atmosphere. The latter is a highly demanding task, and 
 a number of models have been introduced (often including empirical data) to 
 target the question. In the upper atmosphere ($>\SI{100}{\km}$), apart from spatial 
 and temporal variances, the density also depends on solar soft x-ray and extreme 
 ultraviolet (EUV) output, as well as the geomagnetic activity. Hence, the density is 
-considered as a function of altitude, solar ten centimetre flux and the geomagnetic 
-activity index ($A_p$). 
+considered as a function of altitude, solar ten-centimetre flux ($F10.7$) and the 
+geomagnetic activity index ($A_p$). 
 
-Different (upper) atmospheric models are available (for comparisson and overview, see e.g. 
-\cite{Doornbos2009}, \cite{Yang2022} and \cite{Vallado2014}) varying in methodologies, 
-data application criteria and demands and complexity. In this Thesis, we are using 
-the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model to compute atmospheric density, which is
-an empirical atmospheric model that extends from the ground to the exobase and describes 
-the average observed behavior of temperature, various species densities, and mass density 
-via a parametric analytic formulation. The model inputs are location, date and time, 
-solar activity, and geomagnetic activity. It was developed by the US Naval Research Laboratory.
+Different (upper) atmospheric models are available (for comparison and overview, 
+see e.g. \cite{Doornbos2009}, \cite{Yang2022} and \cite{Vallado2014}) varying in 
+methodology, data, application criteria and demands, complexity and efficiency. 
+In this Thesis, we are using the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model 
+to compute atmospheric density, which is an empirical atmospheric model that 
+extends from the ground to the exobase and describes the average observed behavior 
+of temperature, various species densities, and mass density via a parametric 
+analytic formulation. The model inputs are location, date and time, solar activity, 
+and geomagnetic activity. It was developed by researchers in the US Naval Research 
+Laboratory.
 
-In order to use the \texttt{NRLMSISE-00} model, we need space weather data, including 
+In order to use the \texttt{NRLMSISE-00} model, space weather data is needed, including 
 an 81-day average of F10.7 flux\footnote{The solar radio flux at \SI{10.7}{\cm} (\SI{2800}{\MHz}) 
 is an excellent indicator of solar activity. Often called the F10.7 index, it is 
 one of the longest running records of solar activity, reported in ``solar flux units''. 
@@ -101,7 +132,20 @@ records archived by \href{https://celestrak.org/}{CelesTrack} (\cite{Vallado2013
 
 Implementing the \texttt{NRLMSISE-00} model is a challenging task. Not only due to
 model complexity and the large number of computations involved, but also because 
-it needs to be paired with space weather data spanning various months (e.g. we need a 
-81-day average). Obviously, the complete scheme must be efficient and robust.
-Source code for implementing the above has been designed and implemented from scratch.
+it needs to be paired with space weather data spanning various time intervals 
+(e.g. we need a 81-day average of $F10.7$, and values of $A_p$ per 3-hour intervals). 
+Obviously, the complete scheme must be efficient and robust, since computing atmospheric 
+density is performed hundreds of times in a \gls{pod} process spanning considerable 
+arcs.
+
+Source code for implementing the above has been designed and implemented from 
+scratch, for the purpose of this Thesis. It has undergone extensive testing for 
+correctness and efficiency. The final design, is one that allows the incremental 
+parsing of needed data, via a ``hunting process'' (i.e. storing current stream 
+positions and using indexes for searching onward) and a one-time mapping of 
+input file streams.
+
+Acceleration (see \autoref{eq:mont397} and \autoref{eq:mont398}) and derivatives 
+(see discussion in \autoref{par:atmospheric-drag-partials}) with respect to the 
+parameters considered are also implemented in source code.
 

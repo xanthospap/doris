@@ -3,6 +3,12 @@
 The definition of the \gls{gcrs} and \gls{itrs} and the procedures for the \gls{itrs} 
 to \gls{gcrs} transformation that are provided in this section comply with the 
 \gls{iau} 2000/2006 resolutions (see \cite{Capitaine2006} and \cite{iauWGnfa}). 
+It should be noted that this section is not an extensive study or presentation 
+of the concepts and models involved to relate terrestrial and celestial reference 
+systems (and/or frames). It is rather meant to act as a guideline for the work 
+performed in the framework of the current Thesis, centered on the design patterns, 
+algorithms and methodologies adopted for the implementation of relevant software.
+
 The transformation used to relate the \gls{itrs} to the \gls{gcrs} at the date $t$ 
 of an observation can be written as (\cite{iers2010})
 \begin{equation}\label{eq:iers1051}
@@ -22,12 +28,12 @@ where
     involving J2000.0, defined at the geocenter and at the date 2000 January 1.5 TT 
     = Julian Date 2451545.0 TT.
 \end{description}
-Note that \ref{eq:iers1051} uses the theoretical formulation of a reference ``system''. 
+Note that \autoref{eq:iers1051} uses the theoretical formulation of a reference ``system''. 
 In reality, it should be clear that the numerical implementation of this formula 
 involves the \gls{iau}/\gls{iugg} adopted realization of those reference systems, i.e. 
 the \gls{itrf} and \gls{icrf}.
 
-\ref{eq:iers1051} can be implemented in two distinct procedures, differing only on the 
+\autoref{eq:iers1051} can be implemented in two distinct procedures, differing only on the 
 adopted origin of the \gls{cip} equator, i.e. either using the equinox, thus resulting 
 in an \emph{equinox based} transformation, or the \gls{cio}, which in turn results in 
 the so-called \emph{CIO based} transformation. In both cases, the matrix $\bm{W}(t)$ is 
@@ -40,9 +46,9 @@ requires the use of the ``non-rotating origin'' in both the \gls{gcrs} and the
 \gls{itrs} 
 \end{displayquote}
 (\cite{iers2010}). Hence, for this Thesis we have adopted the \emph{CIO based} 
-implementation of the transformation \ref{eq:iers1051}.
+implementation of the transformation \autoref{eq:iers1051}.
 
-Schematically, the \gls{cio}-based procedure, implies (see also \ref{fig:itrf-to-icrf}):
+Schematically, the \gls{cio}-based procedure, implies (see also \autoref{fig:itrf-to-icrf}):
 \begin{itemize}
     \item realization of the \gls{tirs} via applying matrix $\bm{W}(t)$ on an \gls{itrs} 
         vector $\bm{r}$; the \gls{tirs} uses the \gls{cip} as its $z$-axis and the 
@@ -68,11 +74,11 @@ Schematically, the \gls{cio}-based procedure, implies (see also \ref{fig:itrf-to
 
 \paragraph{Polar Motion Matrix $W(t)$}\label{par:polar-motion-matrix}
 The rotation of the Earth is represented by the diurnal rotation around a
-refernce axis, called the \gls{cip}. The \gls{cip} does not coincide with 
+reference axis, called the \gls{cip}. The \gls{cip} does not coincide with 
 the axis of figure of the Earth, but slowly moves (in a terrestrial reference 
 frame) (\cite{Urban2013}). This motion of the terrestrial reference frame 
 with respect to the \gls{cip} is known as \emph{polar motion}. Note that the 
-\gls{cip} is not the instantenuous axis of rotation but the axis around which the 
+\gls{cip} is not the instantaneous axis of rotation but the axis around which the 
 diurnal rotation of earth is applied (in the celestial to terrestrial 
 transformation). Polar motion is typically determined from \gls{vlbi} 
 observation, as except from the principal periods of 365 days (annual wobble) 
@@ -94,7 +100,7 @@ where $s'$ is the ``\gls{tio} locator'' and $x_p$, $y_p$ are the
 ``polar coordinates'' of the \gls{cip} in the \gls{itrs}. The latter values, 
 if not estimated, should be the ones published by the \gls{iers}, corrected for 
 the effect of ocean tides and forced terms (aka ``libration''), with periods 
-less than two days in space (\cite{iers2010}), see \ref{ssec:eop-interpolation}.
+less than two days in space (\cite{iers2010}), see \autoref{ssec:eop-interpolation}.
 
 The \gls{tio} locator $s'$, positioning the \gls{tio} on the equator of the \gls{cip}, 
 is necessary to provide an exact realization of the ``instantaneous prime meridian'', 
@@ -102,7 +108,8 @@ designated by ``\gls{tio} meridian'' (\cite{iers2010}). $s'$ is obtained from
 polar motion observations by numerical integration, and so is in essence 
 unpredictable. However, it is dominated by a secular drift of about 
 \SI{47}{\micro\larcsecond\per\century}. The latter is used to actually compute 
-$s'$ in \ref{eq:iers1053}\footnote{In accordance to the \gls{sofa} (\cite{SOFA20210125}) supplied \texttt{iauSp00} function} 
+$s'$ in \autoref{eq:iers1053}.
+%\footnote{In accordance to the \gls{sofa} (\cite{SOFA20210125}) supplied \texttt{iauSp00} function} 
 using the function:
 \begin{equation}
   s' = \SI{-47}{\micro\larcsecond} \cdot t
@@ -110,8 +117,8 @@ using the function:
 \end{equation}
 obtained from C04 data (\cite{Lambert2002}).
 
-The $\bm{W}(t)$ matrix is computed using a variant of the \gls{sofa} (\cite{SOFA20210125}) 
-supplied \texttt{iauPom00} function.
+%The $\bm{W}(t)$ matrix is computed using a variant of the \gls{sofa} (\cite{SOFA20210125}) 
+%supplied \texttt{iauPom00} function.
 
 \paragraph{Earth Rotation Matrix $R(t)$}\label{par:earth-rotation-matrix}
 The rotation of the Earth around the axis of the \gls{cip} (i.e. relating 
@@ -138,7 +145,7 @@ $UT1=UTC+(UT1-UTC)$.
 
 Similarly to polar motion, additional components should 
 be added to the values published by \gls{iers} for $\Delta UT$ to account for 
-the effects of ocean tides and libration, see \ref{ssec:eop-interpolation}. 
+the effects of ocean tides and libration, see \autoref{ssec:eop-interpolation}. 
 
 \paragraph{Celestial Motion Matrix $Q(t)$}\label{par:celestial-motion-matrix}
 The \gls{cio} based transformation matrix arising from the motion of the \gls{cip} 
@@ -160,7 +167,7 @@ coordinates of the \gls{cip} in the \gls{gcrs} are:
     Z & = \cos{d}
   \end{aligned}
 \end{equation}
-\ref{eq:iers1056} can be given in an equivalent form directly involving $X$ and 
+\autoref{eq:iers1056} can be given in an equivalent form directly involving $X$ and 
 $Y$ as (\cite{iers2010}):
 \begin{equation}
   \bm{Q}(t) = \begin{pmatrix}
@@ -175,7 +182,8 @@ with $\alpha = 1/(1+\cos{d})$ , which can also be written, with an accuracy of
 
 $X$ and $Y$ coordinates can be given by developments as function of time in the 
 \si{\micro\larcsecond} level, based on the IAU 2006 precession and IAU 2000A
-nutation (\cite{CapitaineAndWallace2006})\footnote{Implemented in the \gls{sofa} (\cite{SOFA20210125}) supplied \texttt{iauXy06} function.}
+nutation (\cite{CapitaineAndWallace2006}).
+%\footnote{Implemented in the \gls{sofa} (\cite{SOFA20210125}) supplied \texttt{iauXy06} function.}
 The IAU 2006/2000A developments are as follows (\cite{iers2010}):
 \begin{equation}
   \label{eq:tn36516a}
@@ -201,11 +209,13 @@ and
   \end{aligned}
 \end{equation}
 
-where $\theta$ is a function of the fundamental lunisolar and planetary arguments\footnote{Furter information and computation formulas for the fundamental arguments, can be found in \cite{iers2010}, e.g. Chapter 5.7}. Complete 
-list of coefficients for \ref{eq:tn36516a} and \ref{eq:tn36516b} is provided 
+where $\theta$ is a function of the fundamental lunisolar and planetary arguments.
+Further information and computation formulas for the fundamental arguments, 
+can be found in \cite{iers2010}, e.g. Chapter 5.7. Complete 
+list of coefficients for \autoref{eq:tn36516a} and \autoref{eq:tn36516b} is provided 
 by \gls{iers}. 
 
-As \gls{vlbi} observations have shown that there are deficiencies in the 
+\gls{vlbi} observations have shown that there are deficiencies in the 
 IAU 2006/2000A precession-nutation model of the order of \SI{0.2}{\milli\larcsecond}, 
 mainly due to the fact that the free core nutation (\gls{fcn}) is not part of 
 the model, \gls{iers} publish observed estimates of the corrections to the 
@@ -222,7 +232,7 @@ given by (\cite{iers2010}):
     Y = Y_{\text{IAU 2006/2000}} + \delta Y
   \end{aligned}
 \end{equation}
-thus enabling to re-write \ref{eq:iers10510} as:
+thus enabling to re-write \autoref{eq:iers10510} as:
 \begin{equation}
   \bm{\tilde{Q}}(t) = \begin{pmatrix}
     1 & 0 & \delta X \\
@@ -236,24 +246,5 @@ where $\bm{Q}_{IAU}$ represents the $\bm{Q}(t)$ matrix based on the IAU 2006/200
 precession-nutation model.
 
 The ``\gls{cio} locator'' $s$, providing the position of the \gls{cio} in the 
-\gls{gcrs} can also be computed using a developement described in \cite{Capitaineetal2003a}
-\footnote{\gls{sofa} (\cite{SOFA20210125}) supplies an implementation of the formula named \texttt{iauS06} function}.
-
-%\begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.48\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{eop-00to22}
-%         \caption{\glspl{eop} extracted from \texttt{C04} file}
-%         \label{fig:erp-00to22}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.48\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{eop-daily}
-%         \caption{\glspl{eop} interpolated values (see \ref{fig:handling-eop})}
-%         \label{fig:erp-00to22}
-%     \end{subfigure}
-%\caption{\gls{eop} information from \gls{iers} \texttt{C04} data files.}
-%\label{fig:erp-plots}
-%\end{figure}
+\gls{gcrs} can also be computed using a development described in \cite{Capitaineetal2003a}.
+%\footnote{\gls{sofa} (\cite{SOFA20210125}) supplies an implementation of the formula named \texttt{iauS06} function}.

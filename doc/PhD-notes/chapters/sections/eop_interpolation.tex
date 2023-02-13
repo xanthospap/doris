@@ -1,4 +1,4 @@
-\subsection{\gls{eop} Information \& Interpolation}\label{ssec:eop-interpolation}
+\subsection{\gls{eop} Information And Interpolation}\label{ssec:eop-interpolation}
 
 \Gls{eop} information for formulating the Celestial-to-Terrestrial transformation 
 matrix, is extracted from the \gls{iers} \texttt{C04} files (\cite{Bizouard2019}).
@@ -21,23 +21,23 @@ Especially for $\delta UT1$ and $LOD$, according to \cite{Bradley2016},
 prior to their interpolation, ``the tabulated values should be smoothed through regularization 
 to enhance the interpolation accuracy''. Regularization is the removal of zonal tidal 
 variations with frequencies ranging from 5 days to 18.6 years. This ``regularization'' is 
-implemented in the \gls{eop} interpolation proccess.
+implemented in the \gls{eop} interpolation process.
 
-For the current Thesis, we have designed and implemented the process described above, for 
+For the current Thesis, the process described above was designed and implemented, for 
 extracting \gls{eop} information from \texttt{C04} files, storing values in efficiently designed 
 data structures, and performing the interpolation along with the corrections described above.
-A schematic representation is given in \ref{fig:handling-eop}. As shown in \ref{fig:eop-interpolation-results}, 
-including the ocean tide and libration effects, allows for the introduction of diurnal and 
-semi-diurnal signals.
+A schematic representation is given in \autoref{fig:handling-eop}. As shown in 
+\autoref{fig:eop-interpolation-results}, including the ocean tide and libration 
+effects, allows for the introduction of diurnal and semi-diurnal signals.
 
 \begin{figure}
-    \centering
-    \includegraphics[height=.4\textheight,keepaspectratio]{eop_interpolation}
-    \caption{Interpolation of \gls{eop} parameters $x_p$, $y_p$, $\delta UT1$ and $LOD$ 
-        perfromed by the software developed, following \ref{fig:handling-eop}. Red crosses 
-        represent the input, reference \gls{eop} values.}
-    \label{fig:eop-interpolation-results}
-  \end{figure}
+  \centering
+  \includegraphics[height=.4\textheight,keepaspectratio]{eop_interpolation}
+  \caption{Interpolation of \gls{eop} parameters $x_p$, $y_p$, $\delta UT1$ and $LOD$ 
+      performed by the software developed, following \ref{fig:handling-eop}. Red crosses 
+      represent the input, reference \gls{eop} values.}
+  \label{fig:eop-interpolation-results}
+\end{figure}
 
 For the polar motion \gls{eop}, $x_p$ and $y_p$,
 \begin{equation}
@@ -48,13 +48,13 @@ For the polar motion \gls{eop}, $x_p$ and $y_p$,
 \end{equation}
 where $\begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{ocean\text{ }tides}$ 
 and $\begin{pmatrix} \Delta x & \Delta y \end{pmatrix}_{libration}$ are computed as 
-outlined in \cite{iers2010}; the former is achieved by a software routined designed 
+outlined in \cite{iers2010}; the former is achieved by a software routine designed 
 on the basis of the \texttt{ORTHO\_EOP}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter8/software/ORTHO_EOP.F}, provided by R. Eanes.\label{fn:ortho-eop-f}} 
 to compute the diurnal and semidiurnal variations in the Earth orientation, while the latter 
 is based on \texttt{PMSDNUT2}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/PMSDNUT2.F}, provided by A. Brzezinski. \label{fn:pmsdnut2-f}}
 to compute the diurnal lunisolar effect on polar motion, see \autoref{fig:handling-eop}.
 
-Similarily, for the $\delta UT1$ and $LOD$ values, 
+Similarly, for the $\delta UT1$ and $LOD$ values, 
 \begin{equation}
     \begin{pmatrix} \delta UT1 & LOD \end{pmatrix} = 
     \begin{pmatrix} x & y \end{pmatrix}_{IERS} + 
@@ -63,7 +63,7 @@ Similarily, for the $\delta UT1$ and $LOD$ values,
 \end{equation}
 where again $\begin{pmatrix} \delta UT1 & LOD  \end{pmatrix}_{ocean\text{ }tides}$ 
 are computed using the same procedure as above, while $\begin{pmatrix} \delta UT1 & LOD  \end{pmatrix}_{libration}$ 
-are computed using a software routined designed on the basis of the \gls{iers}-published 
+are computed using a software routine designed on the basis of the \gls{iers}-published 
 \texttt{UTLIBR}\footnote{Available from the \gls{iers} \href{https://iers-conventions.obspm.fr/}{Conventions Centre} at \url{https://iers-conventions.obspm.fr/content/chapter5/software/UTLIBR.F}, provided by A. Brzezinski.\label{fn:utlibr-f}} 
 to account for the subdiurnal librations.
 
