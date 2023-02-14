@@ -1,0 +1,40 @@
+\section{Multistep Methods}\label{sec:multistep-methods}
+
+% http://www.math.iit.edu/~fass/478578_Chapter_2.pdf
+
+In the Runge-Kutta method (see \autoref{sec:runge-kutta}), each step in the 
+integration process is completely independent and once used for computation is 
+discarded (for this reason they are often called \emph{single-step} methods). 
+To reduce the number of function calls and thus allow for efficiency, \emph{multi-step} 
+methods have been introduced. These store values of previous steps, and reuse them 
+in the next steps to be taken, so that to generate an approximation for the next 
+step, the already computed $x$ and $\dot{x}$ values computed at the previous $k$ 
+steps are combined.
+
+In general, starting with the \gls{ode} $\bm{\dot{y}} = \bm{f}(t,\bm{y})$, and 
+integrating both sides for the interval $t_i$ to $t_{i+j}$ the following expression 
+is obtained
+\begin{equation}\label{eq:mont442}
+    \bm{y}(t_{i+1}) = \bm{y}(t_i) + \int_{t_i}^{t_{i+1}} \bm{f}(t,\bm{y}(t)) \,dt
+\end{equation}
+In multistep methods, the integrand is replaced by a polynomial $p(t)$, that interpolates 
+a subset of the already available approximate values $\bm{\eta}_j$ of the solutions 
+$\bm{y}(t_j)$, such that
+\begin{equation}
+    \bm{f}_j = \bm{f}(t_j, \bm{\eta}_j)
+\end{equation}
+Hence, if $\bm{\eta}_{i+1}$ is the approximate solution at the nest step to be taken, 
+\begin{equation}
+    \bm{\eta}_{i+1} = \bm{\eta}_i + \int_{t_i}^{t_{i+h}} p(t) \,dt
+\end{equation}
+and the increment function of a multistep method is therefore given by
+\begin{equation}
+    \bm{\Phi} = \frac{1}{h} \int_{t_i}^{t_{i+h}} p(t) \,dt
+\end{equation}
+Finally, the solution approximation at $t=t_{i+1}$ can be approximated by
+\begin{equation}\label{eq:butcher241a}
+    \bm{y}(t_{i+1}) = \bm{y}(t_i) + h \left( b_1 \bm{f}_i + b_2 \bm{f}_{i-1} + \dots + b_k \bm{f}_{i-k+1} \right)
+\end{equation}
+Methods of this form are known as \emph{Adams-Bashforth} methods. Coefficients for 
+the representation \autoref{eq:butcher241a} for up to 4\textsuperscript{th} degree 
+are available in e.g. \cite{Butcher2016}.

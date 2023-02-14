@@ -1,0 +1,102 @@
+\section{Runge-Kutta Methods}\label{sec:runge-kutta}
+
+In the \emph{Runge-Kutta} methods, a weighted average of the slopes ($\bm{f}$) of 
+the solution computed at nearby points is used to determine the solution at 
+$t = t_{n+1}$ from that at $t = t_n$. Typically, Runge-Kutta methods are further 
+divided in \emph{explicit} and \emph{implicit} methods; the latter are more complicated 
+but allow for higher order and improved stablity (see \cite{Griffiths2010}).
+
+The general $s$-stage Runge-Kutta methods, may be written in the form
+\begin{equation}\label{eq:grif95}
+    x_{n+1} = x_n + h \sum_{i=1}^{s} b_i k_i 
+\end{equation}
+where the $k_i$ terms can be computed from the function $f$
+\begin{equation}\label{eq:grif96}
+    k_i = f \left( t_n + c_i h , x_n + h \sum_{j=1}^{s} a_{i,j} k_j \right) \text{ with } i = 1,2,\dots s
+\end{equation}
+Typically, we impose the condition
+\begin{equation}
+    c_i = \sum_{j=1}^{s} a_{i,j}
+\end{equation}
+Thus, given a value of $s$, the method depends on $s^2 + s$ parameters $a_{i,j}$ and $b_j$.
+These can be conveniently displayed in a tableau known as the \emph{Butcher array} 
+(see e.g. \cite{Butcher2016}).
+
+\noindent\begin{minipage}[t]{0.5\textwidth}%
+    \centering
+    \label{table:butcher-array-implicit}
+    \begin{tabular}{c|cccc}
+        $c_1$  & $a_{1,1}$ & $a_{1,2}$ & \dots & $a_{1,s}$ \\
+        $c_2$  & $a_{2,1}$ & $a_{2,2}$ & \dots & $a_{2,s}$ \\
+        \vdots & \vdots    & \vdots    &       & \vdots \\ 
+        $c_s$  & $a_{s,1}$ & $a_{s,2}$ & \dots & $a_{s,s}$ \\
+        \hline
+               & $b_1$     & $b_2$     & \dots & $b_s$ \\
+    \end{tabular}
+    \captionsetup{width=0.8\linewidth}
+    \captionof{table}{The Butcher array for a full (implicit) RK method}
+\end{minipage}%
+\begin{minipage}[t]{0.5\textwidth}%
+    \centering
+    \label{table:butcher-array-explicit}
+    \begin{tabular}{c|ccccc}
+        $0$    & $0$       & $0$       & \dots  & $0$         & $0$ \\
+        $c_2$  & $a_{2,1}$ & $0$       & \dots  & $0$         & $0$ \\
+        $c_3$  & $a_{3,1}$ & $a_{3,2}$ & \dots  & $0$         & $0$ \\
+        \vdots & \vdots    & \vdots    & $\ddots$ & $0$         & $0$ \\ 
+        $c_s$  & $a_{s,1}$ & $a_{s,2}$ & \dots  & $a_{s,s-1}$ & $0$ \\
+        \hline
+               & $b_1$     & $b_2$     & \dots & $b_{s-1}$    & $b_s$ \\
+    \end{tabular}
+    \captionsetup{width=0.8\linewidth}
+    \captionof{table}{The Butcher array for an explicit RK method. Zeros are often omitted.}
+\end{minipage}%
+
+\autoref{eq:grif96} constitutes a nonlinear equation system of size $s$, that can 
+be used to determine $k_i$; once found, they can be substituted into \autoref{eq:grif95} 
+to determine $x_{n+1}$. Thus, a general Runge-Kutta method is implicit (\cite{Griffiths2010}).
+The form of the Butcher array for an implicit Runge-Kutta method is shown in 
+\autoref{table:butcher-array-implicit}. Although early studies were devoted entirely 
+to explicit Runge-Kutta methods, interest has now moved to include implicit methods, 
+which have become recognized as appropriate for the solution of stiff differential 
+equations (\cite{Butcher2016}).
+
+If the coefficients $a_{i,j}$ can be placed in a lower triangular matrix, i.e. 
+$a_{i,j} = 0$ for all $j \ge i$, the $k_i$ terms can be computed directly (from 
+\autoref{eq:grif96}) without the need to solve any nonlinear equations. These are 
+the methods most often used, and are called explicit. In this case, the general form 
+of the associated Butcher array is depicted in \autoref{table:butcher-array-explicit}.
+
+The \emph{Local Truncation Error} of a Runge-Kutta method $T_{n+1}$, is defined 
+to be the difference between the exact and the numerical solution at $t=t_{n+1}$
+(\cite{Griffiths2010})
+\begin{equation}
+    T_{n+1} = x(t_{n+1}) - x_{n+1}
+\end{equation}
+with $x_n = x(t_n)$. If $T_{n+1} = \mathcal{O}(h^{p+1})(p>0)$ the method is 
+said to be of \emph{order} $p$. In practice, two related Runge-Kutta methods are 
+used, one of order $p$ and another of order $p+1$, to approximate the value of 
+the local truncation error via $T_{n+1} = x^{p+1}_{n+1} - x^{p}_{n+1}$, where the 
+$T_{n+1}$ estimate is for the lowest order method $p$. To perform the calculation 
+in an efficient way, the values of $k$s for the lowest degree method, are chosen 
+so that they are a subset of the higher degree method coefficients. Such methods 
+of neighboring orders are often called \emph{embedded} Runge-Kutta methods.
+
+While for $s<4$ there are always Runge-Kutta methods where $s=q$, this is not the 
+case for methods of stages higher than four. The number of stages necessary for 
+a given order is known up to order 8, but there are no precise results for higher 
+orders (\cite{Griffiths2010}).
+
+\subsection{Adaptive Step Size}\label{ssec:adaptive-step-size}
+
+The step size $h$ is a crucial parameter in the integrations methods; it dictates 
+the number of steps required to integrate over a given interval, and the accuracy 
+of the results obtained. Small step sizes (in general) improve accuracy but comes 
+with an efficiency cost. To that end, \emph{step size control} can be used, to 
+compute a value $h_n$ for step $n$, to obtain the same accuracy with fewer steps 
+or better accuracy with the same number of steps. In \emph{adaptive} step size control,
+the step size in each step is adapted to local conditions, so as to take short steps 
+when the solution varies rapidly and longer steps when there is relatively little 
+activity. Obviously, computing such variable step sizes, should be automatic and 
+inexpensive. A thorough discussion on implementing sophisticated adaptive step size 
+control, fit for computer programs, is given in the classic text \cite{Shampine1975}.

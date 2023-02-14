@@ -9,6 +9,7 @@
 %\usetikzlibrary{pgfplots.external}
 %\tikzexternalize
 \usepackage{caption}
+\captionsetup[table]{position=bottom}
 \usepackage{subcaption}
 \usepackage{xcolor,cancel}
 \usepackage{adjustbox}  %% e.g. wrap verbatim larger than linewidth
@@ -274,6 +275,8 @@
 
 \chapter{Orbit Integration}\label{ch:orbit-integration}
     \input{chapters/sections/integration_introduction}
+    \input{chapters/sections/runge_kutta}
+    \input{chapters/sections/multistep_methods}
 %\include{chapters/satellite_orbits}
 %\include{chapters/orbit_intergators}
 %\include{chapters/orbit_modeling}
