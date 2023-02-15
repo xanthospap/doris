@@ -18,14 +18,16 @@
 %\usepackage{imakeidx}   %% for index
 %\makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul}       %% allow wrapping of underlined text, via \ul{...}
-%\usepackage{natbib}     %% for bibliography
-% the following is for biblatex, see
-% https://www.overleaf.com/learn/latex/Biblatex_bibliography_styles
-\usepackage[
-  backend=biber,
-  style=authoryear-icomp
-]{biblatex}
-\addbibresource{doris.bib}
+\usepackage{natbib}     %% for bibliography
+\iffalse
+  % the following is for biblatex, see
+  % https://www.overleaf.com/learn/latex/Biblatex_bibliography_styles
+  \usepackage[
+    backend=biber,
+    style=authoryear-icomp
+  ]{biblatex}
+  \addbibresource{doris.bib}
+\fi
 \usepackage[intoc]{nomencl}  %% for nomenclature
 \makenomenclature
 \usepackage{etoolbox} %% for grouping nomenclature, see nomgroup
@@ -296,9 +298,11 @@
 %\include{chapters/orbdet}
 %\include{chapters/troposphere}
 
-%\bibliographystyle{agsm} 
-%\bibliography{doris}
-\printbibliography
+\bibliographystyle{agsm} 
+\bibliography{doris}
+\iffalse
+  \printbibliography
+\fi
 
 \glsaddall
 \printglossary[type=\acronymtype,title=Acronyms]

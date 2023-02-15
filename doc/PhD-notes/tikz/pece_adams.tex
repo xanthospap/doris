@@ -22,13 +22,13 @@
         $\bm{f}^{(p)}_{i+1} = \bm{f}(t_{i+1}, \bm{\eta}^{(p)}_{i+1})$
     };
     
-    \node[fill=gray!5] (step3) [below =of step2] {
+    \node[fill=gray!8] (step3) [below =of step2] {
         \emph{Corrector} compute an improved approximate\\
         value $\bm{\eta}_{i+1}$ using the Adams-Moulton method (see \autoref{eq:butcher241b}),\\
         $\bm{\eta}_{i+1} = \bm{\eta}_{i} + h \cdot \Phi _{AM}$
     };
 
-    \node[fill=gray!5] (step4) [below =of step3] {
+    \node[fill=gray!8] (step4) [below =of step3] {
         Evaluate the updated function value\\ 
         $\bm{f}_{i+1} = \bm{f}(t_{i+1}, \bm{\eta}_{i+1})$\\
         and use for nest integration step
