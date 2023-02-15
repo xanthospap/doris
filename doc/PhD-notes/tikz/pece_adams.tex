@@ -1,0 +1,41 @@
+\begin{tikzpicture}[
+    every node/.style = {
+      draw=black, 
+      rounded corners, 
+      fill=gray!20,
+      minimum width=2cm,
+      minimum height=0.5cm,
+      align=center},
+      every path/.style = {draw, -latex}
+    ]
+
+    \node[fill=gray!5] (step1) [] {
+        \emph{Predictor} compute initial estimate \\
+        of the solution at $t_{i+1}$ using the\\
+         (explicit) Adams-Bashforth formula (see \autoref{eq:butcher241a})\\
+        $\bm{\eta}^{(p)}_{i+1} = \bm{\eta}_{i} + h \cdot \Phi _{AB}$
+      };
+    
+    \node[fill=gray!5] (step2) [below =of step1] {
+        Use the result obtained in the Predictor\\
+        step to compute the function value at $t_{i+1}$ (see \autoref{eq:mont443}),\\
+        $\bm{f}^{(p)}_{i+1} = \bm{f}(t_{i+1}, \bm{\eta}^{(p)}_{i+1})$
+    };
+    
+    \node[fill=gray!5] (step3) [below =of step2] {
+        \emph{Corrector} compute an improved approximate\\
+        value $\bm{\eta}_{i+1}$ using the Adams-Moulton method (see \autoref{eq:butcher241b}),\\
+        $\bm{\eta}_{i+1} = \bm{\eta}_{i} + h \cdot \Phi _{AM}$
+    };
+
+    \node[fill=gray!5] (step4) [below =of step3] {
+        Evaluate the updated function value\\ 
+        $\bm{f}_{i+1} = \bm{f}(t_{i+1}, \bm{\eta}_{i+1})$\\
+        and use for nest integration step
+    };
+
+    \draw (step1) -- (step2);
+    \draw (step2) -- (step3);
+    \draw (step3) -- (step4);
+
+\end{tikzpicture}

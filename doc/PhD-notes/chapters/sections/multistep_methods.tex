@@ -2,6 +2,8 @@
 
 % http://www.math.iit.edu/~fass/478578_Chapter_2.pdf
 
+\subsection{Adams Method(s)}\label{ssec:adams-method}
+
 In the Runge-Kutta method (see \autoref{sec:runge-kutta}), each step in the 
 integration process is completely independent and once used for computation is 
 discarded (for this reason they are often called \emph{single-step} methods). 
@@ -20,15 +22,15 @@ is obtained
 In multistep methods, the integrand is replaced by a polynomial $p(t)$, that interpolates 
 a subset of the already available approximate values $\bm{\eta}_j$ of the solutions 
 $\bm{y}(t_j)$, such that
-\begin{equation}
+\begin{equation}\label{eq:mont443}
     \bm{f}_j = \bm{f}(t_j, \bm{\eta}_j)
 \end{equation}
-Hence, if $\bm{\eta}_{i+1}$ is the approximate solution at the nest step to be taken, 
+Hence, if $\bm{\eta}_{i+1}$ is the approximate solution at the next step to be taken, 
 \begin{equation}
     \bm{\eta}_{i+1} = \bm{\eta}_i + \int_{t_i}^{t_{i+h}} p(t) \,dt
 \end{equation}
 and the increment function of a multistep method is therefore given by
-\begin{equation}
+\begin{equation}\label{eq:mont445}
     \bm{\Phi} = \frac{1}{h} \int_{t_i}^{t_{i+h}} p(t) \,dt
 \end{equation}
 Finally, the solution approximation at $t=t_{i+1}$ can be approximated by
@@ -38,3 +40,149 @@ Finally, the solution approximation at $t=t_{i+1}$ can be approximated by
 Methods of this form are known as \emph{Adams-Bashforth} methods. Coefficients for 
 the representation \autoref{eq:butcher241a} for up to 4\textsuperscript{th} degree 
 are available in e.g. \cite{Butcher2016}.
+
+Multistep methods are typically derived by using an interpolating polynomial in
+either of two ways. The first is to use an interpolating polynomial through 
+$t_i, t_{i-1}, \dots , t_{i-k+1}$ for $\bm{f}(t, \bm{\eta})$ and then integrate 
+the equation (as discussed above). The second method constists in using an 
+interpolating polynomial (again through $t_i, t_{i-1}, \dots , t_{i-k+1}$) to 
+approximate $\bm{y}(t)$ and then differentiate it, evaluate at $t_{i+1}$ for an 
+implicit method and set it equal to the given slope ($\bm{f}(t, \bm{\eta})$) at 
+that point to obtain the difference equation. This gives rise to a family of 
+implicit methods called \emph{backward difference formulas}. In the latter case, 
+the polynomial is given by the expression (\cite{Montenbruck2000})
+\begin{equation}\label{eq:mont451}
+    p^{i}_{m}(t) = p^{i}_{m}(t_i + \sigma h) = \sum_{j=0}^{m-1} \left(-1\right)^j 
+        \begin{pmatrix}-\sigma \\ j \end{pmatrix} \nabla ^j \bm{f}_i
+\end{equation}
+where the binomial coefficient is used
+\begin{equation}
+    \begin{pmatrix}-\sigma \\ j \end{pmatrix} = 
+        \begin{cases}
+            \frac{(-\sigma)(-\sigma -1)\dots (-\sigma -j -1)}{j!} \text{ , if } j>0 \text{ and } \\
+            1  \text{ , if } j=0
+        \end{cases}
+\end{equation}
+The $\nabla ^i$ operator here denotes the backward difference operator, which is 
+recursively defined by (see \autoref{tab:backward-differences-ab})
+\begin{equation}
+    \begin{aligned}
+        \nabla ^0 \bm{f}_i &= \bm{f}_i \\
+        \nabla ^1 \bm{f}_i &= \bm{f}_i - \bm{f}_{i-1} \\
+        \nabla ^n \bm{f}_i &= \nabla ^{n-1}\bm{f}_i - \nabla ^{n-1} \bm{f}_{i-1}
+    \end{aligned}
+\end{equation}
+
+Using \autoref{eq:mont445} the increment function of the $m$\textsuperscript{th}-order 
+Adams-Bashforth methods, can be written as
+\begin{equation}\label{eq:mont454}
+    \bm{\Phi} = \frac{1}{h} \int_{t_i}^{t_{i+h}} p^{i}_{m}(t) \,dt 
+        = \sum_{j=0}^{m-1} \gamma _j \nabla ^j \bm{f}_i
+\end{equation}
+with 
+\begin{equation}\label{eq:mont455}
+    \gamma _j = \left( -1 \right)^j \int_{0}^{1} \begin{pmatrix}-\sigma \\ j \end{pmatrix} \,d\sigma
+\end{equation}
+$\gamma _j$ coefficients can be found in e.g. \cite{Butcher2016} up to 
+7\textsuperscript{th} order.
+
+\begin{table}[]
+    \centering
+    \begin{tabular}{ccccccccccc}
+        %\hline
+        $\bm{f}_{i-4}$ & \dots &&&&&\\ 
+        & $\searrow$ &&&&& \\ 
+        $\bm{f}_{i-3}$ & $\rightarrow$ & $\nabla ^1 \bm{f}_{i-3}$ & \dots &&&&\\ 
+        & $\searrow$ & & $\searrow$ &&& \\ 
+        $\bm{f}_{i-2}$ & $\rightarrow$ & $\nabla ^1 \bm{f}_{i-2}$ & $\rightarrow$ & $\nabla ^2 \bm{f}_{i-2}$ & \dots &&& \\ 
+        & $\searrow$ && $\searrow$ && $\searrow$ & \\ 
+        $\bm{f}_{i-1}$ & $\rightarrow$ & $\nabla ^1 \bm{f}_{i-1}$ & $\rightarrow$ & $\nabla ^2 \bm{f}_{i-1}$ & $\rightarrow$  & $\nabla ^3 \bm{f}_{i-1}$ & \dots && \\ 
+        & $\searrow$ && $\searrow$ && $\searrow$ &&  $\searrow$ \\ 
+        $\bm{f}_{i}$   & $\rightarrow$ & $\nabla ^1 \bm{f}_{i}$   & $\rightarrow$ & $\nabla ^2 \bm{f}_{i}$   & $\rightarrow$  & $\nabla ^3 \bm{f}_{i}$   & $\rightarrow$  & $\nabla ^4 \bm{f}_{i}$ & \dots & \\ 
+        %$\bm{f}_{i-}$ & $\rightarrow$ & $\nabla ^2 \bm{f}_{i-}$ & $\rightarrow$ & $\nabla ^2 \bm{f}_{i-}$ & $\rightarrow$  & $\nabla ^2 \bm{f}_{i-}$ & $\rightarrow$  & $\nabla ^2 \bm{f}_{i-}$ & $\rightarrow$  & $\nabla ^2 \bm{f}_{i-}$ & \dots \\
+        %\hline
+    \end{tabular}
+    \caption{Schematic representation of backward differences for polynomial interpolation, \cite{Montenbruck2000}.}
+    \label{tab:backward-differences-ab}
+  \end{table}
+
+The local truncation error of the Adams-Bashforth method decreases with the
+order $m$ and may be estimated by comparing two methods of order $m$ and $m+1$ 
+(\cite{Montenbruck2000})
+\begin{equation}\label{eq:mont457}
+    T_{m} = \norm{\bm{y}(t_i +h) - \eta _{m}} \approx \norm{\eta _{m+1} - \eta _{m}} 
+    = h \norm{\gamma _m \nabla ^m \bm{f}_i}
+\end{equation}
+which can be approximated by
+\begin{equation}
+    T_{m} \approx h^{m+1} \norm{\gamma _m \bm{f}^{(m)}_{i}} = h^{m+1} \norm{\gamma _m \bm{y}^{(m+1)}_{i}}
+\end{equation}
+which shows that the order of the Adams-Bashforth method is equal to the number
+$m$ of nodes $t_{i-m+1}, \dots , t_i$.
+
+The method of backward differences has two major advantages:
+\begin{enumerate}
+    \item it allows a straightforward estimation of the local truncation error, and
+    \item the order can be changed in-between integration steps
+\end{enumerate}
+
+Note that the polynomial $p$ (\autoref{eq:butcher241a}) is defined by $m$
+function values, up to and including $\bm{f}_i$ at time $t_i$, but the integration 
+\autoref{eq:mont445} is performed over the subsequent interval $t_i , \dots , t_{i+1}$.
+Instead of \autoref{eq:butcher241a}, a slightly different polynomial can be chosen
+\begin{equation}\label{eq:butcher241b}
+    \bm{y}(t_{i+1}) = \bm{y}(t_i) + h \left( b_0 \bm{f}_{i+1} b_1 \bm{f}_i + b_2 \bm{f}_{i-1} + \dots + b_k \bm{f}_{i-k+1} \right)
+\end{equation}
+(that is, include a term for the $t_{i+1}$), which leads to the \emph{Adams-Moulton} 
+method. For order $m$ in this case, the interpolating polynomial is (compare to 
+\autoref{eq:mont451})
+\begin{equation}\label{eq:mont461}
+    p^{i+1}_{m}(t) = p^{i+1}_{m}(t_i + \sigma h) = \sum_{j=0}^{m-1} \left(-1\right)^j 
+    \begin{pmatrix}-\sigma +1\\ j \end{pmatrix} \nabla ^j \bm{f}_{i+1}
+\end{equation}
+which yields the increment function
+\begin{equation}\label{eq:mont462}
+    \bm{\Phi} = \frac{1}{h} \int_{t_i}^{t_{i+h}} p^{i+1}_{m}(t) \,dt 
+    = \sum_{j=0}^{m-1} \bar{\gamma}_j \nabla ^j \bm{f}_{i+1}
+\end{equation}
+with coefficients
+\begin{equation}\label{eq:mont463}
+    \bar{\gamma}_j = \left( -1 \right)^j \int_{0}^{1} \begin{pmatrix}-\sigma +1 \\ j \end{pmatrix} \,d\sigma
+\end{equation}
+
+The local truncation error in this case, is given by (\cite{Montenbruck2000})
+\begin{equation}
+    T_{m} \approx h^{m+1} \norm{\hat{\gamma}_m \bm{y}^{(m+1)}_i}
+\end{equation}
+and since in general $\hat{\gamma}_m < \gamma _m$, it is smaller that the respective 
+$T_m$ value for an Adams-Bashforth method of equal size.
+
+\subsection{\gls{pece} Method}\label{ssec:predictor-corrector-method}
+
+Since the increment function \autoref{eq:mont462} depends on 
+$\bm{f}_{i+1} \equiv \bm{f}(t_{i+1}, \bm{\eta}_{i+1})$, it is not possible to 
+calculate an explicit solution at $t_{i+1}$ from \autoref{eq:butcher241b}, 
+making this method an \emph{implicit} method. To surpass this difficulty, a combination 
+of the Adams-Bashforth and Adams-Moulton methods can be used, in what is called a 
+\gls{pece} scheme (\autoref{fig:pece-adams}). 
+At a first step, an Adams-Bashforth of order $m$ is used to compute an approximate 
+solution $\bm{\eta}^{(p)}_{t_{i+1}}$, using the already computed values 
+$\bm{f}_i, \bm{f}_{i-1}, \dots , \bm{f}_{i-m+1}$. This \emph{predicted} value 
+($\bm{\eta}^{(p)}_{t_{i+1}}$), can then be used to obtain a a \emph{predicted} 
+function value at $t_{i=1}$, $\bm{f}^{(p)}_{i+1}(t_{i+1},\bm{\eta}^{(p)}_{t_{i+1}})$ 
+and procced to the \emph{corrector} step, where an updated, improved solution 
+$\bm{\eta}_{t_{i+1}}$ is computed, via an Adams-Moulton method of order $m$ or 
+$m=1$. The ``final'' function value at $t_{i+1}$, 
+$\bm{f}^{(p)}_{i+1}(t_{i+1},\bm{\eta}^{(p)}_{t_{i+1}})$ can be evaluated for the 
+next integration step.
+
+\begin{figure}
+    \centering
+    \input{tikz/pece_adams}
+    \caption{Schematic representation of the \emph{Predictor-Corrector} algorithm using the Adams-Bashforth and Adams-Moulton methods.}
+    \label{fig:pece-adams}
+  \end{figure}
+
+Even though the \gls{pece} algorithms are complicated and difficult to implement, 
+they offer increaded stability, especially at large stepsizes (\cite{Montenbruck2000}).
+Low-order methods are generally more stable even for large stepsizes.
