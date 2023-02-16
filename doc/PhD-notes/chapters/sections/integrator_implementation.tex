@@ -1,0 +1,20 @@
+
+According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
+problems in which:
+\begin{itemize}
+    \item function evaluations are expensive,
+    \item mnoderate to high accuracy is requested,
+    \item many output points are required
+\end{itemize}
+
+\cite{Shampine1975}:
+The overhead in these codes is rather high, partly because of the methods
+and partly because of the features they provide. For example, DE detects
+and deals with discontinuities; it detects and deals with moderate stiffness;
+it detects and tells the user of severe stiffness; it detects requests for very
+high accuracy and switches on propagated roundoff controls; it detects
+requests for more accuracy than is possible on the machine being used and
+tells the user what is possible; it is, for practical purposes, independent
+of the number and location of output points; it monitors the work being
+expended; it allows the user to change direction without restarting; and
+it is extremely efficient in terms of function evaluations. 

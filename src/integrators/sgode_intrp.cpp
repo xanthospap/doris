@@ -3,6 +3,9 @@
 #include <cassert>
 #endif
 
+///< According to Shampine & Gordon, intrp is an interpolation code for 
+///< obtaining the solution at specified output points
+
 /// x = member x
 /// y = member yy
 int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout/*,

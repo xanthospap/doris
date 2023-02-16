@@ -12,7 +12,6 @@ int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
     max_order = this->max_order();
   // compute geopotential corrections ΔC and ΔS
   this->operator()(mjdtt, max_degree, max_order);
-  // dCS.scale(1e-11);
 
   // compute acceleration at satellite position (ITRF, cartesian)
   Eigen::Matrix<double, 3, 3> partials;
@@ -40,12 +39,8 @@ int dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt, int max_degree,
   };
 
   // compute GMST using IAU 2006/2000A [rad]
-  // const auto jdtt = mjdtt.jd_sofa();
-  // const auto jdut = mjdut1.jd_sofa();
-  const double gmst =
-      /* iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
-       */
-      dso::gmst_utc(mjdtt.tt2utc());
+  const double gmst = dso::gmst_utc(mjdtt.tt2utc());
+  // iers2010::sofa::gmst06(jdut._big, jdut._small, jdtt._big, jdtt._small);
 
   // Doodson fundamental arguments (β_i = [τ,s,h,p,N',pl])
   double beta[6];

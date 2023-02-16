@@ -68,11 +68,6 @@ int dso::SolidEarthTide::operator()(const dso::TwoPartDate &mjdtt,
   // Step 2 corrections
   double dc20, dc21, ds21, dc22, ds22;
   solid_earth_tide_step2(mjdtt, mjdut1, dc20, dc21, ds21, dc22, ds22);
-  //printf("dC20=%.12e dC21=%.12e dC22=%.12e\n", dc20, dc21, dc22);
-  //printf("dS20=%.12e dS21=%.12e dS22=%.12e\n", 0e0, ds21, ds22);
-  //solid_earth_tide_step2_d(mjdtt, dc20, dc21, ds21, dc22, ds22);
-  //printf("dC20=%.12e dC21=%.12e dC22=%.12e\n", dc20, dc21, dc22);
-  //printf("dS20=%.12e dS21=%.12e dS22=%.12e\n", 0e0, ds21, ds22);
 
   // apply Step 2 corrections (to Step 1)
   dC[0] += dc20;

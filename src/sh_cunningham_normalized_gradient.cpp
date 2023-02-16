@@ -147,7 +147,7 @@ int gravacc3_impl(
   // acceleration and gradient in cartesian components
   acc = Eigen::Matrix<double, 3, 1>::Zero();
   gradient = Eigen::Matrix<double, 3, 3>::Zero();
-  [[maybe_unused]] const int minDegree = 2;
+  [[maybe_unused]] const int minDegree = 0;
 #ifdef KAHAN_SUM
   KahanSum axs, ays, azs;
 #endif

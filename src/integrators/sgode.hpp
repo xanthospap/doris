@@ -7,6 +7,54 @@
 namespace dso {
 
 class SGOde {
+  /// The constant maxnum is the maximum number of steps allowed in one
+  /// call to sgode_de. The user may change this limit by altering the
+  /// following statement
+  static constexpr const int maxnum = 500;
+
+  
+  enum class IFLAG : char {
+    /// IFLAG = 2—integration successful, T is set to TOUT and Y to the
+    /// solution at TOUT.
+    /// All parameters in the call list are set for continuing the integration 
+    /// if the user wishes to. All he has to do is define a new value TOUT and 
+    /// call DE again.
+    i2,
+    /// IFLAG = 3—error tolerances RELERR and ABSERR are too small for the 
+    /// machine being used. T is set to the point closest to TOUT reached 
+    /// during the integration and Y to the solution at that point. RELERR and 
+    /// ABSERR are set to larger, acceptable values. To continue with the 
+    /// larger tolerances, just call DE again.
+    /// The word length of the machine and the error criterion impose 
+    /// limitations on the accuracy that can be obtained. Requests for too 
+    /// much accuracy are detected without additional function evaluations 
+    /// (calls to the subroutine F) and suitable tolerances are communicated 
+    /// to the user. Because of the way control is returned, nothing is lost. 
+    /// The user gets the last solution computed by the code which meets the 
+    /// requested error tolerances and, if he wishes to continue with the 
+    /// larger tolerances, he simply calls DE again. To integrate with the 
+    /// maximum accuracy possible, simply specify tolerances that are known to 
+    /// be too small and let the code increase them to an acceptable level. 
+    /// The code will increase the tolerances if it is necessary, but will not 
+    /// decrease them. The tolerances may be altered by the user at each call 
+    /// without re-initializing.
+    i3,
+    /// IFLAG = 4— more than MAXNUM steps are required to reach TOUT. T is set 
+    /// to the point closest to TOUT reached during the integration, and Y to 
+    /// the answer at that point. To continue, just call DE again.
+    i4,
+    /// IFLAG = 5—more than MAXNUM steps needed to reach TOUT and the 
+    /// equations appear to be stiff. T is set to the point closest to TOUT 
+    /// reached during the integration, and Y to the answer at that point. A 
+    /// code for stiff equations should be used but one can (usually) get 
+    /// accurate results with DE if he is prepared to stand the cost. To 
+    /// continue, the user has only to call DE again.
+    i5,
+    /// IFLAG = 6— integration is not begun because the input parameters are 
+    /// invalid. The user must correct them and call DE again.
+    INVALID_INPUT,
+  };
+
 public:
   SGOde(ODEfun _f, int _neqn, double rerr, double aerr,
         dso::IntegrationParameters *_params = nullptr)
@@ -122,6 +170,7 @@ public:
   double /*t,*/ told;
   double delsgn;
   double relerr, abserr;
+  bool integrate_past_tout{true};
   /// May store a pointer to some king of parameters that are passed in the
   /// ODE function
   dso::IntegrationParameters *params{nullptr};
