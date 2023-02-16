@@ -4,7 +4,49 @@
 #include <cassert>
 #endif
 
-/// Accoring to Shampine & Gordon, step is the basic Adams integrator
+/* Accoring to Shampine & Gordon, step is the basic Adams integrator
+ * Subroutine STEP solves a system of first order ordinary differential
+ * equations:
+ *                  y'(x) = f(x, y(x))
+ *                       y(a) = y0
+ * using Adams methods.
+ * We anticipate most users will use this routine indirectly through the 
+ * driver DE.
+ * The code STEP advances the solution of the differential equation one step 
+ * and returns control to the calling program. Because of this and because of 
+ * the information returned, it allows the integration to be monitored closely. 
+ * It also allows great flexibility in the way the local error is controlled.
+ * As with DE, the output of one call to STEP is nearly all the input for the 
+ * next call so that STEP is only a little more trouble to use than DE.
+ *
+ * Since STEP advances the solution one step at a time, it must be called 
+ * repeatedly to integrate to a specified output point. And so, the typical 
+ * situation is that a successful step has just been completed and the user 
+ * wishes to take another step. On return from a successful step, X represents 
+ * how far the integration has progressed, Y is the vector of solution components
+at X, YP is the vector of first derivatives of the solution at X, H is
+estimated by the code to be the largest step the code can take and still pass
+the error test, START = .FALSE., and CRASH = .FALSE.. The parameter
+EPS is the local error tolerance and the vector WT specifies the error
+criterion; we shall go into them later. The user may change EPS and WT
+as he wishes. For some kinds of error control it is necessary to change WT
+at each step. The user may alter H but ordinarily he should not. The code
+does a very good job of selecting H and the user should not override the
+choice without a good reason. It is most efficient to step past any desired
+output point and to use INTRP to obtain the solution and its derivative
+there. Sometimes it is not possible to integrate beyond a given point, as the
+equation may have a discontinuity or be undefined there, and it is necessary
+for the user to alter H so as to land at the desired point. The code will
+attempt to step to X + H when it is called. If this is not possible, it will
+reduce the step size and continue trying to complete a step until it either
+succeeds or realizes that the task is impossible. Thus while the user does
+not know how far the code will advance, he does know that it will not go
+beyond X + H. By manipulating H the user can arrange to stop at a given
+point. We emphasize that it is much more efficient and more accurate to
+step past output points and then use INTRP when this is possible. In
+summary, to continue after a successful step, the only quantity the user
+commonly changes before calling the code again is WT.
+ */
 
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double twou = 2e0 * umach;
@@ -17,38 +59,44 @@ constexpr const double gstr[] = {
     0.00936e0, 0.00789e0, 0.00679e0, 0.00592e0, 0.00524e0, 0.00468e0};
 
 // input vector y0 is yy
-int dso::SGOde::step(double &eps, int &crash) noexcept {
+// eps -- local error tolerance
+int dso::SGOde::step(double &eps) noexcept {
+  // independent variable of integration (current time stored in instance)
+  const double x = tc;
+
   // ***     begin block 0     ***
-  //    check if step size or error tolerance is too small for machine
-  //    precision.  if first step, initialize phi array and estimate a
-  //    starting step size.
+  // check if step size or error tolerance is too small for machine
+  // precision.  if first step, initialize phi array and estimate a
+  // starting step size.
 
   // if step size is too small, determine an acceptable one
-  crash = true;
   if (std::abs(h) < fouru * std::abs(x)) {
+    // set step size for next call/step
     h = std::copysign(fouru * std::abs(x), h);
-    return 0;
+    // return signaling a 'crash'
+    return 1;
   }
 
   // -- break point 5: --
   const double p5eps = 5e-1 * eps;
 
-  //  if error tolerance is too small, increase it to an acceptable value
+  // if error tolerance is too small, increase it to an acceptable value
   const double round = twou * (yy().array() / wt().array()).matrix().norm();
   if (p5eps < round) {
+    // increase error tolerance
     eps = 2e0 * round * (1e0 + fouru);
-    return 0;
+    // return signaling a 'crash'
+    return 2;
   }
 
   // -- break point 15: --
-  crash = false;
   g(0) = 1e0;
   g(1) = 5e-1;
   sig(0) = 1e0;
 
   double absh;
   int ifail;
-  if (start) {
+  if (iflag == IFLAG::RESTART) {
     // initialize.  compute appropriate step size for first step
     f(x, yy(), yp(), *params);
     Phi.col(0) = yp();
@@ -61,16 +109,15 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     hold = 0e0;
     k = 1;
     kold = 0;
-    start = false;
-    phase1 = true;
-    nornd = true;
+    iflag = IFLAG::UNDEFINED;
+    phase1 = true; // TODO WTF is this ?
+    nornd = true; // TODO wtf is this ?
     if (p5eps <= 1e2 * round) {
       nornd = false;
       Phi.col(14).setZero();
     }
-    ifail = 0;
+    ifail = 0; // TODO wtf is this ?
   }
-
   // ***     end block 0     ***
 
   //
@@ -91,12 +138,13 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
     km2 = k - 2;
 
     // ns is the number of steps taken with size h, including the current
-    // one.  when k.lt.ns, no coefficients change
-    if (h != hold)
+    // one. when k.lt.ns, no coefficients change
+    if (h != hold) // new step size, reset ns
       ns = 0;
-    if (ns <= kold)
+    if (ns <= kold) // number of steps less that current order, increase step counter
       ++ns;
     int nsp1 = ns + 1;
+    // k >= ns, means we have to compute coefficients
     if (k >= ns) { // this should exit in 199:
       // compute those components of alpha(*),beta(*),psi(*),sig(*) which
       // are changed
@@ -127,7 +175,7 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
         assert(k <= 12);
 #endif
         for (int iq = 0; iq < k; iq++) {
-          v(iq) = 1e0 / (double)((iq + 1) * (iq + 2));
+          v(iq) = 1e0 / ((iq + 1e0) * (iq + 2e0));
         }
         std::memcpy(w(), v(), sizeof(double) * k);
         // next step is 140:
@@ -139,9 +187,9 @@ int dso::SGOde::step(double &eps, int &crash) noexcept {
 #ifdef DEBUG
           assert(k - 1 < 12);
 #endif
-          v(k - 1) = 1e0 / (double)(k * kp1);
+          v(k - 1) = 1e0 / (k * kp1);
           const int nsm2 = ns - 2;
-          if (nsm2 > 0) { // else goto 130:
+          if (nsm2 /*> 0*/>=1) { // else goto 130: --> CHANGE
             int j = 1;
             for (int i = k - 1; i >= k - nsm2; i--) {
 #ifdef DEBUG

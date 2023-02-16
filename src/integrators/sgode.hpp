@@ -14,12 +14,14 @@ class SGOde {
 
   
   enum class IFLAG : char {
+    /// Signal start or restart
+    RESTART, 
     /// IFLAG = 2—integration successful, T is set to TOUT and Y to the
     /// solution at TOUT.
     /// All parameters in the call list are set for continuing the integration 
     /// if the user wishes to. All he has to do is define a new value TOUT and 
     /// call DE again.
-    i2,
+    SUCCESS,
     /// IFLAG = 3—error tolerances RELERR and ABSERR are too small for the 
     /// machine being used. T is set to the point closest to TOUT reached 
     /// during the integration and Y to the solution at that point. RELERR and 
@@ -38,21 +40,22 @@ class SGOde {
     /// The code will increase the tolerances if it is necessary, but will not 
     /// decrease them. The tolerances may be altered by the user at each call 
     /// without re-initializing.
-    i3,
+    TOL_SMALL,
     /// IFLAG = 4— more than MAXNUM steps are required to reach TOUT. T is set 
     /// to the point closest to TOUT reached during the integration, and Y to 
     /// the answer at that point. To continue, just call DE again.
-    i4,
+    MAXSTEPS_REACHED,
     /// IFLAG = 5—more than MAXNUM steps needed to reach TOUT and the 
     /// equations appear to be stiff. T is set to the point closest to TOUT 
     /// reached during the integration, and Y to the answer at that point. A 
     /// code for stiff equations should be used but one can (usually) get 
     /// accurate results with DE if he is prepared to stand the cost. To 
     /// continue, the user has only to call DE again.
-    i5,
+    STIFF,
     /// IFLAG = 6— integration is not begun because the input parameters are 
     /// invalid. The user must correct them and call DE again.
     INVALID_INPUT,
+    UNDEFINED
   };
 
 public:
@@ -73,9 +76,9 @@ public:
   int flag() const noexcept { return iflag; }
   int &flag() noexcept { return iflag; }
 
-  int de(double &t, double tout, const Eigen::VectorXd &y0,
+  IFLAG de(double &t, double tout, const Eigen::VectorXd &y0,
          Eigen::VectorXd &yout) noexcept;
-  int step(double &eps, int &crash) noexcept;
+  int step(double &eps) noexcept;
   // ypout is stored in the member variable ypout
   int intrp(double xout, Eigen::VectorXd &yout/*,
             Eigen::Ref<Eigen::VectorXd> ypout*/) noexcept;
@@ -158,17 +161,22 @@ public:
 
 public:
   // private:
-  ODEfun f;
-  int neqn;
-  int iflag;
-  int start, phase1, nornd, isnold, kold, k, ns;
+  ODEfun f; ///< slope function (uses params pointer for evaluation)
+  int neqn; ///<  number of equations (aka practically size of arrays used)
+  IFLAG iflag{IFLAG::RESTART}; ///< status from DE
+  int phase1, 
+    nornd, 
+    kold, ///< order used for last successful step
+    k, ///< appropriate order for next step (determined by code)
+    ns{0}; ///< number of steps taken with size h, including the current one
   Eigen::MatrixXd Phi;        // dimension
   Eigen::MatrixXd ArraysNeqn; // dimension
   double *Arrays13;
-  double h, hold;
-  double x;
-  double /*t,*/ told;
-  double delsgn;
+  double h;    ///< appropriate step size for next step 
+  double hold; ///< step size used for last successful step
+  double tc;   ///< current t (independent variable of integration)
+  double told;
+  int delsgn; ///< sign of (tout - t), aka going forward or backward in time
   double relerr, abserr;
   bool integrate_past_tout{true};
   /// May store a pointer to some king of parameters that are passed in the

@@ -125,146 +125,107 @@ dso::SGOde::IFLAG dso::SGOde::de_start() noexcept {
 }
 */
 
-int dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
+dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
-  // ***********************************************************************
-  // *  the only machine dependent constant is based on the machine unit   *
-  // *  roundoff error  u  which is the smallest positive number such that *
-  // *  1.0+u .gt. 1.0 .  u  must be calculated and  fouru=4.0*u  inserted *
-  // *  in the following data statement before using  de .  the routine    *
-  // *  machin  calculates  u .  fouru  and  twou=2.0*u  must also be      *
-  // *  inserted in subroutine  step  before calling  de .                 *
-  // *    data fouru/.888d-15/                                           ***
-  // ***********************************************************************
-  //
-  int crash = false;
-
   // test for improper parameters
   double eps = std::max(relerr, abserr);
-  if (t == tout || (relerr < 0e0 || abserr < 0e0) || eps < 0e0 ||
-      !iflag || (t != told && std::abs(iflag) != 1)) {
-    iflag = 6;
-#ifdef DEBUG
-    int error_flag = -1;
-    if (neqn < 1)
-      error_flag = 1;
-    else if (t == tout)
-      error_flag = 2;
-    else if (relerr < 0e0 || abserr < 0e0)
-      error_flag = 3;
-    else if (eps < 0e0)
-      error_flag = 4;
-    else if (!iflag)
-      error_flag = 5;
-    else if (t != told && std::abs(iflag) != 1)
-      error_flag = 6;
-    fprintf(stderr, "ERROR Invalid parameters to %s. error-flag: %d\n",
-            __func__, error_flag);
-#endif
-    return 1;
+  if ((t == tout)
+      || (relerr < 0e0 || abserr < 0e0) 
+      || (eps < 0e0)
+      || (iflag != IFLAG::RESTART && told!=t)) {
+    return (iflag = IFLAG::INVALID_INPUT);
   }
-
-  const int isn = std::copysign(1, iflag);
-  iflag = std::abs(iflag);
-
-  if (iflag < 0 || iflag > 5)
-    return 1;
 
   // on each call set interval of integration and counter for number of
   // steps.  adjust input error tolerances to define weight vector for
-  // subroutine  step
   // -- break point 20: --
   const double del = tout - t;
   const double absdel = std::abs(del);
-  double tend = t + 10e0 * del;
-  if (isn < 0)
-    tend = tout;
-
+  const double tend =
+      integrate_past_tout * (t + 10e0 * del) + (integrate_past_tout)*tout;
+  // reset number of steps
   int nostep = 0;
   int kle4 = 0;
+  // reset stiff signal
   int stiff = false;
+  // reset error tolerances
   const double releps = relerr / eps;
   const double abseps = abserr / eps;
 
-  if (delsgn * del <= 0e0 || iflag == 1) {
-    // on start and restart also set work variables x and yy(*), store the
-    // direction of integration and initialize the step size
-    x = t;
+  // (re-)start (could be the we are reversing the integration in time)
+  if ((delsgn * del <= 0e0) || (!integrate_past_tout) || (iflag == IFLAG::RESTART)) {
+    // on start and restart also set work variables x and yy
+    tc = t;
     yy() = y0;
     // -- break point 30: --
-    start = true;
+    // start = true;
     // -- break point 40: --
-    delsgn = std::copysign(1e0, del);
-    h = std::copysign(std::max(std::abs(tout - x), fouru * std::abs(x)),
-                      tout - x);
+    // store direction of integration
+    delsgn = (-1) * (del < 0) + (1) * (del >= 0);
+    // initialize step size
+    h = std::copysign(std::max(std::abs(del), fouru * std::abs(t)), del);
   }
 
   while (true) {
-    if (std::abs(x - t) >= absdel) {
-      // if already past output point, interpolate and return
+    // if already past output point, interpolate and return
+    if (std::abs(tc - t) >= absdel) {
       // -- break point 50: --
       intrp(tout, yout);
-      iflag = 2;
-      t = tout;
-      told = t;
-      isnold = isn;
-      return 0;
+      told = t = tout;
+      return (iflag = IFLAG::SUCCESS);
     }
 
-    // if cannot go past output point and sufficiently close,
-    // extrapolate and return
-    if (!(isn > 0 || std::abs(tout - x) >= fouru * std::abs(x))) {
+    // if cannot go past output point and sufficiently close, extrapolate and 
+    // return
+    if ((!integrate_past_tout) && (std::abs(tout-tc)<fouru*std::abs(tc))) {
       // -- break point 60: --
-      h = tout - x;
-      f(x, yy(), yp(), *params); // derivate at yp()
+      h = tout - tc;
+      f(tc, yy(), yp(), *params);
       yout = yy() + h * yp();
-      iflag = 2;
-      t = tout;
-      told = t;
-      isnold = isn;
-      return 0;
+      told = t = tout;
+      return (iflag = IFLAG::SUCCESS);
     }
 
     // test too many steps
     if (nostep >= maxnum) {
       // -- break point 80: --
-      iflag = isn * 4;
-      if (stiff)
-        iflag = isn * 5;
       // -- break point 90: --
       yout = yy();
-      t = x;
-      told = t;
-      isnold = 1;
-      return 1;
+      told = t = tc;
+      fprintf(stderr,
+              "[WRNNG] Integrator says: reached max number of steps!\n");
+      if (stiff)
+        fprintf(stderr, "[ERROR] Probably a stiff ODE; cannot integrate!\n");
+      else
+        fprintf(stderr, "[WRNNG] Allowing integration past target time, and "
+                        "setting stiff flag!\n");
+      integrate_past_tout = true;
+      return (iflag = stiff ? IFLAG::STIFF : IFLAG::MAXSTEPS_REACHED);
     }
 
     // limit step size, set weight vector and take a step
     // -- break point 100: --
-    h = std::copysign(std::min(std::abs(h), std::abs(tend - x)), h);
+    h = std::copysign(std::min(std::abs(h), std::abs(tend - tc)), h);
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
-    this->step(eps, crash);
+    int crash = this->step(eps);
 
     // test for tolerances too small
     if (crash) {
-      iflag = isn * 3;
-      relerr = eps * releps;
-      abserr = eps * abseps;
+      relerr *= eps;
+      abserr *= eps;
       yout = yy();
-      t = x;
-      told = t;
-      isnold = 1;
-      return 1;
+      told = t = tc;
+      fprintf(stderr, "[WRNNG] Integrator says: tolerances too small! Allowing "
+                      "integration past target time\n");
+      integrate_past_tout = true;
+      return (iflag = IFLAG::TOL_SMALL);
     }
 
     // augment counter on number of steps and test for stiffness
     ++nostep;
-    ++kle4;
-    if (kold > 4)
-      kle4 = 0;
-    if (kle4 >= 50)
-      stiff = true;
+    kle4 = (kold > 4) ? 0 : kle4+1;
+    stiff = (kle4 >= 50);
   }
 
-  return 100;
+  return (iflag=IFLAG::UNDEFINED);
 }
