@@ -12,7 +12,7 @@ class SGOde {
   /// following statement
   static constexpr const int maxnum = 500;
 
-  
+public:
   enum class IFLAG : char {
     /// Signal start or restart
     RESTART, 
@@ -58,10 +58,9 @@ class SGOde {
     UNDEFINED
   };
 
-public:
   SGOde(ODEfun _f, int _neqn, double rerr, double aerr,
         dso::IntegrationParameters *_params = nullptr)
-      : f(_f), neqn(_neqn), iflag(1), relerr(rerr), abserr(aerr),
+      : f(_f), neqn(_neqn), iflag(IFLAG::RESTART), relerr(rerr), abserr(aerr),
         params(_params) {
     Phi = Eigen::MatrixXd(neqn, 16);
     ArraysNeqn = Eigen::MatrixXd(neqn, 5); // wt, p, ypout, yp, yy
@@ -73,8 +72,8 @@ public:
       delete[] Arrays13;
   }
 
-  int flag() const noexcept { return iflag; }
-  int &flag() noexcept { return iflag; }
+  SGOde::IFLAG flag() const noexcept { return iflag; }
+  SGOde::IFLAG &flag() noexcept { return iflag; }
 
   IFLAG de(double &t, double tout, const Eigen::VectorXd &y0,
          Eigen::VectorXd &yout) noexcept;
@@ -175,7 +174,7 @@ public:
   double h;    ///< appropriate step size for next step 
   double hold; ///< step size used for last successful step
   double tc;   ///< current t (independent variable of integration)
-  double told;
+  double told; ///< last t used (used in step)
   int delsgn; ///< sign of (tout - t), aka going forward or backward in time
   double relerr, abserr;
   bool integrate_past_tout{true};

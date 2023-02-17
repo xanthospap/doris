@@ -1,3 +1,26 @@
+\section{Integrator implementation}\label{sec:integrator-implementation}
+
+According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
+problems in which:
+\begin{itemize}
+    \item function evaluations are expensive,
+    \item mnoderate to high accuracy is requested,
+    \item many output points are required
+\end{itemize}
+
+\cite{Shampine1975}:
+The overhead in these codes is rather high, partly because of the methods
+and partly because of the features they provide. For example, DE detects
+and deals with discontinuities; it detects and deals with moderate stiffness;
+it detects and tells the user of severe stiffness; it detects requests for very
+high accuracy and switches on propagated roundoff controls; it detects
+requests for more accuracy than is possible on the machine being used and
+tells the user what is possible; it is, for practical purposes, independent
+of the number and location of output points; it monitors the work being
+expended; it allows the user to change direction without restarting; and
+it is extremely efficient in terms of function evaluations. 
+
+\subsection{The Predictor}\label{ssec:integrator-predictor}
 The $k$th order Adams-Bashforth predictor at $x_n$ is defined by the expression 
 \begin{equation}\label{eq:sg51}
   y_n + \int_{x_n}^{x} P_{k,n}(t) \,dt
@@ -114,7 +137,7 @@ take $s=1$ in \autoref{eq:sg57}, using \autoref{eq:sg54} and \autoref{eq:sg56}
 \end{equation}
 To approximate the solution at $x_{n+1}$, we can substitute \autoref{eq:sg57} 
 into \autoref{eq:sg52a} and integrate to obtain
-\begin{equation}\abel{eq:sg58}
+\begin{equation}\label{eq:sg58}
   p_{n+1} = y_n + h_{n+1} \sum_{i=1}^{k} \phi ^{*}_{i} (n) \int_{0}^{1} c_{i,n} \,ds
 \end{equation}
 When the step size is constant, \autoref{eq:sg58} reduces to
@@ -135,22 +158,153 @@ then
     \sum_{i=1}^{k} \phi ^{*}_{i} (n) g_{i,1}
 \end{equation}
 
-According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
-problems in which:
-\begin{itemize}
-    \item function evaluations are expensive,
-    \item mnoderate to high accuracy is requested,
-    \item many output points are required
-\end{itemize}
 
-\cite{Shampine1975}:
-The overhead in these codes is rather high, partly because of the methods
-and partly because of the features they provide. For example, DE detects
-and deals with discontinuities; it detects and deals with moderate stiffness;
-it detects and tells the user of severe stiffness; it detects requests for very
-high accuracy and switches on propagated roundoff controls; it detects
-requests for more accuracy than is possible on the machine being used and
-tells the user what is possible; it is, for practical purposes, independent
-of the number and location of output points; it monitors the work being
-expended; it allows the user to change direction without restarting; and
-it is extremely efficient in terms of function evaluations. 
+\subsection{The Corrector}\label{ssec:integrator-corrector}
+The code uses a corrector one order higher that the predictor and accepts as an 
+approximation to the solution and its derivative at $x_{n=1}$
+\begin{equation}
+    \begin{aligned}
+        y_{n+1} &= y_n + \int_{x_n}^{x_{n+1}} P^{*}_{k+1,n}(t) \,dt \\
+        f_{n+1} &= f(x_{n=1}, y_{n+1})
+    \end{aligned}
+\end{equation}
+where
+\begin{equation}
+    \begin{aligned}
+        P^{*}_{k+1,n}(x_{n+1-j}) &= f_{n+1-j}, \text{ } j=1,\dots ,k \\
+        P^{*}_{k+1,n}(x_{n+1}) &= f^{p}_{n+1} = f(x_{n+1}, p_{n+1})
+    \end{aligned}
+\end{equation}
+The corrector polynomial interpolates to the same data as the predictor plus 
+the additional value $f^{p}_{n+1}$. For the error estimation we also want to consider 
+the case of the corrector of order $k$, $P^{*}_{k,n}(x)$. 
+Since $P^{*}_{k+1,n}(x)$ interpolates the same data as $P^{*}_{k,n}(x)$ plus one 
+extra point, the basic intent of the divided difference form is to represent it as a small 
+correction to $P_{k,n}(x)$
+\begin{equation}\label{eq:sg512}
+    P^{*}_{k+1,n}(x) = P_{k,n}(x) + (x-x_n)(x-x_{n-1})\dots (x-x_{n-k+1})
+        f^{p}[x_{n+1}, \dots x_{n-k+1}]
+\end{equation}
+The superscript $p$ on this divided difference is to remind us that $P^{*}_{k+1,n}(x)$ 
+interpolates to $f^{p}_{n+1}$. 
+Using alternate notation, this is 
+\begin{equation}
+    P^{*}_{k+1,n}(x) = P_{k,n}(x) + c_{k+1,n}(s) \phi ^{p}_{k+1} (n+1)
+\end{equation}
+and after integration we obtain
+\begin{equation}\label{eq:sg513}
+    \begin{aligned}
+        y_{n+1} &= p_{n+1} + h_{n+1} g_{k+1,1} \phi ^{p}_{k+1} (n+1) \\
+        f_{n+1} &= f(x_{n+1}, y_{n+1})
+    \end{aligned}
+\end{equation}
+This is a very convenient way to compute $y_{n+1}$ since we can compute the 
+coefficient $g_{k+1,1}$ along with the $g_{i,1}$ needed in the prediction process.
+if we use a corrector of order $k$ instead of $k+1$ the only change in the formula 
+for $y_{n+1}$ is to change $g_{k+1,1}$ to $g_{k,1}$. We shall write $y_{n+1}(k)$ 
+to distinguish this value:
+\begin{equation}
+    y_{n+1}(k) = p_{n+1} + h_{n+1} g_{k,1} \phi ^{p}_{k+1} (n+1)
+\end{equation}
+These two formulas generalize to variable step size the formulas for constant step size:
+\begin{equation}\label{eq:sg513}
+    \begin{aligned}
+        y_{n+1} &= p_{n+1} + h \gamma _k \nabla ^{k} f^{p}_{n+1} \\
+        y_{n+1}(k) &= p_{n+1} + h \gamma _{k-1} \nabla ^{k} f^{p}_{n+1}
+    \end{aligned}
+\end{equation}
+All that remains is to see how to compute the $\phi ^{p}_{i} (n+1)$ and 
+$\phi _{i} (n+1)$ to complete the step.
+Omitting details we can came up with
+\begin{equation}\label{eq:sg514}
+    \phi ^{p}_{i+1} (n+1) = \phi ^{p}_{i} (n+1) -  \phi ^{*}_{i} (n)
+\end{equation}
+and
+\begin{equation}\label{eq:sg515}
+    \phi _{i+1} (n+1) = \phi _{i} (n+1) -  \phi ^{*}_{i} (n)
+\end{equation}
+where we note that  $\phi ^{p}_{1} (n+1) = f^{p}_{n+1}$ and 
+$\phi _{1} (n+1) = f_{n+1}$ by definition.
+It would be ideal if we could form $\phi ^{*}_{i} (n)$ and overwrite $\phi _{i} (n)$. 
+To do this we can replace \autoref{eq:sg514} with 
+\begin{equation}\label{eq:sg516}
+    \phi ^{p}_{i} (n+1) = \phi ^{p}_{i+1} (n+1) + \phi ^{*}_{i} (n)
+\end{equation}
+recursively in the order $i=k,k-1,\dots ,1$. To start the recursion we can use
+\begin{equation}
+    \phi ^{p}_{k+1} (n+1) = f^{p}_{n+1} - {p'}_{n+1} = 
+    f^{p}_{n+1} - \sum_{i=1}^{k}\phi ^{*}_{i} (n)
+\end{equation}
+From \autoref{eq:sg514} and \autoref{eq:sg515} we can see that
+\begin{equation}\label{eq:sg517}
+    \phi _{i} (n+1) = \phi ^{p}_{i} (n+1) + \left( f_{n+1} - \phi ^{p}_{1} (n+1) \right)
+\end{equation}
+We can find that
+\begin{equation}\label{eq:sg518}
+    \phi ^{e}_{i} (n+1) = \phi ^{e}_{i+1} (n+1) + \phi ^{*}_{i} (n)
+\end{equation}
+we can use \autoref{eq:sg518} to generate $\phi ^{e}_{i} (n+1)$ in the sequence 
+$i=k, k-1, \dots ,1$ and overwrite them on the $\phi ^{*}_{i} (n)$. 
+We can also prove that
+\begin{equation}
+    \begin{aligned}
+        \phi ^{p}_{i} (n+1) &= \phi ^{e}_{i} (n+1) + 
+            \left( f^{p}_{n+1} - \phi ^{e}_{1} (n+1) \right) \label{eq:sg519} \\
+        \phi _{i} (n+1) &= \phi ^{e}_{i} (n+1) + 
+            \left( f_{n+1} - \phi ^{e}_{1} (n+1) \right) \label{eq:sg520}
+    \end{aligned}
+\end{equation}
+Using \autoref{eq:sg519} we generate those $\phi ^{p}_{i} (n+1)$ required for 
+the error estimation. If 
+the step is successful, we then use \autoref{eq:sg520} to compute the 
+$\phi _{i} (n+1)$ and overwrite them on the $\phi ^{e}_{i} (n+1)$.
+Let us now summarize all the computation required to advance one step.
+The code that is given uses a PECE Adams method which advances from $x_n$ to 
+$x_{n+1}$ by
+\begin{description}
+    \item[Initialize] compute $g_{i,1}$ for $i=1,2, \dots ,k+1$
+    \item[P Predicting] 
+        \begin{equation}
+            \begin{aligned}
+                \phi ^{*}_{i} (n) &= \beta _i(n+1) \phi _i(n) \text{ } i=1,2, \dots ,k \\
+                p_{n+1} &= y_n + h_{n+1} \sum_{i=1}^{k} g_{i,1} \phi ^{*}_{i} (n) \\
+                \phi ^{e}_{k+1} (n+1) &= 0 \\
+                \phi ^{e}_{i} (n+1) &= \phi ^{e}_{i+1} (n+1) + \phi ^{*}_{i} (n) \text{ } k,k-1,\dots ,1
+            \end{aligned}
+        \end{equation}
+    \item[E Evaluating] $f^{p}_{n+1} = f(x_{n+1}, p_{n+1})$
+    \item[C Correcting] $y_{n+1} = p_{n+1} + h_{n+1} g_{k+1,1} 
+        \left( f^{p}_{n+1} - \phi ^{e}_{i} (n+1) \right)$
+    \item[E Evaluating]
+        \begin{equation}
+            \begin{aligned}
+                f_{n+1} &= f(x_{n+1}, y_{n+1}) \\
+                \phi _{k+1} (n+1) &= f_{n+1} - \phi ^{e}_{1} (n+1) \\
+                \phi _{i} (n+1) &= \phi ^{e}_{i} (n+1) + \phi _{k+1} (n+1) \text{ } i=k,k-1,\dots ,1
+            \end{aligned}
+        \end{equation}
+\end{description}
+Notice that advancing the differences is very cheap though there may be a 
+lot of them. Much of the overhead results from the computation of the $g_{i,1}$.
+
+We stated at the beginning of this chapter that our code would take
+advantage of steps taken with a constant size. Let us go into this matter
+now and examine the programming of the computation.
+Let the variable $n_s$ be the number of successive steps taken with constant 
+step size $h$, including the current one. When $\psi _i(n+1)$ is computed it is 
+written over the stored value of $\psi _i(n)$.
+To compute the $\psi _{i}(n+1)$ we need only start with the value 
+$\psi _{n_s}(n+1) = n_s h$ and obtain the remaining elements by the iteration 
+\begin{equation}
+    \psi _{i}(n+1) = \psi _{i-1}(n) + h \text{ } i= n_s+1 , \dots , k
+\end{equation}
+and for the $\alpha$ and $\beta$ arrays to advance from $n$ to $n+1$
+\begin{equation}
+    \begin{aligned}
+        \alpha _{n_s} (n+1) &= \frac{1}{n_s} \\
+        \alpha _{i} (n+1)   &= \frac{h}{\psi _i(n+1)} \text{ } i= n_s+1, \dots ,k \\
+        \beta _{n_s} (n+1)  &= 1 \\
+        \beta _{i} (n+1)    &= \beta _{i-1} (n+1) \frac{\psi _{i-1}(n+1)}{\psi _{i-1}(n)} 
+            \text{ } i= n_s +1 , \dots ,k
+    \end{aligned}
+\end{equation}

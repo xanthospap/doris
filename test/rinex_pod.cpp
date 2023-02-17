@@ -260,16 +260,18 @@ struct SatelliteState {
         mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
             mjd_tai);
 
-    // set initial intergation flag
-    integrator.flag() = 1;
-
     // keep solution here (celestial RF at tout)
     // As yPhi, this is in plain format, one column at a time
     Eigen::VectorXd sol(6 + 6 * 6 + 6 * Np);
 
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
-    integrator.de(tsec, tout, yPhi, sol);
+    // set initial intergation flag
+    integrator.flag() = dso::SGOde::IFLAG::RESTART;
+    if (integrator.de(tsec, tout, yPhi, sol) != dso::SGOde::IFLAG::SUCCESS) {
+      fprintf(stderr, "[ERROR] Integrator error!\n");
+      return 150;
+    }
 
     // output epoch (after integration) as datetime, we reached the epoch:
     // mjd_tai + tout[sec]

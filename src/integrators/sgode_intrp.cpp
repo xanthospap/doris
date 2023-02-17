@@ -15,7 +15,7 @@ int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout/*,
   double *__restrict__ w = MemPool + 13;
   double *__restrict__ rho = MemPool + 26;
 
-  const double hi = xout - x;
+  const double hi = xout - tc;
   const int ki = kold + 1;
   const int kip1 = ki + 1;
 
