@@ -1,3 +1,139 @@
+The $k$th order Adams-Bashforth predictor at $x_n$ is defined by the expression 
+\begin{equation}\label{eq:sg51}
+  y_n + \int_{x_n}^{x} P_{k,n}(t) \,dt
+\end{equation}
+where $P_{k,n}(x)$ satisfies the interpolation conditions
+\begin{equation}\label{eq:sg51b}
+  P_{k,n}(x_{n+1-j}) = \bm{f}_{n+1-j} \text{ for } j=1,\dots ,k
+\end{equation}
+\autoref{eq:sg51} is used to predict both the solution and its derivative at 
+$x_{n+1}$
+\begin{equation}
+  \begin{aligned}
+    p_{n+1}    &= y_n + \int_{x_n}^{x_{n+1}}  P_{k,n} (t) \,dt \label{eq:sg52a}\\
+    {p'}_{n+1} &= P_{n,k}(x_{n+1}) \label{eq:sg52b}
+  \end{aligned}
+\end{equation}
+
+Obviously we must determine an easy way to integrate the interpolating
+polynomial. We start with the polynomial in divided difference form
+\begin{equation}\label{eq:sg53}
+  P_{k,n}(x) = f[x_n] 
+    + (x-x_n)f[x_n,x_{n-1}
+    + (x-x_n)(x-x_{n-1})f[x_n,x_{n-1},x_{n-2}]
+    + \dots 
+    + (x-x_n)(x-x_{n-1})\dots (x-x_{n-k+2})f[x_n,x_{n-1},x_{n-2},\dots ,x_{n-k-1}]
+\end{equation}
+where
+\begin{equation}
+  \begin{aligned}
+    f[x_0] & & \equiv f(x_0) \text{ and}\\
+    f[x_0,x_1,\dots ,x_n] &= \frac{f[x0,\dots ,x_{n-1}]-f[x1,\dots ,x_n]}{x_0 - x_n}
+  \end{aligned}
+\end{equation}
+and we assume that $n \ge 1$.
+Because we intend to vary the step size, we will take a code variables the take the 
+step sizes $h_i = x_i - x_{i-1}$ as fundamental variables along with their sums 
+$\psi (n+1) = h_{n+1} + h_{n} + \dots + h_{n+2-i} = x_{n+1} - x_{n+1-i}$. The 
+divided differences will be modified so that they reduce to backward differences 
+when the step sizes are constant. Using these modified divided differences $\phi _i (n)$ 
+leads to economical, simple formulas. For integrations like the one in \autoref{eq:sg52a} 
+we again find it convenient to introduce a normalized variable $s$ by $x=x_n +sh_{n+1}$ 
+so that $s$ runs from 0 to 1 as $x$ runs from $x_n$ to $x_{n+1}$. We will also need 
+two more fundamental quantities $\alpha _i (n+1)$ and $\beta _i (n+1)$
+\begin{equation}\label{eq:sg54}
+  \begin{aligned}
+    h_i  &= x_i - x_{i-1} \\
+    s    &= \frac{x - x_n}{h_{n+1}} \\
+    \psi _i (n+1)   &= h_{n+1} + h_{n} + \dots + h_{n+2-i}, \text{ } i \ge 1 \\
+    \alpha _i (n+1) &= \frac{h_{n+1}}{\psi _i (n+1)}, \text{ } i \ge 1 \\
+    \beta _1 (n+1)  &= 1 \\
+    \beta _i (n+1)  &= \frac{\psi _1 (n+1) \psi _2 (n+1) \dots \psi _{i-1}(n+1)}{\psi _1 (n) \psi _2 (n) \dots \psi _{i-1}(n)}, \text{ } i > 1 \\
+    \phi _1(n) &= f[x_n] = f_n \\
+    \phi _i(n) &= \psi _1 (n) \psi _2 (n) \dots \psi _{i-1}(n) f[x_n,x_{n-1}],\dots ,x_{n-i+1}], \text{ } i > 1
+  \end{aligned}
+\end{equation}
+
+It is worth noting that if the step size is a constant $h$, then 
+\begin{equation}
+  \begin{aligned}
+    \psi _i(n+1)   &= ih \\
+    \alpha _i(n+1) &= \frac{1}{i} \\
+    \beta _i(n+1)  &= 1 \\
+    \phi _i(n)     &= \nabla ^{i-1} f_{n}
+  \end{aligned}
+\end{equation}
+$\phi _i (n)$ values can be computed efficiently using divided differences. For 
+the $\psi _i$ and $\beta _i$ values, the following formulas are used for recursion 
+\begin{equation}
+  \begin{aligned}
+    \psi _i (n+1)  &= \psi _{i-1} (n) + h_{n+1} \\
+    \beta _i (n+1) &= \beta _{i-1}(n+1) \frac{\psi _{i-1} (n+1)}{\psi _{i-1}(n)} \\
+  \end{aligned}
+\end{equation}
+starting with the initial values
+\begin{equation}
+  \begin{aligned}
+    \psi _1 (n+1) &= h_{n+1} \\
+    \beta _1(n+1) &= 1
+  \end{aligned}
+\end{equation}
+
+The interpolating polynomial, analytical work can be done (see \cite{Shampine1975}) 
+\begin{equation}\label{eq:sg57}
+  P_{k,n} (x) = \sum_{i=1}^{k} c_{i,n} (s) \phi ^{*}_{i} (n)
+\end{equation}
+where
+\begin{equation}
+  \phi ^{*}_{i} (n) = \beta _i (n+1) \phi _i (n)
+\end{equation}
+and
+\begin{equation}\label{eq:sg56}
+  c_{i,n}(s) = \begin{cases}
+    1, i=1 \\
+    \frac{s h_{n+1}}{\psi _1 (n+1)} = s, i=2 \\
+    \left(\frac{sh_{n+1}}{\psi _1(n+1)}\right)
+    \left(\frac{sh_{n+1} + \psi _1(n)}{\psi _2(n+1)}\right)
+    \dots
+    \left(\frac{sh_{n+1} + \psi _{i-2}(n)}{\psi _{i-1}(n+1)}\right), i \ge 3
+  \end{cases}
+\end{equation}
+For variable step sizes, the above becoms (using \autoref{eq:sg54} and \autoref{eq:sg56})
+\begin{equation}\label{}
+  c_{i,n}(s) = \begin{cases}
+    1, i=1 \\
+    \alpha _1 (n+1) s = s, i=2 \\
+    \left( \alpha _{i-1} (n+1) s + \frac{\psi _{i-2}(n)}{\psi _{i-1}(n+1)} \right) c_{i-1,n}(s) , i \ge 3
+  \end{cases}
+\end{equation}
+
+Hence, to approximate the derivative of the solution by \autoref{eq:sg52b}, we 
+take $s=1$ in \autoref{eq:sg57}, using \autoref{eq:sg54} and \autoref{eq:sg56}
+\begin{equation}
+  P_{k,n} (x_{n+1}) = p'_{n+1} = \sum^{k}_{i=1} \phi^{*}_{i} (n)
+\end{equation}
+To approximate the solution at $x_{n+1}$, we can substitute \autoref{eq:sg57} 
+into \autoref{eq:sg52a} and integrate to obtain
+\begin{equation}\abel{eq:sg58}
+  p_{n+1} = y_n + h_{n+1} \sum_{i=1}^{k} \phi ^{*}_{i} (n) \int_{0}^{1} c_{i,n} \,ds
+\end{equation}
+When the step size is constant, \autoref{eq:sg58} reduces to
+\begin{equation}
+  p_{n+1} = y_n +h \sum_{i=1}^{k} \gamma _{i-1} \nabla ^{i-1} f_n
+\end{equation}
+If we define the quantity $g_{i,q}=(q-1)!c_{i,n^{(-q)}}$, and 
+\begin{equation}\label{eq:sg510}
+  g_{i,q} = \begin{cases}
+    \frac{1}{q}, \text{ } i=1,\\
+    \frac{1}{q(q+1)}, \text{ } i=2,\\
+    g_{i-1,q} - \alpha_{i-1}(n+1)g_{i-1,q+1}, \text{ } i \ge 3
+  \end{cases}
+\end{equation}
+then
+\begin{equation}\label{eq:sg511}
+  p_{n+1} = y_n + h_{n+1} 
+    \sum_{i=1}^{k} \phi ^{*}_{i} (n) g_{i,1}
+\end{equation}
 
 According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
 problems in which:
