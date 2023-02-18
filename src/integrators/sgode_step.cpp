@@ -75,7 +75,6 @@ int dso::SGOde::step(double &eps) noexcept {
     return 1;
   }
 
-  // -- break point 5: --
   const double p5eps = 5e-1 * eps;
 
   // if error tolerance is too small, increase it to an acceptable value
@@ -87,18 +86,19 @@ int dso::SGOde::step(double &eps) noexcept {
     return 2;
   }
 
-  // -- break point 15: --
   g(0) = 1e0;
   g(1) = 5e-1;
   sig(0) = 1e0;
 
   double absh;
-  int ifail;
   if (iflag == IFLAG::RESTART) {
     // initialize.  compute appropriate step size for first step
     f(tc, yy(), yp(), *params);
+    // φ[0] = y'
     Phi.col(0) = yp();
+    // φ[1] = 0
     Phi.col(1).setZero();
+    // sum = | y'/w |
     const double sum = (yp().array() / wt().array()).matrix().norm();
     absh = std::abs(h);
     if (eps < 16e0 * sum * h * h)
@@ -110,28 +110,27 @@ int dso::SGOde::step(double &eps) noexcept {
     iflag = IFLAG::UNDEFINED;
     phase1 = true; // TODO WTF is this ?
     nornd = true;  // TODO wtf is this ?
-    if (p5eps <= 1e2 * round) {
+    if (p5eps <= 100e0 * round) {
       nornd = false;
+      // φ[14] = 0
       Phi.col(14).setZero();
     }
   }
-  ifail = 0; // TODO wtf is this ?
+  // Number of failed attempts to procced one step; see Block 3
+  int ifail = 0;
   // ***     end block 0     ***
 
   //
   // Repeat blocks 1, 2 (and 3) until step is successful
   //
-  int step_success = false;
-  int kp1, kp2, km1, km2, knew;
-  double erkm2, erkm1, erk;
-  do {
-    //
+  int /*kp1, kp2, km1, km2,*/ knew;
+  double erkm2, erkm1, erk, err;
+  while (true) {
     //  ***     begin block 1     ***
-    //
-    kp1 = k + 1;
-    kp2 = k + 2;
-    km1 = k - 1;
-    km2 = k - 2;
+    //kp1 = k + 1;
+    //kp2 = k + 2;
+    //km1 = k - 1;
+    //km2 = k - 2;
 
     // ns is the number of steps taken with size h, including the current
     // one. When k<ns, no coefficients change
@@ -143,86 +142,69 @@ int dso::SGOde::step(double &eps) noexcept {
       // number of steps less that current order, increase step counter
       ++ns;
     }
-    int nsp1 = ns + 1;
 
     // k >= ns, means we have to compute coefficients. If we do not meet this
     // condition (aka k >= ns) we exit the block!
     // compute those components of alpha(*),beta(*),psi(*),sig(*) which
     // are changed
-    if (k >= ns) { // this should exit in 199:
+    if (k >= ns) {
       // β_{ns}(n+1) = 1
       beta(ns - 1) = 1e0;
       // α_{ns}(n+1) = 1 / ns
       alpha(ns - 1) = 1e0 / ns;
       double tmp1 = h * ns;
-      sig(nsp1 - 1) = 1e0;
-      if (k >= nsp1) { // should exit in 110
-        for (int i = nsp1; i <= k; i++) {
-          const int j = i - 1;
-          // ψ_{i-1}(n)
-          const double t2 = psi(j - 1);
-          // ψ_{i}(n+1) = i*h -- overwrite value of ψ_{i}(n)
-          psi(j - 1) = tmp1;
-          // β_i (n+1) = β_{i-1}(n+1) ψ_{i-1}(n+1) / ψ_{i-1}(n)
-          beta(j) = beta(j - 1) * psi(j - 1) / t2;
-          tmp1 = t2 + h;
-          // α_{i}(n+1) = h / ψ_{i}(n+1)
-          alpha(j) = h / tmp1;
-          sig(i) = i * alpha(j) * sig(j);
-        }
+      sig(ns) = 1e0;
+      for (int i = ns; i < k; i++) {
+        // ψ_{i-1}(n)
+        const double t2 = psi(i - 1);
+        // ψ_{i}(n+1) = i*h -- overwrite value of ψ_{i}(n)
+        psi(i - 1) = tmp1;
+        // β_i (n+1) = β_{i-1}(n+1) ψ_{i-1}(n+1) / ψ_{i-1}(n)
+        beta(i) = beta(i - 1) * psi(i - 1) / t2;
+        tmp1 = t2 + h;
+        // α_{i}(n+1) = h / ψ_{i}(n+1)
+        alpha(i) = h / tmp1;
+        sig(i + 1) = i * alpha(i) * sig(i);
       }
-      // -- break point 110: --
       psi(k - 1) = tmp1;
 
       // compute coefficients g(*)
 
       // initialize v(*) and set w(*). g(2) is set in data statement
-      if (ns <= 1) { // else 120:
+      if (ns <= 1) {
         for (int iq = 0; iq < k; iq++) {
           v(iq) = 1e0 / ((iq + 1e0) * (iq + 2e0));
         }
         std::memcpy(w(), v(), sizeof(double) * k);
-        // next step is 140:
       } else { // ns > 1
         // if order was raised, update diagonal part of v(*)
-        // -- break point 120: --
-        if (k > kold) { // else goto 130:
-          v(k - 1) = 1e0 / (k * kp1);
-          const int nsm2 = ns - 2;
-          if (nsm2 >= 1) { // else goto 130: --> CHANGE
-            for (int j = 1; j <= nsm2; j++) {
-              const int i = k - j - 1;
-              v(i) -= alpha(j) * v(i + 1);
-            }
-          } // if (nms2 > 0)
+        if (k > kold) {
+          v(k - 1) = 1e0 / (k * (k+1));
+          for (int j = 1; j < ns - 1; j++) {
+            const int i = k - j;
+            v(i - 1) -= alpha(j) * v(i);
+          }
         }
 
         // update v(*) and set w(*)
-        // -- break point 130: --
-        const int limit1 = kp1 - ns;
-        const double tmp5 = alpha(ns - 1);
-        for (int iq = 0; iq < limit1; iq++) {
-          v(iq) -= tmp5 * v(iq + 1);
+        {
+          const double tmp5 = alpha(ns - 1);
+          for (int iq = 0; iq < k - ns; iq++) {
+            v(iq) -= tmp5 * v(iq + 1);
+          }
+          std::memcpy(w(), v(), sizeof(double) * (k - ns));
+          g(ns) = w(0);
         }
-        std::memcpy(w(), v(), sizeof(double) * limit1);
-        g(nsp1 - 1) = w(0);
       }
 
       // compute the g(*) in the work vector w(*)
-      // -- break point 140: --
-      int nsp2 = ns + 2;
-      if (kp1 >= nsp2) { // else goto 199:
-        for (int i = nsp2; i <= kp1; i++) {
-          const int limit2 = kp2 - i;
-          const double tmp6 = alpha(i - 2);
-          for (int iq = 0; iq < limit2; iq++) {
-            w(iq) -= tmp6 * w(iq + 1);
-          }
-          g(i - 1) = w(0);
+      for (int i = ns; i < k; i++) {
+        for (int iq = 0; iq < k - 1; iq++) {
+          w(iq) -= alpha(i) * w(iq + 1);
         }
+        g(i + 1) = w(0);
       }
     } // if (k >= ns)
-    // -- break point 199: --
     // ***     end block 1     **
 
     // ***     begin block 2     ***
@@ -231,126 +213,127 @@ int dso::SGOde::step(double &eps) noexcept {
     // k-1, k-2 as if constant step size were used.
     // ***
 
-    // change phi to phi star
-    if (k >= nsp1) { // else goto 215:
-      for (int i = nsp1 - 1; i < k; i++) {
-        const double b = beta(i);
-        Phi.col(i) *= b;
-      }
+    // Change phi to phi star φ[i] = β[i] * φ[i]
+    for (int i = ns; i < k; i++) {
+      const double b = beta(i);
+      Phi.col(i) *= b;
     }
 
-    // predict solution and differences
-    // -- break point 215: --
-    Phi.col(kp2 - 1) = Phi.col(kp1 - 1);
-    Phi.col(kp1 - 1).setZero();
-    p().setZero();
+    // Predict solution and differences
+    Phi.col(k + 1) = Phi.col(k); // φ[k+1] = φ[k]
+    Phi.col(k).setZero();        // φ[k] = 0
+    p().setZero();               // p = φ * g
 
-    // -- break point 220: --
-    for (int j = 1; j <= k; j++) {
-      const int i = kp1 - j - 1;
-      const double t2 = g(i);
-      p() += t2 * Phi.col(i);
+    // p = p + g[i] * φ[i]
+    for (int i = k - 1; i >= 0; i--)
+      p() += g(i) * Phi.col(i);
+    // φ[i] = φ[i] + φ[i+1]
+    for (int i = k - 1; i >= 0; i--)
       Phi.col(i) += Phi.col(i + 1);
-    }
 
-    // -- break point 230: --
     if (!nornd) {
+      // τ = h * p - φ[14]
+      // p = y + τ
+      // φ[15] = (p-y) - τ
       const auto tau = h * p() - Phi.col(14);
       p() = yy() + tau;
       Phi.col(15) = (p() - yy()) - tau;
     } else {
+      // p = y + h * p
       p() = yy() + h * p();
     }
-    // -- break point 250: --
-    const double tcold = tc;
-    tc += h;
-    absh = std::abs(h);
-    f(tc, p(), yp(), *params);
 
-    // Estimate errors at orders k,k-1,k-2
-    erkm2 = erkm1 = erk = 0e0;
     {
-      const Eigen::ArrayXd t4array = yp().array() - Phi.col(0).array();
-      Eigen::ArrayXd tmpar = t4array / wt().array();
-      erk = tmpar.matrix().squaredNorm();
-      if (!km2 || km2 > 0) {
-        tmpar = (Phi.col(k - 1).array() + t4array) / wt().array();
-        erkm1 = absh * sig(k - 1) * gstr[km1 - 1] * tmpar.matrix().norm();
-      }
-      if (km2 > 0) {
-        tmpar = (Phi.col(km1 - 1).array() + t4array) / wt().array();
-        erkm2 = absh * sig(km1 - 1) * gstr[km2 - 1] * tmpar.matrix().norm();
-      }
-    }
-    const double t5 = absh * std::sqrt(erk);
-    const double err = t5 * (g(k - 1) - g(kp1 - 1));
-    erk = t5 * sig(kp1 - 1) * gstr[k - 1];
-    knew = k;
+      const double tcold = tc;
+      tc += h;
+      absh = std::abs(h);
+      f(tc, p(), yp(), *params);
 
-    // test if order should be lowered
-    if (km2 > 0) {
-      if (std::max(erkm1, erkm2) <= erk) {
-        knew = km1;
+      // Estimate errors at orders k,k-1,k-2
+      erkm2 = erkm1 = erk = 0e0;
+      {
+        // array y' - φ[0] , temporary
+        const Eigen::ArrayXd ypmf0 = yp().array() - Phi.col(0).array();
+        // erk   = | (y' - φ[0]) / wt |^2
+        Eigen::ArrayXd tmpar = ypmf0 / wt().array();
+        erk = tmpar.matrix().squaredNorm();
+        // erkm2 = | (φ[k-2] + y' - φ[0]) / wt |^2
+        if (k > 2) {
+          tmpar = (Phi.col(k - 2).array() + ypmf0) / wt().array();
+          erkm2 = absh * sig(k - 2) * gstr[k - 3] * tmpar.matrix().norm();
+        }
+        // erkm1 = | (φ[k-1] + y' - φ[0]) / wt |^2
+        if (k >= 2) {
+          tmpar = (Phi.col(k - 1).array() + ypmf0) / wt().array();
+          erkm1 = absh * sig(k - 1) * gstr[k - 2] * tmpar.matrix().norm();
+        }
       }
-      // exit at 299:
-    } else if (km2 == 0) {
-      if (erkm1 <= 5e-1 * erk) {
-        knew = km1;
+      {
+        const double t5 = absh * std::sqrt(erk);
+        err = t5 * (g(k - 1) - g(k));
+        erk = t5 * sig(k) * gstr[k - 1];
+        knew = k;
       }
-    }
 
-    // -- break point 299: --
-    step_success = (err <= eps);
-    //
-    // ***     end block 2     ***
-    //
+      // test if order should be lowered
+      if (k == 2) {
+        if (erkm1 <= erk * 0.5e0) {
+          knew = k - 1;
+        }
+      } else if (k > 2) {
+        if (std::max(erkm1, erkm2) <= erk) {
+          knew = k - 1;
+        }
+      }
 
-    //
-    // ***     begin block 3     ***
-    // the step is unsuccessful.  restore  x, phi(*,*), psi(*) .
-    // if third consecutive failure, set order to one.  if step fails more
-    // than three times, consider an optimal step size.  double error
-    // tolerance and return if estimated step size is too small for machine
-    // precision.
-    //                 ***
-    if (!step_success) {
+      if (err <= eps) {
+        break;
+      }
+      // ***     end block 2     ***
+
+      //
+      // ***     begin block 3     ***
+      // the step is unsuccessful.  restore  x, phi(*,*), psi(*) .
+      // if third consecutive failure, set order to one.  if step fails more
+      // than three times, consider an optimal step size.  double error
+      // tolerance and return if estimated step size is too small for machine
+      // precision.
+      // ***
+
+      // restore x, φ and ψ
       phase1 = false;
       tc = tcold;
-      for (int i = 0; i < k; i++) {
-        const double t1 = 1e0 / beta(i);
-        Phi.col(i) = t1 * (Phi.col(i) - Phi.col(i + 1));
-      }
-      if (k >= 2) { // else goto 320:
-        for (int i = 1; i < k; i++)
-          psi(i - 1) = psi(i) - h;
-      }
+    }
+    for (int i = 0; i < k; i++) {
+      const double t1 = 1e0 / beta(i);
+      Phi.col(i) = t1 * (Phi.col(i) - Phi.col(i + 1));
+    }
+    for (int i = 1; i < k; i++) {
+      psi(i - 1) = psi(i) - h;
+    }
 
-      // On third failure, set order to one. Thereafter, use optimal step
-      // size
-      // -- break point 320: --
-      ++ifail;
-      double t2 = 5e-1;
-      if (ifail == 3) {
-        knew = 1;
-      } else if (ifail < 3) {
-        if (p5eps < 0.25 * erk)
-          t2 = std::sqrt(p5eps / erk);
+    // On third failure, set order to one. Thereafter, use optimal step
+    // size
+    ++ifail;
+    {
+      double tmp2 = .5e0;
+      if (ifail >= 3) {
+        if (ifail != 3 && p5eps < erk * .25e0) {
+          tmp2 = std::sqrt(p5eps / erk);
+        }
         knew = 1;
       }
-      h = t2 * h;
-      k = knew;
+      h = tmp2 * h;
+    }
+    k = knew;
 
-      if (!(std::abs(h) >= fouru * std::abs(tc))) {
-        h = std::copysign(fouru * std::abs(tc), h);
-        eps += eps;
-        return 3;
-      }
-      // goto 100:
-      //
-      // ***     end block 3     ***
-      //
-    } // if (!step_success)
-  } while (!step_success);
+    if (std::abs(h) < fouru * std::abs(tc)) {
+      h = std::copysign(fouru * std::abs(tc), h);
+      eps += eps;
+      return 3;
+    }
+    // ***     end block 3     ***
+  }
 
   //
   // ***    begin block 4     ***
@@ -359,100 +342,122 @@ int dso::SGOde::step(double &eps) noexcept {
   // the derivatives using the corrected solution and update the
   // differences.  determine best order and step size for next step.
   //
-  // -- break point 400: --
   kold = k;
   hold = h;
 
   // correct and evaluate
-  const double t1 = h * g(kp1 - 1);
-  if (!nornd) {
-    // TODO
-    // the following line produces an error when compiling with GCC in
-    // non-debug mode.
-    // Don't have a fucking clue why!!!
-    // const auto rho = t1 * (yp() - Phi.col(0)) - Phi.col(15);
-    const auto rho = t1 * (ArraysNeqn.col(3) - Phi.col(0)) - Phi.col(15);
-    yy() = p() + rho;
-    Phi.col(14) = (yy() - p()) - rho;
-  } else {
-    yy() = p() + t1 * (yp() - Phi.col(0));
+  {
+    const double fac = h * g(k);
+    if (!nornd) {
+      // ρ = h g[k] (y' -φ[0]) - φ[15]
+      const auto rho =
+          fac * (/*ArraysNeqn.col(3)*/ yp() - Phi.col(0)) - Phi.col(15);
+      // y = p + ρ
+      yy() = p() + rho;
+      // φ[14] = (y-p) - ρ
+      Phi.col(14) = (yy() - p()) - rho;
+    } else {
+      // y = p + h * g[k] (y' - φ[0])
+      yy() = p() + fac * (yp() - Phi.col(0));
+    }
   }
-
-  // -- break point 420: --
   f(tc, yy(), yp(), *params);
 
   // update differences for next step
-  Phi.col(kp1 - 1) = yp() - Phi.col(0);
-  Phi.col(kp2 - 1) = Phi.col(kp1 - 1) - Phi.col(kp2 - 1);
+  // φ[k] = y' - φ[0]
+  Phi.col(k) = yp() - Phi.col(0);
+  // φ[k+1] = φ[k] - φ[k+1]
+  Phi.col(k + 1) = Phi.col(k) - Phi.col(k + 1);
   for (int i = 0; i < k; i++)
-    Phi.col(i) += Phi.col(kp1 - 1);
+    Phi.col(i) += Phi.col(k);
 
-  // estimate error at order k+1 unless:
+  // Estimate error at order k+1 unless:
   //  * in first phase when always raise order,
   //  * already decided to lower order,
   //  * step size not constant so estimate unreliable
   double erkp1 = 0e0;
-  if (knew == km1 || k == 12)
+  if (knew == k - 1 || k == 12)
     phase1 = false;
 
-  int new_degree = 999;
   if (phase1) {
-    new_degree = 1;
-  } else if (knew == km1) {
-    new_degree = -1;
-  } else if (kp1 > ns) {
-    new_degree = 0;
-  }
-
-  if (new_degree == 999) {
-    for (int i = 0; i < neqn; i++)
-      erkp1 += std::pow(Phi(i, kp2 - 1) / wt(i), 2e0);
-    erkp1 = absh * gstr[kp1 - 1] * std::sqrt(erkp1);
-
+    ++k;
+    erk = erkp1;
+  } else if (knew == k - 1) {
+    --k;
+    erk = erkm1;
+  } else if (k < ns) {
+    // erkp1 = |φ[k+1] / wt|^2
+    erkp1 = (Phi.col(k + 1).array() / wt().array()).matrix().squaredNorm();
+    // using estimated error at order k+1, determine appropriate order
+    // for next step
     if (k > 1) {
       if (erkm1 <= std::min(erk, erkp1)) {
-        new_degree = -1;
-      } else if (erkp1 >= erk || k == 12) {
-        new_degree = 0;
-      } else {
-        new_degree = 1;
+        --k;
+        erk = erkm1;
+      } else if (erkp1 < erk && k != 12) {
+        ++k;
+        erk = erkp1;
       }
-    } else if (erkp1 >= 5e-1 * erk) {
-      new_degree = 0;
-    } else {
-      new_degree = 1;
+    } else if (erkp1 < erk * .5e0) {
+      ++k;
+      erk = erkp1;
     }
   }
 
-  switch (new_degree) {
-  case -1:
-    k = km1;
-    erk = erkm1;
-    break;
-  case 0:
-    break;
-  case 1:
-    k = kp1;
-    erk = erkp1;
-  }
+  // int new_degree = 999;
+  // if (phase1) {
+  //   new_degree = 1;
+  // } else if (knew == km1) {
+  //   new_degree = -1;
+  // } else if (kp1 > ns) {
+  //   new_degree = 0;
+  // }
+
+  // if (new_degree == 999) {
+  //   for (int i = 0; i < neqn; i++)
+  //     erkp1 += std::pow(Phi(i, kp2 - 1) / wt(i), 2e0);
+  //   erkp1 = absh * gstr[kp1 - 1] * std::sqrt(erkp1);
+
+  //  if (k > 1) {
+  //    if (erkm1 <= std::min(erk, erkp1)) {
+  //      new_degree = -1;
+  //    } else if (erkp1 >= erk || k == 12) {
+  //      new_degree = 0;
+  //    } else {
+  //      new_degree = 1;
+  //    }
+  //  } else if (erkp1 >= 5e-1 * erk) {
+  //    new_degree = 0;
+  //  } else {
+  //    new_degree = 1;
+  //  }
+  //}
+
+  // switch (new_degree) {
+  // case -1:
+  //   k = km1;
+  //   erk = erkm1;
+  //   break;
+  // case 0:
+  //   break;
+  // case 1:
+  //   k = kp1;
+  //   erk = erkp1;
+  // }
 
   // with new order determine appropriate step size for next step
-  // --break point 460: --
-  double hnew;
-  if (phase1 || p5eps >= erk * (double)std::pow(2, k + 1)) {
-    hnew = 2e0 * h;
-  } else {
-    if (p5eps < erk) {
-      const double t2 = k + 1;
-      const double r = std::pow(p5eps / erk, 1e0 / t2);
-      hnew = absh * std::max(0.5e0, std::min(0.9e0, r));
-      hnew = std::copysign(std::max(hnew, fouru * std::abs(tc)), h);
-    } else {
+  {
+    double hnew = 2e0 * h;
+    if (!phase1 && p5eps < erk * std::pow(2, k + 1)) {
       hnew = h;
+      if (p5eps >= erk)
+        return 0;
+      const double r = std::pow(p5eps / erk, 1e0 / (k + 1));
+      hnew = absh * std::max(.5e0, std::min(.9e0, r));
+      hnew = std::copysign(std::max(hnew, fouru * std::abs(tc)), h);
     }
+    h = hnew;
   }
 
-  // --break point 465: --
-  h = hnew;
   return 0;
 }

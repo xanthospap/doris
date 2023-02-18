@@ -59,18 +59,8 @@ public:
   };
 
   SGOde(ODEfun _f, int _neqn, double rerr, double aerr,
-        dso::IntegrationParameters *_params = nullptr)
-      : f(_f), neqn(_neqn), iflag(IFLAG::RESTART), relerr(rerr), abserr(aerr),
-        params(_params) {
-    Phi = Eigen::MatrixXd(neqn, 16);
-    ArraysNeqn = Eigen::MatrixXd(neqn, 5); // wt, p, ypout, yp, yy
-    Arrays13 = new double[13 * 7]; // psi, alpha, beta, v, w, sig, g (col-major)
-  }
-
-  ~SGOde() noexcept {
-    if (Arrays13)
-      delete[] Arrays13;
-  }
+        dso::IntegrationParameters *_params = nullptr) noexcept;
+  ~SGOde() noexcept;
 
   SGOde::IFLAG flag() const noexcept { return iflag; }
   SGOde::IFLAG &flag() noexcept { return iflag; }
@@ -89,6 +79,7 @@ public:
   // Column 3 of ArraysNeqn should be 3, do not change this!
   // see the bug in sgode_step.cpp ~line 330
   Eigen::Ref<Eigen::VectorXd> yp() noexcept { return ArraysNeqn.col(3); }
+  auto yp() const noexcept { return ArraysNeqn.col(3); }
   Eigen::Ref<Eigen::VectorXd> ypout() noexcept { return ArraysNeqn.col(4); }
   double &wt(int i) noexcept { return ArraysNeqn(i, 0); }
   double &p(int i) noexcept { return ArraysNeqn(i, 1); }
@@ -163,19 +154,19 @@ public:
   ODEfun f; ///< slope function (uses params pointer for evaluation)
   int neqn; ///<  number of equations (aka practically size of arrays used)
   IFLAG iflag{IFLAG::RESTART}; ///< status from DE
-  int phase1, 
-    nornd, 
-    kold, ///< order used for last successful step
-    k, ///< appropriate order for next step (determined by code)
-    ns{0}; ///< number of steps taken with size h, including the current one
   Eigen::MatrixXd Phi;        // dimension
   Eigen::MatrixXd ArraysNeqn; // dimension
   double *Arrays13;
-  double h;    ///< appropriate step size for next step 
-  double hold; ///< step size used for last successful step
+  int delsgn; ///< sign of (tout - t), aka going forward or backward in time
   double tc;   ///< current t (independent variable of integration)
   double told; ///< last t used (used in step)
-  int delsgn; ///< sign of (tout - t), aka going forward or backward in time
+  double h;    ///< appropriate step size for next step 
+  double hold; ///< step size used for last successful step
+  int ns; ///< number of steps taken with size h, including the current one
+  int k; ///< appropriate order for next step (determined by code) 1 <= k < 13
+  int kold; ///< order used for last successful step
+  int phase1; 
+  int  nornd; ///< Indicates whether extra precautions are necessary to reduce round-off
   double relerr, abserr;
   bool integrate_past_tout{true};
   /// May store a pointer to some king of parameters that are passed in the

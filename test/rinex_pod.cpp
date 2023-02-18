@@ -136,20 +136,20 @@ struct SatBeacon {
     std::memcpy(id3c, id_, sizeof(char) * 3);
   }
 
-  SatBeacon &operator=(const SatBeacon &sb) noexcept {
-    std::strncpy(id3c, sb.id3c, 3);
-    count = sb.count;
-    ttai = sb.ttai;
-    tproper = sb.tproper;
-    Ls1 = sb.Ls1;
-    Lu2 = sb.Lu2;
-    Diono = sb.Diono;
-    Dtropo = sb.Dtropo;
-    Drel = sb.Drel;
-    s = sb.s;
-    crho = sb.crho;
-    return *this;
-  }
+  //SatBeacon &operator=(const SatBeacon &sb) noexcept {
+  //  std::strncpy(id3c, sb.id3c, 3);
+  //  count = sb.count;
+  //  ttai = sb.ttai;
+  //  tproper = sb.tproper;
+  //  Ls1 = sb.Ls1;
+  //  Lu2 = sb.Lu2;
+  //  Diono = sb.Diono;
+  //  Dtropo = sb.Dtropo;
+  //  Drel = sb.Drel;
+  //  s = sb.s;
+  //  crho = sb.crho;
+  //  return *this;
+  //}
 
   void update(const Datetime &ttai_, const Datetime &tproper_, double L1_,
               double L2_, double Diono_, const TropoDetails &Dtropo_,
@@ -725,8 +725,8 @@ int main(int argc, char *argv[]) {
   // count Ndop observations
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
-  unsigned flaged_obs = 0; // number of observations with 'bad' flags
-  unsigned num_obs = 0;    // observation count, regardless if usable or not
+  [[maybe_unused]]unsigned flaged_obs = 0; // number of observations with 'bad' flags
+  [[maybe_unused]]unsigned num_obs = 0;    // observation count, regardless if usable or not
 
 // report
 #ifndef NO_ATTITUDE
