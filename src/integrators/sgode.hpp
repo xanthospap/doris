@@ -178,6 +178,9 @@ public:
   /// May store a pointer to some king of parameters that are passed in the
   /// ODE function
   dso::IntegrationParameters *params{nullptr};
+#ifdef INTEGRATOR_CHECK
+  unsigned function_calls;
+#endif
 }; // SGOde
 
 /*

@@ -7,6 +7,9 @@ dso::SGOde::SGOde(dso::ODEfun _f, int _neqn, double rerr, double aerr,
   Phi = Eigen::MatrixXd(neqn, 16);
   ArraysNeqn = Eigen::MatrixXd(neqn, 5); // wt, p, ypout, yp, yy
   Arrays13 = new double[13 * 7]; // psi, alpha, beta, v, w, sig, g (col-major)
+#ifdef INTEGRATOR_CHECK
+  function_calls = 0;
+#endif
 }
 
 dso::SGOde::~SGOde() noexcept {

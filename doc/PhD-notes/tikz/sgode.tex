@@ -1,4 +1,4 @@
-\begin{tikzpicture}[align=center, thick,scale=.5, every node/.style={scale=.8}]
+\begin{tikzpicture}[align=center, thick,scale=.4, every node/.style={scale=.8}]
 
     \node[rectangle,
         draw,
@@ -90,10 +90,11 @@
         Reached $t_n$ ?
     };
 
-    \node[green] (iu) at ($(init.north west)+(-5.6,1.0)$) {User Interface};
+    \node[gray] (iu) at ($(init.north west)+(-5.6,1.0)$) {User Interface};
+    \node[gray] (iu) at ($(b1.north west)+(-4.6,1.0)$) {Class Interface};
 
-    \draw[green,thick,dotted] ($(b1.north west)+(-5.6,0.6)$)  rectangle ($(b4.south east)+(0.3,-0.6)$);
-    \draw[green,thick,dotted] ($(init.north west)+(-6.6,0.6)$)  rectangle ($(ok.south east)+(3.3,-0.6)$);
+    \draw[gray!60,thick,dotted] ($(b1.north west)+(-5.6,0.6)$)  rectangle ($(b4.south east)+(0.3,-0.6)$);
+    \draw[gray!80,thick,dotted] ($(init.north west)+(-6.6,0.6)$)  rectangle ($(sgd.south east)+(3.3,-0.6)$);
 
     \draw [-stealth, thick] (init) -- (b1);
     \draw [-stealth, thick] (b1) -- (b2);
@@ -102,6 +103,7 @@
     \draw [blue, -stealth] (b3.west) |- (b1.west);
     \draw [red, -stealth] (b3.south) --node[anchor=west]{Step size too small}(error);
     \draw [blue, -stealth] (b4.south) -- (ok.north);
+    \draw [blue, -stealth] (ok.south) -- (sgd.north);
     \draw [black, thick, dotted, -stealth] (request) -- (-11.5,-0.5);
     
     %\draw [blue, -stealth] (sgd.west) -|node[anchor=south]{Return $\bm{y}(t_n)$} (request.south);

@@ -44,7 +44,7 @@ are available in e.g. \cite{Butcher2016}.
 Multistep methods are typically derived by using an interpolating polynomial in
 either of two ways. The first is to use an interpolating polynomial through 
 $t_i, t_{i-1}, \dots , t_{i-k+1}$ for $\bm{f}(t, \bm{\eta})$ and then integrate 
-the equation (as discussed above). The second method constists in using an 
+the equation (as discussed above). The second method consists in using an 
 interpolating polynomial (again through $t_i, t_{i-1}, \dots , t_{i-k+1}$) to 
 approximate $\bm{y}(t)$ and then differentiate it, evaluate at $t_{i+1}$ for an 
 implicit method and set it equal to the given slope ($\bm{f}(t, \bm{\eta})$) at 
@@ -168,21 +168,21 @@ of the Adams-Bashforth and Adams-Moulton methods can be used, in what is called 
 At a first step, an Adams-Bashforth of order $m$ is used to compute an approximate 
 solution $\bm{\eta}^{(p)}_{t_{i+1}}$, using the already computed values 
 $\bm{f}_i, \bm{f}_{i-1}, \dots , \bm{f}_{i-m+1}$. This \emph{predicted} value 
-($\bm{\eta}^{(p)}_{t_{i+1}}$), can then be used to obtain a a \emph{predicted} 
+($\bm{\eta}^{(p)}_{t_{i+1}}$), can then be used to obtain a \emph{predicted} 
 function value at $t_{i=1}$, $\bm{f}^{(p)}_{i+1}(t_{i+1},\bm{\eta}^{(p)}_{t_{i+1}})$ 
-and procced to the \emph{corrector} step, where an updated, improved solution 
+and proceed to the \emph{corrector} step, where an updated, improved solution 
 $\bm{\eta}_{t_{i+1}}$ is computed, via an Adams-Moulton method of order $m$ or 
 $m=1$. The ``final'' function value at $t_{i+1}$, 
 $\bm{f}^{(p)}_{i+1}(t_{i+1},\bm{\eta}^{(p)}_{t_{i+1}})$ can be evaluated for the 
 next integration step.
 
 \begin{figure}
-    \centering
-    \input{tikz/pece_adams}
-    \caption{Schematic representation of the \emph{Predictor-Corrector} algorithm using the Adams-Bashforth and Adams-Moulton methods.}
-    \label{fig:pece-adams}
-  \end{figure}
+  \centering
+  \input{tikz/pece_adams}
+  \caption{Schematic representation of the \emph{Predictor-Corrector} algorithm using the Adams-Bashforth and Adams-Moulton methods.}
+  \label{fig:pece-adams}
+\end{figure}
 
 Even though the \gls{pece} algorithms are complicated and difficult to implement, 
-they offer increaded stability, especially at large stepsizes (\cite{Montenbruck2000}).
+they offer increased stability, especially at large stepsizes (\cite{Montenbruck2000}).
 Low-order methods are generally more stable even for large stepsizes.

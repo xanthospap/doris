@@ -6,10 +6,11 @@ the current Thesis is given. The method used, is a \emph{variable step},
 implementation is based on the developments of \cite{Shampine1975}, which up to 
 date constitute one of the most robust \gls{ode} solvers solvers, given the 
 problem constraints (non stiff \gls{ode} systems of 1\textsuperscript{st} order).
+An overview of the implemented schema is depicted in \autoref{fig:sgode}.
 
 According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
 problems in which:
-\begin{itemize}
+\begin{itemize}\setlength\itemsep{.3em}
     \item function evaluations are expensive,
     \item moderate to high accuracy is requested,
     \item many output points are required
@@ -34,7 +35,7 @@ most steps are taken in groups with a constant step size and constant order.
 \end{figure}
 
 For a varying step size, a wise choice of stored variables and coefficients 
-should be made to accomodate efficiency. Since, the algorithm will be using divided 
+should be made to accommodate efficiency. Since, the algorithm will be using divided 
 and backward differences, this choice includes the variables
 
 \begin{gather}
@@ -55,7 +56,7 @@ taking value in the range $[0,1]$ as x runs from $x_n$ to $x_{n+1}$ and $\alpha 
 and $\beta _i$ are intermediate coefficients used for the computations.
 
 Through \autoref{eq:sg4a} to \autoref{eq:sg4h}, a change from value $n$ to $n+1$ 
-can be performed via the recusrion for $i=2,3,\dots$
+can be performed via the recursion for $i=2,3,\dots$
 \begin{equation}
   \begin{aligned}
     \psi _i(n+1)   &= \psi _{i-1}(n) + h_{n+1} \\
@@ -106,7 +107,7 @@ and the (approximate) solution at $t_{n+1}$, \autoref{eq:sg52a} is
 \begin{equation}\label{eq:sg58}
   p_{n+1} = y_n + h_{n+1} \sum_{i=1}^{k} \phi ^{*}_{i}(n) \int_{0}^{1} c_{i,n}(s) \,ds
 \end{equation}
-As we saw, for constant step size $h$, \autoref{eq:sg58} reduces to
+As already shown, for constant step size $h$, \autoref{eq:sg58} reduces to
 \begin{equation}\label{eq:sg58b}
   p_{n+1} = y_n + h \sum_{i=1}^{k} \gamma _{i-1} \nabla ^{i-1} f_n 
 \end{equation}
@@ -129,9 +130,9 @@ The coefficients $g_{i,q}$ follow the recursion formulas
   \end{cases}
 \end{equation}
 
-In the formulas presented here, a series of simplifications can be made if we 
-consider a constant step size $h$. These are implemented in the source code for 
-the integrator. The interested readed can find details in \cite{Shampine1975}.
+In the formulas presented here, a series of simplifications can be made if a 
+constant step size $h$ is considered. These are implemented in the source code for 
+the integrator. The interested reader can find details in \cite{Shampine1975}.
 
 \iffalse
 \cite{Shampine1975}:
@@ -167,7 +168,7 @@ $t_{n+1}$
 The implementation computes the above values using \autoref{eq:sg511} and 
 \autoref{eq:sg57b} using a series of intermediate variables and coefficients (
 as described in \autoref{sec:integrator-implementation}). To promote efficiency, 
-these coefficients are stacked in contiguous memory, devided in blocks based on 
+these coefficients are stacked in contiguous memory, divided in blocks based on 
 their usage in the algorithm, to minimize as much as possible cache misses.
 
 \subsection{The Corrector}\label{ssec:integrator-corrector}
@@ -267,7 +268,7 @@ This quantity was introduced by \cite{Shampine1975} and is given by
   ERK = \norm{h \left( g_{k+1,1} - g_{k,1} \right) \sigma _{k+1}(n+1) \phi ^{p}_{k+1}(n+1)}
 \end{equation}
 In reality, $ERK$ estimates what the local error at $x_{n+1}$ would have been, 
-had the preceding steps been of constant size $h$. Given a successeful step, the 
+had the preceding steps been of constant size $h$. Given a successful step, the 
 next step (to $x_{n+2}$) of size $rh$, will have a local error of $r^{k+1} ERK$. 
 If on contrary the step was to be repeated with a step size of $rh$, then again 
 its error estimate would be $r^{k+1} ERK$.
@@ -288,7 +289,7 @@ is so designed as to prefer lower orders. The maximum order limit within the
 algorithm is 12.
 
 After the order selection, the algorithm tries to select the optimal step size $rh$. 
-The value of $r$ is initialy estimated by
+The value of $r$ is initially estimated by
 \begin{equation}\label{eq:sg71}
   r = \left( \frac{0.5 \epsilon}{ERK} \right) ^{\frac{1}{k+1}}
 \end{equation}
@@ -298,10 +299,39 @@ possible, then the inequality $0.5 \epsilon \ge ERK$ is checked, to see if a con
 step size can be retained. Keeping a constant step size (when a factor of two 
 increase is not feasible) offers efficiency, simplicity, stability and a more 
 realistic error estimation. If however the latter inequality demands so, a decrease 
-of step size is performed by a factor inbetween 0.5 to 0.9, computed via \autoref{eq:sg71}.
+of step size is performed by a factor in between 0.5 to 0.9, computed via \autoref{eq:sg71}.
 The value of $\epsilon$ is user defined.
 
+\subsection{Design Considerations}\label{ssec:design-considerations}
+An efficient and precise solution of the orbit integration problem plays a key 
+role in \gls{pod} applications. The algorithm described above is a state-of-the-art 
+integrator, which allows for a robust treatment of the problem at hand. 
+A few design consideration are discussed here, which enable further enhancements 
+of the algorithm's efficiency based on its architectural design.
 
+The whole algorithm is encapsulated in an \emph{object-oriented} design; this provides easy and 
+user-friendly interaction with the integration process and eliminates in as much as 
+possible errors incurred by user misusage. One additional benefit is that the 
+user (or the user application) does not need to know the very complex background and 
+methods that are implemented within the algorithm. One only needs to specify the 
+initial conditions of the \gls{ode} and if needed the tolerance values (see 
+\autoref{ssec:integrator-error-estimation}). The algorithm will then seek for the 
+optimal way (i.e. stepsize and order) to handle the problem.
+
+Additionally, the object oriented design implemented enables the integrator instance (i.e. 
+a data structure of integrator type) to have \emph{state}. Users can query this state 
+and find out information about the process, a fact that enables a clear and unambiguous 
+interaction between the instance and the caller.
+
+Memory allocations are handled using the \emph{Resource Acquisition Is Initialization} (RAII) 
+programming technique (\url{https://en.cppreference.com/w/cpp/language/raii}) and 
+users are free of any obligation regarding allocating/freeing memory. Special care is 
+taken so that only no excess memory is allocated and most importantly, that memory blocks 
+are allocated in a contiguous manner, minimizing cache misses.
+
+Part of the source code uses the \texttt{eigen} (\cite{eigenweb}) library, which 
+supports vectorization (\emph{Single Instruction, Multiple Data} (SIMD) instructions) 
+including the widely used \emph{Advanced Vector Extensions} AVX, AVX2 and AVX512.
 
 %An estimate of local error used in the algorithm and introduced by \cite{Shampine1975}, 
 %is given by
@@ -314,292 +344,3 @@ The value of $\epsilon$ is user defined.
 %$\norm{le_{n+2}(k)} \equiv \norm{h_{n+2} \left( g_{k+1,1} - g_{k,1} \right) \phi ^{p}_{k+1}(n+2)}$), or repeat the step with a smaller step size and possibly a different order. 
 %The algorith tries to find the largest step size for which the predicted local 
 %error is acceptable.
-
-\iffalse
-Obviously we must determine an easy way to integrate the interpolating
-polynomial. We start with the polynomial in divided difference form
-\begin{equation}\label{eq:sg53}
-  P_{k,n}(x) = f[x_n] 
-    + (x-x_n)f[x_n,x_{n-1}
-    + (x-x_n)(x-x_{n-1})f[x_n,x_{n-1},x_{n-2}]
-    + \dots 
-    + (x-x_n)(x-x_{n-1})\dots (x-x_{n-k+2})f[x_n,x_{n-1},x_{n-2},\dots ,x_{n-k-1}]
-\end{equation}
-where
-\begin{equation}
-  \begin{aligned}
-    f[x_0] & & \equiv f(x_0) \text{ and}\\
-    f[x_0,x_1,\dots ,x_n] &= \frac{f[x0,\dots ,x_{n-1}]-f[x1,\dots ,x_n]}{x_0 - x_n}
-  \end{aligned}
-\end{equation}
-and we assume that $n \ge 1$.
-Because we intend to vary the step size, we will take a code variables the take the 
-step sizes $h_i = x_i - x_{i-1}$ as fundamental variables along with their sums 
-$\psi (n+1) = h_{n+1} + h_{n} + \dots + h_{n+2-i} = x_{n+1} - x_{n+1-i}$. The 
-divided differences will be modified so that they reduce to backward differences 
-when the step sizes are constant. Using these modified divided differences $\phi _i (n)$ 
-leads to economical, simple formulas. For integrations like the one in \autoref{eq:sg52a} 
-we again find it convenient to introduce a normalized variable $s$ by $x=x_n +sh_{n+1}$ 
-so that $s$ runs from 0 to 1 as $x$ runs from $x_n$ to $x_{n+1}$. We will also need 
-two more fundamental quantities $\alpha _i (n+1)$ and $\beta _i (n+1)$
-
-It is worth noting that if the step size is a constant $h$, then 
-\begin{equation}
-  \begin{aligned}
-    \psi _i(n+1)   &= ih \\
-    \alpha _i(n+1) &= \frac{1}{i} \\
-    \beta _i(n+1)  &= 1 \\
-    \phi _i(n)     &= \nabla ^{i-1} f_{n}
-  \end{aligned}
-\end{equation}
-$\phi _i (n)$ values can be computed efficiently using divided differences. For 
-the $\psi _i$ and $\beta _i$ values, the following formulas are used for recursion 
-\begin{equation}
-  \begin{aligned}
-    \psi _i (n+1)  &= \psi _{i-1} (n) + h_{n+1} \\
-    \beta _i (n+1) &= \beta _{i-1}(n+1) \frac{\psi _{i-1} (n+1)}{\psi _{i-1}(n)} \\
-  \end{aligned}
-\end{equation}
-starting with the initial values
-\begin{equation}
-  \begin{aligned}
-    \psi _1 (n+1) &= h_{n+1} \\
-    \beta _1(n+1) &= 1
-  \end{aligned}
-\end{equation}
-
-The interpolating polynomial, analytical work can be done (see \cite{Shampine1975}) 
-\begin{equation}\label{eq:sg57}
-  P_{k,n} (x) = \sum_{i=1}^{k} c_{i,n} (s) \phi ^{*}_{i} (n)
-\end{equation}
-where
-\begin{equation}
-  \phi ^{*}_{i} (n) = \beta _i (n+1) \phi _i (n)
-\end{equation}
-and
-\begin{equation}\label{eq:sg56}
-  c_{i,n}(s) = \begin{cases}
-    1, i=1 \\
-    \frac{s h_{n+1}}{\psi _1 (n+1)} = s, i=2 \\
-    \left(\frac{sh_{n+1}}{\psi _1(n+1)}\right)
-    \left(\frac{sh_{n+1} + \psi _1(n)}{\psi _2(n+1)}\right)
-    \dots
-    \left(\frac{sh_{n+1} + \psi _{i-2}(n)}{\psi _{i-1}(n+1)}\right), i \ge 3
-  \end{cases}
-\end{equation}
-For variable step sizes, the above becoms (using \autoref{eq:sg54} and \autoref{eq:sg56})
-\begin{equation}\label{}
-  c_{i,n}(s) = \begin{cases}
-    1, i=1 \\
-    \alpha _1 (n+1) s = s, i=2 \\
-    \left( \alpha _{i-1} (n+1) s + \frac{\psi _{i-2}(n)}{\psi _{i-1}(n+1)} \right) c_{i-1,n}(s) , i \ge 3
-  \end{cases}
-\end{equation}
-
-Hence, to approximate the derivative of the solution by \autoref{eq:sg52b}, we 
-take $s=1$ in \autoref{eq:sg57}, using \autoref{eq:sg54} and \autoref{eq:sg56}
-\begin{equation}
-  P_{k,n} (x_{n+1}) = p'_{n+1} = \sum^{k}_{i=1} \phi^{*}_{i} (n)
-\end{equation}
-To approximate the solution at $x_{n+1}$, we can substitute \autoref{eq:sg57} 
-into \autoref{eq:sg52a} and integrate to obtain
-\begin{equation}\label{eq:sg58}
-  p_{n+1} = y_n + h_{n+1} \sum_{i=1}^{k} \phi ^{*}_{i} (n) \int_{0}^{1} c_{i,n} \,ds
-\end{equation}
-When the step size is constant, \autoref{eq:sg58} reduces to
-\begin{equation}
-  p_{n+1} = y_n +h \sum_{i=1}^{k} \gamma _{i-1} \nabla ^{i-1} f_n
-\end{equation}
-If we define the quantity $g_{i,q}=(q-1)!c_{i,n^{(-q)}}$, and 
-\begin{equation}\label{eq:sg510}
-  g_{i,q} = \begin{cases}
-    \frac{1}{q}, \text{ } i=1,\\
-    \frac{1}{q(q+1)}, \text{ } i=2,\\
-    g_{i-1,q} - \alpha_{i-1}(n+1)g_{i-1,q+1}, \text{ } i \ge 3
-  \end{cases}
-\end{equation}
-then
-\begin{equation}\label{eq:sg511}
-  p_{n+1} = y_n + h_{n+1} 
-    \sum_{i=1}^{k} \phi ^{*}_{i} (n) g_{i,1}
-\end{equation}
-
-
-\subsection{The Corrector}\label{ssec:integrator-corrector}
-The code uses a corrector one order higher that the predictor and accepts as an 
-approximation to the solution and its derivative at $x_{n=1}$
-\begin{equation}
-    \begin{aligned}
-        y_{n+1} &= y_n + \int_{x_n}^{x_{n+1}} P^{*}_{k+1,n}(t) \,dt \\
-        f_{n+1} &= f(x_{n=1}, y_{n+1})
-    \end{aligned}
-\end{equation}
-where
-\begin{equation}
-    \begin{aligned}
-        P^{*}_{k+1,n}(x_{n+1-j}) &= f_{n+1-j}, \text{ } j=1,\dots ,k \\
-        P^{*}_{k+1,n}(x_{n+1}) &= f^{p}_{n+1} = f(x_{n+1}, p_{n+1})
-    \end{aligned}
-\end{equation}
-The corrector polynomial interpolates to the same data as the predictor plus 
-the additional value $f^{p}_{n+1}$. For the error estimation we also want to consider 
-the case of the corrector of order $k$, $P^{*}_{k,n}(x)$. 
-Since $P^{*}_{k+1,n}(x)$ interpolates the same data as $P^{*}_{k,n}(x)$ plus one 
-extra point, the basic intent of the divided difference form is to represent it as a small 
-correction to $P_{k,n}(x)$
-\begin{equation}\label{eq:sg512}
-    P^{*}_{k+1,n}(x) = P_{k,n}(x) + (x-x_n)(x-x_{n-1})\dots (x-x_{n-k+1})
-        f^{p}[x_{n+1}, \dots x_{n-k+1}]
-\end{equation}
-The superscript $p$ on this divided difference is to remind us that $P^{*}_{k+1,n}(x)$ 
-interpolates to $f^{p}_{n+1}$. 
-Using alternate notation, this is 
-\begin{equation}
-    P^{*}_{k+1,n}(x) = P_{k,n}(x) + c_{k+1,n}(s) \phi ^{p}_{k+1} (n+1)
-\end{equation}
-and after integration we obtain
-\begin{equation}\label{eq:sg513}
-    \begin{aligned}
-        y_{n+1} &= p_{n+1} + h_{n+1} g_{k+1,1} \phi ^{p}_{k+1} (n+1) \\
-        f_{n+1} &= f(x_{n+1}, y_{n+1})
-    \end{aligned}
-\end{equation}
-This is a very convenient way to compute $y_{n+1}$ since we can compute the 
-coefficient $g_{k+1,1}$ along with the $g_{i,1}$ needed in the prediction process.
-if we use a corrector of order $k$ instead of $k+1$ the only change in the formula 
-for $y_{n+1}$ is to change $g_{k+1,1}$ to $g_{k,1}$. We shall write $y_{n+1}(k)$ 
-to distinguish this value:
-\begin{equation}
-    y_{n+1}(k) = p_{n+1} + h_{n+1} g_{k,1} \phi ^{p}_{k+1} (n+1)
-\end{equation}
-These two formulas generalize to variable step size the formulas for constant step size:
-\begin{equation}\label{eq:sg513}
-    \begin{aligned}
-        y_{n+1} &= p_{n+1} + h \gamma _k \nabla ^{k} f^{p}_{n+1} \\
-        y_{n+1}(k) &= p_{n+1} + h \gamma _{k-1} \nabla ^{k} f^{p}_{n+1}
-    \end{aligned}
-\end{equation}
-All that remains is to see how to compute the $\phi ^{p}_{i} (n+1)$ and 
-$\phi _{i} (n+1)$ to complete the step.
-Omitting details we can came up with
-\begin{equation}\label{eq:sg514}
-    \phi ^{p}_{i+1} (n+1) = \phi ^{p}_{i} (n+1) -  \phi ^{*}_{i} (n)
-\end{equation}
-and
-\begin{equation}\label{eq:sg515}
-    \phi _{i+1} (n+1) = \phi _{i} (n+1) -  \phi ^{*}_{i} (n)
-\end{equation}
-where we note that  $\phi ^{p}_{1} (n+1) = f^{p}_{n+1}$ and 
-$\phi _{1} (n+1) = f_{n+1}$ by definition.
-It would be ideal if we could form $\phi ^{*}_{i} (n)$ and overwrite $\phi _{i} (n)$. 
-To do this we can replace \autoref{eq:sg514} with 
-\begin{equation}\label{eq:sg516}
-    \phi ^{p}_{i} (n+1) = \phi ^{p}_{i+1} (n+1) + \phi ^{*}_{i} (n)
-\end{equation}
-recursively in the order $i=k,k-1,\dots ,1$. To start the recursion we can use
-\begin{equation}
-    \phi ^{p}_{k+1} (n+1) = f^{p}_{n+1} - {p'}_{n+1} = 
-    f^{p}_{n+1} - \sum_{i=1}^{k}\phi ^{*}_{i} (n)
-\end{equation}
-From \autoref{eq:sg514} and \autoref{eq:sg515} we can see that
-\begin{equation}\label{eq:sg517}
-    \phi _{i} (n+1) = \phi ^{p}_{i} (n+1) + \left( f_{n+1} - \phi ^{p}_{1} (n+1) \right)
-\end{equation}
-We can find that
-\begin{equation}\label{eq:sg518}
-    \phi ^{e}_{i} (n+1) = \phi ^{e}_{i+1} (n+1) + \phi ^{*}_{i} (n)
-\end{equation}
-we can use \autoref{eq:sg518} to generate $\phi ^{e}_{i} (n+1)$ in the sequence 
-$i=k, k-1, \dots ,1$ and overwrite them on the $\phi ^{*}_{i} (n)$. 
-We can also prove that
-\begin{equation}
-    \begin{aligned}
-        \phi ^{p}_{i} (n+1) &= \phi ^{e}_{i} (n+1) + 
-            \left( f^{p}_{n+1} - \phi ^{e}_{1} (n+1) \right) \label{eq:sg519} \\
-        \phi _{i} (n+1) &= \phi ^{e}_{i} (n+1) + 
-            \left( f_{n+1} - \phi ^{e}_{1} (n+1) \right) \label{eq:sg520}
-    \end{aligned}
-\end{equation}
-Using \autoref{eq:sg519} we generate those $\phi ^{p}_{i} (n+1)$ required for 
-the error estimation. If 
-the step is successful, we then use \autoref{eq:sg520} to compute the 
-$\phi _{i} (n+1)$ and overwrite them on the $\phi ^{e}_{i} (n+1)$.
-Let us now summarize all the computation required to advance one step.
-The code that is given uses a PECE Adams method which advances from $x_n$ to 
-$x_{n+1}$ by
-\begin{description}
-    \item[Initialize] compute $g_{i,1}$ for $i=1,2, \dots ,k+1$
-    \item[P Predicting] 
-        \begin{equation}
-            \begin{aligned}
-                \phi ^{*}_{i} (n) &= \beta _i(n+1) \phi _i(n) \text{ } i=1,2, \dots ,k \\
-                p_{n+1} &= y_n + h_{n+1} \sum_{i=1}^{k} g_{i,1} \phi ^{*}_{i} (n) \\
-                \phi ^{e}_{k+1} (n+1) &= 0 \\
-                \phi ^{e}_{i} (n+1) &= \phi ^{e}_{i+1} (n+1) + \phi ^{*}_{i} (n) \text{ } k,k-1,\dots ,1
-            \end{aligned}
-        \end{equation}
-    \item[E Evaluating] $f^{p}_{n+1} = f(x_{n+1}, p_{n+1})$
-    \item[C Correcting] $y_{n+1} = p_{n+1} + h_{n+1} g_{k+1,1} 
-        \left( f^{p}_{n+1} - \phi ^{e}_{i} (n+1) \right)$
-    \item[E Evaluating]
-        \begin{equation}
-            \begin{aligned}
-                f_{n+1} &= f(x_{n+1}, y_{n+1}) \\
-                \phi _{k+1} (n+1) &= f_{n+1} - \phi ^{e}_{1} (n+1) \\
-                \phi _{i} (n+1) &= \phi ^{e}_{i} (n+1) + \phi _{k+1} (n+1) \text{ } i=k,k-1,\dots ,1
-            \end{aligned}
-        \end{equation}
-\end{description}
-Notice that advancing the differences is very cheap though there may be a 
-lot of them. Much of the overhead results from the computation of the $g_{i,1}$.
-
-We stated at the beginning of this chapter that our code would take
-advantage of steps taken with a constant size. Let us go into this matter
-now and examine the programming of the computation.
-Let the variable $n_s$ be the number of successive steps taken with constant 
-step size $h$, including the current one. When $\psi _i(n+1)$ is computed it is 
-written over the stored value of $\psi _i(n)$.
-To compute the $\psi _{i}(n+1)$ we need only start with the value 
-$\psi _{n_s}(n+1) = n_s h$ and obtain the remaining elements by the iteration 
-\begin{equation}
-    \psi _{i}(n+1) = \psi _{i-1}(n) + h \text{ } i= n_s+1 , \dots , k
-\end{equation}
-and for the $\alpha$ and $\beta$ arrays to advance from $n$ to $n+1$
-\begin{equation}
-    \begin{aligned}
-        \alpha _{n_s} (n+1) &= \frac{1}{n_s} \\
-        \alpha _{i} (n+1)   &= \frac{h}{\psi _i(n+1)} \text{ } i= n_s+1, \dots ,k \\
-        \beta _{n_s} (n+1)  &= 1 \\
-        \beta _{i} (n+1)    &= \beta _{i-1} (n+1) \frac{\psi _{i-1}(n+1)}{\psi _{i-1}(n)} 
-            \text{ } i= n_s +1 , \dots ,k
-    \end{aligned}
-\end{equation}
-Obviously the closer we are to working with a constant step size, the less
-work need be done in computing these quantities.
-
-
-
-
-[page96]
-According to this bound the accuracy is not affected by changes of order.
-Variation of the order serves two purposes. One is to start the code and the
-other is to achieve the required accuracy at each step as efficiently as
-possible.
-
-[page101]
-The estimator for the local error $le$, will be
-\begin{equation}
-  le_{n+1} (k) = u_{n} (x_{n+1}) - y_{n+1}(k) \equiv y_{n+1} - y_{n+1} (k)
-\end{equation}
-and since
-\begin{equation}
-  \begin{aligned}
-    y_{n+1}    &= p_{n+1} + h_{n+1} g_{k+1,1} \phi ^{p}_{k+1} (n+1) \text{ [C]}\\
-    y_{n+1}(k) &= p_{n+1} + h_{n+1} g_{k,1} \phi ^{p}_{k+1} (n+1)  \text{ [P]}
-  \end{aligned}
-\end{equation}
-lead to 
-\begin{equation}
-  le_{n+1} (k) \equiv h_{n+1} \left( g_{k+1,1} - g_{k,1} \right) \phi ^{p}_{k+1} (n+1)
-\end{equation}
-\fi

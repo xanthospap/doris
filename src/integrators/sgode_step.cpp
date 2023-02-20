@@ -94,6 +94,9 @@ int dso::SGOde::step(double &eps) noexcept {
   if (iflag == IFLAG::RESTART) {
     // initialize.  compute appropriate step size for first step
     f(tc, yy(), yp(), *params);
+#ifdef INTEGRATOR_CHECK
+    ++function_calls;
+#endif
     // φ[0] = y'
     Phi.col(0) = yp();
     // φ[1] = 0
@@ -240,6 +243,9 @@ int dso::SGOde::step(double &eps) noexcept {
       tc += h;
       absh = std::abs(h);
       f(tc, p(), yp(), *params);
+#ifdef INTEGRATOR_CHECK
+      ++function_calls;
+#endif
 
       // Estimate errors at orders k,k-1,k-2
       erkm2 = erkm1 = erk = 0e0;
@@ -279,7 +285,9 @@ int dso::SGOde::step(double &eps) noexcept {
       }
 
       if (err <= eps) {
-        fprintf(stderr, "[DEBUG] Step success! order=%d step=%.12f\n", k, h);
+#ifdef INTEGRATOR_CHECK
+        printf("[INTGR] Step success! order %d step %.12f err %.5e eps %.5e\n", k, h, err, eps);
+#endif
         break;
       }
       // ***     end block 2     ***
@@ -356,6 +364,9 @@ int dso::SGOde::step(double &eps) noexcept {
     }
   }
   f(tc, yy(), yp(), *params);
+#ifdef INTEGRATOR_CHECK
+  ++function_calls;
+#endif
 
   // update differences for next step
   // φ[k] = y' - φ[0]

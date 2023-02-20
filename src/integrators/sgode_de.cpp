@@ -112,19 +112,6 @@
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double fouru = 4e0 * umach;
 
-/*
-dso::SGOde::IFLAG dso::SGOde::de_start() noexcept {
-  if (neqn < 1) 
-    return SGOde::IFLAG::INVALID_INPUT;
-  
-  double eps = std::max(relerr, abserr);
-  if ((relerr < 0e0 || abserr < 0e0) || eps < 0e0)
-    return SGOde::IFLAG::INVALID_INPUT;
-
-
-}
-*/
-
 dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
   // test for improper parameters
@@ -138,7 +125,6 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
 
   // on each call set interval of integration and counter for number of
   // steps.  adjust input error tolerances to define weight vector for
-  // -- break point 20: --
   const double del = tout - t;
   const double absdel = std::abs(del);
   const double tend =
@@ -161,6 +147,10 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     delsgn = (-1) * (del < 0) + (1) * (del >= 0);
     // initialize step size
     h = std::copysign(std::max(std::abs(del), fouru * std::abs(t)), del);
+#ifdef INTEGRATOR_CHECK
+    function_calls = 0;
+    printf("[INTGR] Start of integration, calls %u start %.15e to %.15e\n", function_calls, t, tout);
+#endif
   }
 
   while (true) {
@@ -168,6 +158,9 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     if (std::abs(tc - t) >= absdel) {
       intrp(tout, yout);
       told = t = tout;
+#ifdef INTEGRATOR_CHECK
+      printf("[INTGR] End of integration, calls %u\n", function_calls);
+#endif
       return (iflag = IFLAG::SUCCESS);
     }
 
@@ -176,8 +169,14 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     if ((!integrate_past_tout) && (std::abs(tout-tc)<fouru*std::abs(tc))) {
       h = tout - tc;
       f(tc, yy(), yp(), *params);
+#ifdef INTEGRATOR_CHECK
+      ++function_calls;
+#endif
       yout = yy() + h * yp();
       told = t = tout;
+#ifdef INTEGRATOR_CHECK
+      printf("[INTGR] End of integration, calls %u\n", function_calls);
+#endif
       return (iflag = IFLAG::SUCCESS);
     }
 

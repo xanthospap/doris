@@ -4,7 +4,7 @@ In the \emph{Runge-Kutta} methods, a weighted average of the slopes ($\bm{f}$) o
 the solution computed at nearby points is used to determine the solution at 
 $t = t_{n+1}$ from that at $t = t_n$. Typically, Runge-Kutta methods are further 
 divided in \emph{explicit} and \emph{implicit} methods; the latter are more complicated 
-but allow for higher order and improved stablity (see \cite{Griffiths2010}).
+but allow for higher order and improved stability (see \cite{Griffiths2010}).
 
 The general $s$-stage Runge-Kutta methods, may be written in the form
 \begin{equation}\label{eq:grif95}
@@ -89,7 +89,7 @@ orders (\cite{Griffiths2010}).
 
 \subsection{Adaptive Step Size}\label{ssec:adaptive-step-size}
 
-The step size $h$ is a crucial parameter in the integrations methods; it dictates 
+The step size $h$ is a crucial parameter in the integration methods; it dictates 
 the number of steps required to integrate over a given interval, and the accuracy 
 of the results obtained. Small step sizes (in general) improve accuracy but comes 
 with an efficiency cost. To that end, \emph{step size control} can be used, to 
