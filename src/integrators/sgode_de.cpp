@@ -157,9 +157,6 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     // on start and restart also set work variables x and yy
     tc = t;
     yy() = y0;
-    // -- break point 30: --
-    // start = true;
-    // -- break point 40: --
     // store direction of integration
     delsgn = (-1) * (del < 0) + (1) * (del >= 0);
     // initialize step size
@@ -169,7 +166,6 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
   while (true) {
     // if already past output point, interpolate and return
     if (std::abs(tc - t) >= absdel) {
-      // -- break point 50: --
       intrp(tout, yout);
       told = t = tout;
       return (iflag = IFLAG::SUCCESS);
@@ -178,7 +174,6 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     // if cannot go past output point and sufficiently close, extrapolate and 
     // return
     if ((!integrate_past_tout) && (std::abs(tout-tc)<fouru*std::abs(tc))) {
-      // -- break point 60: --
       h = tout - tc;
       f(tc, yy(), yp(), *params);
       yout = yy() + h * yp();
@@ -188,8 +183,6 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
 
     // test too many steps
     if (nostep >= maxnum) {
-      // -- break point 80: --
-      // -- break point 90: --
       yout = yy();
       told = t = tc;
       fprintf(stderr,
@@ -204,8 +197,8 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
     }
 
     // limit step size, set weight vector and take a step
-    // -- break point 100: --
     h = std::copysign(std::min(std::abs(h), std::abs(tend - tc)), h);
+    // WT(l) = |y(l)|*RE/EPS + AE/EPS (shampine & Gordon, p. 176)
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
     int crash = this->step(eps);
 

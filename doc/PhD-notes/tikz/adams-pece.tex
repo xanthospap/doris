@@ -1,0 +1,46 @@
+\begin{tikzpicture}[
+  every node/.style = {
+    draw=black, 
+    rounded corners, 
+    fill=gray!10,
+    minimum width=2cm,
+    minimum height=0.5cm,
+    align=center},
+    every path/.style = {draw, -latex}
+  ]
+  
+  \node[fill=red!5] (gi1) [] {
+    Compute $g_{i,1}$ for $i=1,2,\dots ,k+1$, see \autoref{eq:sg510}
+  };
+
+  \node[fill=gray!5] (p) [below =of gi1] {
+    \emph{Prediction Step}\\
+    compute $\phi ^{*}_{i}(n)$ via \autoref{eq:sg56b}, for $i=1,2,\dots ,k$\\
+    compute $p_{n+1}$ via \autoref{eq:sg511}\\
+    set $\phi ^{e}_{k+1} (n+1) = 0$\\
+    compute $\phi ^{e}_{i}(n+1)$ via \autoref{eq:sg518}, for $i=k,k-1,\dots ,1$
+  };
+
+  \node[fill=gray!5] (pe) [below =of p] {
+    \emph{Evaluation Step}\\
+    compute $f^{p}_{n+1} = f(x_{n+1}, p_{n+1})$
+  };
+  
+  \node[fill=gray!5] (c) [below =of pe] {
+    \emph{Correction Step}\\
+    compute $y_{n+1} = p_{n+1} + h_{n+1} g_{k+1,1} \left( f^{p}_{n+1} - \phi ^{e}_{1}(n+1) \right)$
+  };
+  
+  \node[fill=gray!5] (ce) [below =of c] {
+    \emph{Evaluation Step}\\
+    compute $f_{n+1} = f(x_{n+1}, y_{n+1})$\\
+    compute $\phi _{k+1} (n+1) = f_{n+1} - \phi ^{e}_{1} (n+1)$ and\\
+    compute $\phi _i (n+1) = \phi ^{e}_{i}(n+1) + \phi _{k+1}(n+1)$
+    for $i=k,k-1,\dots ,1$
+  };
+
+  \draw (p) -- (pe);
+  \draw (pe) -- (c);
+  \draw (c) -- (ce);
+
+\end{tikzpicture}

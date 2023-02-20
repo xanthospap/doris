@@ -150,12 +150,18 @@ public:
   }
 
 public:
-  // private:
-  ODEfun f; ///< slope function (uses params pointer for evaluation)
-  int neqn; ///<  number of equations (aka practically size of arrays used)
-  IFLAG iflag{IFLAG::RESTART}; ///< status from DE
-  Eigen::MatrixXd Phi;        // dimension
-  Eigen::MatrixXd ArraysNeqn; // dimension
+  /// slope function (uses params pointer for evaluation)
+  ODEfun f; 
+  ///  number of equations (aka practically size of arrays used)
+  int neqn; 
+   ///< status from DE
+  IFLAG iflag{IFLAG::RESTART};
+  // PHI(NEQN,16) arrays of modified divided differences. Columns 15 and 16 
+  // are used for propagated roundoff control
+  Eigen::MatrixXd Phi;
+  // holds arrays : wt, p, ypout, yp, yy (in this order). Dimension is NEQN
+  Eigen::MatrixXd ArraysNeqn;
+  // holds arrays: ψ, α, β, v, w, σ, g (Note 1)
   double *Arrays13;
   int delsgn; ///< sign of (tout - t), aka going forward or backward in time
   double tc;   ///< current t (independent variable of integration)
@@ -173,6 +179,11 @@ public:
   /// ODE function
   dso::IntegrationParameters *params{nullptr};
 }; // SGOde
+
+/*
+ * Note 1:
+ * ψ_i (n) = h_n + h_{n-1} + ... + h_{n-i+1}
+ */
 
 } // namespace dso
 #endif

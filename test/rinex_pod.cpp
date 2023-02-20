@@ -647,7 +647,7 @@ int main(int argc, char *argv[]) {
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
   dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6 + 6 * Np, 1e-12,
-                        1e-12, &IntegrationParams);
+                        1e-15, &IntegrationParams);
 
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi, w1i, w2i;

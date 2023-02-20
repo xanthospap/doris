@@ -123,14 +123,10 @@ int dso::SGOde::step(double &eps) noexcept {
   //
   // Repeat blocks 1, 2 (and 3) until step is successful
   //
-  int /*kp1, kp2, km1, km2,*/ knew;
+  int knew;
   double erkm2, erkm1, erk, err;
   while (true) {
     //  ***     begin block 1     ***
-    //kp1 = k + 1;
-    //kp2 = k + 2;
-    //km1 = k - 1;
-    //km2 = k - 2;
 
     // ns is the number of steps taken with size h, including the current
     // one. When k<ns, no coefficients change
@@ -211,7 +207,6 @@ int dso::SGOde::step(double &eps) noexcept {
     // predict a solution p(*), evaluate derivatives using predicted
     // solution, estimate local error at order k and errors at orders k,
     // k-1, k-2 as if constant step size were used.
-    // ***
 
     // Change phi to phi star φ[i] = β[i] * φ[i]
     for (int i = ns; i < k; i++) {
@@ -232,12 +227,9 @@ int dso::SGOde::step(double &eps) noexcept {
       Phi.col(i) += Phi.col(i + 1);
 
     if (!nornd) {
-      // τ = h * p - φ[14]
-      // p = y + τ
-      // φ[15] = (p-y) - τ
-      const auto tau = h * p() - Phi.col(14);
-      p() = yy() + tau;
-      Phi.col(15) = (p() - yy()) - tau;
+      const auto tau = h * p() - Phi.col(14); // τ = h * p - φ[14]
+      p() = yy() + tau;                       // p = y + τ
+      Phi.col(15) = (p() - yy()) - tau;       // φ[15] = (p-y) - τ
     } else {
       // p = y + h * p
       p() = yy() + h * p();
@@ -287,6 +279,7 @@ int dso::SGOde::step(double &eps) noexcept {
       }
 
       if (err <= eps) {
+        fprintf(stderr, "[DEBUG] Step success! order=%d step=%.12f\n", k, h);
         break;
       }
       // ***     end block 2     ***
@@ -318,6 +311,7 @@ int dso::SGOde::step(double &eps) noexcept {
     {
       double tmp2 = .5e0;
       if (ifail >= 3) {
+        fprintf(stderr, "[DEBUG] Third failed attempt to step forward!\n");
         if (ifail != 3 && p5eps < erk * .25e0) {
           tmp2 = std::sqrt(p5eps / erk);
         }
@@ -338,7 +332,7 @@ int dso::SGOde::step(double &eps) noexcept {
   //
   // ***    begin block 4     ***
   //
-  // the step is successful.  correct the predicted solution, evaluate
+  // the step is successful. correct the predicted solution, evaluate
   // the derivatives using the corrected solution and update the
   // differences.  determine best order and step size for next step.
   //
@@ -403,47 +397,6 @@ int dso::SGOde::step(double &eps) noexcept {
       erk = erkp1;
     }
   }
-
-  // int new_degree = 999;
-  // if (phase1) {
-  //   new_degree = 1;
-  // } else if (knew == km1) {
-  //   new_degree = -1;
-  // } else if (kp1 > ns) {
-  //   new_degree = 0;
-  // }
-
-  // if (new_degree == 999) {
-  //   for (int i = 0; i < neqn; i++)
-  //     erkp1 += std::pow(Phi(i, kp2 - 1) / wt(i), 2e0);
-  //   erkp1 = absh * gstr[kp1 - 1] * std::sqrt(erkp1);
-
-  //  if (k > 1) {
-  //    if (erkm1 <= std::min(erk, erkp1)) {
-  //      new_degree = -1;
-  //    } else if (erkp1 >= erk || k == 12) {
-  //      new_degree = 0;
-  //    } else {
-  //      new_degree = 1;
-  //    }
-  //  } else if (erkp1 >= 5e-1 * erk) {
-  //    new_degree = 0;
-  //  } else {
-  //    new_degree = 1;
-  //  }
-  //}
-
-  // switch (new_degree) {
-  // case -1:
-  //   k = km1;
-  //   erk = erkm1;
-  //   break;
-  // case 0:
-  //   break;
-  // case 1:
-  //   k = kp1;
-  //   erk = erkp1;
-  // }
 
   // with new order determine appropriate step size for next step
   {
