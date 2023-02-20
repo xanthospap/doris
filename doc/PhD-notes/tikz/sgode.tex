@@ -1,0 +1,115 @@
+\begin{tikzpicture}[align=center, thick,scale=.5, every node/.style={scale=.8}]
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        fill=gray!2] 
+    (request) at (-17,-0.5) {
+        Integration request,\\
+        $\bm{y}_0$, $\bm{f}$, $t_0$, $t_n$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        fill=gray!2] 
+    (init) at (0,0) {
+        Initialize and check parameters
+    };
+    
+    \node[rectangle, 
+        draw, 
+        text centered,
+        minimum height=2em,
+        fill=gray!2] 
+    (b1) at (0,-3) {
+        Compute formulae coefficients
+    };
+    
+    \node[rectangle,
+        draw,
+        text centered,
+        minimum height=2em,
+        fill=gray!2] 
+    (b2) at (0,-6) {
+        Prediction and estimation\\
+        of local errors
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        minimum height=2em,
+        fill=red!5]
+    (b3) at (-6,-10) {
+        Restore input, select new\\ 
+        order and/or step size
+    };
+    
+    \node[rectangle,
+        draw,
+        text centered,
+        minimum height=2em,
+        fill=blue!5]
+    (b4)  at (+6,-10) {
+        Correction and selection of\\
+        new order and/or step size
+    };
+
+    \node[rectangle,
+        rounded corners,
+        minimum height=2em,
+        text centered,
+        draw=black,
+        fill=red!20]
+    (error)  at (-6,-14) {
+        Error, return control
+    };
+    
+    \node[rectangle,
+        rounded corners,
+        minimum height=2em,
+        text centered,
+        draw=black,
+        fill=blue!20]
+    (ok)  at (+6,-14) {
+        OK, return control
+    };
+    
+    \node[rectangle,
+        rounded corners,
+        minimum height=2em,
+        text centered,
+        draw=black,
+        fill=blue!10]
+    (sgd)  at (+6,-17) {
+        Reached $t_n$ ?
+    };
+
+    \node[green] (iu) at ($(init.north west)+(-5.6,1.0)$) {User Interface};
+
+    \draw[green,thick,dotted] ($(b1.north west)+(-5.6,0.6)$)  rectangle ($(b4.south east)+(0.3,-0.6)$);
+    \draw[green,thick,dotted] ($(init.north west)+(-6.6,0.6)$)  rectangle ($(ok.south east)+(3.3,-0.6)$);
+
+    \draw [-stealth, thick] (init) -- (b1);
+    \draw [-stealth, thick] (b1) -- (b2);
+    \draw [red, -stealth] (b2) --node[anchor=east]{Failed Step} (b3);
+    \draw [blue, -stealth] (b2) --node[anchor=west]{Successful step} (b4);
+    \draw [blue, -stealth] (b3.west) |- (b1.west);
+    \draw [red, -stealth] (b3.south) --node[anchor=west]{Step size too small}(error);
+    \draw [blue, -stealth] (b4.south) -- (ok.north);
+    \draw [black, thick, dotted, -stealth] (request) -- (-11.5,-0.5);
+    
+    %\draw [blue, -stealth] (sgd.west) -|node[anchor=south]{Return $\bm{y}(t_n)$} (request.south);
+    \draw [blue] (sgd.west) --node[anchor=north]{Return $\bm{y}(t_n)$} (-17,-17);
+    \draw [blue, -stealth] (-17,-17) -- (request.south);
+    
+    \draw [blue] (sgd.east) --($(sgd.east)+(3.5,0)$);
+    \draw [blue, -stealth] ($(sgd.east)+(3.5,0)$) |-node[anchor=south]{Take new step} 
+        ($(b1.south west)+(15.1,0)$);
+
+\end{tikzpicture}

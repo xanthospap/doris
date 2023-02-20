@@ -25,6 +25,14 @@ since to make such decisions, it is necessary to estimate the errors that are,
 or would be, incurred for various step sizes and orders. To tackle this problem, 
 most steps are taken in groups with a constant step size and constant order.
 
+\begin{figure}
+  \centering
+  \input{tikz/sgode}
+  \caption{Flow chart of the implemented \gls{pece} integrator, based 
+    on \cite{Shampine1975}.}
+  \label{fig:sgode}
+\end{figure}
+
 For a varying step size, a wise choice of stored variables and coefficients 
 should be made to accomodate efficiency. Since, the algorithm will be using divided 
 and backward differences, this choice includes the variables
@@ -271,11 +279,29 @@ For order selection, three further quantities are introduced, based on \cite{Sha
   ERKP1 &= \norm{h \left( g_{k+1,1} - g_{k,1} \right) \phi _{k+2}(n+1)}
 \end{align}
 The first two, estimate what the local error would have been at $x_{n+1}$ had these 
-steps be taken with an order of $k-1$ and $k-2$ resppectively. $ERKP1$ is an estimate 
+steps be taken with an order of $k-1$ and $k-2$ respectively. $ERKP1$ is an estimate 
 of the local error at $x_{n+2}$. All of the estimates assume a step size $h$. 
 The philosophy of the order selection is to change the order only if the predicted 
-error is reduced and if there is a trend in the terms. The maximum order limit 
-within the algorithm is 12.
+error is reduced and if there is a trend in the terms. In general, lower order 
+formulas have better stability properties (\cite{Shampine1975}), and the algorithm 
+is so designed as to prefer lower orders. The maximum order limit within the 
+algorithm is 12.
+
+After the order selection, the algorithm tries to select the optimal step size $rh$. 
+The value of $r$ is initialy estimated by
+\begin{equation}\label{eq:sg71}
+  r = \left( \frac{0.5 \epsilon}{ERK} \right) ^{\frac{1}{k+1}}
+\end{equation}
+and restrict increase of $r$ to factors of two. Hence, if the inequality 
+$0.5 \epsilon \ge 2^{k+1}ERK$, holds, the step size is doubled. If this is not 
+possible, then the inequality $0.5 \epsilon \ge ERK$ is checked, to see if a constant 
+step size can be retained. Keeping a constant step size (when a factor of two 
+increase is not feasible) offers efficiency, simplicity, stability and a more 
+realistic error estimation. If however the latter inequality demands so, a decrease 
+of step size is performed by a factor inbetween 0.5 to 0.9, computed via \autoref{eq:sg71}.
+The value of $\epsilon$ is user defined.
+
+
 
 %An estimate of local error used in the algorithm and introduced by \cite{Shampine1975}, 
 %is given by
