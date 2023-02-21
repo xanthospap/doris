@@ -3,6 +3,8 @@
 
 #include "odefun.hpp"
 #include "orbit_integration.hpp"
+#include <cassert>
+#include <algorithm>
 
 /* see https://github.com/jacobwilliams/ddeabm/blob/master/src/ddeabm_module.F90 */
 
@@ -21,7 +23,11 @@ private:
   double trelerr, tabserr; // rtol_tmp, atol_tmp
   bool scalar_tols {true};
   int info[4] = {0,0,0,0};
+  // 1. Use [[dhstrt]].
+  // 2. Use the older (quicker) algorithm.
+  // 3. Use a user-specified value.
   int initial_step_mode {1};
+  //  when `initial_step_mode=3`, the `h` value to use.
   double initial_step_size = 0e0;
   int icount{0};
   double tprev=0e0;
@@ -46,7 +52,7 @@ private:
   // Obviously the zero index is never used in FORTRAN.
   // Originally, this function computed powers of two (array named TWO), but 
   // this is very cheap to care (just use ints and cast them).
-  void dsteps() {
+  void dsteps() noexcept {
     gstr[0] = 1e0;
     for (int j=1; j<maxorder+2; j++) {
       gstr[j] = 0e0;
@@ -57,6 +63,7 @@ private:
     }
     return;
   }// dsteps
+
 };
 
 }//namespace dso

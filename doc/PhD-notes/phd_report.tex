@@ -18,8 +18,8 @@
 %\usepackage{imakeidx}   %% for index
 %\makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul}       %% allow wrapping of underlined text, via \ul{...}
-\usepackage{natbib}     %% for bibliography
-\iffalse
+%\usepackage{natbib}     %% for bibliography
+\iftrue
   % the following is for biblatex, see
   % https://www.overleaf.com/learn/latex/Biblatex_bibliography_styles
   \usepackage[
@@ -281,7 +281,9 @@
     \input{chapters/sections/runge_kutta}
     \input{chapters/sections/multistep_methods}
     \input{chapters/sections/integrator_implementation}
-%\include{chapters/satellite_orbits}
+
+\chapter{Precise Orbit Determination}\label{ch:pod}
+  \include{chapters/pod_introduction}
 %\include{chapters/orbit_intergators}
 %\include{chapters/orbit_modeling}
 %\include{chapters/time_scales}
@@ -299,9 +301,9 @@
 %\include{chapters/orbdet}
 %\include{chapters/troposphere}
 
-\bibliographystyle{agsm} 
-\bibliography{doris}
-\iffalse
+%\bibliographystyle{agsm} 
+%\bibliography{doris}
+\iftrue
   \printbibliography
 \fi
 
