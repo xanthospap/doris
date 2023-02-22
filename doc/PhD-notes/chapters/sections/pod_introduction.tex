@@ -1,1 +1,112 @@
 \section{Introduction}\label{sec:pod-introduction}
+
+Orbit determination of artificial satellites began in essence in the 1960s. However, 
+it wasn't untill the 1980s that great advancements were made, facilitated by 
+a better modelling of the Earth's gravity field and its variations (e.g. tides) and 
+the large increase in computing capabilities. This enabled orbit determination 
+accuracies to increase to the tens-of-centimeter level. This improvement was 
+motivated and further pushed by the ever-increasing demands of scientists in the 
+oceanographic and geodetic communities, in search for centimeter-level accuracy 
+in global ocean topography obtained from altimetric satellites (\cite{Tapley2004}).
+To-date, \gls{pod} can yield results in the  few-centimeter level.
+
+Orbit determination can be viewed as a special case of a parameter estimation problem, 
+where the parameters characterizing the orbit of an Earth orbiting satellite have to be 
+determined from observations. Observations are themselfes values of nonlinear functions 
+(the so-called \emph{observed functions}, \cite{BeutlerVII}), thus for the solution 
+of the problem, initial approximate parameter values are needed (a problem often 
+called \emph{initial orbit determination}). Such approximate starting values can be 
+obtained in a number of ways (see e.g. \cite{Vallado2001}), including published 
+values of preliminery solutions, and will not be considered here. Hence, the \gls{pod} 
+process is in essence an \emph{orbit improvement} problem.
+
+Apart from the orbital elements or equivelently the state vector, a number of 
+different parameters have to be considered in a \gls{pod} problem, including
+\begin{itemize}
+    \item dynamical parameters characterizing the force model, necessary to describe 
+        the orbital motion of the satellites,
+    \item coordinates of the observing sites in an \gls{ecef} system,
+    \item motion of the observing sites (e.g. crustal deformation),
+    \item Earth rotation and Earth orientation parameters,
+    \item atmosphere parameters deﬁning the tropospheric refraction correction,
+    \item parameters deﬁning the ionospheric refraction correction,
+    \item technique-speciﬁc, harware and (possibly site-specific) instrumentation 
+        bias parameters
+\end{itemize}
+All of these parameters have to be considered and dealt-with (either estimated or 
+introduced) in a \gls{pod} analysis scheme. 
+
+The orbit parameters must uniquely specify one particular solution of the
+equations of motion
+
+
+The orbital arc or simply the arc as a contiguous, limited part of the satellite’s
+trajectory plays an important role in satellite geodesy. it is not possible to describe the
+entire time period covered by observations by one set of initial conditions
+and the appropriate dynamical parameters. In such cases the orbital arc
+may be broken up into arcs of lengths deﬁned by the analyst. Each arc is
+described by exactly one initial state vector and the dynamical parameters.
+
+It is possible to deﬁne “restricted” problems. For permanent sites it is often
+allowed to assume the coordinates and the motion of the sites as known
+(e.g., for pure orbit determination).
+
+One radical method of curing orbit modelling deﬁciencies of this kind is to
+break up the original arc into shorter arcs. To a great extent the modelling
+deﬁciencies are then absorbed by the initial state vectors of the shorter arcs.
+This well known method usually is referred to as the short arc method. One
+should be aware of the fact, however, that this simple method multiplies the
+number of arc-speciﬁc parameters by the number of arcs generated – which
+may considerably weaken the solutions.
+
+Another method, very powerful and widely used technique to cope with this
+problem is to replace the deterministic diﬀerential equation systems describ-
+ing orbital motion by stochastic diﬀerential equation systems, which contain
+on top of all deterministic forces so-called stochastic accelerations, which are
+characterized by the (known) mean values (usually the zero vector) and the
+associated (known) variance-covariance matrix. Stochastic modelling of this
+kind is possible without major problems, provided the classical least-squares
+approach is replaced by digital ﬁlter methods, in particular Kalman- and
+Kalman-Bucy ﬁlters. In the framework of this more general theory every de-
+terministic parameter estimated may be replaced by a stochastic process.
+Not only the measurement noise, but also the system noise (represented by
+the stochastic constituent in the diﬀerential equations in the case of orbit
+parameters) has to be considered.
+
+The precise orbit determination of LEO, such as Starlette, Stella, and AJISAI is more
+demanding than the determination of the LAGEOS orbits, because of:
+-a larger sensitivity to the Earth’s gravity field and to its temporal variations,
+-a large sensitivity to atmospheric drag models and variations of air density in the
+upper atmosphere, (diss_ks_front)
+
+Gauss’s theory, Kalman filters, and so forth, ultimately needed more precise data.
+Without improvements in observational instruments, many of the techniques and meth-
+ods in this chapter would be of little use.
+
+On the other hand, the stochastic approach (involving or con-
+taining a random variable, a chance, or a probability) uses information in addition to
+measurements to account for the fact that neither the mathematical models nor the mea-
+surements are perfectly known but are corrupted by random processes. The stochastic
+approach combines information from the dynamics, uncertainty with the force model,
+and the measurement errors to obtain the best estimate possible. This combination is the
+basis of estimation.
+
+Even our best theories can’t exactly model the atmosphere, the Earth’s gravity field,
+or the satellite’s attitude. Process noise, v, is a mathematical model of the errors in the
+system dynamics. Bierman (1977:113) notes that in a general sense, process noise also represents effects of un-
+modeled parameters, linearization, and even “effects such as leaky attitude controls or solar
+wind.” It quantifies our ability to model accurately the actual dynamics
+before and after a given epoch. The effect of process-noise is that the dynamics may introduce measurable error into
+the solution. One difficulty is that we often assume the process-noise statistics are ran-
+dom. Unfortunately, they’re often systematic errors such as we might expect from an
+incomplete gravity model. These errors can be highly correlated with time and not well
+approximated by white noise. Closely related is the power-density matrix or the second
+moment of the process noise, Q, which is a covariance of acceleration errors induced by
+the mathematical modeling of the system dynamics.
+
+The procedure typically involves an iterative least-squares estimation
+seeking best ts of selected model parameters and model-predicted satellite
+position and velocity to the tracking data along an orbit arc. The predicted
+state at each epoch is integrated by using the satellite equations of motion re-
+quiring accurate force models.
+
