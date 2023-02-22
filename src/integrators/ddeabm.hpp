@@ -20,7 +20,6 @@ private:
   ///  number of equations (aka practically size of arrays used)
   int neqn; 
   double relerr, abserr; // rtol atol
-  double trelerr, tabserr; // rtol_tmp, atol_tmp
   bool scalar_tols {true};
   int info[4] = {0,0,0,0};
   // 1. Use [[dhstrt]].
@@ -63,6 +62,15 @@ private:
     }
     return;
   }// dsteps
+
+  void operator()() noexcept {
+    this->ddeabm(, relerr, abserr);
+  }
+  
+  void ddeabm(double tout, double rtol, double atol) {
+
+  }
+
 
 };
 

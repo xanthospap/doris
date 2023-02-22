@@ -34,45 +34,25 @@ different parameters have to be considered in a \gls{pod} problem, including
         bias parameters
 \end{itemize}
 All of these parameters have to be considered and dealt-with (either estimated or 
-introduced) in a \gls{pod} analysis scheme. 
+introduced) in a \gls{pod} analysis scheme. In this thesis, a ``restricted'' problem 
+is addressed, often labeled \emph{pure orbit determination}, where coordinates of 
+reference observation sites are assumed to known (via their \gls{ecef} position vector).
 
-The orbit parameters must uniquely specify one particular solution of the
-equations of motion
+It is not always possible to describe the entire time period covered by observations 
+by one set of initial conditions and dynamic parametrs (\cite{BeutlerVII}). Thus, 
+the period can be split into consecutive \emph{orbital arcs}; an orbital arc is 
+thought of as contiguous, limited part of the satellite's trajectory, described by 
+exactly one initial state vector and the dynamical parameters. Using short arcs, 
+modelling deficiencies can be mitigated (absorbed by the initial state vectors), 
+but rapidly increases the number of arc-speciﬁc parameters, a fact that could lead 
+to a considerably weakened solution (\cite{BeutlerVII}). To overcome this problem, 
+an alternate method can be used, in which stochastic accelerations are introduced 
+(added to the parameter list), with known mean values and variance-covariance matrices.
+Not only observation noise but also system noise has to be introduced, and each 
+\emph{deterministic} parameter is replaced by a stochastic process (see e.g. \cite{Jaggi2005b} 
+and \cite{Jaggi2005a} for a least-squares approach).
 
-
-The orbital arc or simply the arc as a contiguous, limited part of the satellite’s
-trajectory plays an important role in satellite geodesy. it is not possible to describe the
-entire time period covered by observations by one set of initial conditions
-and the appropriate dynamical parameters. In such cases the orbital arc
-may be broken up into arcs of lengths deﬁned by the analyst. Each arc is
-described by exactly one initial state vector and the dynamical parameters.
-
-It is possible to deﬁne “restricted” problems. For permanent sites it is often
-allowed to assume the coordinates and the motion of the sites as known
-(e.g., for pure orbit determination).
-
-One radical method of curing orbit modelling deﬁciencies of this kind is to
-break up the original arc into shorter arcs. To a great extent the modelling
-deﬁciencies are then absorbed by the initial state vectors of the shorter arcs.
-This well known method usually is referred to as the short arc method. One
-should be aware of the fact, however, that this simple method multiplies the
-number of arc-speciﬁc parameters by the number of arcs generated – which
-may considerably weaken the solutions.
-
-Another method, very powerful and widely used technique to cope with this
-problem is to replace the deterministic diﬀerential equation systems describ-
-ing orbital motion by stochastic diﬀerential equation systems, which contain
-on top of all deterministic forces so-called stochastic accelerations, which are
-characterized by the (known) mean values (usually the zero vector) and the
-associated (known) variance-covariance matrix. Stochastic modelling of this
-kind is possible without major problems, provided the classical least-squares
-approach is replaced by digital ﬁlter methods, in particular Kalman- and
-Kalman-Bucy ﬁlters. In the framework of this more general theory every de-
-terministic parameter estimated may be replaced by a stochastic process.
-Not only the measurement noise, but also the system noise (represented by
-the stochastic constituent in the diﬀerential equations in the case of orbit
-parameters) has to be considered.
-
+\iffalse
 The precise orbit determination of LEO, such as Starlette, Stella, and AJISAI is more
 demanding than the determination of the LAGEOS orbits, because of:
 -a larger sensitivity to the Earth’s gravity field and to its temporal variations,
@@ -109,4 +89,4 @@ seeking best ts of selected model parameters and model-predicted satellite
 position and velocity to the tracking data along an orbit arc. The predicted
 state at each epoch is integrated by using the satellite equations of motion re-
 quiring accurate force models.
-
+\fi

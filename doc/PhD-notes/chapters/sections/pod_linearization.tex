@@ -1,0 +1,136 @@
+\section{Linearization}\label{sec:pod-linearization}
+
+In a \gls{pod} problem, both the dynamics and the measurements involve significant 
+nonlinear relationships. For both the trajectory and the observation models, a large 
+number of partial derivatives have to be computed for a rigorous linearization. These, 
+according to \cite{Montenbruck2000} can be divided into four different categories:
+\begin{description}
+  \item[The State Transition Matrix] $\bm{\Phi}(t,t_0)$, which maps deviations in the 
+    state vector from an epoch $t_0$ to a later time $t$, and is given by
+    \begin{equation}\label{eq:mont71}
+      \bm{\Phi} (t,t_0) = \left(
+          \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)} 
+        \right) _{(6 \times 6)}
+    \end{equation}
+
+  \item[The Sensitivity Matrix] $\bm{S}(t)$, which describes the dependence of the 
+    orbit on the dynamical parameters $p_i$ with $i=1,2,\dots ,n_p$ and is formed 
+    by the respective partial derivatives of the state with respect to the force 
+    model, 
+    \begin{equation}\label{eq:mont72}
+      \bm{S} (t) = \left(
+          \frac{\partial \bm{y}(t)}{\partial \bm{p}} 
+        \right) _{(6 \times n_p)}
+        = \begin{pmatrix} 
+          \frac{\partial x(t)}{\partial p_1} & \frac{\partial x(t)}{\partial p_2} & \dots & \frac{\partial x(t)}{\partial p_n} \\
+          \frac{\partial y(t)}{\partial p_1} & \frac{\partial y(t)}{\partial p_2} & \dots & \frac{\partial y(t)}{\partial p_n} \\
+          \frac{\partial z(t)}{\partial p_1} & \frac{\partial z(t)}{\partial p_2} & \dots & \frac{\partial z(t)}{\partial p_n} \\
+          \frac{\partial \dot{x}(t)}{\partial p_1} & \frac{\partial \dot{x}(t)}{\partial p_2} & \dots & \frac{\partial \dot{x}(t)}{\partial p_n} \\
+          \frac{\partial \dot{y}(t)}{\partial p_1} & \frac{\partial \dot{y}(t)}{\partial p_2} & \dots & \frac{\partial \dot{y}(t)}{\partial p_n} \\
+          \frac{\partial \dot{z}(t)}{\partial p_1} & \frac{\partial \dot{z}(t)}{\partial p_2} & \dots & \frac{\partial \dot{z}(t)}{\partial p_n}
+      \end{pmatrix}
+    \end{equation}
+
+  \item[Partials of the measurements with respect to the state vector], which given 
+    an observation $z$  at some instant $t$, is given by
+    \begin{equation}\label{eq:mont73}
+      \left( \frac{\partial z}{\partial \bm{y}(t)} \right) _{(1 \times 6)}
+    \end{equation}, and
+
+  \item[Partials with respect to measurement model parameters], which given the observation 
+    model parameters $q_i$ for $i=1,2, \dots ,n_q$, given by 
+    \begin{equation}\label{eq:mont74}
+       \left( \frac{\partial z}{\partial \bm{q}} \right) _{(1 \times n_q)}
+    \end{equation}
+
+\end{description}
+
+Note that from \autoref{eq:mont71}, the dependence of an individual observation $z$ 
+on the initial state $\bm{y}(t_0)$ is
+\begin{equation}
+  \frac{\partial z}{\partial \bm{y}(t_0)} = 
+    \frac{\partial z}{\partial \bm{y}(t)}\frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)} 
+    = \frac{\partial z}{\partial \bm{y}(t)} \bm{\Phi} (t,t_0)
+\end{equation}
+and from \autoref{eq:mont72}
+\begin{equation}
+  \frac{\partial z}{\partial \bm{p}} = 
+    \frac{\partial z}{\partial \bm{y}(t)}\frac{\partial \bm{y}(t)}{\partial \bm{p}}
+    = \frac{\partial z}{\partial \bm{y}(t)} \bm{S} (t)
+\end{equation}
+
+Analytical computation of the partial derivatives is tedious, cumbersome and an 
+error prone procedure. However, it constitutes an essential part of orbit determination 
+and have a noticable impact on the achieved performance and convergence speed 
+(\cite{Montenbruck2000}).
+
+The orbit determination problem, can in the general case be described by the 
+1\textsuperscript{st} order \gls{ode} system for the dynamics accompanied with 
+the observation functions
+\begin{align}
+  \bm{\dot{Y}} &= \bm{F}(t, \bm{Y}) \label{eq:tapley421} \\
+  \bm{Z}_i     &=  G(t_i, \bm{Y}_i) + \bm{\epsilon}_i \label{eq:tapley422}
+\end{align}
+where $\bm{y}$ is the state vector and $\bm{z}_i$ is a $p-$dimensional set of 
+observations, for $i=1,2,\dots ,l$. If a sufficiently precise reference (initial) 
+trajectory $\bm{y}^{*}$ is available, then the actual, ``true'' trajector $\bm{y}$ 
+can be expanded in a Taylor series about this reference trajectory at each point 
+in time. Truncating higher order terms, the deviation in state from the 
+reference trajectory can be described by a set of linear differential equations 
+with time-dependent coefficients. The same procedure can be used in \autoref{eq:tapley422} 
+to obtain a linear relation between the observation deviation and the state deviation.
+In this way, the original, non-linear orbit determination problem is transformed 
+to a linear proble, in which the deviation from some reference solution must be 
+determined.
+If $\bm{y}$ denotes the state deviation vector and $\bm{z}$ the observation deviation 
+vector, then
+\begin{equation}
+  \begin{aligned}
+    \bm{y}(t) &= \bm{Y}(t) - \bm{Y}^{*}(t) \\
+    \bm{z}(t) &= \bm{Z}(t) - \bm{Z}^{*}(t)
+  \end{aligned}
+\end{equation}
+so that
+\begin{equation}\label{eq:tapley424}
+  \dot{\bm{y}}(t) = \dot{\bm{Y}}(t) - \dot{\bm{Y}}^{*}(t)
+\end{equation}
+Expanding \autoref{eq:tapley421} and \autoref{eq:tapley422} in a Taylor's series 
+about the reference trajectory, leads to (\cite{Tapley2004})
+\begin{equation}\label{eq:tapley425a}
+  \begin{aligned}
+  \bm{\dot{Y}}(t) &= \bm{F}(t, \bm{Y}) \\
+                  &= \bm{F}(t, \bm{Y}^{*}) + 
+                  \frac{\partial \bm{F}(t, \bm{Y})}{\partial \bm{Y}^{*}(t)} 
+                  \left( \bm{Y}(t) - \bm{Y}^{*}(t) \right) 
+                  + \mathcal{O}\left( \bm{Y}(t) - \bm{Y}^{*}(t) \right)
+  \end{aligned}
+\end{equation}
+and
+\begin{equation}\label{eq:tapley425b}
+  \begin{aligned}
+  \bm{Z}_i &= \bm{G}(t_i, \bm{Y}_i) + \epsilon _i \\ 
+           &= \bm{G}(t, \bm{Y}^{*}_{i}, t_i) 
+           + \frac{\partial \bm{G}}{\partial \bm{Y}^{*}}\at{i} 
+           \left( \bm{Y}(t_i) - \bm{Y}^{*}(t_i) \right) 
+           + \mathcal{O}\left( \bm{Y}(t_i) - \bm{Y}^{*}(t_i) \right) 
+           + \epsilon _i
+  \end{aligned}
+\end{equation}
+where the partials are evaluated on the reference solution, $\bm{Y}^{*}(t)$ can be 
+obtained by integrating \autoref{eq:tapley421} and $\mathcal{O}$ indicate terms 
+containing products of the difference $\bm{Y}(t) - \bm{Y}^{*}(t)$ higher than the 
+first term. Given that these terms are sufficiently small to be neglecting and using 
+$ \bm{\dot{Y}}^{*} = \bm{F}(t, \bm{Y}^{*})$, \autoref{eq:tapley425a} and 
+\autoref{eq:tapley425b} can be written as
+\begin{equation}\label{eq:tapley426}
+  \begin{aligned}
+    \dot{\bm{y}}(t) &= A(t) \bm{x}(t) \\
+    \bm{z}_i &= H_i \bm{x}_i + \epsilon _i
+  \end{aligned}
+\end{equation}
+where 
+\begin{equation}
+  A(t) = \frac{\partial F (t)}{\partial \bm{Y}(t)}\at{\bm{X}^{*}} 
+  \text{ and }
+  H_i = \frac{\partial G}{\partial \bm{Y}}\at{\bm{X}^{*}_i}
+\end{equation}
