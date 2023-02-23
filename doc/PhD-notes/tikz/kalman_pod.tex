@@ -1,0 +1,90 @@
+\begin{tikzpicture}[align=center, thick,scale=0.8, every node/.style={scale=0.8}]
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        fill=red!2] 
+    (input) at (0,0) {
+        Input: $\hat{\delta \bm{y}}_{0}$, $\bm{P}_{0}$, $\bm{R}_0$, $\bm{y}^{*}_{0}$
+        and $\bm{z}_0$ at $t=t_0$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        fill=gray!2] 
+    (integrate) at (0,-3) {
+        Integrate from $t_0$ to $t_i$ the system\\
+        $
+            \begin{aligned}
+                \dot{\bm{y}}^{*} &= \bm{f}(t, \bm{y}^{*}) \\
+                \dot{\Phi (t,t_0)} &= A(t) \Phi(t,t_0)
+            \end{aligned}
+        $\\
+        with initial conditions\\
+        $\bm{y}^{*}(t_0) = \bm{y}^{*}_0$ and $\Phi (t_0,t_0) = \bm{I}$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        fill=gray!2] 
+    (approx) at (0,-6) {
+        Compute $\bar{\delta \bm{y}}_{i}$ and $\bar{\bm{P}}_k$ using 
+        $\bar{\bm{y}}_i = \Phi (t_i, t_0) \hat{\bm{y}}_0$ \\
+        and $\bar{\bm{P}}_i = \phi (t_i, t_0) \bm{P}_0 \phi ^{T}(t_i, t_0)$ 
+        from \autoref{eq:tapley471}
+    };
+    
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        fill=gray!2] 
+    (obs) at (0,-9) {
+        Compute observation derivatives and linearize,\\
+        $\delta \bm{z}_i = \bm{z}_i - G(t_i, \bm{y}^{*}_i)$ and 
+        $\tilde{H} = \frac{\partial G(t_i, \bm{y}^{*}_i)}{\partial \bm{y}}$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        fill=gray!2] 
+    (upd) at (0,-12) {
+        Compute measurement update via \autoref{eq:tapley4711},\\
+        \autoref{eq:tapley4712} and \autoref{eq:tapley4716} to get $\hat{\bm{y}}_i$ and $\bm{P}_i$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        fill=red!2] 
+    (output) at (0,-15) {
+         Output: $\hat{\bm{y}} = \bm{y}^{*}_{i} + \hat{\delta \bm{y}}_{i}$
+};
+
+    \draw [-stealth, thick, red] (input) -- (integrate);
+    \draw [-stealth, thick] (integrate) -- (approx);
+    \draw [-stealth, thick] (approx) -- (obs);
+    \draw [-stealth, thick] (obs) -- (upd);
+    \draw [thick] (upd.west) -- ($(upd.west)-(1.5,0)$);
+    \draw [-stealth, thick] ($(upd.west)-(1.5,0)$) |- (integrate.west) node[midway, above]{$i = i + 1$}; 
+    \draw [-stealth, thick, red] (upd) -- (output);
+
+\end{tikzpicture}

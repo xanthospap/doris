@@ -1,0 +1,21 @@
+\subsection{The observation Equations}\label{ssec:pod-observation-equations}
+
+\autoref{eq:tapley426b} involves an unknown state vector $\delta \bm{y}_i$ related 
+to the observation set $\bm{z}_i$. The state transition matrix can be used to relate 
+all observation with the state at a single epoch. For each set, \autoref{eq:tapley426b} 
+($\bm{\delta z}_i = H_i \delta \bm{y}_i + \epsilon _i$) can be written as 
+\begin{equation}\label{eq:tapley4237}
+    \bm{\delta z}_i = H_i \Phi (t_i,t_k) \delta \bm{y}_k + \epsilon _i
+\end{equation}
+where \autoref{eq:tapley427} was used, and subsequently in matrix form 
+\begin{equation}\label{eq:tapley4239}
+    \bm{\delta z} = \bar{H} \delta \bm{y}_k + \bm{\epsilon}
+\end{equation}
+with
+\begin{equation}
+    \bm{\delta z} \equiv \begin{pmatrix}\bm{\delta z}_1 \\ \bm{\delta z}_2 \\ \vdots \\ \bm{\delta z}_l \end{pmatrix} 
+    \text{ , }
+    \bar{H} \equiv \begin{pmatrix}H_1 \Phi (t_1,t_k) \\ H_2 \Phi (t_2,t_k) \\ \vdots \\ H_l \Phi (t_l,t_k)\end{pmatrix} 
+    \text{ and }
+    \bm{\delta z} \equiv \begin{pmatrix}\bm{\epsilon}_1 \\ \bm{\epsilon}_2 \\ \vdots \\ \bm{\epsilon}_l \end{pmatrix} 
+\end{equation}

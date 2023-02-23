@@ -1,0 +1,94 @@
+\section{The Kalman Filter}\label{sec:pod-kalman-filter}
+
+In this section, the sequential estimation algorithm referred to as the 
+\emph{Kalman filter} is discussed, with emphasis on its application on the orbit 
+determination problem. A more thorough discussion on the sequential estimation 
+techniques can be found at \cite{Gelb1974}, while \cite{Montenbruck2000} and 
+\cite{Tapley2004} describe the filter's application and variations thereof for 
+\gls{pod}. One important advantage of the Kalman filter is that the matrix to be 
+inverted will be of the same dimension as the observation vector, which means 
+that given that the observations can be processed one at a time, only scalar 
+divisions will be required to obtain the estimate of $\delta \bm{y}(t_k)$. For the 
+rest of this section, the notation $\bm{y}_k$ will be used to denote the value 
+$\delta \bm{y}(t_k)$ to reduce complexity and follow relevant literature in the 
+field.
+
+Given that an estimate $\hat{\bm{y}}_j$ and the associated covariance matrix $\bm{P}_j$ 
+are available at a given epoch $t_j$, the state and its variance-covariance matrix can 
+be propagated according to
+\begin{equation}\label{eq:tapley471}
+    \begin{aligned}
+        \bar{\bm{y}}_k &= \phi (t_k, t_j) \hat{\bm{y}}_j \\
+        \bar{\bm{P}}_k &= \phi (t_k, t_j) \bm{P}_j \phi ^{T}(t_k, t_j)
+    \end{aligned}
+\end{equation}
+This step of the algorithm, is often called the \emph{time update} step. 
+Assuming that an observation is available at $t_k$
+\begin{equation}\label{eq:tapley472}
+    \bm{z}_k = \tilde{H}_k \bm{y}_k + \bm{\epsilon}_k
+\end{equation}
+with $E [\bm{\epsilon}_k] = \bm{0}$ and  
+$E [\bm{\epsilon}_k \bm{\epsilon}^{T}_k] = \bm{R}_k \delta _{kj}$, it can be 
+shown (see \cite{Tapley2004}) that:
+\begin{align}
+    K_k &= \bar{\bm{P}}_k \tilde{H}^{T}_{k} 
+        \left( \tilde{H}_{k} \bar{\bm{P}}_k \tilde{H}^{T}_{k} 
+            + \bm{R}_k \right)^{-1} \label{eq:tapley4711} \\
+    \bm{P}_k &= \left( \bm{I} - \bm{K}_k \tilde{H}_{k} \right) \bar{\bm{P}}_k 
+        \label{eq:tapley4712} \\
+    \hat{\bm{y}}_k &= \bar{\bm{y}}_k + \bm{K}_k 
+        \left( \bm{z}_k - \tilde{H}_{k} \bar{\bm{y}}_k \right) \label{eq:tapley4716}
+\end{align}
+\autoref{eq:tapley4711}, \autoref{eq:tapley4712} and \autoref{eq:tapley4716} are 
+collectively labeled the \emph{measurement update} step. The matrix $\bm{K}$ is 
+called the \emph{(Kalman) gain matrix}.
+The above equations can be used in a recursive fashion to compute the estimate of 
+$\hat{\bm{y}}_k$, incorporating the observation $\bm{z}_k$. A flowchart of the 
+process is depicted in \autoref{fig:kalman-pod}.
+
+\begin{figure}
+    \centering
+    \input{tikz/kalman_pod}
+    \caption{Flowchart of the Kalman filter algorithm for orbit determination.}
+    \label{fig:kalman-pod}
+\end{figure}
+
+Note that the differential equations for the state transition matrix are 
+reinitialized at each observation epoch. If observations are introduced as 
+scalars, and more than one measurements are available at each epoch, $\Phi (t_i,t_i)$ 
+would be set to the unity matrix $\Phi (t_i,t_i) = \bm{I}$ after processing the first 
+observation in the epoch, and $\bm{P}$ and $\hat{\bm{y}}$ would only be time updated 
+at the next observation epoch $i+1$.
+
+\subsection{Filter Shortcomings}\label{ssec:pod-kalman-filter-shortcomings}
+One disadvantage of the sequential algorithm presented here, lies in the fact
+that if the true state and the reference state are not close together then the 
+linearization assumption leading to \autoref{eq:tapley426} may not be valid and 
+the estimation process may diverge (\cite{Tapley2004}). To overcome this problem, 
+the \emph{Extended Kalman Filter} algorithm (\autoref{sec:pod-extended-kalman-filter}) 
+was used in this Thesis.
+
+Yet another disadvantage is that the state estimation error covariance matrix may 
+approach zero as the number as the number of observations becomes large. As 
+$\bm{P}_k \to \bm{0}$, gain also approaches zero $\bm{K} \to \bm{0}$, and the 
+estimation procedure will become insensitive to further observations. Consequently, 
+the estimate will diverge due to either errors introduced in the linearization 
+procedure, computational errors, or errors due to an incomplete mathematical model. 
+To overcome this problem, process noise often is added to the state propagation 
+equations (\cite{Tapley2004}).
+
+In addition to these two problems, the Kalman filter may diverge because of
+numerical difficulties associated with the covariance measurement update, given
+by \autoref{eq:tapley4712} (\cite{Tapley2004}). This can be the case if the 
+covariance matrix loses its properties of symmetry and become non-positive definite 
+due to roundoff error (this pitfal is especially possible when a large a priori 
+covariance is reduced by the incorporation of very accurate observation data). 
+An alternative equation to \autoref{eq:tapley4712} is to use the more numerically 
+stable formula introduced by \emph{Bucy} and \emph{Joseph}, which reads
+\begin{equation}\label{eq:tapley4719}
+    \bm{P}_k = \left( \bm{I} - \bm{K}_k \tilde{\bm{H}} \right) \bar{\bm{P}}_k
+    \left( \bm{I} - \bm{K}_k \tilde{\bm{H}} \right)^{T} 
+    + \bm{K}_k \bm{R}_k \bm{K}^{T}_k
+\end{equation}
+More information and a detailed discussion on the stability of relevant approaches 
+can be found in \cite{Bierman1977}.

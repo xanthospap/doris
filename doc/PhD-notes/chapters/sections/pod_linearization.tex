@@ -86,51 +86,52 @@ If $\bm{y}$ denotes the state deviation vector and $\bm{z}$ the observation devi
 vector, then
 \begin{equation}
   \begin{aligned}
-    \bm{y}(t) &= \bm{Y}(t) - \bm{Y}^{*}(t) \\
-    \bm{z}(t) &= \bm{Z}(t) - \bm{Z}^{*}(t)
+    \bm{\delta y}(t) &= \bm{y}(t) - \bm{y}^{*}(t) \\
+    \bm{\delta z}(t) &= \bm{z}(t) - \bm{z}^{*}(t)
   \end{aligned}
 \end{equation}
 so that
 \begin{equation}\label{eq:tapley424}
-  \dot{\bm{y}}(t) = \dot{\bm{Y}}(t) - \dot{\bm{Y}}^{*}(t)
+  \dot{\bm{\delta y}}(t) = \dot{\bm{y}}(t) - \dot{\bm{y}}^{*}(t)
 \end{equation}
 Expanding \autoref{eq:tapley421} and \autoref{eq:tapley422} in a Taylor's series 
 about the reference trajectory, leads to (\cite{Tapley2004})
 \begin{equation}\label{eq:tapley425a}
   \begin{aligned}
-  \bm{\dot{Y}}(t) &= \bm{F}(t, \bm{Y}) \\
-                  &= \bm{F}(t, \bm{Y}^{*}) + 
-                  \frac{\partial \bm{F}(t, \bm{Y})}{\partial \bm{Y}^{*}(t)} 
-                  \left( \bm{Y}(t) - \bm{Y}^{*}(t) \right) 
-                  + \mathcal{O}\left( \bm{Y}(t) - \bm{Y}^{*}(t) \right)
+  \bm{\dot{y}}(t) &= \bm{f}(t, \bm{y}) \\
+                  &= \bm{f}(t, \bm{y}^{*}) + 
+                  \frac{\partial \bm{f}(t, \bm{y})}{\partial \bm{y}^{*}(t)} 
+                  \left( \bm{y}(t) - \bm{y}^{*}(t) \right) 
+                  + \mathcal{O}\left( \bm{y}(t) - \bm{y}^{*}(t) \right)
   \end{aligned}
 \end{equation}
 and
 \begin{equation}\label{eq:tapley425b}
   \begin{aligned}
-  \bm{Z}_i &= \bm{G}(t_i, \bm{Y}_i) + \epsilon _i \\ 
-           &= \bm{G}(t, \bm{Y}^{*}_{i}, t_i) 
-           + \frac{\partial \bm{G}}{\partial \bm{Y}^{*}}\at{i} 
-           \left( \bm{Y}(t_i) - \bm{Y}^{*}(t_i) \right) 
-           + \mathcal{O}\left( \bm{Y}(t_i) - \bm{Y}^{*}(t_i) \right) 
+  \bm{z}_i &= \bm{g}(t_i, \bm{y}_i) + \epsilon _i \\ 
+           &= \bm{g}(t, \bm{y}^{*}_{i}, t_i) 
+           + \frac{\partial \bm{g}}{\partial \bm{y}^{*}}\at{i} 
+           \left( \bm{y}(t_i) - \bm{y}^{*}(t_i) \right) 
+           + \mathcal{O}\left( \bm{y}(t_i) - \bm{y}^{*}(t_i) \right) 
            + \epsilon _i
   \end{aligned}
 \end{equation}
-where the partials are evaluated on the reference solution, $\bm{Y}^{*}(t)$ can be 
+where the partials are evaluated on the reference solution, $\bm{y}^{*}(t)$ can be 
 obtained by integrating \autoref{eq:tapley421} and $\mathcal{O}$ indicate terms 
-containing products of the difference $\bm{Y}(t) - \bm{Y}^{*}(t)$ higher than the 
+containing products of the difference $\bm{y}(t) - \bm{y}^{*}(t)$ higher than the 
 first term. Given that these terms are sufficiently small to be neglecting and using 
-$ \bm{\dot{Y}}^{*} = \bm{F}(t, \bm{Y}^{*})$, \autoref{eq:tapley425a} and 
+$ \bm{\dot{y}}^{*} = \bm{f}(t, \bm{y}^{*})$, \autoref{eq:tapley425a} and 
 \autoref{eq:tapley425b} can be written as
-\begin{equation}\label{eq:tapley426}
-  \begin{aligned}
-    \dot{\bm{y}}(t) &= A(t) \bm{x}(t) \\
-    \bm{z}_i &= H_i \bm{x}_i + \epsilon _i
-  \end{aligned}
-\end{equation}
+\begin{align}
+  \dot{\bm{\delta y}}(t) &= A(t) \delta \bm{y}(t) \label{eq:tapley426a}\\
+  \bm{\delta z}_i &= H_i \delta \bm{y}_i + \epsilon _i \label{eq:tapley426b}
+\end{align}
 where 
-\begin{equation}
-  A(t) = \frac{\partial F (t)}{\partial \bm{Y}(t)}\at{\bm{X}^{*}} 
+\begin{equation}\label{eq:tapley426c}
+  A(t) = \frac{\partial f (t)}{\partial \bm{y}(t)}\at{\bm{y}^{*}} 
   \text{ and }
-  H_i = \frac{\partial G}{\partial \bm{Y}}\at{\bm{X}^{*}_i}
+  H_i = \frac{\partial g}{\partial \bm{y}}\at{\bm{y}^{*}_i}
 \end{equation}
+Hence the original non-linear problem describe by the equations \autoref{eq:tapley421} 
+and \autoref{eq:tapley422} is replaced by the linear \autoref{eq:tapley426a} and 
+\autoref{eq:tapley426b}.
