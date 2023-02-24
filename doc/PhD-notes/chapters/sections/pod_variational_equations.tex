@@ -1,0 +1,109 @@
+\section{Variational Equations}\label{sec:pod-variational-equations}
+
+For application with high accuracy demands, the state transition matrix should include 
+terms at least the major perturbations. That is, the initial value problem should be 
+expanded to include differential equations to account for perturbed motion. An 
+analytical solution of this problem is close to impossible, thus this extended  
+formulation should be solved for numerically. The added differential equations (to 
+the state transition matrix system) are labelled \emph{variational equations}. 
+Aside from the increased accuracy that may be obtained by accounting for perturbations, the
+concept of the variational equations offers the advantage that it is not limited to the
+computation of the state transition matrix, but may also be extended to the treatment
+of partial derivatives with respect to force model parameters (\cite{Montenbruck2000}).
+
+\subsection{Differential Equations for the State Transition Matrix}\label{ssec:pod-state-transition-ode}
+Denoting the state vector as $\bm{y}(t) = \begin{pmatrix}\bm{r}(t) & \bm{v}(t) \end{pmatrix}^{T}$, 
+the differential equation, which describes the change of the state transition matrix 
+with time in a first-order \gls{ode} 
+\begin{equation}\label{eq:mont738}
+    \frac{d \bm{y}(t)}{d t} = \bm{f}(t,\bm{y}(t)) = 
+        \begin{pmatrix}\bm{v}(t)\\\bm{a}(t,\bm{r},\bm{v})\end{pmatrix}
+\end{equation}
+An differentiating with respect to $\bm{y}(t_0)$ gives
+\begin{equation}
+    \frac{\partial}{\partial \bm{y}(t_0)} \left( \frac{d \bm{y}(t)}{d t} \right) 
+        = \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t_0)} 
+        = \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t)}\frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+\end{equation}
+Since the state transition matrix $\Phi (t,t_0)$ is given by
+\begin{equation}\label{eq:mont740}
+    \Phi (t,t_0) = \frac{\partial \bm{y}(t)}{\partial \bm{y}(t_0)}
+\end{equation}
+its derivative can be computed from
+\begin{equation}\label{eq:mont7412}
+    \begin{aligned}
+        \frac{d}{dt} \Phi (t,t_0) & = \frac{\partial \bm{f}(t,\bm{y}(t))}{\partial \bm{y}(t)} 
+        \Phi (t,t_0) \\
+        &= \begin{pmatrix}
+            \frac{\partial \bm{v}(t,\bm{r}, \bm{v})}{\partial \bm{r}(t)} &
+            \frac{\partial \bm{v}(t,\bm{r}, \bm{v})}{\partial \bm{v}(t)} \\
+            \frac{\partial \bm{a}(t,\bm{r}, \bm{v})}{\partial \bm{r}(t)} &
+            \frac{\partial \bm{a}(t,\bm{r}, \bm{v})}{\partial \bm{v}(t)}
+        \end{pmatrix} \Phi (t,t_0) \\
+        &= \begin{pmatrix}
+            \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+            \frac{\partial \bm{a}(t,\bm{r}, \bm{v})}{\partial \bm{r}(t)} &
+            \frac{\partial \bm{a}(t,\bm{r}, \bm{v})}{\partial \bm{v}(t)}
+        \end{pmatrix} \Phi (t,t_0)
+    \end{aligned}
+\end{equation}
+Paired with the initial condition $\Phi (t_0,t_0) = \bm{I}_{6 \times 6}$, 
+\autoref{eq:mont7412} can be solved for as an initial value problem, using 
+numerical integration.
+
+\subsection{Differential Equations for the Sensitivity Matrix}\label{ssec:pod-sensitivity-ode}
+To form the variational equations, the partial derivatives of the state with respect 
+to the $n_p$ dynamical, or force model parameters $p_i$ are needed. Taking the 
+time derivatives
+\begin{equation}
+    \frac{d}{dt}\frac{\partial \bm{y}(t)}{\partial \bm{p}} 
+        = \frac{\partial \bm{f}(t,\bm{y}(t), \bm{p})}{\partial \bm{y}(t)} 
+            \frac{\partial \bm{y}(t)}{\partial \bm{p}}
+            + \frac{\partial \bm{f}(t,\bm{y}(t), \bm{p})}{\partial \bm{p}}
+\end{equation}
+and hence using the sensitivity matrix defined in \autoref{sec:pod-linearization},
+\begin{equation}
+    \frac{d}{dt}\bm{S}(t) = 
+    \begin{pmatrix}
+        \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+        \frac{\partial \bm{a}(t,\bm{r}, \bm{v}, \bm{p})}{\partial \bm{r}(t)} &
+        \frac{\partial \bm{a}(t,\bm{r}, \bm{v}, \bm{p})}{\partial \bm{v}(t)}
+    \end{pmatrix}_{6 \times 6} \bm{S}(t)
+    +
+    \begin{pmatrix}
+        \bm{0}_{3 \times n_p} \\
+        \frac{\partial \bm{a}(t,\bm{r}, \bm{v}, \bm{p})}{\partial \bm{p}}
+    \end{pmatrix}_{6 \times n_p}
+\end{equation}
+The initial condition for the above system is $\bm{S}(t_0) = \bm{0}$, since the 
+state vector at $t_0$ does not depend on the force model parameters.
+
+\subsection{Solving the Variational Equations}\label{ssec:pod-varequations-solution}
+Combining the differential equation systems formed above for the state transition matrix 
+(\autoref{ssec:pod-state-transition-ode}) and the sensitivity matrix (\autoref{ssec:pod-sensitivity-ode}),
+the full system of variational equations is formed, which reads
+\begin{equation}\label{eq:mont745}
+    \frac{d}{dt} \begin{pmatrix} \Phi & \bm{S} \end{pmatrix} = 
+    = \begin{pmatrix}
+        \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} \\
+        \frac{\partial \bm{a}}{\partial \bm{r}} &
+        \frac{\partial \bm{a}}{\partial \bm{v}}
+    \end{pmatrix}_{6 \times 6} \begin{pmatrix} \Phi & \bm{S} \end{pmatrix}
+    + 
+    \begin{pmatrix}
+        \bm{0}_{3 \times 6} & \bm{0}_{3 \times n_p} \\
+        \bm{0}_{3 \times 6} & \frac{\partial \bm{a}}{\partial \bm{p}}
+    \end{pmatrix}_{6 \times n_p}
+\end{equation}
+
+Given also the initial conditions (desribed in \autoref{ssec:pod-state-transition-ode} and 
+\autoref{ssec:pod-sensitivity-ode})
+\begin{equation}
+    \begin{pmatrix}\Phi (t_0,t_0) _{6 \times 6} & \bm{S}(t_0) _{}\end{pmatrix}
+    \begin{pmatrix} \bm{I}_{6 \times 6} & \bm{0}_{6 \times n_p} \end{pmatrix}
+\end{equation}
+an initial value problem of $1$\textsuperscript{st} degree is formed, which can 
+be solved for by methods of numerical integration (see \autoref{ch:orbit-integration}).
+
+It is important to note that the variational equations have to be integrated 
+simultaneously with the state vector.

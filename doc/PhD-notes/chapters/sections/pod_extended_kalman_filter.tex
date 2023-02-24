@@ -1,8 +1,47 @@
 \section{The Extended Kalman Filter}\label{sec:pod-extended-kalman-filter}
 
-Compared to the 
+To address the problem of growing the errors due to higher order terms that are 
+ignored in the sequential Kalman filter (see \autoref{ssec:pod-kalman-filter-shortcomings}), 
+an extended form of the algorithm can be used, labeled the \emph{Extended Kalman Filter}.
+The advantage of this approach is that convergence (to the best estimate) is 
+accelerated because of the reduced linearization errors. The major disadvantage 
+of the extended sequential algorithm is that the differential equations for the 
+reference trajectory must be reinitialized after each observation is processed.
+A flowchart of the algorithm is depicted in \autoref{fig:efk-pod}.
 
-One disadvantage of both the batch and sequential algorithm lies in the fact
-that if the true state and the reference state are not close together then the lin-
-earization assumption leading to Eq. (4.2.6) may not be valid and the estimation
-process may diverge
+The primary difference between the clasic formulation and the extended algorithm 
+is that the reference trajectory for the extended Kalman filter is updated 
+after each observation to reflect the best estimate of the true trajectory. E.g., 
+after processing the $k$\textsuperscript{th} observation, the computed best estimate 
+is used to provide a new initial condition for the reference orbit,
+\begin{equation}\label{eq:tapley4728}
+    \bm{y}^{*}_{k, new} = \hat{\bm{y}}_k = \bm{y}^{*}_k + \hat{\delta \bm{y}}_k
+\end{equation}
+
+Note that using $\hat{\bm{y}}_k$ as the reference orbit, implies that $\hat{\delta \bm{y}}_k=\bm{0}$ 
+and thus $\bar{\delta \bm{y}}_{k+1}=\bm{0}$. The integration for the reference 
+trajectory and the state transition matrix is reinitialized at each observation 
+epoch, and the equations are integrated forward from $t_k$ to $t_{k+1}$. After 
+the time update step, the best estimate can be computed as 
+\begin{equation}
+    \hat{\delta \bm{y}}_{k+1} = K_{k+1} \bm{y}_{k+1}
+\end{equation}
+with $K_{k+1}$ and $\bm{y}_{k+1}$ computed based on the updated reference orbit.
+The process of incorporating the estimate at each observation point into the 
+reference trajectory for propagating to the next observation epoch leads to
+the reference trajectory being the prediction of the estimate of the nonlinear state 
+(\cite{Tapley2004}), e.g. $\bm{y}^{*}_{t} = \hat{\bm{y}}(t)$.
+
+When implementing the extended Kalman filter for applications demanding high accuracy, 
+care must be taken when updating the reference orbit at the begining of the 
+processing. Often, the update is omitted for the first few observations, especially 
+if these contain significant noise. After a few observations have been processed, 
+the estimates of $\hat{\delta \bm{y}}$ will stabilize, and the trajectory update step 
+can be added to the process (\cite{Tapley2004}).
+
+\begin{figure}
+    \centering
+    \input{tikz/kalman_pod2}
+    \caption{Flowchart of the Extended Kalman filter algorithm for orbit determination.}
+    \label{fig:efk-pod}
+\end{figure}

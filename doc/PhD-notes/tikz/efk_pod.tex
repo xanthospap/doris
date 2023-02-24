@@ -1,0 +1,143 @@
+\begin{tikzpicture}[align=center, scale=1.0, every node/.style={scale=1.0}]
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=red!5] 
+    (init) at (0,0) {
+        Initialize at $t_0$, $i = 0$\\
+        Set $t_{i-1} \coloneqq t_0$,
+        $\bm{Y}^{*}_{t-1} \coloneqq \bm{Y}^{*}_{0}$ and
+        $\bm{P}_{t-1} \coloneqq \bm{P}_{0}$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        thick,
+        minimum height=2em,
+        align=center,
+        fill=gray!5] 
+    (readobs) at (0,-2) {
+        Read next observation $\bm{Z}_i$ at $t_i$, with $\bm{R}_{i}$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=gray!5] 
+    (integrate) at (0,-5) {
+        Integrate reference trajectory and state transition matrix from 
+        $t_{i-1}$ to $t_i$\\
+        $
+        \begin{aligned}
+            \dot{\bm{Y}}^{*} &= F(t, \bm{Y}^{*}(t)) \\
+            \dot{\Phi (t,t_0)} &= A(t) \Phi(t,t_0)
+        \end{aligned}
+        $\\
+        with initial conditions\\
+        $\bm{Y}^{*}(t_{i-1})$ and $\Phi (t_{i-1},t_{i-1}) = \bm{I}$
+    };
+    
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=gray!5] 
+    (tupd) at (0,-8) {
+        Time Update step\\ 
+        $\bar{\bm{P}}_i = \Phi _{t_i,t_{i-1}} \bm{P}_{i-1} \Phi ^{T}_{t_i,t_{i-1}}$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=gray!5] 
+    (obs) at (0,-10.5) {
+        Form observation equations and linearize\\
+        $\bm{z}_i = \bm{Z}_i - G(\bm{Y}^{*}_i, t_i)$,\\
+        $\tilde{H}_i = \frac{\partial G(t_i, \bm{Y}(t))}{\partial \bm{Y}}\at{\bm{y}^{*}}$\\
+        Compute gain matrix $\bm{K}_i$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=gray!5] 
+    (mupd) at (0,-13.5) {
+        Measurement Update\\
+        $\hat{y}_i = \bm{K}_i \bm{y}_i$,\\
+        $\bm{P}_i = \left( \bm{I} - \bm{K}_i \tilde{H}_i \right) \bar{\bm{P}}_i$,\\
+        $\bm{Y}^{*}_i \coloneqq \bm{Y}^{*}_i + \hat{y}_i$
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        align=center,
+        thick,
+        fill=gray!5] 
+    (roupd) at (0,-16.5) {
+        Reference orbit update\\
+        $t_i \coloneqq t_{i-1}$\\
+        $\bm{Y}^{*}(t_i) \coloneqq \bm{Y}^{*}(t_{i-1})$\\
+    };
+
+    \node[rectangle,
+        draw,
+        text centered,
+        rounded corners,
+        minimum height=2em,
+        thick,
+        fill=red!5] 
+    (more) at (0,-18.5) {
+        End of observations ?
+    };
+    
+    \node[diamond,
+        draw,
+        minimum height=0.5em,
+        thick,
+        fill=red!10] 
+    (end) at (5,-18.5) {
+        End
+    };
+
+    \draw [-stealth, thick, red] (init) -- (readobs);
+    \draw [-stealth, thick] (readobs) -- (integrate);
+    \draw [-stealth, thick] (integrate) -- (tupd);
+    \draw [-stealth, thick] (tupd) -- (obs);
+    \draw [-stealth, thick] (obs) -- (mupd);
+    \draw [-stealth, thick] (mupd) -- (roupd);
+    \draw [-stealth, thick] (roupd) -- (more);
+    \draw [thick] (more.west) -| ($(readobs.west)-(3.5,0)$);
+    \node[] (no) at ($(more.west)-(3.1,-.3)$) {No};
+    \draw [-stealth, thick] ($(readobs.west)-(3.5,0)$) -- (readobs);
+    \node[red] (yes) at ($(more.east)-(-1.4,-.3)$) {Yes};
+    \draw [-stealth, thick, red] (more) -- (end);
+    %\draw [-stealth, thick] ($(upd.west)-(1.5,0)$) |- (integrate.west) node[midway, above]{$i = i + 1$}; 
+    %\draw [-stealth, thick, red] (upd) -- (output);
+
+\end{tikzpicture}
