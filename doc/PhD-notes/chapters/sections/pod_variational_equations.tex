@@ -104,6 +104,10 @@ Given also the initial conditions (desribed in \autoref{ssec:pod-state-transitio
 \end{equation}
 an initial value problem of $1$\textsuperscript{st} degree is formed, which can 
 be solved for by methods of numerical integration (see \autoref{ch:orbit-integration}).
+A slightly different approach is presented in \autoref{sec:alternate-variational-equations}, 
+starting from the state-space representation.
 
 It is important to note that the variational equations have to be integrated 
-simultaneously with the state vector.
+simultaneously with the state vector. Otherwise the position and velocity of the 
+satellite, which are required to evaluate the acceleration partials (right-hand 
+side of the variational equations), would be unknown. 

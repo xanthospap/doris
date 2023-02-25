@@ -1,0 +1,102 @@
+\section{Variational Equations Differential Equations}\label{sec:alternate-variational-equations}
+
+A slightly different but enlighting approach is presented here for the formation 
+and solution of the variational equation system of differential equations. The 
+developments presented here can be found in \cite{Tapley2004}. The $\Phi$ matrix 
+here will contain the combined state transition matrix and the sensitivity 
+matrix $\bm{S}(t)$, see \autoref{ssec:pod-sensitivity-ode}.
+
+The differential equation for the variational equations can be written in the 
+form
+\begin{align}
+  \dot{\Phi}(t, t_0) &= A(t) \Phi (t,t_0) \text{, with} \label{eq:tapleyg111}\\
+  \Phi (t_0, t_0) &= \bm{I} \label{eq:tapleyg112}
+\end{align}
+The state transition matrix can be split in the following way
+\begin{equation}\label{eq:tapleyg21}
+   \Phi (t,t_0) \equiv \frac{\partial \bm{y}(t)}{\partial \bm{y}_0} \equiv 
+    \begin{pmatrix}
+      \phi _1 (t,t_0) \\ \phi _2 (t,t_0) \\ \phi _3 (t,t_0) \end{pmatrix}
+    = \begin{pmatrix}
+      \frac{\partial \bm{r}(t)}{\partial \bm{y}_0} \\
+      \frac{\partial \bm{v}(t)}{\partial \bm{y}_0} \\
+      \frac{\partial \bm{p}(t)}{\partial \bm{y}_0} \end{pmatrix}
+\end{equation}
+where 
+\begin{equation}
+  \phi _3 (t,t_0) = \begin{pmatrix} \bm{0}_{n_p \times 6} & \bm{I}_{n_p \times n_p} \end{pmatrix}
+\end{equation}
+By differentiating \autoref{eq:tapleyg21}, \autoref{eq:tapleyg111} in terms of a 
+second order differential equation,
+\begin{equation}\label{eq:tapleyg22}
+  \dot{\Phi}(t,t_0) = \frac{\partial \dot{\bm{y}}(t)}{\partial \bm{y}_0} = 
+    \begin{pmatrix}
+      \dot{\phi} _1 (t,t_0) \\ \dot{\phi} _2 (t,t_0) \\ \dot{\phi} _3 (t,t_0) \end{pmatrix}
+    = \begin{pmatrix}
+      \frac{\partial \dot{\bm{r}(}t)}{\partial \bm{y}_0} \\
+      \frac{\partial \dot{\bm{v}}(t)}{\partial \bm{y}_0} \\
+      \bm{0}_{n_p \times 6} \end{pmatrix}
+    = \begin{pmatrix}
+      \frac{\partial \dot{\bm{r}(}t)}{\partial \bm{y}(t)} \\
+      \frac{\partial \dot{\bm{v}}(t)}{\partial \bm{y}(t)} \\
+      \bm{0}_{n_p \times 6} \end{pmatrix} \frac{\partial \bm{y}(t)}{\partial \bm{y}_0}
+\end{equation}
+Note that $\dot{\phi} _2 = \ddot{\phi} _1$.
+
+The second order differential equation could be solved to obtain $\Phi (t, t_0)$
+\begin{equation}\label{eq:tapleyg24}
+  \begin{aligned}
+    \ddot{\phi _1} (t,t_0) &= \frac{\partial \ddot{r}(t)}{\partial \bm{y}_0} = 
+    \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{y}(t)}
+      \frac{\partial \bm{\ddot{y}}(t)}{\partial \bm{y}_0} \\
+    &=\begin{pmatrix}
+      \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{r}(t)} & 
+      \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{v}(t)} & 
+      \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{p}} \end{pmatrix} 
+    \begin{pmatrix}
+      \frac{\partial       \bm{r} (t)}{\partial \bm{y}_0} \\
+      \frac{\partial  \dot{\bm{r}}(t)}{\partial \bm{y}_0} \\
+      \frac{\partial       \bm{p}    }{\partial \bm{y}_0} \end{pmatrix} 
+  \end{aligned}
+\end{equation}
+which reduces to
+\begin{equation}\label{eq:tapleyg25}
+  \ddot{\phi _1} (t,t_0) = 
+    \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{r}(t)} \phi _1 (t,t_0) 
+    + \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{v}(t)} \dot{\phi} _1 (t,t_0) 
+    + \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{p}} \phi _3 (t,t_0)
+\end{equation}
+with initial conditions
+\begin{align}
+  \phi _1 (t_0, t_0) &= \begin{pmatrix} \bm{I} & \bm{0} \end{pmatrix} \\
+  \dot{\phi} _1 (t_0, t_0) &=  \phi _2 (t_0, t_0) = 
+    \begin{pmatrix} \bm{0} & \bm{I} & \bm{0} \end{pmatrix}
+\end{align}
+This second order \gls{ode} system can be transformed to a $n \times n$ first-order system 
+(if the solution of first order \gls{ode} is preffered)
+\begin{equation}
+  \begin{aligned}
+    \dot{\phi} _1 (t,t_0) &= \phi _2 (t,t_0)\\
+    \dot{\phi} _2 (t,t_0) &= \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{r}(t)} \phi _1 (t,t_0) 
+      + \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{v}(t)} \phi _2 (t,t_0) 
+      + \frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{p}} \phi _3 (t,t_0) \\
+    \dot{\phi} _3 (t,t_0) &= \bm{0}
+  \end{aligned}
+\end{equation}
+or $\dot{\Phi}_(t,t_0) = A(t) \Phi (t,t_0)$, or
+\begin{equation}
+  \begin{pmatrix}
+     \dot{\phi} _1 (t,t_0) \\ \dot{\phi} _2 (t,t_0) \\ \dot{\phi} _3 (t,t_0) \end{pmatrix}_{n \times n}
+  = \begin{pmatrix}
+      \bm{0}_{3 \times 3} & \bm{I}_{3 \times 3} & \bm{0}_{3 \times m} \\
+      \left(\frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{r}(t)}\right)^{*}_{3 \times 3} & 
+      \left(\frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{v}(t)}\right)^{*}_{3 \times 3} &
+      \left(\frac{\partial \ddot{\bm{r}}(t)}{\partial \bm{p}}   \right)^{*}_{3 \times m} \\
+      \bm{0}_{m \times 3} & \bm{0}_{m \times 3} & \bm{0}_{m \times m}
+    \end{pmatrix}_{n \times n}
+    \begin{pmatrix}
+      \phi _1 (t,t_0) \\
+      \phi _2 (t,t_0) \\
+      \phi _3 (t,t_0)
+    \end{pmatrix}_{n \times n}
+\end{equation}

@@ -8,10 +8,11 @@
 \usetikzlibrary{pgfplots.groupplots} %% pgf groupplots
 %\usetikzlibrary{pgfplots.external}
 %\tikzexternalize
+\usepackage{xargs} %% Use more than one optional parameter in a new command
 \usepackage{caption}
 \captionsetup[table]{position=bottom}
 \usepackage{subcaption}
-\usepackage{xcolor,cancel}
+\usepackage[]{xcolor,cancel}
 \usepackage{adjustbox}  %% e.g. wrap verbatim larger than linewidth
 \usepackage{fancyvrb}   %% Verbatim and coloring therein
 \usepackage{hyperref}
@@ -42,7 +43,11 @@
 \usepackage{tabularx}
 \usepackage{multirow}  %% for tabular
 \usepackage{colortbl} %% for \arrayrulecolor, colored hlines
-\usepackage{todonotes} %% fancy, right-margin notes
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes} %% fancy, right-margin notes
+\newcommandx{\unsure}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+\newcommandx{\change}[2][1=]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,#1]{#2}}
+\newcommandx{\info}[2][1=]{\todo[linecolor=green,backgroundcolor=green!25,bordercolor=green,#1]{#2}}
+%\newcommandx{\improvement}[2][1=]{\todo[linecolor=Plum,backgroundcolor=Plum!25,bordercolor=Plum,#1]{#2}}
 \usepackage{csquotes}  %% for quoting
 \usepackage{wasysym}   %% zodiac symbols (equinox, etc ...)
 \usepackage{algorithm2e} %% for pseudocode/algorithms
@@ -306,6 +311,13 @@
 %\include{chapters/variational_equations}
 %\include{chapters/orbdet}
 %\include{chapters/troposphere}
+
+\clearpage
+\appendix
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+\renewcommand{\thesection}{\Alph{section}}
+\input{chapters/sections/alternate_variational_equations}
 
 %\bibliographystyle{agsm} 
 %\bibliography{doris}
