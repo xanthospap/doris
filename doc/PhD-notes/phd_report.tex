@@ -223,8 +223,16 @@
 \newacronym{mjd}{MJD}{Modified Julian Date}
 \newacronym{goce}{GOCE}{Gravity Field and Steady-State Ocean Circulation Explorer}
 \newacronym{pece}{PECE}{Predictor-Corrector}
+\newacronym{gps}{GPS}{Global Positioning System}
+\newacronym{arp}{ARP}{Antenna Reference Point}
+\newacronym{ign}{IGN}{Institut Géographique National}
+\newacronym{grgs}{GRGS}{Groupe de Recherche en Géodésie Spatiale}
+\newacronym{doris}{DORIS}{Détermination d'Orbite et Radiopositionnement Intégré par Satellite (Doppler Orbitography and Radiopositioning Integrated by Satellite)}
+\newacronym{ggos}{GGOS}{Global Geodetic Observation System}
+\newacronym{slr}{SLR}{Satellite Laser Ranging}
+\newacronym{gnss}{GNSS}{Global Navigation Satellite System}
 %\newacronym{}{}{}
-
+%\newacronym{}{}{}
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -289,28 +297,38 @@
 
 \chapter{Precise Orbit Determination}\label{ch:pod}
     \input{chapters/sections/pod_introduction}
+      \input{chapters/sections/pod_goals}
     \input{chapters/sections/pod_linearization}
       \input{chapters/sections/state_transition_matrix}
       \input{chapters/sections/pod_observation_equations}
     \input{chapters/sections/pod_kalman_filter}
     \input{chapters/sections/pod_extended_kalman_filter}
     \input{chapters/sections/pod_variational_equations}
-%\include{chapters/orbit_intergators}
-%\include{chapters/orbit_modeling}
-%\include{chapters/time_scales}
-%\include{chapters/reference_systems}
-%\include{chapters/celestial}
-%\include{chapters/tides}
+    \input{chapters/sections/pod_implementation}
 
-%\chapter{DORIS}
-%\label{ch:doris}
-%\include{chapters/doris_rinex}
-%\include{chapters/ground_segment}
-%\include{chapters/doris_theory}
-%\include{chapters/technicalities}
-%\include{chapters/variational_equations}
-%\include{chapters/orbdet}
-%\include{chapters/troposphere}
+\chapter{DORIS}\label{ch:doris}
+  \include{chapters/sections/doris_introduction}
+  \include{chapters/sections/doris_ground_segment}
+  \include{chapters/sections/doris_rinex}
+  \include{chapters/sections/doris_theory}
+
+\iffalse
+  \include{chapters/orbit_intergators}
+  \include{chapters/orbit_modeling}
+  \include{chapters/time_scales}
+  \include{chapters/reference_systems}
+  \include{chapters/celestial}
+  \include{chapters/tides}
+  %\chapter{DORIS}
+  %\label{ch:doris}
+  \include{chapters/doris_rinex}
+  \include{chapters/ground_segment}
+  \include{chapters/doris_theory}
+  \include{chapters/technicalities}
+  \include{chapters/variational_equations}
+  \include{chapters/orbdet}
+  \include{chapters/troposphere}
+\fi
 
 \clearpage
 \appendix
@@ -325,7 +343,7 @@
   \printbibliography
 \fi
 
-\glsaddall
+%\glsaddall
 \printglossary[type=\acronymtype,title=Acronyms]
 
 %\printindex

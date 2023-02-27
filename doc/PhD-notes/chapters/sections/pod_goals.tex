@@ -1,0 +1,36 @@
+\subsection{Goals of Current Chapter}\label{ssec:pod-goals}
+In this section the fundamentals of orbit determination are discussed, focusing on 
+two of the most crucial problems:
+\begin{itemize}
+  \item the derivation, computation and solution of the so called \emph{variational equations}, and 
+  \item efficient, robust and precise parameter estimation via a variation of the 
+    Kalman filter, labeled \emph{Extended Kalman Filter}
+\end{itemize}
+
+Variational equations are a set of differential equations that describe how small changes 
+(i.e. perturbations) in initial conditions propagate over time and thus play a important 
+role in predicting the satellite's trajectory. For the derivation of these equations, 
+a linearization of the (non-linear) equations of motion is needed. Solution of the 
+variational equations is coupled with the computation of the \emph{state transition matrix}, 
+which relates the perturbed state at one epoch to a perturbed state at a later time and 
+can be used to propagate the covariance matrix. Propagating the latter forward in time, 
+a prediction can be made of the evolution of uncertainty in the estimate of the satellite's 
+state. Formulas and numerical recipes for the linearization, as well as the differential 
+equations of the state transition matrix and variational equations are presented. 
+The discussion focuses on a hands-on approach, limiting analytical derivations which can be 
+found in relevant literature. Equations are presented in matrix form, to enable an 
+as much as possible easy translation to source code, and special care is taken to 
+single out and exploit features, equations and particularities that can be used to derive 
+a more efficient and/or robust algorithmic design.
+
+Subsequently, the problem of parameter estimation is considered. There are two major 
+methodologies that come into play in \gls{pod} problems, the method of \emph{Least Squares} 
+and the extended family of filters called \emph{Kalman filters} and variations. 
+For the current thesis, the latter methodology was used and more specifically the 
+\emph{Extended Kalman filter} to derive a robust estimator. Computational aspects of the 
+methodology and the implementation are discussed, as well as advantages and shortcomings.
+
+Since a discussion on the input data for the \gls{pod} problem considered in this Thesis 
+is not yet touched upon, the computation of \emph{observation equations} (needed in the 
+estimation process) is not thoroughly presented here; this issue will be revisited once the 
+basics of the DORIS system are presented (??see chapter 5??).

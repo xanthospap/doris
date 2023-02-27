@@ -1,10 +1,10 @@
 \section{Introduction}\label{sec:pod-introduction}
 
 Orbit determination of artificial satellites began in essence in the 1960s. However, 
-it wasn't untill the 1980s that great advancements were made, facilitated by 
-a better modelling of the Earth's gravity field and its variations (e.g. tides) and 
+it wasn't until the 1980s that great advancements were made, facilitated by
+a better modeling of the Earth's gravity field and its variations (e.g. tides) and
 the large increase in computing capabilities. This enabled orbit determination 
-accuracies to increase to the tens-of-centimeter level. This improvement was 
+accuracy to increase to the tens-of-centimeter level. This improvement was
 motivated and further pushed by the ever-increasing demands of scientists in the 
 oceanographic and geodetic communities, in search for centimeter-level accuracy 
 in global ocean topography obtained from altimetric satellites (\cite{Tapley2004}).
@@ -17,10 +17,10 @@ determined from observations. Observations are themselfes values of nonlinear fu
 of the problem, initial approximate parameter values are needed (a problem often 
 called \emph{initial orbit determination}). Such approximate starting values can be 
 obtained in a number of ways (see e.g. \cite{Vallado2001}), including published 
-values of preliminery solutions, and will not be considered here. Hence, the \gls{pod} 
+values of preliminary solutions, and will not be considered here. Hence, the \gls{pod}
 process is in essence an \emph{orbit improvement} problem.
 
-Apart from the orbital elements or equivelently the state vector, a number of 
+Apart from the orbital elements or equivalently the state vector, a number of
 different parameters have to be considered in a \gls{pod} problem, including
 \begin{itemize}
     \item dynamical parameters characterizing the force model, necessary to describe 
@@ -28,9 +28,9 @@ different parameters have to be considered in a \gls{pod} problem, including
     \item coordinates of the observing sites in an \gls{ecef} system,
     \item motion of the observing sites (e.g. crustal deformation),
     \item Earth rotation and Earth orientation parameters,
-    \item atmosphere parameters deﬁning the tropospheric refraction correction,
-    \item parameters deﬁning the ionospheric refraction correction,
-    \item technique-speciﬁc, harware and (possibly site-specific) instrumentation 
+    \item atmosphere parameters defining the tropospheric refraction correction,
+    \item parameters defining the ionospheric refraction correction,
+    \item technique-specific, hardware and (possibly site-specific) instrumentation
         bias parameters
 \end{itemize}
 All of these parameters have to be considered and dealt-with (either estimated or 
@@ -39,11 +39,11 @@ is addressed, often labeled \emph{pure orbit determination}, where coordinates o
 reference observation sites are assumed to known (via their \gls{ecef} position vector).
 
 It is not always possible to describe the entire time period covered by observations 
-by one set of initial conditions and dynamic parametrs (\cite{BeutlerVII}). Thus, 
+by one set of initial conditions and dynamic parameters (\cite{BeutlerVII}). Thus,
 the period can be split into consecutive \emph{orbital arcs}; an orbital arc is 
 thought of as contiguous, limited part of the satellite's trajectory, described by 
 exactly one initial state vector and the dynamical parameters. Using short arcs, 
-modelling deficiencies can be mitigated (absorbed by the initial state vectors), 
+modeling deficiencies can be mitigated (absorbed by the initial state vectors),
 but rapidly increases the number of arc-speciﬁc parameters, a fact that could lead 
 to a considerably weakened solution (\cite{BeutlerVII}). To overcome this problem, 
 an alternate method can be used, in which stochastic accelerations are introduced 

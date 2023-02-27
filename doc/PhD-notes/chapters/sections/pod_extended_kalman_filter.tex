@@ -7,9 +7,11 @@ The advantage of this approach is that convergence (to the best estimate) is
 accelerated because of the reduced linearization errors. The major disadvantage 
 of the extended sequential algorithm is that the differential equations for the 
 reference trajectory must be reinitialized after each observation is processed.
+The concept of this filter involves the notion that the true state is sufficiently 
+close to the estimated state (\cite{Markley2019}).
 A flowchart of the algorithm is depicted in \autoref{fig:efk-pod}.
 
-The primary difference between the clasic formulation and the extended algorithm 
+The primary difference between the classic formulation and the extended algorithm
 is that the reference trajectory for the extended Kalman filter is updated 
 after each observation to reflect the best estimate of the true trajectory. E.g., 
 after processing the $k$\textsuperscript{th} observation, the computed best estimate 
@@ -33,7 +35,7 @@ the reference trajectory being the prediction of the estimate of the nonlinear s
 (\cite{Tapley2004}), e.g. $\bm{y}^{*}_{t} = \hat{\bm{y}}(t)$.
 
 When implementing the extended Kalman filter for applications demanding high accuracy, 
-care must be taken when updating the reference orbit at the begining of the 
+care must be taken when updating the reference orbit at the beginning of the
 processing. Often, the update is omitted for the first few observations, especially 
 if these contain significant noise. After a few observations have been processed, 
 the estimates of $\hat{\delta \bm{y}}$ will stabilize, and the trajectory update step 

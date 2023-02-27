@@ -1,0 +1,73 @@
+\section{Implementation}\label{sec:pod-implementation}
+
+\subsection{Solution of Variational Equations}\label{ssec:vareq-implementation}
+The computation of the differential equation system comprisig the variational 
+equations and its subsequent solution is a demading task in \gls{pod}, posing 
+challenges both in efficiency and in precision. A large number of computations 
+must be performed, mainly including evaluation of partial derivatives. Analytic 
+formulas for the latter are rather complicated making their implementation error 
+prone.
+
+Unfortunately, testing and validation of software designed to tackle this problem 
+is cumbersome, and based on trial-and-error. To test the implemetation, a large 
+number of tests was performed, starting from a simple, two-body formulation and 
+gradually increasing complexity, checking each step with respect to the previously 
+estimated solution. The gradual increase of complexity was expected to be paired with 
+a increase in solution accuracy.
+
+The solution of the variational equations is based on numeric integration, via an 
+Adams-Bashforth-Moulton \gls{pece} algorithm, with varying step size and order. The 
+fundametals and implementation of this method is already discussed in \autoref{sec:multistep-methods} 
+and \autoref{sec:integrator-implementation}.
+
+\subsection{Exteded Kalman Filter Implementation}\label{ssec:ekf-implementation}
+For the purposes of the current Thesis, a software package was designed and 
+implemented to perform orbit determination using the Extended Kalman Filter 
+algorithm (see \autoref{sec:pod-extended-kalman-filter}). This algorithm was 
+chosen due to a number of factors, including
+\begin{itemize}
+  \item robust and efficient estimation algorithm,
+  \item the filter's ability to utilize state models for dynamic processing,
+  \item compensation for dynamic model inaccuracy (\emph{process noise}),
+  \item estimation of varying state and easily adaptable to (near) real-time scenarios; 
+    \cite{Zhou2020} use an extended Kalman filterig algorithm to determine in real time 
+    the orbit of the HY2A \gls{leo}, using DORIS and spaceborne \gls{gps} 
+    observations
+  \item adaptability and fine tuning of statistical properties of process noise, 
+    and measurement error to design an ``optimal'' filter,
+  \item widely used across various engineering fields and under growing progress
+\end{itemize}
+
+To address the issue raised in \autoref{ssec:pod-kalman-filter-shortcomings}, 
+concerning the possible divergence of the estimates due to numerical instabilities, 
+the \emph{Bucy} and \emph{Joseph} formula (\autoref{eq:tapley4719}) is adopted.
+
+Kalman filtering offers great verstility in handling stochastic and statistical 
+properties of parameters, state and system dynamics. Special care was taken in 
+order to preserve this versatility and transfer it to the user, through the control
+of relevant options by means of (user) input. Fundamental stochastic properties of 
+the analysis are set via a user-friendly configuration file, including but not 
+limited to a-priori sigmas (standard deviation) for all parameters considered and 
+observation statistics. Numerous tests have been performed with combinations of 
+different values to derive sensible defaults, an option alsoprovided to the user.
+
+The implementation processes one observation at a time, so as to take full advantage 
+of the scalar computations of various formulas included in the previous chapters. 
+This makes the algorithm more efficient and less demading on memory resources.
+
+Filter design is as generic as possible, so as to allow (except from varying user 
+input descussed above) reusage in different parts of the software package, to perform 
+different tasks. E.g. a variant of the same algorithm performs linear regression 
+to estimate relative frequency offsets biases (??see DORIS chapter??).
+
+It is worth noting that most state-of-the-art software packages for \gls{pod} using 
+DORIS observations, use the method of least squares for parameter estimation. This 
+is true e.g. for the Bernese GNSS Software (\cite{Dach2015}), GINS (\cite{Gins2013}) and 
+GEODYN (\cite{Geodyn2013}), all of which are packages used by Aalysis Centers 
+actively contributing to the \gls{ids}. This choice has to do with the fact that 
+at the time these packages were first developed, Least Squares was the prevailing 
+method for parameter estimation, while Kalman filtering had miimum intrusion into the 
+geodetic community. Nevertheless, using alternate but equally robust techniques 
+can provide insight and drive further research and progress both within the DORIS 
+community (via the combination of Analysis Centers individual results) and in the 
+scientific world in general.

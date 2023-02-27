@@ -63,7 +63,7 @@ at the next observation epoch $i+1$.
 \subsection{Filter Shortcomings}\label{ssec:pod-kalman-filter-shortcomings}
 One disadvantage of the sequential algorithm presented here, lies in the fact
 that if the true state and the reference state are not close together then the 
-linearization assumption leading to \autoref{eq:tapley426} may not be valid and 
+linearization assumption leading to \autoref{eq:tapley426a} may not be valid and 
 the estimation process may diverge (\cite{Tapley2004}). To overcome this problem, 
 the \emph{Extended Kalman Filter} algorithm (\autoref{sec:pod-extended-kalman-filter}) 
 was used in this Thesis.
@@ -81,7 +81,7 @@ In addition to these two problems, the Kalman filter may diverge because of
 numerical difficulties associated with the covariance measurement update, given
 by \autoref{eq:tapley4712} (\cite{Tapley2004}). This can be the case if the 
 covariance matrix loses its properties of symmetry and become non-positive definite 
-due to roundoff error (this pitfal is especially possible when a large a priori 
+due to roundoff error (this pitfall is especially possible when a large a-priori
 covariance is reduced by the incorporation of very accurate observation data). 
 An alternative equation to \autoref{eq:tapley4712} is to use the more numerically 
 stable formula introduced by \emph{Bucy} and \emph{Joseph}, which reads

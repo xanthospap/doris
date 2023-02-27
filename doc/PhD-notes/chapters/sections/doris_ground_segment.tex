@@ -1,0 +1,133 @@
+\section{DORIS Ground Segment}\label{sec:doris-ground-segment}
+
+\subsection{Geometry of Ground Antennae}\label{ssec:antenae-geometry}
+DORIS observations are referred to the electronic reference point (RP) of the 
+antenna, the points where the DORIS observations  are  acquired.  As that 
+electronic  point (\SI{2}{\GHz} center of phase for DORIS) is virtual and as 
+for example it may change while using another type of antenna data referring 
+to that electronic point are of no use for geophysical studies. So, 
+observations must be referred to the conventional RP which is defined 
+according to the geometry of the antenna. Therefore, one has also to account 
+for the distance between the electronic RP and the conventional RP of the 
+antenna (\cite{TOURAIN2016}). The ability to get accurate DORIS data relies 
+for one part on the capability of providing accurate models to connect the 
+electronic RP (or electronic phase center) and the conventional RP, as well 
+as, phase center variations (\glspl{pcv}) as a function of the elevation angle 
+and azimuth.
+
+The type of antenna is identified by the 4\textsuperscript{th} character of 
+the beacon mnemonic: letter ``A'' for the Alcatel type; letter ``B'' or letter 
+``C'' for the Starec B or C type.  That is, in the DORIS RINEX field 
+``STATION REFERENCE'', the last character of the second column (aka 
+``4-character station code''), defines the ground beacon antenna type; 
+example:
+
+\begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
+\begin{BVerbatim}[commandchars=\\\{\}]
+    51                                                      # OF STATIONS       
+D01  BEM\textcolor{red}{B} BELGRANO                      66018S002  3   0    STATION REFERENCE   
+D02  ADH\textcolor{red}{C} TERRE ADELIE                  91501S005  3   0    STATION REFERENCE   
+D03  SYQ\textcolor{red}{B} SYOWA                         66006S005  3   0    STATION REFERENCE   
+D04  CRQ\textcolor{red}{C} CROZET                        91301S004  4   0    STATION REFERENCE   
+D05  DIO\textcolor{red}{B} DIONYSOS                      12602S012  3   0    STATION REFERENCE
+\end{BVerbatim}
+\end{adjustbox}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c | c | c | c | c|}
+        \hline
+        \textbf{Zenith Distance} & \multicolumn{2}{c}{\textbf{ALCATEL (dBi)}} & \multicolumn{2}{c|}{\textbf{STAREC (dBi)}} \\
+                        & \SI{401.25}{\mega\hertz} & \SI{2036.25}{\mega\hertz} &  \SI{401.25}{\mega\hertz} & \SI{2036.25}{\mega\hertz}\\
+        \hline
+        \ang{0}&3.2&2.1&3.5&0 \\
+        \ang{10}&3.5&2.6&3.6&0.4\\
+        \ang{20}&4&2&3.7&0.5\\
+        \ang{30}&4.4&4&3.8&1.5\\
+        \ang{40}&4.6&4.4&3.7&3.2\\
+        \ang{50}&4.2&4.6&3.2&3.9\\
+        \ang{60}&2.7&2.7&2.5&4\\
+        \ang{70}&0.6&-0.1&1&3.2\\
+        \ang{80}&-2.7&-3.3&-1.3&0.2\\
+        \ang{90}&-6&-7&-4.2&-5.6\\
+        \hline
+    \end{tabular}
+    \caption{DORIS ground antennae gains, \cite{DORISGSM}.}
+    \label{table:antenna-gains}
+\end{table}
+
+\subsubsection{Phase Center Offsets}\label{sssec:doris-pco}
+Depending on the antenna type, appropriate \gls{pco}s need to be applied to 
+the observed quantities for the reduction of the observation vector to the 
+Reference Point (from the respective ``virtual'' phase center) of the antenna. 
+When a linear combination of the observed quantities is used, a respective 
+\gls{pco} needs to be computed and applied. E.g., for the case of the 
+ionospheric-free linear combination, the respective \gls{pco} is:
+\begin{equation}
+    \vec{r}_{2GHz,iono-free} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}
+\end{equation}
+
+where $\vec{r}_{2GHz,iono-free}$ is the vector from the \SI{2}{\GHz} phase
+center to the iono-free phase center and $\vec{r}_{400MHz,2GHz}$ is
+the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Antenna Type} & \textbf{ALCATEL} & \textbf{STAREC-B} \& \textbf{STAREC-C} \\
+        \hline
+        $\Delta h$ in \si{\mm} for \SI{2}{\GHz} & \SI{510}{\mm} & \SI{487}{\mm}\\
+        $\Delta h$ in \si{\mm} for \SI{400}{\MHz} & \SI{335}{\mm} & \SI{0}{\mm}\\
+        \hline
+    \end{tabular}
+    \caption{DORIS ground antennae Phase Center Offsets, \cite{DORISGSM}.}
+    \label{table:antenna-pco}
+\end{table}
+
+\subsubsection{DORIS ALCATEL Antenna}\label{sssec:doris-alcatel}
+\begin{figure}
+\centering
+\input{tikz/alcatel-antenna.tex}
+\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+\label{fig:alcatel-antenna}
+\end{figure}
+
+
+\subsubsection{DORIS STAREC Antenna}\label{sssec:doris-starec}
+STAREC antennae B and C are identical in terms of design and specification, the
+difference is about the error budget in phase center position. For STAREC-C,
+manufacturing process and error budget have been improved \cite{DORISGSM}.
+
+According to \cite{TOURAIN2016}, in order to check the consistency of the theoretical 
+characteristics of this type of antennae, a measurement campaign was performedby 
+the \gls{cnes} at the \gls{catr}. The \gls{catr} is a dedicated facility 
+consisting of an anechoic chamber equipped with several specific devices 
+allowing significant measurement for satellite characterization.
+
+As a result of the campaign, a phase law was established by averaging the 
+estimated phase law values obtained during the \gls{catr} characterization. 
+The resulting couple phase center position–phase law correction was provided 
+to the DORIS users through a text file in \gls{antex} (\cite{ANTEXv14}) format, 
+made available by \gls{ids} at 
+\url{ftp://ftp.ids-doris.org/pub/ids/stations/doris_phase_law_antex_starec.txt}.
+
+STAREC antennae B and C are identical in terms of design and specification, the
+difference is about the error budget in phase center position. For STAREC C,
+manufacturing process and error budget have been improved (\cite{DORISGSM}).
+
+\begin{figure}
+\centering
+\input{tikz/starec-antenna.tex}
+\caption{Geometry of Alcatel STAREC Ground Antenna/Beacon}
+\label{fig:starec-antenna}
+\end{figure}
+
+\subsubsection{Phase Law}\label{doris-phase-law}
+
+\begin{figure}
+\centering
+\input{tikz/doris-antennae-phase-law.tex}
+\caption{DORIS Antennae Phase Law}
+\label{fig:doris-antennae-phase-law}
+\end{figure}
