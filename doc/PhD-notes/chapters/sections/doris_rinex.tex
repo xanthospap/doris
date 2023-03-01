@@ -1,42 +1,53 @@
 \section{DORIS RINEX}\label{sec:doris-rinex}
+With the adoption of the \gls{doris} DGXX receivers, first installed onboard the 
+Jason-2 satellite, singal tracking on seven different channels simulatneously became 
+possbile, with synchronous dual frequency phase and pseudo-range measurements 
+(\cite{Mercier2010}). This development made it possible for \gls{doris} data to 
+be described in a manner similar to \gls{gnss} data, and hence an extension of the 
+RINEX 3.0 format (\cite{RINEX305}) was defined and adopted for \gls{doris} observations to be 
+recorded and published in. One major advantage of these new measurement data is 
+that they are available with a very short latency (older data needed to be pre-processed 
+before published). The new data exchange format is expected to further aid analysis 
+development, since it allows each analysis center to be independent from \gls{cnes}
+data preprocessing, as users have access to synchronous phase and 
+pseudorange measurements (\cite{Cerri2011}).
 
-\subsection{General Format  Description}
-The DORIS RINEX format consists of one ASCII file containing both space based 
-and meteorological data collected at DORIS stations and relayed by satellites.
-
-DORIS RINEX format bears close resemblance\footnote{The format specifications are 
-actually close to identical.} to the GNSS RINEX Version 3 (\cite{RINEX305}).
-Data files consist of a header section and a data section. The first contains 
+\subsection{General Format Description}
+The \gls{doris} RINEX format consists of one ASCII file containing both space based 
+and meteorological data collected at \gls{doris} stations and relayed by satellites.
+It bears close resemblance to the GNSS RINEX Version 3 (\cite{RINEX305});
+data files consist of a header section and a data section. The first contains 
 global information for the entire file, while the latter contains the actual 
 observations and a date tag, keeping strict chronological order.
+Observation types recorded in the DORIS RINEX files are the given in 
+\autoref{table:doris-rinex-observation-types}.
 
-DORIS is basically running on its own proper time which is constantly linked 
+\gls{doris} is basically running on its own proper time which is constantly linked 
 to \gls{tai}. Time tags are given in instrument time, clock offsets are given 
 between instrument time and \gls{tai}.
 
-Observation types recorded in the DORIS RINEX files are the given in table
-
 \begin{table}[h!]
-\centering
-\begin{tabular}{|c c c|}
-\hline
-Descriptor & Observation Type & Units \\
-\hline
-\texttt{L} & carrier phase observation & cycles \\
-\texttt{C} & pseudo-range observation & \si{\metre}\\
-\texttt{W} & power level received at each frequency & \si{\dBm} \\
-\texttt{F} & relative frequency offset of the receiver’s oscillator $\frac{f-f_0}{f_0}$ & $10^{-11}$ \\
-\texttt{P} & ground pressure at the station & 100 \si{\pascal} (\si{\milli\bar}) \\
-\texttt{T} & ground temperature at the station & \si{\degreeCelsius} \\
-\texttt{H} & ground humidity at the station & \si{\percent} \\
-\hline
-\end{tabular}
-\caption{DORIS RINEX observation types}
-\label{table:doris-rinex-observation-types}
+  \centering
+  \begin{tabular}{|c c c|}
+  \hline
+  Descriptor & Observation Type & Units \\
+  \hline
+  \texttt{L} & carrier phase observation & cycles \\
+  \texttt{C} & pseudo-range observation & \si{\metre}\\
+  \texttt{W} & power level received at each frequency & \si{\dBm} \\
+  \texttt{F} & relative frequency offset of the receiver’s oscillator $\frac{f-f_0}{f_0}$ & $10^{-11}$ \\
+  \texttt{P} & ground pressure at the station & 100 \si{\pascal} (\si{\milli\bar}) \\
+  \texttt{T} & ground temperature at the station & \si{\degreeCelsius} \\
+  \texttt{H} & ground humidity at the station & \si{\percent} \\
+  \hline
+  \end{tabular}
+  \caption{\gls{doris} RINEX observation types.}
+  \label{table:doris-rinex-observation-types}
 \end{table}
+A detailed description of the data files, can be found in \cite{DORISRNX3}.
 
+\iffalse
 \subsection{Receiver Clock Offsets}
-
 DORIS RINEX contain a ``receiver clock offset'' \(\tau_{r_{offset}}\) (as an 
 optional field) at the header record of every epoch. E.g. the line
 \begin{verbatim}
@@ -56,13 +67,10 @@ In the first case, the file ends with ``.001'' whereas in the second with ``.010
 More information on the computation of (\(\tau_{r_{offset}}\) are provided in 
 \cite{lemoine-2016}.}
 
-\subsection{Types of DORIS measurements}
-\label{ssec:types-of-doris-measurements}
+\subsection{Types of DORIS measurements}\label{ssec:types-of-doris-measurements}
 
-\subsubsection{Relative Frequency Offset}
-\label{sssec:relative-frequency-offset}
-
-DORIS RINEX files (usually) contain a measurement type labeled ``F'' (should be 
+\subsubsection{Relative Frequency Offset}\label{sssec:relative-frequency-offset}
+\gls{doris} RINEX files (usually) contain a measurement type labeled ``F'' (should be 
 recorded in the field \verb|SYS/#/OBS TYPES| at the RINEX header). This measurement 
 type is provided for every epoch and is a measure of the relative frequency 
 offset of the receiver's oscillator (aka \(\frac{f-f_0}{f_0}\) \num{10e-11}).
@@ -85,3 +93,4 @@ D03   -826480.354    -2642364.157   148404267.53014 148404098.13114      -115.20
 ...                                                            
 \end{BVerbatim}
 \end{adjustbox}
+\fi

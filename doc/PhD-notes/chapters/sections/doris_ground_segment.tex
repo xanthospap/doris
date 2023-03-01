@@ -1,26 +1,39 @@
 \section{DORIS Ground Segment}\label{sec:doris-ground-segment}
 
-\subsection{Geometry of Ground Antennae}\label{ssec:antenae-geometry}
-DORIS observations are referred to the electronic reference point (RP) of the 
-antenna, the points where the DORIS observations  are  acquired.  As that 
-electronic  point (\SI{2}{\GHz} center of phase for DORIS) is virtual and as 
-for example it may change while using another type of antenna data referring 
-to that electronic point are of no use for geophysical studies. So, 
-observations must be referred to the conventional RP which is defined 
-according to the geometry of the antenna. Therefore, one has also to account 
-for the distance between the electronic RP and the conventional RP of the 
-antenna (\cite{TOURAIN2016}). The ability to get accurate DORIS data relies 
-for one part on the capability of providing accurate models to connect the 
-electronic RP (or electronic phase center) and the conventional RP, as well 
-as, phase center variations (\glspl{pcv}) as a function of the elevation angle 
-and azimuth.
+Estimation of precise coordinates of both \gls{doris}-ecquiped satellites and 
+\gls{doris} beacons relies on accurate modeling of the signal path from the
+ground antenna to the space antenna. It is thus important to have a clear view of 
+the geometry of the respective antennae and reference points of signal reception.
 
-The type of antenna is identified by the 4\textsuperscript{th} character of 
-the beacon mnemonic: letter ``A'' for the Alcatel type; letter ``B'' or letter 
-``C'' for the Starec B or C type.  That is, in the DORIS RINEX field 
-``STATION REFERENCE'', the last character of the second column (aka 
-``4-character station code''), defines the ground beacon antenna type; 
-example:
+\subsection{Geometry of Ground Antennae}\label{ssec:antenae-geometry}
+\gls{doris} observations are referred to the electronic reference points (RP) of the 
+antenna, the points where the \gls{doris} observations are acquired. However, 
+these points are ``virtual'' and for example may change while using another antenna 
+type, hence they lack the acquracy required for geodetic studies.
+Observations must therefore be referred to the conventional RP which is defined 
+according to the geometry of the antenna and account for the distance between 
+the electronic RP and the conventional RP of the antenna (\cite{Tourain2016}). 
+The ability to get accurate \gls{doris} data relies 
+for one part on the capability of providing accurate models to connect the 
+electronic RP (or electronic \emph{phase center}) and the conventional RP, as well 
+as, \glspl{pcv} as a function of the elevation angle and azimuth to the tracking 
+satellite.
+
+Three antenna types are used in the \gls{doris} tracking network, namely 
+\texttt{ALCATEL}, \texttt{STAREC-B} and \texttt{STAREC-C} (\cite{Saunier2016}). 
+\autoref{table:antenna-gains} records antena gains per type. 
+ALCATEL is the oldest antenna type, installed throughout the \gls{doris} network 
+at the time of its establishment. These antennas were later replaced by the STAREC-B 
+model, a long-standing effort that ended in 2007 with the replacement of the last 
+station in Toulouse (TLHA) (\cite{Stepanek2022}).
+
+The type of antenna installed at a perticular stations, is identified by the 
+4\textsuperscript{th} character of the beacon mnemonic: letter ``\texttt{A}'' for the 
+Alcatel type; letter ``\texttt{B}'' or letter ``\texttt{C}'' for the Starec B 
+or C type respectively. That is, in the \gls{doris} RINEX (see \autoref{}) 
+field ``STATION REFERENCE'', 
+the last character of the second column (aka ``4-character station code''), 
+defines the ground beacon antenna type; example:
 
 \begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
 \begin{BVerbatim}[commandchars=\\\{\}]
@@ -57,7 +70,7 @@ D05  DIO\textcolor{red}{B} DIONYSOS                      12602S012  3   0    STA
 \end{table}
 
 \subsubsection{Phase Center Offsets}\label{sssec:doris-pco}
-Depending on the antenna type, appropriate \gls{pco}s need to be applied to 
+Depending on the antenna type, appropriate \glspl{pco} need to be applied to 
 the observed quantities for the reduction of the observation vector to the 
 Reference Point (from the respective ``virtual'' phase center) of the antenna. 
 When a linear combination of the observed quantities is used, a respective 
@@ -66,10 +79,10 @@ ionospheric-free linear combination, the respective \gls{pco} is:
 \begin{equation}
     \vec{r}_{2GHz,iono-free} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}
 \end{equation}
-
 where $\vec{r}_{2GHz,iono-free}$ is the vector from the \SI{2}{\GHz} phase
 center to the iono-free phase center and $\vec{r}_{400MHz,2GHz}$ is
-the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center.
+the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center. \autoref{table:antenna-pco} 
+lists the \gls{pco} per antenna type.
 
 \begin{table}[h!]
     \centering
@@ -81,53 +94,55 @@ the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center.
         $\Delta h$ in \si{\mm} for \SI{400}{\MHz} & \SI{335}{\mm} & \SI{0}{\mm}\\
         \hline
     \end{tabular}
-    \caption{DORIS ground antennae Phase Center Offsets, \cite{DORISGSM}.}
+    \caption{\gls{doris} ground antennae \glspl{pco}, \cite{DORISGSM}.}
     \label{table:antenna-pco}
 \end{table}
 
-\subsubsection{DORIS ALCATEL Antenna}\label{sssec:doris-alcatel}
+The geometry of the \gls{doris} ALCATEL Antenna is depicted in \autoref{fig:alcatel-antenna}, 
+with the reference points of interest.
 \begin{figure}
-\centering
-\input{tikz/alcatel-antenna.tex}
-\caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
-\label{fig:alcatel-antenna}
+  \centering
+  \input{tikz/alcatel-antenna.tex}
+  \caption{Geometry of Alcatel DORIS Ground Antenna/Beacon}
+  \label{fig:alcatel-antenna}
 \end{figure}
 
-
-\subsubsection{DORIS STAREC Antenna}\label{sssec:doris-starec}
 STAREC antennae B and C are identical in terms of design and specification, the
-difference is about the error budget in phase center position. For STAREC-C,
-manufacturing process and error budget have been improved \cite{DORISGSM}.
+difference being about the error budget in phase center position. For STAREC-C,
+manufacturing process and error budget have been improved \cite{DORISGSM}. The geometry 
+of these antennae is depicted in \autoref{fig:starec-antenna}.
 
-According to \cite{TOURAIN2016}, in order to check the consistency of the theoretical 
-characteristics of this type of antennae, a measurement campaign was performedby 
+\begin{figure}
+  \centering
+  \input{tikz/starec-antenna.tex}
+  \caption{Geometry of Alcatel STAREC Ground Antenna/Beacon}
+  \label{fig:starec-antenna}
+\end{figure}
+
+\subsubsection{Phase Center Variations}\label{sssec:doris-pcv}
+According to \cite{Tourain2016}, in order to check the consistency of the theoretical 
+characteristics of the STAREC antennae, a measurement campaign was performed by 
 the \gls{cnes} at the \gls{catr}. The \gls{catr} is a dedicated facility 
 consisting of an anechoic chamber equipped with several specific devices 
 allowing significant measurement for satellite characterization.
 
 As a result of the campaign, a phase law was established by averaging the 
 estimated phase law values obtained during the \gls{catr} characterization. 
-The resulting couple phase center position–phase law correction was provided 
-to the DORIS users through a text file in \gls{antex} (\cite{ANTEXv14}) format, 
-made available by \gls{ids} at 
-\url{ftp://ftp.ids-doris.org/pub/ids/stations/doris_phase_law_antex_starec.txt}.
+The resulting couple phase center position to phase law correction is provided 
+to the \gls{doris} users in \gls{antex} (\cite{ANTEXv14}) format, and 
+made available by \gls{ids} (see \autoref{fig:doris-antennae-phase-law}).
 
-STAREC antennae B and C are identical in terms of design and specification, the
-difference is about the error budget in phase center position. For STAREC C,
-manufacturing process and error budget have been improved (\cite{DORISGSM}).
-
-\begin{figure}
-\centering
-\input{tikz/starec-antenna.tex}
-\caption{Geometry of Alcatel STAREC Ground Antenna/Beacon}
-\label{fig:starec-antenna}
-\end{figure}
-
-\subsubsection{Phase Law}\label{doris-phase-law}
+A similar approach was eventually followed for the ALCATEL antenna type 
+leading to an elevation-dependent \gls{pcv} model (see \autoref{fig:doris-antennae-phase-law}), 
+conventially called PCV2.0. \cite{Stepanek2022} reports systematic differences in 
+the estimated station heights of about \SI{15}{\milli\meter} when this model is 
+adopted in the analysis, compared to older \gls{pcv} values. Note that both 
+\gls{pcv} models (for ALCATEL and STAREC) do not consider azimouth dependence 
+and have an elevation step of \ang{5}.
 
 \begin{figure}
-\centering
-\input{tikz/doris-antennae-phase-law.tex}
-\caption{DORIS Antennae Phase Law}
-\label{fig:doris-antennae-phase-law}
+  \centering
+  \input{tikz/doris-antennae-phase-law.tex}
+  \caption{DORIS Antennae Phase Law}
+  \label{fig:doris-antennae-phase-law}
 \end{figure}

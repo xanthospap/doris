@@ -231,7 +231,10 @@
 \newacronym{ggos}{GGOS}{Global Geodetic Observation System}
 \newacronym{slr}{SLR}{Satellite Laser Ranging}
 \newacronym{gnss}{GNSS}{Global Navigation Satellite System}
-%\newacronym{}{}{}
+\newacronym{igs}{IGS}{International GNSS Service}
+\newacronym{ilrs}{ILRS}{International Laser Ranging Service}
+\newacronym{ivs}{IVS}{International VLBI Service for Geodesy and Astronomy}
+\newacronym{uso}{USO}{Ultra Stable Oscillator}
 %\newacronym{}{}{}
 
 \title{PhD Memo and Notes}
@@ -245,6 +248,7 @@
 \nomenclature[P]{$G$}{Gravitational constant}
 \nomenclature[P]{$M_{\Earth}$}{Earth's mass}
 \nomenclature[P]{$R_{\Earth}$}{Earth's equatorial radius}
+\nomenclature[P]{$\mu _{\Earth}$}{Gravitational constant times Earth's mass}
 \nomenclature[V]{$\bm{x}$}{Bold leters denote vectors}
 \nomenclature[V]{$\bm{X}$}{Bold, capital leters denote matrices}
 \nomenclature[V]{$\bm{R}_x$, $\bm{R}_y$, $\bm{R}_z$}{Elementary rotation matrix, around the $x-$, $y-$ and $z-$axis respectively}
@@ -268,6 +272,7 @@
 \input{chapters/sections/costg_benchmark_test}
 
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
+\iffalse
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
@@ -288,29 +293,35 @@
     \section{Time Systems and Scales}
       \input{chapters/sections/time_systems}
       \input{chapters/sections/time_scales_implementation}
+\fi
 
 \chapter{Orbit Integration}\label{ch:orbit-integration}
-    \input{chapters/sections/integration_introduction}
-    \input{chapters/sections/runge_kutta}
-    \input{chapters/sections/multistep_methods}
-    \input{chapters/sections/integrator_implementation}
+\iffalse
+  \input{chapters/sections/integration_introduction}
+  \input{chapters/sections/runge_kutta}
+  \input{chapters/sections/multistep_methods}
+  \input{chapters/sections/integrator_implementation}
+\fi
 
 \chapter{Precise Orbit Determination}\label{ch:pod}
-    \input{chapters/sections/pod_introduction}
-      \input{chapters/sections/pod_goals}
-    \input{chapters/sections/pod_linearization}
-      \input{chapters/sections/state_transition_matrix}
-      \input{chapters/sections/pod_observation_equations}
-    \input{chapters/sections/pod_kalman_filter}
-    \input{chapters/sections/pod_extended_kalman_filter}
-    \input{chapters/sections/pod_variational_equations}
-    \input{chapters/sections/pod_implementation}
+\iffalse
+  \input{chapters/sections/pod_introduction}
+    \input{chapters/sections/pod_goals}
+  \input{chapters/sections/pod_linearization}
+    \input{chapters/sections/state_transition_matrix}
+    \input{chapters/sections/pod_observation_equations}
+  \input{chapters/sections/pod_kalman_filter}
+  \input{chapters/sections/pod_extended_kalman_filter}
+  \input{chapters/sections/pod_variational_equations}
+  \input{chapters/sections/pod_implementation}
+\fi
 
 \chapter{DORIS}\label{ch:doris}
-  \include{chapters/sections/doris_introduction}
-  \include{chapters/sections/doris_ground_segment}
-  \include{chapters/sections/doris_rinex}
-  \include{chapters/sections/doris_theory}
+  \input{chapters/sections/doris_introduction}
+  \input{chapters/sections/doris_ground_segment}
+  \input{chapters/sections/doris_rinex}
+  \input{chapters/sections/doris_theory}
+  \input{chapters/sections/doris_equation_implementation}
 
 \iffalse
   \include{chapters/orbit_intergators}

@@ -1,0 +1,145 @@
+\section{Implementation of the \gls{doris} Observation Equation}\label{sec:doris-observation-equation-implementation}
+The observation equation formed to process the \gls{doris} data, is based on 
+\autoref{eq:lem17}. Consequently, two parts are computed, $v_{measured}$ which 
+represents the ``observed'' or ``measured'' relative velocity between the receiver 
+and the transmitter, and $v_{theo}$ which is the ``computed'' or ``theoretical'' 
+counterpart. In this way, during the processing phase, all quantities that do not 
+need adjustment can be placed on the ``measured'' side of the equation (\cite{Lemoine2016}).
+
+A short discussion follows, describing the implementation of the \gls{doris} 
+observation equation in the software designed for this Thesis.
+
+\subsection{Coordinate and Proper Time}\label{ssec:coordinate-proper-time}
+\gls{tai} is used as coordinate time; to transform RINEX observation time (given in 
+proper time $\tau$) to coordinate time $t$, we use the \emph{receiver clock 
+offset} values, extracted from the RINEX file (one value per observation block).
+
+Hence, if an observation block is taged at proper time $\tau _i$ at the RINEX 
+file, and the receiver clock offset for this block is $\Delta \tau _i$ (again from 
+RINEX), then the coordinate time of the event in \gls{tai} is:
+\begin{equation}
+  t^{TAI}_i = \tau _i + \Delta \tau _i
+\end{equation}
+
+According to \cite{Lemoine2016} however, there is no need to make a time conversion 
+for the time interval of the Doppler count, i.e. the term $\Delta \tau _r$ in 
+\autoref{eq:lem17}, due to the time-tagging method used in \gls{doris} RINEX.
+
+\subsection{Receiver Emitter Geometric Distance}
+The geometric distances between the emitter and the receiver, $\rho _1$ and $\rho _2$, 
+when computed, are corrected for the aberration effect, i.e. the slight displacement of 
+the emitter due to Earth's rotation between signal emission and signal reception at
+the receiver. The algorithm for this correction is described in \autoref{sssec:doris-aberration}.
+
+\subsection{Relativistic Correction}\label{ssec:relativistic-correction}
+\autoref{eq:lem17} contains a relativistic correction term, $\Delta u_{REL}$. This 
+correction is split into two parts, $\Delta u_{REL_c}$ the part containing the 
+clock correction and $\Delta u_{REL_r}$, containing the effect of the travel 
+path (see \autoref{eq:lem14}). In the implementation follwed for this Thesis, only 
+the $\Delta u_{REL_c}$ part is considered (\autoref{eq:lem14a}).
+
+For the receiver part (with subscripts $r$), the respective quantities in 
+\autoref{eq:lem14a} are given by:
+\begin{equation}
+  \begin{aligned}
+    V^2_r &= \norm{\bm{v}_{ecef}}^2 \\
+    U_r   &= \frac{\mu _{\Earth}}{\norm{\bm{r}_{ecef}}} \cdot \left( 1 - 
+      \left(\frac{\alpha}{\norm{\bm{r}_{ecef}}}\right) ^2 \cdot J_2 \cdot
+        \frac{3 \cdot \sin ^2{\phi} -1}{2} \right)
+  \end{aligned}
+  \label{eq:potential-receiver}
+\end{equation}
+where $\bm{r}_{ecef}$ and $\bm{v}_{ecef}$ are the position and velocity of the 
+satellite at the given instant, in the terrestrial reference frame, 
+aka \gls{itrf}. Note that the Earth's oblateness cannot be ignored here (see 
+discusion in \autoref{sssec:doris-geopotential}).
+
+For the emitter, things are further simplified. Since $V_e = 0$, the potential 
+is computed as 
+\begin{equation}
+  U_e = \frac{\mu _{\Earth}}{\norm{\bm{r}_{ecef}}}
+  \label{eq:potential-emitter}
+\end{equation}
+where $\bm{r}_{ecef}$ is the position of the beacon in \gls{itrf}.
+
+In \autoref{eq:lem17}, relativistic corrections must be ``differentiated'' between 
+two consecutive epochs (used for the Doppler count)
+\begin{equation}\label{eq:drel-diff}
+  \begin{aligned}
+    \Delta v_{REL} &= \frac{1}{c} 
+      \left( 
+        \left[ U_r - U_e + \frac{V^2_r - V^2_e}{2} \right]\at{t=t_i} 
+        - \left[ U_r - U_e + \frac{V^2_r - V^2_e}{2} \right]\at{t=t_{i-1}} 
+      \right) \\
+      &= \frac{1}{c} \cdot \left( 
+        U_r\at{t_i} - U_r\at{t_{i-1}} +  \frac{V_r\at{t_i}-V_r\at{t_{i-1}}}{2} 
+        \right) \si{\m\per\s}
+  \end{aligned}
+\end{equation}
+
+\subsection{Receiver Proper Frequency $f_{r_T}$}\label{ssec:receiver-true-proper-frequency}
+In the implementation, ``smoothed'' values of RINEX-provided $\Delta f_r / f_{r_N}$ estimates 
+are used to compute the receiver's proper frequency, given by \autoref{eq:frt-rinex}.
+In a first RINEX pass, $F_{t_i}$ are used to estimate a linear model spanning the 
+whole RINEX time span. These smoothed values are then used to compute relative 
+frequency offsets at the observation epochs (see discussion in \autoref{sssec:true-proprtfrequency-of-the-receiver}). 
+
+\subsection{Ionospheric Correction}\label{ssec:iono-correction}
+For each observation in the RINEX file, the ionospheric correction is computed and applied 
+to the \SI{2}{\GHz} measurement (as described in \autoref{ssec:iono-correction}), thus 
+transforming it to an ``iono-free'' measurement.
+
+When applied to \autoref{eq:lem17}, ``differenciation'' of the ionospheric 
+delays computed from \ref{eq:iono-delay-cycles} must be performed, affecting two 
+observations (the same ones used to derive the Doppler count). Hence, the term 
+$\Delta v_{IONO}$ appearing in \autoref{eq:lem17} is
+\begin{equation}
+  \Delta v_{IONO} [\si{\m \per \s}] = 
+    %\tikz[baseline]{
+    %  \node[fill=blue!20,anchor=base](en1){$\frac{c}{f_{e_N}}$};
+    %}
+    \frac{c}{f_{e_N}}
+    \cdot 
+    \frac{\delta_{ION}\at[\big]{t=t_{i-1}} 
+    - \delta_{ION}\at[\big]{t=t_i}}{\Delta \tau}
+  \label{eq:dion-diff}
+\end{equation}
+
+\subsubsection{2GHz and Iono-Free Phase Center}\label{sssec:2ghz-ionofree-pco}
+When using the transformed, ``iono-free'' phase measurement, a geometric correction 
+has to be applied to get to the respective beacon (and satellite antenna) phase 
+center. This offset is computed as
+%To get to the iono-free phase center from the beacon's \gls{arp}, 
+%we use (\cite{lemoine-2016}, Sec. 2.5.7, Eq. 20):
+\begin{equation}\label{eq:ionf-pco}
+  \bm{r}_{iono-free} = \bm{r}_{\SI{2}{\GHz}} + \frac{\bm{r}_{\SI{2}{\GHz}} 
+    - \bm{r}_{\SI{400}{\MHz}}}{\gamma - 1}
+\end{equation}
+
+where $\bm{r}_{\SI{2}{\GHz}}$ and $\bm{r}_{\SI{400}{\MHz}}$ are the 
+eccentricities for the \SI{2}{\GHz} and the \SI{400}{\MHz} carriers respectively 
+from the beacon antena phase center (given at \cite{DORISGSM}, Sec. 5.2.1).
+
+Note that in \autoref{eq:ionf-pco}, the eccentricity vector $\bm{r}_{iono-free}$ 
+is in a topocentric reference frame. Hence, to compute the \gls{ecef} coordinates of the 
+iono-free phase center, given the \gls{ecef} coordinates of the beacon's 
+\gls{arp} $\bm{r}_{arp}$ (see \ref{ssec:beacon_coordinates})
+\begin{equation}
+  \bm{r}^{ecef}_{iono-free} = \bm{r}_{arp} + \bm{R}^T \cdot \bm{r}_{iono-free}
+  \label{eq:arp-to-if-pc}
+\end{equation}
+where $\bm{R}$ is the cartesian-to-topocentric rotation matrix, computed 
+at $\bm{r}_{arp}$.
+
+In accordance to the beacons, a similar geometric reduction must be applied 
+at the satellite's end, to correct for the discrepancy between the \SI{2}{\GHz} 
+and the \emph{iono-free} phase center
+\begin{equation}
+  \bm{r}^{satf}_{iono-free} = \bm{r}^{satf}_{\SI{2}{\GHz}} + 
+    \frac{\bm{r}^{satf}_{\SI{2}{\GHz}} - 
+    \bm{r}^{satf}_{\SI{400}{\MHz}}}{\gamma - 1}
+\end{equation}
+
+where the superscript $satf$ denotes the \emph{satellite-fixed} body/reference 
+frame. On-board satellite antenna phase center offset values can be found in 
+\cite{DorisSatModels}.
