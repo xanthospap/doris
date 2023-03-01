@@ -109,8 +109,6 @@ $\Delta v_{IONO}$ appearing in \autoref{eq:lem17} is
 When using the transformed, ``iono-free'' phase measurement, a geometric correction 
 has to be applied to get to the respective beacon (and satellite antenna) phase 
 center. This offset is computed as
-%To get to the iono-free phase center from the beacon's \gls{arp}, 
-%we use (\cite{lemoine-2016}, Sec. 2.5.7, Eq. 20):
 \begin{equation}\label{eq:ionf-pco}
   \bm{r}_{iono-free} = \bm{r}_{\SI{2}{\GHz}} + \frac{\bm{r}_{\SI{2}{\GHz}} 
     - \bm{r}_{\SI{400}{\MHz}}}{\gamma - 1}
@@ -143,3 +141,100 @@ and the \emph{iono-free} phase center
 where the superscript $satf$ denotes the \emph{satellite-fixed} body/reference 
 frame. On-board satellite antenna phase center offset values can be found in 
 \cite{DorisSatModels}.
+
+\subsection{Tropospheric Correction}\label{ssec-tropospheric-correction}
+The GPT3/VMF3 (\cite{Landskron2018}) model is used to handle tropospheric refraction. 
+The hydrostatic zenith delay $zd_{hydrostatic}$, is computing via the ``refined'' 
+\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
+analysis, \emph{per beacon and per pass}, using an initial value provided by 
+\cite{Askneetal87}.
+
+Using the mapping function and the zenith delay, the tropospheric 
+delay for an observation at $t=t_i$ is given by
+\begin{equation}\label{eq:tropo-delay}
+  \delta _{TRO} [\si{\m}] = zd_{hydrostatic} \cdot mf_{hydrostatic} + zd_{wet}\at{t=t_i} \cdot mf_{wet}
+\end{equation}
+
+The tropospheric correction term in \autoref{eq:lem17}, is actually the ``time-differenced'' 
+tropospheric delay between two measurements (the same ones used to derive the 
+Doppler count), given in \si{\m \per \s}. That is:
+\begin{equation}\label{eq:dtrop-diff}
+  \begin{aligned}
+    \Delta v_{TROPO} [\si{\m \per \s}] 
+      &= \left( \delta _{TRO} \at{t=t_{i-1}} - \delta _{TRO} \at{t=t_{i}} \right) / \Delta \tau\\
+      &= \left( \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_i} - 
+        \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_{i-1}} \right) \ \Delta \tau
+  \end{aligned}
+\end{equation}
+
+Note that in the above equation the same value $zd_{w}\at{t=t_{i-1}}$ 
+for the wet part of the zenith delay is used, that is the best estimate prior to 
+incorporating the (new) measurement at $t=t_i$.
+
+The parameter $zd_{w}$ is estimated using no constraints and a simple white 
+noise model (no process noise). Since it is an estimated parameter, 
+the (partial) derivative of the observation equation w.r.t to this parameter, 
+is required
+\begin{equation}\label{eq:partials-zwd}
+  \frac{\partial v_{theo}}{\partial zd_{w}} = \frac{mf_{w}\at[\big]{t=t_i} 
+    - mf_{w}\at[\big]{t=t_{i-1}}}{\Delta \tau}
+\end{equation}
+
+\iffalse
+\subsubsection{Mapping Functions}
+The GPT3/VMF3 (\cite{Landskron2018}) model is used to handle tropospheric refraction. 
+For the hydrostatic zenith delay $zd_{hydrostatic}$, the ``refined'' 
+\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
+analysis, \emph{per beacon and per pass}, using an initial value provided by 
+\cite{Askneetal87}.
+
+Given the elevation angle $el$ and the beacon's ellipsoidal coordinates 
+$\bm{r}=\begin{pmatrix} \lambda & \phi & h\end{pmatrix}$, we use the \texttt{gpt3} 
+$\ang{5} \times \ang{5}$ grid to interpolate the $ah$ and $aw$ coefficients; 
+we then compute the mapping function (with height correction) $mf_{wet}$ and 
+$mf_{hydrostatic}$.
+
+\subsubsection{Zenith Delays}
+For the hydrostatic zenith delay $zd_{hydrostatic}$ we use the ``refined'' 
+\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
+analysis, \emph{per beacon and per pass}, using an initial value provided by 
+\cite{Askneetal87}.
+
+\subsubsection{Tropospheric Correction}
+Using the mapping function and the zenith delay, we derive the tropospheric 
+delay for an observation at $t=t_i$, given by:
+\begin{equation}
+  \delta _{TRO} [\si{\m}] = zd_{hydrostatic} \cdot mf_{hydrostatic} + zd_{wet}\at{t=t_i} \cdot mf_{wet}
+  \label{eq:tropo-delay}
+\end{equation}
+
+The tropospheric correction term in \ref{eq:lem13}, is actually the ``time-differenced'' 
+tropospheric delay between two measurements (the same ones used to derive the 
+Doppler count), given in \si{\m \per \s}. That is:
+\begin{equation}
+  \begin{aligned}
+    \Delta v_{TROPO} [\si{\m \per \s}] 
+      &= \left( \delta _{TRO} \at{t=t_{i-1}} - \delta _{TRO} \at{t=t_{i}} \right) / \Delta \tau\\
+      &= \left( \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_i} - 
+        \left[ zd_{h} \cdot mf_{h} + zd_{w}\at{t=t_{i-1}} \cdot mf_{w} \right]\at[\big]{t=t_{i-1}} \right) \ \Delta \tau
+    \label{eq:dtrop-diff}
+  \end{aligned}
+\end{equation}
+
+Note that in the above equation we use the same value $zd_{w}\at{t=t_{i-1}}$ 
+for the wet part of the zenith delay, that is the best estimate prior to 
+incorporating the (new) measurement at $t=t_i$.
+
+The parameter $zd_{w}$ is estimated using no constraints and a simple white 
+noise model (no process noise). Since it is an estimated parameter, we need 
+to compute the (partial) derivative of the observation equation w.r.t to it, 
+that is:
+\begin{equation}
+  \frac{\partial v_{theo}}{\partial zd_{w}} = \frac{mf_{w}\at[\big]{t=t_i} 
+    - mf_{w}\at[\big]{t=t_{i-1}}}{\Delta \tau}
+  \label{eq:partials-zwd}
+\end{equation}
+\fi

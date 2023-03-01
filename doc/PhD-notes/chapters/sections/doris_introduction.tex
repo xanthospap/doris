@@ -1,5 +1,55 @@
-\section{Fundamentals of \gls{doris} System}\label{sec:doris-introduction}
+\section{Introduction}\label{sec:doris-introduction}
+In the sections above, individual componets of \gls{pod} analysis have been 
+discussed, including the force model, orbit integration and parameter estimation. 
+This chapter is devoted to the one fundamental component still missing: the actual data.
 
+The most widely used statellite observation techniques in satellite geodesy, 
+are \gls{slr}, \gls{gnss} and \gls{doris}. In this Thesis is the latter technique 
+is considered. \gls{doris} has been constanty evolving since it originated in the 
+late 1980s, and is currently of fundamental importance for geodesy, with applications 
+spanning a wide range of related fields, including reference frame maintenance. 
+Currently, there is an ongoing effort to deploy the 4\textsuperscript{th} generation 
+ground beacons, securing and further strengthening the techique's performance and 
+thereby future.
+
+To date, orbital accuracies achieved using \gls{doris} data, can reach the few-centimeter 
+level (see e.g. \cite{Rudenko2023} and \cite{Kong2017}), and since most altimetry satellite 
+are equiped with onboard \gls{doris} receivers, the technique plays a crucial role in 
+the study of sea level chages and hence in general the monitoring of the Earth's 
+climate.
+
+\subsection{Goals of Current Chapter}
+In this chapter emphasis is given on the \gls{doris} satellite system. A short 
+introduction of the system's origins and evolvement is given first, and a short 
+description of its operation principle follows. Two pillars of the system are 
+then introduced: 
+\begin{itemize}
+  \item the \gls{ids}, a service dedicated to facilitating access of \gls{doris} 
+data and products to the scietific community and at the same time deriving products 
+of the utmost quality to all interested parties, and 
+  \item the \gls{doris} network, i.e. the transmitting ground beacons, scatter around the 
+globe in a homogenous spatial distribution, which along with the instrumentation stability 
+are a key factor in the technique's precision
+\end{itemize}
+
+Subsequently, the geometry of the ground stations is discussed, since it wiil be needed 
+to reference the signal path to the appropriate, yet virtual point of transmittion. 
+Related offsets and variations (\gls{pco} and \gls{pcv}) are also discussed.
+
+Focus is then turned to the theoretical study of the measurements obtained via the 
+\gls{doris} technique, i.e. the relative velocity between the transmitter and the 
+receiver (via Doppler counts). A brief derivation is given of the basic formulas 
+involved, along with a short discussion on theoretical implications and models.
+
+Last but not least, a thorough discussion on the implementation of the observation 
+equations, obtained via the \gls{doris} system, follows. Starting from the theoretical 
+background (discussed previously), implementation details and practical aspects of the 
+computations involved are presented, following a hands-on approach. Given that analysis 
+of \gls{doris} observations is not as popular and not as ``standarized'' as other 
+techniques (e.g. \gls{gnss}), especially since the new, extended \gls{doris} RINEX 
+format was introduced, this section is key in designing a robust processing chain.
+
+\section{Fundamentals of \gls{doris} System}\label{sec:doris-system-fundamentals}
 In the late 1980s, \gls{cnes}, in conjunction with \gls{ign} and \gls{grgs} developed 
 a new geodetic tracking system called \gls{doris} for precise orbit determination 
 of \gls{leo} satellites for oceanographic missions. Since then, \gls{doris} has 
