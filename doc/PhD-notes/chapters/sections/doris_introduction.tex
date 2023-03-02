@@ -1,76 +1,90 @@
 \section{Introduction}\label{sec:doris-introduction}
-In the sections above, individual componets of \gls{pod} analysis have been 
+In the sections above, individual components of \gls{pod} analysis have been 
 discussed, including the force model, orbit integration and parameter estimation. 
 This chapter is devoted to the one fundamental component still missing: the actual data.
 
-The most widely used statellite observation techniques in satellite geodesy, 
-are \gls{slr}, \gls{gnss} and \gls{doris}. In this Thesis is the latter technique 
-is considered. \gls{doris} has been constanty evolving since it originated in the 
+The most widely used satellite observation techniques in geodesy, 
+are \gls{slr}, \gls{gnss} and \gls{doris}. In this Thesis the latter technique 
+is considered. \gls{doris} has been constantly evolving since it originated in the 
 late 1980s, and is currently of fundamental importance for geodesy, with applications 
 spanning a wide range of related fields, including reference frame maintenance. 
 Currently, there is an ongoing effort to deploy the 4\textsuperscript{th} generation 
-ground beacons, securing and further strengthening the techique's performance and 
+ground beacons, securing and further strengthening the technique's performance and 
 thereby future.
 
 To date, orbital accuracies achieved using \gls{doris} data, can reach the few-centimeter 
-level (see e.g. \cite{Rudenko2023} and \cite{Kong2017}), and since most altimetry satellite 
-are equiped with onboard \gls{doris} receivers, the technique plays a crucial role in 
-the study of sea level chages and hence in general the monitoring of the Earth's 
+level (see e.g. \cite{Rudenko2023} and \cite{Kong2017}), and since most altimetry satellite missions 
+are equipped with onboard \gls{doris} receivers, the technique plays a crucial role in 
+the study of sea level changes and hence, indirectly, in the monitoring of the Earth's 
 climate.
+
+Currently \gls{doris} is not as popular as other satellite geodetic techniques (e.g. 
+\gls{gnss}), for a variety of reasons, including the technique's complexity and 
+its limited (if any) commercial usage. This is evident by the number of Analysis 
+Centers contributing to the \gls{ids} (according to \cite{Moreaux2022}, four Analysis Centers 
+were involved in \gls{ids}'s contribution to ITRF2020). The work performed in the 
+framework of the current Thesis, aims in laying the groundwork for a new, state-of-the-art 
+software package, to enable \gls{doris} data analysis pertaining to \gls{ids} 
+quality standards.
 
 \subsection{Goals of Current Chapter}
 In this chapter emphasis is given on the \gls{doris} satellite system. A short 
-introduction of the system's origins and evolvement is given first, and a short 
+introduction of the system's origins and technological advancements is given first, and a short 
 description of its operation principle follows. Two pillars of the system are 
-then introduced: 
+introduced: 
 \begin{itemize}
-  \item the \gls{ids}, a service dedicated to facilitating access of \gls{doris} 
-data and products to the scietific community and at the same time deriving products 
+  \item the \gls{ids}, a service dedicated to facilitating access to \gls{doris} 
+data and products to the scientific community, while at the same time deriving products 
 of the utmost quality to all interested parties, and 
-  \item the \gls{doris} network, i.e. the transmitting ground beacons, scatter around the 
-globe in a homogenous spatial distribution, which along with the instrumentation stability 
-are a key factor in the technique's precision
+  \item the \gls{doris} network, i.e. the transmitting ground beacons, scattered around the 
+globe in a homogeneous spatial distribution, which along with the instrumentation stability 
+is a key factor in the technique's precision
 \end{itemize}
 
-Subsequently, the geometry of the ground stations is discussed, since it wiil be needed 
-to reference the signal path to the appropriate, yet virtual point of transmittion. 
-Related offsets and variations (\gls{pco} and \gls{pcv}) are also discussed.
+Subsequently, the geometry of the ground stations is discussed. In applications  
+with high accuracy demands, the signal path between emitter and receiver  
+needs to be referred to the appropriate, yet virtual, exact point of transmission 
+(and reception respectively). Hence, beacon geometry, reference points and related 
+offsets and variations (\gls{pco} and \gls{pcv}) are presented and discussed, as 
+well as the reductions involved in data analysis.
 
-Focus is then turned to the theoretical study of the measurements obtained via the 
+Focus is subsequently turned to the theoretical study of the measurements obtained via the 
 \gls{doris} technique, i.e. the relative velocity between the transmitter and the 
-receiver (via Doppler counts). A brief derivation is given of the basic formulas 
-involved, along with a short discussion on theoretical implications and models.
+receiver (via Doppler counts). It is crucial to gain a clear view on both the 
+observation model and the measurement conduction by the receiver electronics, to 
+be able to identify discrepancies, error sources and ambiguities that enter the model, 
+measurements and computations. An observation model to match, as precisely as possible, 
+the acquired measurements is derived and extensively discussed. Basic formulas 
+involved, along with theoretical implications are also presented.
 
 Last but not least, a thorough discussion on the implementation of the observation 
 equations, obtained via the \gls{doris} system, follows. Starting from the theoretical 
 background (discussed previously), implementation details and practical aspects of the 
 computations involved are presented, following a hands-on approach. Given that analysis 
-of \gls{doris} observations is not as popular and not as ``standarized'' as other 
+of \gls{doris} observations is not as popular and not as ``standardized'' as other 
 techniques (e.g. \gls{gnss}), especially since the new, extended \gls{doris} RINEX 
-format was introduced, this section is key in designing a robust processing chain.
+format was introduced, this section is key in designing a robust processing pipeline.
 
 \section{Fundamentals of \gls{doris} System}\label{sec:doris-system-fundamentals}
 In the late 1980s, \gls{cnes}, in conjunction with \gls{ign} and \gls{grgs} developed 
 a new geodetic tracking system called \gls{doris} for precise orbit determination 
 of \gls{leo} satellites for oceanographic missions. Since then, \gls{doris} has 
 made huge leaps forward, and proved to be an invaluable tool to the scientific community, 
-greatly expanding its application range and significance, 
-%contributing to applications in the fields of geophysics, Earth rotation and 
-%atmospheric studies, 
-leading in 2003 to the creation of \gls{ids} (\cite{Willis2016}), 
-part of the \gls{ggos} within the \gls{iag} (\cite{Willis2006}). 
+greatly expanding its application range and significance. This process lead in 
+2003 to the creation of \gls{ids} (\cite{Willis2016}), part of the \gls{ggos} 
+within the \gls{iag} (\cite{Willis2006}). 
 
-\gls{doris} (\cite{Barlier2005}) originated in the preperation for the US-French 
+\gls{doris} (\cite{Barlier2005}) originated during the design phase of the US-French 
 TOPEX/Poseidon mission (\cite{Fu1994}), 
-and constitutes a Doppler up-lik system, optimized for orbit determination (both 
+and constitutes a Doppler up-link system, optimized for orbit determination (both 
 in real-time and post-processed). Radio signals are generated from a ground-tracking 
 network, and Doppler measurements are performed on-board the satellite. Since its 
 initialization, the system's technology has greatly improved, and its applications 
 have gradually and logically expanded from orbit determination to gravity-field 
 determination, terrestrial reference frame maintenance and geodynamics. Since TOPEX/Poseidon, an 
-ever-increasing number of \gls{leo} satellite missions are ecquiped with on-board 
+ever-increasing number of \gls{leo} satellite missions are equipped with on-board 
 \gls{doris} receivers. \autoref{fig:doris-constellations} depicts past, current and 
-future \gls{doris}-ecquiped satellite missions.
+future \gls{doris}-equipped satellite missions.
 
 \begin{figure}[h!]
   \centering
@@ -90,8 +104,8 @@ future \gls{doris}-ecquiped satellite missions.
 
 \subsection{The \gls{doris} Tracking Network}\label{ssec:doris-tracking-network}
 The tracking network is a key factor in the success of the \gls{doris} system. 
-This network was established and is actively maitained by \gls{ign} and it currently 
-(Feb. 2023) constists of $\approx$ 60 sites (\autoref{fig:doris-network}). It is global, dense 
+This network was established and is actively maintained by \gls{ign} and it currently 
+(Feb. 2023) consists of $\approx 60$ sites (\autoref{fig:doris-network}). It is global, dense 
 and homogeneous, and thus unique among the different techniques that contribute to 
 \gls{itrf}. Since its establishment, very few changes of sites and/or instrumentation 
 have been performed, thus enforcing network stability. Furthermore, it is (spatially) 
@@ -147,12 +161,12 @@ tracking stations, along with their positions and velocities  and time series of
 geocenter motion and Earth orientation parameters. \gls{ids} also coordinates the 
 technique's contribution to the \gls{itrf} (see e.g. \cite{Moreaux2022}).
 
-\gls{ids}'s organization chart, icludes a Governing Board and a Central Bureau.
+\gls{ids}'s organization chart, includes a Governing Board and a Central Bureau.
 The Analysis Centers process the \gls{doris} data available at the \gls{ids} Data 
-Centers and generate products with the assistace of the Analysis Center Coordinator.
+Centers and generate products with the assistance of the Analysis Center Coordinator.
 The \gls{ids} Combination Center provides regular combination of products of 
-the Analysis Centers ad is also in charge of the realization of the so-called 
-DPOD (\gls{doris} extension to the current \gls{itrf} for Precise Orbit Determination) 
+the Analysis Centers and is also in charge of the realization of the so-called 
+DPOD (\gls{doris} extension to the current \gls{itrf} for \gls{pod}) 
 which contains update mean positions and velocities of all the \gls{doris} stations. 
 Last but not least, the \gls{ids} Combination Center produces the technique's 
 contribution the \gls{itrf}.

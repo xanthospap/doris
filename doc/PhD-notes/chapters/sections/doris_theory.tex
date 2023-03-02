@@ -8,18 +8,19 @@
 \end{figure}
 
 \subsection{Theoretical Model of Doppler Observations}\label{ssec:doris-obs-theory}
-A detailed derivation of the Doppler observation equation, as implemented via the 
+A detailed derivation of the Doppler observation equation, as implemented by means of the 
 \gls{doris} system, can be found in \cite{Lemoine2016}, including a thorough theoretical 
-discussion. A brief overview is only given here, with focus on model implementation.
+discussion. A brief overview is given here, with focus on the measurement model 
+implementation.
 
-To gain a clear view on the model of the measurements, a rigorous disctinction of 
+To gain a clear view on the model of the measurements, a rigorous distinction of 
 events must be made; four different events can be identified:
 \begin{description}
     \item[beginning of emission] of the 1\textsubscript{st} cycle by the emitter, 
     \(\tau_{e_1}\) in the proper time scale of the emitter and \(t_1\) in the coordinate 
     time
     
-    \item[beginning of reception] of the the 1\textsubscript{st} cycle by the receiver, 
+    \item[beginning of reception] of the 1\textsubscript{st} cycle by the receiver, 
     \(\tau_{r_1'}\) in the proper time scale of the receiver and 
     \(t_{1'}\) in the coordinate time
 
@@ -35,7 +36,7 @@ events must be made; four different events can be identified:
 During the proper time interval $\Delta\tau_{r} = \tau_{r2'} - \tau_{r1'}$, 
 the receiver has received the $N_e$ cycles sent by the emitter, with $N_e = f_e \Delta\tau_e$, 
 $f_e$ being the proper frequency of the emitter. The receiver is also equipped with
-an oscilator and during the proper time interval $\Delta\tau_{r}$ has generated 
+an oscillator and during the proper time interval $\Delta\tau_{r}$ has generated 
 a number $N_r = f_r \Delta\tau_r$ of cycles, $f_r$ being the proper frequency of the 
 receiver.
 
@@ -72,7 +73,7 @@ where
   \item $R_i$ is the geometric distance between the beacon and the satellite at event $i$
 \end{description}
 
-The above equation can be conviniently split into two parts, one containing the ``measured'' 
+The above equation can be conveniently split into two parts, one containing the ``measured'' 
 quantities and one with the ``theoretical'' terms, as 
 \begin{subequations}\label{eq:lem12}
   \begin{align}
@@ -90,21 +91,22 @@ with
     \end{split}
 \end{equation}
 
-It is well known that signals transmitted through the Earth's atmosphere are affected by 
-it (delayed); let $\Delta v_{IONO}$ and $\Delta v_{TROPO}$, be the propagation corrections of 
-the radio electric signal through the ionosphere and troposphere respectively. 
+It is well known that signals transmitted through the Earth's atmosphere are 
+affected by it (delayed); let $\Delta v_{IONO}$ and $\Delta v_{TROPO}$, be the 
+propagation corrections of the radio electric signal through the ionosphere and 
+troposphere respectively. 
 
-Additionaly, in the actual case (measurements), the nominal frequencies $f_e$ and $f_r$ 
-are not the ``true'' ones; hence a relative correction needs to be applied (e.g. for the 
-emmiter) $f_{e_T} = f_{e_N} (1 + \frac{\Delta f_e}{f_{e_N}})$, where the subscript $T$ 
+Additionally, in the actual case (measurements), the nominal frequencies $f_e$ and $f_r$ 
+are not the ``true'' ones; hence, a relative correction needs to be applied e.g. for the 
+emitter $f_{e_T} = f_{e_N} (1 + \frac{\Delta f_e}{f_{e_N}})$, where the subscript $T$ 
 denotes the ``True'' frequency and $N$ the nominal one. Thus in \autoref{eq:lem12} the 
 terms $f_e$ and $f_r$ need to be substituted by $f_{e_T}$ and $f_{r_T}$ respectively.
 
 $\Delta v_{IONO}$ and $\Delta v_{REL}$, which do not involve adjusted parameters, can be placed 
 on the ``measured'' part of \autoref{eq:lem12} and $\Delta v_{TROPO}$ and $\frac{\Delta f_e}{f_{e_N}}$ 
-on the ``theoretical'' part. Furthermore, since $\Delta f_e / f_{e_N} \ll 1$ all in 
-including $\Delta f_e / f^2_{e_N}$ and $\Delta f^2_e / f^2_{e_N}$ can be safely neglected and 
-\autoref{eq:lem12} can be written as:
+on the ``theoretical'' part. Furthermore, since $\Delta f_e / f_{e_N} \ll 1$ all  
+terms including $\Delta f_e / f^2_{e_N}$ and $\left(\Delta f_e / f_{e_N}\right)^2$ 
+can be safely neglected and \autoref{eq:lem12} can be rewritten as:
 \begin{subequations}\label{eq:lem13}
     \begin{align}
         v_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
@@ -118,19 +120,19 @@ including $\Delta f_e / f^2_{e_N}$ and $\Delta f^2_e / f^2_{e_N}$ can be safely 
 \end{subequations}
 where 
 \begin{description}
-    \item[\(v_{measured}\)] is the measured relative velocity between the emitter and 
-    the receiver between the events 1' and 2', based on the Doppler count \(N_{DOP}\), 
+    \item[$v_{measured}$] is the measured relative velocity between the emitter and 
+    the receiver between the events 1' and 2', based on the Doppler count $N_{DOP}$, 
     corrected for the ionospheric and relativistic effects.
 
-    \item[\(v_{theo}\)] is the the theoretical (computed) emitter/receiver relative velocity 
+    \item[$v_{theo}$] is the theoretical (computed) emitter/receiver relative velocity 
     between the events 1' and 2', corrected for the tropospheric effect and for a solved-for 
-    frequency bias \(\frac{\Delta f_e}{f_{e_N}}\) of the emitter. 
-    \(f_{r_T} = f_{r_N} (1 + \frac{\Delta f_r}{f_{r_N}})\) 
+    frequency bias $\frac{\Delta f_e}{f_{e_N}}$ of the emitter. 
+    $f_{r_T} = f_{r_N} (1 + \frac{\Delta f_r}{f_{r_N}})$ 
     is an estimate of the proper frequency of the receiver.
 
-    \item[\(\Delta v_{REL} = \Delta v_{{REL}_c} + \Delta v_{{REL}_r}\)] is the relativistic 
-    correction, composed of two parts: the clock correction \(\Delta v_{{REL}_c}\) and the 
-    travel correction \(\Delta v_{{REL}_r}\)
+    \item[$\Delta v_{REL} = \Delta v_{{REL}_c} + \Delta v_{{REL}_r}$] is the relativistic 
+    correction, composed of two parts: the clock correction $\Delta v_{{REL}_c}$ and the 
+    travel correction $\Delta v_{{REL}_r}$
     \begin{subequations}\label{eq:lem14}
         \begin{align}
             \Delta v_{{REL}_c} & = \frac{1}{c} 
@@ -143,20 +145,18 @@ where
 \end{description}
 
 Note that \autoref{eq:lem13} can be further simplified to \autoref{eq:lem17} by 
-ommiting small terms (\autoref{ssec:small-terms}).
-
-%\emph{Usually, one frequency offset and one tropospheric zenithal bias are adjusted per pass.}
+omitting small terms (\autoref{sssec:small-terms}).
 
 \subsection{Implementation of the Doppler Observation Model}\label{ssec:obs-model-implementation}
 
 \subsubsection{Small Terms}\label{sssec:small-terms}
-In \autoref{eq:lem13}, the smallest terms are \(-U_e / c^2 - {V_e}^2 / 2 c^2\) and 
-\(\Delta v_{{REL}_T}\); in the case of \gls{doris} they ammount to \num{11.} and 
+In \autoref{eq:lem13}, the smallest terms are $-U_e / c^2 - {V_e}^2 / 2 c^2$ and 
+$\Delta v_{{REL}_T}$; in the case of \gls{doris} they amount to \num{11.} and 
 \num{6.} \SI{10e-6}{\meter\per\second} respectively (\cite{Lemoine2016}). 
 Furthermore, since the emitters are located on the ground, the term 
-\(-U_e / c^2 - {V_e}^2 / 2 c^2\) is constant per station. This small 
-relativistic offset is absorbed by the adjustment of \(\Delta f_e / f_{e_N}\). 
-So it is possibly to furher simplify \autoref{eq:lem13} to:
+$-U_e / c^2 - {V_e}^2 / 2 c^2$ is constant per station. This small 
+relativistic offset is absorbed by the adjustment of $\Delta f_e / f_{e_N}$. 
+So it is possibly to further simplify \autoref{eq:lem13} to:
 \begin{subequations}\label{eq:lem17}
     \begin{align}
         v_{measured} & = \frac{c}{f_{e_N}} (f_{e_N} - f_{r_T} -
@@ -173,7 +173,7 @@ In \autoref{eq:lem13} (or \autoref{eq:lem17}), $\rho _i$ is the geometrical dist
 between the emitter at time $t_i$ and the receiver at time $t_{i'}$ (with $i=1,2$). 
 The measurements are made by the receiver electronics, hence the instance $t_i$ is 
 actually unknown. In order to compute accurately $t_i$ and thus the position of 
-the emitter at this istant in time, a \emph{correction of aberration} (\cite{Lemoine2016}) 
+the emitter at this instant in time, a \emph{correction of aberration} (\cite{Lemoine2016}) 
 has to be performed. This correction can be evaluated in an iterative manner: an 
 approximate value of of the emitter-receiver distance $\rho ^{*} _i$ is first computed, 
 by evaluating the position of the beacon at time $t_{i'}$. Subsequently, $t_i$ can be 
@@ -187,9 +187,10 @@ not located on the geoid, the quantity $U_e + \frac{{V_e}^2}{2}$ will only depen
 on the height of the beacon above the geoid.
 
 For the computation of the gravitational potential for \gls{leo} satellites, 
-the pottential $U_r$ cannot be restricted to the central term only ($GM_{\Earth} / r$) and
+the potential $U_r$ cannot be restricted to the central term only ($GM_{\Earth} / r$) and
 the Earth's oblateness ($J_2$) effect should also be considered (\cite{Larson2007}). 
-Hece, the equation used reads (\cite{Lemoine2016})
+Hence, the equation used for computing the potential for a given satellite, reads 
+(\cite{Lemoine2016})
 \begin{equation}\label{eq:lem18}
   U_r = 
     -\frac{GM_{\Earth}}{r} \left( 
@@ -198,36 +199,37 @@ Hece, the equation used reads (\cite{Lemoine2016})
       J_2 \frac{3 sin^2(\phi) - 1}{2} 
     \right)
 \end{equation}
-or in cartesian coordiates (\cite{Larson2007})
+or in cartesian coordinates (\cite{Larson2007})
 \begin{equation}
   U_r = -\frac{GM_{\Earth}}{r} \left( 1- \left(\frac{R_{\Earth}}{r}\right)^2 
     J_2 \frac{3 z^2 - r^2}{2r^2} \right)
 \end{equation}
-with $R_{\Earth}$ the equatorial radious of the earth, $r$ radial 
+with $R_{\Earth}$ the equatorial radius of the earth, $r$ radial 
 distance of the satellite (to the Earth's center), $\phi$ latitude of the 
 satellite and $J_2 = 1.0826359 \dot 10^{-3}$ in the zero-tide system (\cite{iers2010}).
 
+\iffalse
 \subsubsection{True Proper Frequency of the Receiver}\label{sssec:true-proprtfrequency-of-the-receiver}
 For the term $f_{r_T}$ that appears in \autoref{eq:lem13}, we need an estimate of 
 $\Delta f_{r} / f_{r_N}$. This estimate can be obtained in one of the following ways 
 \cite{Lemoine2016}:
 \begin{enumerate}
-    \item via the field ``F'' recorded for every single measurement in the \gls{doris} 
+    \item Via the field ``F'' recorded for every single measurement in the \gls{doris} 
       RINEX file (see \autoref{ssec:relative-frequency-offset}); not that this estimation 
       is not very smooth, as noticed by \cite{Gao2015} and it is advisable, before 
       using it in \autoref{eq:lem13}, to perform a linear (or polynomial) regression of 
       these estimates over one or a few days.
-    \item It can also be obtained from a polynomial regression
-      over the frequency oﬀsets estimated during the passes
-      over the master beacons
-    \item It can ﬁnally be estimated by the users themselves as a
-      by-product of their re-computation of the timetagging polynomial (see \cite{Mercier2010})
+    \item It can be obtained from a polynomial regression over the frequency 
+      offsets estimated during the passes over the master beacons
+    \item It can be estimated as a by-product during a re-computation of the 
+      ``timetagging'' polynomial (see \cite{Mercier2010})
 \end{enumerate}
+\fi
 
 \subsubsection{Nominal Receiver \& Emitter Frequencies}\label{ssec:nominal-frequencies}
-In the observation equation model \autoref{eq:lem13} we distinguish between 
-\emph{nominal} and \emph{true} receiver/emitter frequencies, to account for 
-the fact that in ``real world'' these two are not actually equal.
+In the observation equation model \autoref{eq:lem13}, a distinction is made between 
+\emph{nominal} and \emph{true} receiver/emitter frequencies, to account for the 
+fact that in ``real world'' these two are not actually equal.
 
 \paragraph{Emitter (Beacon) Nominal Frequencies, $f_{e_N}$}\label{par:beacon-nominal-frequencies}
 RINEX file headers, contain values of the \emph{station frequency shift 
@@ -245,7 +247,7 @@ $k \neq 0$). The frequencies are computed as (\cite{DORISRNX3}, Sec. 6.16):
 where $F_0 = 5e6 \text{ Hz}$ the \gls{uso} frequency. These value, are the ones 
 labelled as $f_{e_N}$ in \autoref{eq:lem13}.
 
-The \emph{true proper frequency} of the emitter $f_{e_T}$, can be computed 
+The \emph{true proper frequency} of the emitter $f_{e_T}$, can be computed (if needed) 
 from:
 \begin{equation}
   f_{e_T} = f_{e_N} \cdot \left( 1 + \frac{\Delta f_e}{f_{e_N}} \right)
@@ -259,9 +261,8 @@ the model can be written as:
 \begin{equation}
   \frac{\Delta f_e}{f_{e_N}}\at{\tau=\tau _i} = \alpha + \beta \cdot \delta \tau
 \end{equation}
-%with an a-priori value of 0 and no process noise. 
-For the estimation, we need the partials of the observation equation \autoref{eq:lem13b} 
-w.r.t. the $\alpha$ and $\beta$ parameters, which are:
+For the estimation, the partials of the observation equation \autoref{eq:lem13b} are needed, 
+with respect to the $\alpha$ and $\beta$ parameters, which are:
 \begin{equation}
   \begin{aligned}
   \frac{\partial v_{theo}}{\partial \alpha} &= 
@@ -273,14 +274,27 @@ w.r.t. the $\alpha$ and $\beta$ parameters, which are:
 
 \paragraph{Receiver True Proper Frequency $f_{r_T}$}\label{par:receiver-true-proper-frequency}
 In \autoref{eq:lem13}, $f_{r_T}$ is the \emph{true proper frequency of 
-the receiver} with nominal value 
+the receiver}, computed as
 \begin{equation}\label{eq:frt-gen}
   f_{r_T} = f_{r_N} \cdot \left( 1 + \frac{\Delta f_r}{f_{r_N}} \right)
 \end{equation}
-where $f_{r_N}$ is the ``nominal'' frequency value.
+where $f_{r_N}$ is the ``nominal'' frequency value. The value of the quantity 
+$\Delta f_r / f_{r_N}$, called the \emph{relative frequency offset} of the receiver,
+can be extracted from the RINEX file, estimated or computed, in one of the following 
+ways (\cite{Lemoine2016})
+\begin{enumerate}
+    \item Via the field ``F'' recorded for every single measurement in the \gls{doris} 
+      RINEX file (see \autoref{ssec:relative-frequency-offset}); not that this estimation 
+      is not very smooth, as noticed by \cite{Gao2015} and it is advisable, before 
+      using it in \autoref{eq:lem13}, to perform a linear (or polynomial) regression of 
+      these estimates over one or a few days.
+    \item It can be obtained from a polynomial regression over the frequency 
+      offsets estimated during the passes over the master beacons
+    \item It can be estimated as a by-product during a re-computation of the 
+      ``timetagging'' polynomial (see \cite{Mercier2010})
+\end{enumerate}
 
-In practice the value $\Delta f_r / f_{r_N}$, called the \emph{relative 
-frequency offset} of the receiver, is given in the RINEX files for each epoch 
+$\frac{\Delta f_r}{f_{r_N}}$ values are reported in the RINEX files for each epoch 
 (under the observable tagged \texttt{F}). Note that these values are scaled to 
 $10^{-11}$ (\cite{DORISRNX3}, Sec. 6.11), so that for a given epoch $t_i$, the 
 true frequency is
@@ -289,9 +303,6 @@ true frequency is
 \end{equation}
 where $F_{t_i}$ is the relative frequency offset value recovered from the RINEX 
 file.
-
-\iffalse
-\fi
 
 \subsection{Ionospheric Correction}\label{ssec:iono-correction}
 The basic observation equation \autoref{eq:lem13}, is formed for the \SI{2}{\GHz} 
@@ -309,7 +320,7 @@ RINEX file). Thus, the corrected observation is:
     L_{\SI{2}{\GHz}} + \delta_{ION}
 \end{equation}
 
-Note that after applying \autoref{eq:l2if}, the measurement is refered to the ``Iono-Free'' 
+Note that after applying \autoref{eq:l2if}, the measurement is referred to the ``Iono-Free'' 
 geometrical endpoints of the signal path (and not the \SI{2}{\GHz} endpoints). 
 This means that the respective {phase center corrections (i.e. \gls{pco} and \gls{pcv})
 both at the satellite and at the beacon have to be applied.

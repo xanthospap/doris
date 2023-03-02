@@ -1,50 +1,32 @@
 \section{DORIS Ground Segment}\label{sec:doris-ground-segment}
 
-Estimation of precise coordinates of both \gls{doris}-ecquiped satellites and 
+Estimation of precise coordinates of both \gls{doris}-equipped satellites and 
 \gls{doris} beacons relies on accurate modeling of the signal path from the
 ground antenna to the space antenna. It is thus important to have a clear view of 
-the geometry of the respective antennae and reference points of signal reception.
+the geometry of the respective antennae and reference points of signal transmission 
+and reception. Note that these reference points depend on the frequency (or linear 
+combination of frequencies) used to perform a measurement.
 
 \subsection{Geometry of Ground Antennae}\label{ssec:antenae-geometry}
 \gls{doris} observations are referred to the electronic reference points (RP) of the 
 antenna, the points where the \gls{doris} observations are acquired. However, 
 these points are ``virtual'' and for example may change while using another antenna 
-type, hence they lack the acquracy required for geodetic studies.
+type, hence they lack the accuracy required for geodetic studies.
 Observations must therefore be referred to the conventional RP which is defined 
 according to the geometry of the antenna and account for the distance between 
 the electronic RP and the conventional RP of the antenna (\cite{Tourain2016}). 
 The ability to get accurate \gls{doris} data relies 
 for one part on the capability of providing accurate models to connect the 
 electronic RP (or electronic \emph{phase center}) and the conventional RP, as well 
-as, \glspl{pcv} as a function of the elevation angle and azimuth to the tracking 
-satellite.
+as, \glspl{pcv} as a function of the elevation angle to the tracking satellite.
 
 Three antenna types are used in the \gls{doris} tracking network, namely 
 \texttt{ALCATEL}, \texttt{STAREC-B} and \texttt{STAREC-C} (\cite{Saunier2016}). 
-\autoref{table:antenna-gains} records antena gains per type. 
+\autoref{table:antenna-gains} records antenna gains per type. 
 ALCATEL is the oldest antenna type, installed throughout the \gls{doris} network 
 at the time of its establishment. These antennas were later replaced by the STAREC-B 
 model, a long-standing effort that ended in 2007 with the replacement of the last 
 station in Toulouse (TLHA) (\cite{Stepanek2022}).
-
-The type of antenna installed at a perticular stations, is identified by the 
-4\textsuperscript{th} character of the beacon mnemonic: letter ``\texttt{A}'' for the 
-Alcatel type; letter ``\texttt{B}'' or letter ``\texttt{C}'' for the Starec B 
-or C type respectively. That is, in the \gls{doris} RINEX (see \autoref{}) 
-field ``STATION REFERENCE'', 
-the last character of the second column (aka ``4-character station code''), 
-defines the ground beacon antenna type; example:
-
-\begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
-\begin{BVerbatim}[commandchars=\\\{\}]
-    51                                                      # OF STATIONS       
-D01  BEM\textcolor{red}{B} BELGRANO                      66018S002  3   0    STATION REFERENCE   
-D02  ADH\textcolor{red}{C} TERRE ADELIE                  91501S005  3   0    STATION REFERENCE   
-D03  SYQ\textcolor{red}{B} SYOWA                         66006S005  3   0    STATION REFERENCE   
-D04  CRQ\textcolor{red}{C} CROZET                        91301S004  4   0    STATION REFERENCE   
-D05  DIO\textcolor{red}{B} DIONYSOS                      12602S012  3   0    STATION REFERENCE
-\end{BVerbatim}
-\end{adjustbox}
 
 \begin{table}[h!]
     \centering
@@ -69,20 +51,30 @@ D05  DIO\textcolor{red}{B} DIONYSOS                      12602S012  3   0    STA
     \label{table:antenna-gains}
 \end{table}
 
+The type of antenna installed at a particular station, is identified by the 
+4\textsuperscript{th} character of the beacon mnemonic: letter ``\texttt{A}'' for the 
+Alcatel type; letter ``\texttt{B}'' or letter ``\texttt{C}'' for the Starec B 
+or C type respectively. That is, in the \gls{doris} RINEX field ``STATION REFERENCE'', 
+the last character of the second column (aka ``4-character station code''), 
+defines the ground beacon antenna type; e.g.
+
+\begin{adjustbox}{max width=\linewidth , fbox=0.5pt}
+\begin{BVerbatim}[commandchars=\\\{\}]
+    51                                                      # OF STATIONS       
+D01  BEM\textcolor{red}{B} BELGRANO                      66018S002  3   0    STATION REFERENCE   
+D02  ADH\textcolor{red}{C} TERRE ADELIE                  91501S005  3   0    STATION REFERENCE   
+D03  SYQ\textcolor{red}{B} SYOWA                         66006S005  3   0    STATION REFERENCE   
+D04  CRQ\textcolor{red}{C} CROZET                        91301S004  4   0    STATION REFERENCE   
+D05  DIO\textcolor{red}{B} DIONYSOS                      12602S012  3   0    STATION REFERENCE
+\end{BVerbatim}
+\end{adjustbox}
+
 \subsubsection{Phase Center Offsets}\label{sssec:doris-pco}
 Depending on the antenna type, appropriate \glspl{pco} need to be applied to 
 the observed quantities for the reduction of the observation vector to the 
 Reference Point (from the respective ``virtual'' phase center) of the antenna. 
-When a linear combination of the observed quantities is used, a respective 
-\gls{pco} needs to be computed and applied. E.g., for the case of the 
-ionospheric-free linear combination, the respective \gls{pco} is:
-\begin{equation}
-    \vec{r}_{2GHz,iono-free} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}
-\end{equation}
-where $\vec{r}_{2GHz,iono-free}$ is the vector from the \SI{2}{\GHz} phase
-center to the iono-free phase center and $\vec{r}_{400MHz,2GHz}$ is
-the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center. \autoref{table:antenna-pco} 
-lists the \gls{pco} per antenna type.
+\autoref{table:antenna-pco} lists \gls{pco} values for the two fundamental frequencies 
+of the \gls{doris} system per antenna type.
 
 \begin{table}[h!]
     \centering
@@ -97,6 +89,17 @@ lists the \gls{pco} per antenna type.
     \caption{\gls{doris} ground antennae \glspl{pco}, \cite{DORISGSM}.}
     \label{table:antenna-pco}
 \end{table}
+
+When a linear combination of the observed quantities is used, a respective 
+\gls{pco} needs to be computed and applied. E.g., for the case of the 
+ionospheric-free linear combination, the respective \gls{pco} is:
+\begin{equation}
+    \vec{r}_{2GHz,iono-free} = \frac{\vec{r}_{400MHz,2GHz}}{\gamma - 1}
+\end{equation}
+where $\vec{r}_{2GHz,iono-free}$ is the vector from the \SI{2}{\GHz} phase
+center to the iono-free phase center and $\vec{r}_{400MHz,2GHz}$ is
+the vector from the \SI{400}{MHz} to the \SI{2}{\GHz} phase center. \autoref{table:antenna-pco} 
+lists the \gls{pco} per antenna type.
 
 The geometry of the \gls{doris} ALCATEL Antenna is depicted in \autoref{fig:alcatel-antenna}, 
 with the reference points of interest.
@@ -134,10 +137,10 @@ made available by \gls{ids} (see \autoref{fig:doris-antennae-phase-law}).
 
 A similar approach was eventually followed for the ALCATEL antenna type 
 leading to an elevation-dependent \gls{pcv} model (see \autoref{fig:doris-antennae-phase-law}), 
-conventially called PCV2.0. \cite{Stepanek2022} reports systematic differences in 
+conventionally called \texttt{PCV2.0}. \cite{Stepanek2022} reports systematic differences in 
 the estimated station heights of about \SI{15}{\milli\meter} when this model is 
 adopted in the analysis, compared to older \gls{pcv} values. Note that both 
-\gls{pcv} models (for ALCATEL and STAREC) do not consider azimouth dependence 
+\gls{pcv} models (for ALCATEL and STAREC) do not consider azimuth dependence 
 and have an elevation step of \ang{5}.
 
 \begin{figure}
