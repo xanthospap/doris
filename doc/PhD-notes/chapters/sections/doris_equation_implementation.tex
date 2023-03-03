@@ -143,10 +143,10 @@ frame. On-board satellite antenna phase center offset values can be found in
 \subsection{Tropospheric Correction}\label{ssec-tropospheric-correction}
 The GPT3/VMF3 (\cite{Landskron2018}) model is used to handle tropospheric refraction. 
 The hydrostatic zenith delay $zd_{hydrostatic}$, is computing via the ``refined'' 
-\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+\emph{Saastamoinen} model (\cite{Davis1985} and \cite{Saastamoinen1972}). 
 The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
 analysis, \emph{per beacon and per pass}, using an initial value provided by 
-\cite{Askneetal87}.
+\cite{Askne1987}.
 
 Using the mapping function and the zenith delay, the tropospheric 
 delay for an observation at $t=t_i$ is given by
@@ -183,10 +183,10 @@ is required
 \subsubsection{Mapping Functions}
 The GPT3/VMF3 (\cite{Landskron2018}) model is used to handle tropospheric refraction. 
 For the hydrostatic zenith delay $zd_{hydrostatic}$, the ``refined'' 
-\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+\emph{Saastamoinen} model (\cite{Davis1985} and \cite{Saastamoinen1972}). 
 The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
 analysis, \emph{per beacon and per pass}, using an initial value provided by 
-\cite{Askneetal87}.
+\cite{Askne1987}.
 
 Given the elevation angle $el$ and the beacon's ellipsoidal coordinates 
 $\bm{r}=\begin{pmatrix} \lambda & \phi & h\end{pmatrix}$, we use the \texttt{gpt3} 
@@ -196,10 +196,10 @@ $mf_{hydrostatic}$.
 
 \subsubsection{Zenith Delays}
 For the hydrostatic zenith delay $zd_{hydrostatic}$ we use the ``refined'' 
-\emph{Saastamoinen} model (\cite{Davisetal85} and \cite{Saastamoinen72}). 
+\emph{Saastamoinen} model (\cite{Davis1985} and \cite{Saastamoinen1972}). 
 The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
 analysis, \emph{per beacon and per pass}, using an initial value provided by 
-\cite{Askneetal87}.
+\cite{Askne1987}.
 
 \subsubsection{Tropospheric Correction}
 Using the mapping function and the zenith delay, we derive the tropospheric 

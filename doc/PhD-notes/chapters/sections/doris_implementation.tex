@@ -1,0 +1,65 @@
+\section{Implementation}\label{sec:doris-implementation}
+In the framework of the current Thesis, a software package was designed to analyze 
+\gls{doris} measurements for \gls{pod}. The practical implementation of the observation 
+equation model is already discussed in \autoref{sec:doris-observation-equation-implementation}. 
+In this section, general issues of the algorithmic design are presented.
+
+The first issue raised when wanting to process \gls{doris} data, is the parsing of 
+input files. For the software created, the decision was made to stick to the new 
+RINEX format (\autoref{sec:doris-rinex}), as suggested by the \gls{ids}. This decision 
+provides for a wider range of analysis options (compared to the older data format), 
+regarding both the data types available and the subsequent processing options and 
+scheme (e.g. it is possible to parse and process pseudorange measurements). The 
+drawback though, is the complexity of the RINEX format.
+
+A dedicated module of the software package is thus designed to handle parsing of the 
+RINEX files, in a generic way, so that users can extract the observables and meta-data 
+needed for the processing scheme they decide on. Note that recent studies have shown that 
+the phase measurements themselves can be used (instead of Doppler counts) to effectively 
+process data (see e.g. \cite{Mercier2010}, \cite{Dettmering2014} and \cite{Zhou2020}), 
+although this method is not yet widely used. As far as 
+
+Ground beacon geometry, including \gls{pco} and \gls{pcv} (see \autoref{sec:doris-ground-segment}) 
+information, is hard-coded in the software library. The implementation is based on a 
+\emph{type-safe}, \emph{meta-programming} paradigm (\cite{Vandevoorde2017}), so that 
+users can request eccentricities and corrections for any \gls{doris} frequency, including 
+their linear combinations. This design pattern allows for efficiency, safety and 
+versatility.
+
+Site eccentricities are read from the respective \emph{log} files, per beacon. 
+\gls{ids} maintains updates log-files for each of the ground beacons included in 
+the \gls{doris} network (see \url{https://ids-doris.org/doris-system/tracking-network/site-logs.html}). 
+To that end, a \emph{Python} module has been created that can handle the acquisition, 
+validation and parsing of relevant information off from the site-specific log file. 
+Eccentricities can thus be extracted and sourced into the main processing module. 
+This design was preferred (e.g. to harcoding eccentricity information), as it accommodates 
+an easier adoption of site changes (e.g. instrumentation, of installation).
+
+Once all of the above components are in place, the software can implement the 
+observation model, as described in \autoref{sec:doris-observation-equation-implementation}.
+The processing algorithm applies observation-specific corrections to the extracted 
+measurements, and keeps track (in chronological order) of the previous observations 
+encountered. Thus, it can compute Doppler counts at every new epoch. All available 
+observations can be taken into account, assuming they comply to a number of user-defined 
+criteria:
+\begin{description}
+  \item[Observation flags]: every observation in a RINEX file is followed by 
+    a list of flags, denoting the instrumentation status (see \cite{DORISRNX3}). Users 
+    can define selection criteria based on these flags.
+  \item[Minimum Elevation]: it is well known that measurements performed on low 
+    elevation angles include an increased error budget. Users can define an 
+    elevation cut-off angle, under which observations are removed for analysis.
+  \item[Time Offset]: to compute the Doppler count between two consecutive observations, 
+    a time distance criterion is set. If the measurements are performed within a  
+    time period larger that this interval, then the Doppler count is rest.
+  \item[Running Statistics]: while processing observations, the software computes 
+    ``running'' statistic values (e.g. average and standard deviation). Users can 
+    set boundary values for accepting observations based on these statistics (e.g. 
+    a 3-$\sigma$ statistical test).
+\end{description}
+
+The whole analysis can be performed in two ``passes'' of the RINEX file: the first is 
+performed to model the receiver's proper frequency $f_{r_T}$ (see 
+\autoref{sssec:true-proprtfrequency-of-the-receiver} and \autoref{ssec:receiver-true-proper-frequency}). 
+In a second pass, the ``core'' part of the analysis is performed, including 
+parameter estimation.

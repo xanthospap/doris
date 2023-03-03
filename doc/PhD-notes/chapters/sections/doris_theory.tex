@@ -1,12 +1,5 @@
 \section{\gls{doris} Observation Equation}\label{sec:doris-observation-equation}
 
-\begin{figure}
-  \centering
-  \input{tikz/doris-system-description.tex}
-  \caption{\gls{doris} System Description}
-  \label{fig:doris-system-description}
-\end{figure}
-
 \subsection{Theoretical Model of Doppler Observations}\label{ssec:doris-obs-theory}
 A detailed derivation of the Doppler observation equation, as implemented by means of the 
 \gls{doris} system, can be found in \cite{Lemoine2016}, including a thorough theoretical 
@@ -147,7 +140,7 @@ where
 Note that \autoref{eq:lem13} can be further simplified to \autoref{eq:lem17} by 
 omitting small terms (\autoref{sssec:small-terms}).
 
-\subsection{Implementation of the Doppler Observation Model}\label{ssec:obs-model-implementation}
+\subsection{Computational Aspects}\label{ssec:doris-computational-aspects}
 
 \subsubsection{Small Terms}\label{sssec:small-terms}
 In \autoref{eq:lem13}, the smallest terms are $-U_e / c^2 - {V_e}^2 / 2 c^2$ and 
