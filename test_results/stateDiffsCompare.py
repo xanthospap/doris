@@ -49,10 +49,19 @@ def interpolate(t, v, t0, t1):
     newx = np.linspace(mjd[0], mjd[-1], num=50, endpoint=True)
     return [ julian.from_jd(ti, fmt='mjd') for ti in newx ], f(newx)
 
+def trim_excess_epochs(dct, max_hours):
+    if max_hours == sys.float_info.max: return dct
+    t0 = min(dct)
+    new_dct = {}
+    for t,vals in dct.items():
+        if t - t0 <= datetime.timedelta(hours=max_hours):
+            new_dct[t] = vals
+    return new_dct
+
 ## Assuming
 ## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res El Mjd
 ## 0        1           2   3      4   5     8        11   12   14  15 16
-def parse(fn):
+def parse(fn, max_hours):
     dct = {}
     with open(fn, 'r') as fin:
         for line in fin.readlines():
@@ -65,17 +74,16 @@ def parse(fn):
                 except:
                   print("ERROR Failed to read datetime from line \"{:}\", filename={:}".format(line.strip(), fn), file=sys.stderr)
                   sys.exit(9)
-            #print('Parsing line {:}'.format(line.strip()))
             x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd = [float(k) for k in l[5:]]
             beacon = l[3]
             arc_nr = int(l[4])
             dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd]
-    return dct
+    return trim_excess_epochs(dct, max_hours)
 
 ## Assuming
 ## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz Mjd
 ## 0        1           2     5        8
-def parse_reference(fn):
+def parse_reference(fn, max_hours):
     dct = {}
     with open(fn, 'r') as fin:
         for line in fin.readlines():
@@ -86,7 +94,7 @@ def parse_reference(fn):
                 t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
             x,y,z,vx,vy,vz,mjd = [float(k) for k in l[2:]]
             dct[t] = [x,y,z,vx,vy,vz,mjd]
-    return dct
+    return trim_excess_epochs(dct, max_hours)
 
 def colAsArray(dct,col,fac=1e0,site=None):
     if site:
@@ -165,6 +173,15 @@ parser.add_argument(
     default=None,
     required=False,
     help='File holding reference state')
+
+parser.add_argument(
+    '--max-hours',
+    metavar='MAX_HOURS',
+    dest='max_hours',
+    type=float,
+    default=sys.float_info.max,
+    required=False,
+    help='Plot results up to MAX HOURS')
 
 parser.add_argument(
   '--plot-residuals',
@@ -247,7 +264,7 @@ def plot_site(fn, site):
   fig.suptitle('Site {:}@{:}\n'.format(site, tmin.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
-def plot_state_diffs(fnref, fntest):
+def plot_state_diffs(fnref, fntest, max_hours):
   def whichCol(component, posvel):
       return component + int(posvel==1)*3
   def whichTitle(component, posvel, fac=1e0):
@@ -264,15 +281,21 @@ def plot_state_diffs(fnref, fntest):
               vals2 = dct[t][2:8] + [dct[t][-1]]
               if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
               assert(abs(vals[-1] - vals2[-1]) < 1e-9)
-              diffs = [ x[0]-x[1] for x in zip(vals,vals2)]
+              if len(vals) > len(vals2):
+                  cvals = vals[2:8] + [vals[-1]]
+              else:
+                  cvals = vals
+              diffs = [ x[0]-x[1] for x in zip(cvals,vals2)]
               resdct[t] = diffs
       return resdct
 
   try:
-    dct1 = parse_reference(fnref)
+    dct1 = parse_reference(fnref, max_hours)
+    print('[DEBUG] File {:} parsed as reference'.format(fnref))
   except:
-    dct1 = parse(fnref)
-  dct2 = parse(fntest)
+    dct1 = parse(fnref, max_hours)
+    print('[DEBUG] File {:} parsed as data'.format(fnref))
+  dct2 = parse(fntest, max_hours)
   diffs = make_state_diffs(dct1,dct2)
 
   t0 = datetime.datetime.max
@@ -311,7 +334,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.ref_state:
-      plot_state_diffs(args.ref_state, args.input)
+      plot_state_diffs(args.ref_state, args.input, args.max_hours)
 
     if args.plot_res:
       plot_residuals(args.input)

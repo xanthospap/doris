@@ -25,10 +25,12 @@
 #include <cstdio>
 #include <cstring>
 #include <datetime/dtcalendar.hpp>
+#include <datetime/dtfund.hpp>
+
+//
+constexpr const int MaxArcHours = 13; 
 
 constexpr const int Np = 1;
-
-// constexpr const double EleCutOff = 10e0; // elevation cut-off angle, [deg]
 
 // max time difference between two observations to mark a new arc pass [sec]
 constexpr const long max_sec_for_new_arc = 5 * 60L;
@@ -384,6 +386,13 @@ auto find_site_blq(const std::vector<dso::BlqSiteInfo> &blqInfoVec,
   return it;
 }
 
+#ifdef RANDOM_RFO
+void restart_filter(dso::EkfFilter<Np, dso::BeaconClockModel::None> &Filter, 
+#else
+void restart_filter(dso::EkfFilter<Np, dso::BeaconClockModel::Linear> &Filter,
+#endif
+  double dfefen_apriori, double dfefen_apriori_stddev, double dragcoef, double dragcoefsigma) noexcept;
+
 int main(int argc, char *argv[]) {
   // check input
   if (argc != 2) {
@@ -654,13 +663,13 @@ int main(int argc, char *argv[]) {
   if (get_rinex_indexes(rnx, l1i, l2i, fi, w1i, w2i))
     return 1;
 
-    // Extended Kalman Filter instance
-    // -------------------------------------------------------------------------
-    // const int NumParams =
-    //    6                        ///< satellite state
-    //    + rnx.stations().size()  ///< beacon relative frequency offset
-    //    + rnx.stations().size(); ///< wet tropo path dealy (zenith)
-    // dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
+  // Extended Kalman Filter instance
+  // -------------------------------------------------------------------------
+  // const int NumParams =
+  //    6                        ///< satellite state
+  //    + rnx.stations().size()  ///< beacon relative frequency offset
+  //    + rnx.stations().size(); ///< wet tropo path dealy (zenith)
+  // dso::ExtendedKalmanFilter<dso::nanoseconds> Filter(NumParams);
 #ifdef RANDOM_RFO
   dso::EkfFilter<Np, dso::BeaconClockModel::None> Filter(
       rnx.stations().size(), rnx.time_of_first_obs());
@@ -671,25 +680,15 @@ int main(int argc, char *argv[]) {
 #endif
   const int NumParams = Filter.num_params();
 
-  // initialize the Kalman filter
-#ifdef RANDOM_RFO
-  Filter.set_rfoff_apriori(DfefeN_apriori);
-  Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev);
-#else
-  Filter.set_rfoff_apriori(DfefeN_apriori, 0e0);
-  Filter.set_rfoff_apriori_sigma(DfefeN_apriori_stddev * DfefeN_apriori_stddev,
-                                 DfefeN_apriori_stddev * DfefeN_apriori_stddev);
-#endif
-  Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
-  Filter.set_drag_coef_apriori(DragCoef);
-  Filter.set_drag_coef_apriori_sigma(DragCoefSigma * DragCoefSigma);
-
   // Default observation sigma for a range-rate observable at zenith
   double obs_sigma;
   error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                              "observation-sigma", obs_sigma);
   assert(obs_sigma > 0e0 && obs_sigma < 1e2 && (!error));
   printf("## Note: default observation sigma value: %.3f\n", obs_sigma);
+  
+  // initialize the Kalman filter
+  restart_filter(Filter, DfefeN_apriori, DfefeN_apriori_stddev, DragCoef, DragCoefSigma);
 
   // Important !!
   // set integration parameter estimates to point to the Filter
@@ -725,6 +724,7 @@ int main(int argc, char *argv[]) {
   // count Ndop observations
   unsigned ndop_count = 0;
   unsigned ndop_count_rejected = 0;
+  dso::datetime<dso::nanoseconds> arc_start_at;
   [[maybe_unused]]unsigned flaged_obs = 0; // number of observations with 'bad' flags
   [[maybe_unused]]unsigned num_obs = 0;    // observation count, regardless if usable or not
 
@@ -758,6 +758,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
       }
+      arc_start_at = tl1;
       svState.mjd_tai =  dso::TwoPartDate(sp3_iterator.current_time());
       svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
       svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
@@ -1209,6 +1210,11 @@ int main(int argc, char *argv[]) {
             dso::seconds(12 * 60 * 60)))
       break;
 
+    // check if we exceed the max arc time interval. If so, restart estimation
+    if (tl1.delta_sec(arc_start_at) >= dso::nanoseconds(MaxArcHours*60L*60L*dso::nanoseconds::sec_factor<long>())) {
+      dummy_counter = 0;
+      restart_filter(Filter, DfefeN_apriori, DfefeN_apriori_stddev, DragCoef, DragCoefSigma);
+    }
   } // for every new data block in the RINEX file
 
   return 0;
@@ -1442,4 +1448,26 @@ int get_tropo_vmf(const char *site, const dso::datetime<dso::nanoseconds> &t,
   Dtrop.mfw = mfw;
 
   return 0;
+}
+
+#ifdef RANDOM_RFO
+void restart_filter(dso::EkfFilter<Np, dso::BeaconClockModel::None> &Filter, 
+#else
+void restart_filter(dso::EkfFilter<Np, dso::BeaconClockModel::Linear> &Filter,
+#endif
+  double dfefen_apriori, double dfefen_apriori_stddev, double dragcoef, double dragcoefsigma) noexcept
+{
+  // initialize the Kalman filter
+#ifdef RANDOM_RFO
+  Filter.set_rfoff_apriori(dfefen_apriori);
+  Filter.set_rfoff_apriori_sigma(dfefen_apriori_stddev * dfefen_apriori_stddev);
+#else
+  Filter.set_rfoff_apriori(dfefen_apriori, 0e0);
+  Filter.set_rfoff_apriori_sigma(dfefen_apriori_stddev * dfefen_apriori_stddev,
+                                 dfefen_apriori_stddev * dfefen_apriori_stddev);
+#endif
+
+  Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
+  Filter.set_drag_coef_apriori(dragcoef);
+  Filter.set_drag_coef_apriori_sigma(dragcoefsigma * dragcoefsigma);
 }
