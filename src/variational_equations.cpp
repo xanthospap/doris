@@ -7,6 +7,7 @@
 
 constexpr const int Np = 1;
 
+/*
 void dso::VariationalEquations(
     double tsec, // seconds from reference epoch (TAI)
     // state and state transition matrix (inertial RF)
@@ -53,7 +54,7 @@ void dso::VariationalEquations(
 
   // oean tides on geopotential, gravity
   Eigen::Matrix<double, 3, 1> gacc_oc,tmp;
-  params.octide->acceleration(cmjd.tai2tt(), /*ut1,*/ r_geo, tmp);
+  params.octide->acceleration(cmjd.tai2tt(), r_geo, tmp);
   gacc_oc = rter2cel(tmp, rc2i, era, rpom);
   
   // earth tides on geopotential, gravity
@@ -181,7 +182,7 @@ void dso::VariationalEquations(
   dfdy.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
   dfdy.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
   dfdy.block<3, 3>(3, 0) = gpartials + tb_partials + ddragdr;
-  dfdy.block<3, 3>(3, 3) = /*Eigen::Matrix<double, 3, 3>::Zero()*/ ddragdv;
+  dfdy.block<3, 3>(3, 3) = ddragdv;
 
   // derivative of sensitivity matrix:
   // | 0 (3x3) 0 (3x3) |
@@ -204,6 +205,7 @@ void dso::VariationalEquations(
 
   return;
 }
+*/
 
 /*
  * tsec : seconds from reference time
@@ -214,7 +216,8 @@ void dso::VariationalEquations(
  *  yP0 = [ y0, Phi(t0,t0) ] 
  *      = [ r0_(3x1), v0_(3x1), 
  *          dr/dr0_(3x3), dr/dv0_(3x3), 
- *          dv/dr0_(3x3), dv/dv0_(3x3) ]
+ *          dv/dr0_(3x3), dv/dv0_(3x3) 
+ *        ]
  *      = [ x0, y0, z0, v_x0, v_y0, v_z0,             : 6 (elements)
  *          { dx/dx0, dx/dy0, dx/dz0,
  *            dy/dx0, dy/dy0, dy/dz0,
@@ -232,7 +235,7 @@ void dso::VariationalEquations(
  *  Initially, the state transition matrix should be set to the identity
  *  matrix, i.e. Phi(t0,t0) = I_(6x6)
  */
-void dso::MotionEquations(
+void dso::VariationalEquations(
     double tsec, // seconds from reference epoch (TAI)
     // state and state transition matrix (inertial RF)
     const Eigen::VectorXd &yP0,
@@ -242,8 +245,9 @@ void dso::MotionEquations(
     dso::IntegrationParameters &params) noexcept {
 
   // current mjd, TAI
-  const dso::TwoPartDate cmjd(params.mjd_tai +
+  const dso::TwoPartDate _cmjd(params.mjd_tai +
                               dso::TwoPartDate(0e0, tsec / 86400e0));
+  const dso::TwoPartDate cmjd = _cmjd.normalized();
 
   // terretrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
@@ -309,23 +313,42 @@ void dso::MotionEquations(
   }
 
   // Derivative of combined state vector and state transition matrix
-  Eigen::Matrix<double, 42, 1> yPt;
   {
-    // state derivative (aka [v,a]), in one (first) column
+    //             |   0 (3x3)     I (3x3)   |   | dr/dr0 (3x3) dr/dv0 (3x3) |
+    // F*Φ(t,t0) = |                         | * |                           |
+    //             | da/dr (3x3) da/dv (3x3) |   | dv/dr0 (3x3) dv/dv0 (3x3) |
+    //       
+    // |             dv/dr0                             dv/dv0               |
+    // | (da/dr * dr/dr0 + da/dv * dv/dr0) (da/dr * dr/dv0 + da/dv * dv/dv0) |
     yPt.block<3, 1>(0, 0) = v;
     yPt.block<3, 1>(3, 0) = f;
-    Eigen::Matrix<double, 6, 6> Phi0;
-    Phi0.block<3, 3>(0, 0) = yP0.block<6, 1>(6, 0);  // dr/dr0
-    Phi0.block<3, 3>(0, 3) = yP0.block<6, 1>(12, 0); // dr/dv0
-    Phi0.block<3, 3>(3, 0) = yP0.block<6, 1>(18, 0); // dv/dr0
-    Phi0.block<3, 3>(3, 3) = yP0.block<6, 1>(24, 0); // dv/dv0
-    const auto dPhidt = F * Phi0;
-    yPt.block<6, 1>(6, 0) = dPhidt.block<6, 1>(6, 0);
-  }
+    yPt.block<18,1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<9,1>(24,0);
+    
+    Eigen::Matrix<double,6,6>  Phi0;
+    Phi0.block<1,3>(0,0) = yP0.block<1,3>(6, 0).transpose();
+    Phi0.block<1,3>(1,0) = yP0.block<1,3>(9, 0).transpose();
+    Phi0.block<1,3>(2,0) = yP0.block<1,3>(12,0).transpose();
+    Phi0.block<1,3>(0,3) = yP0.block<1,3>(15,0).transpose();
+    Phi0.block<1,3>(1,3) = yP0.block<1,3>(18,0).transpose();
+    Phi0.block<1,3>(2,3) = yP0.block<1,3>(21,0).transpose();
+    Phi0.block<1,3>(3,0) = yP0.block<1,3>(24,0).transpose();
+    Phi0.block<1,3>(4,0) = yP0.block<1,3>(27,0).transpose();
+    Phi0.block<1,3>(5,0) = yP0.block<1,3>(30,0).transpose();
+    Phi0.block<1,3>(4,3) = yP0.block<1,3>(33,0).transpose();
+    Phi0.block<1,3>(5,3) = yP0.block<1,3>(36,0).transpose();
+    Phi0.block<1,3>(6,3) = yP0.block<1,3>(39,0).transpose();
 
-  // matrix to vector (column-wise)
-  yPhiP = Eigen::VectorXd(
-      Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
+    const auto t1 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
+                     F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 0))
+                        .transpose();
+    yPt.block<9, 1>(24, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+        t1.data(), t1.cols() * t1.rows());
+    const auto t2 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
+                     F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 3))
+                        .transpose();
+    yPt.block<9, 1>(33, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+        t2.data(), t2.cols() * t2.rows());
+  }
 
   return;
 }

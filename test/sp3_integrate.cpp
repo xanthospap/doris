@@ -2,6 +2,7 @@
 #include "beacon_tbl.hpp"
 #include "datetime/datetime_write.hpp"
 #include "datetime/utcdates.hpp"
+#include "datetime/dtcalendar.hpp"
 #include "doris_observation_equations.hpp"
 #include "doris_rinex.hpp"
 #include "doris_utils.hpp"
@@ -17,24 +18,21 @@
 #include "integrators.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
-#include "tides.hpp"
 #include "sp3/sp3.hpp"
-#include "sp3/sv_interpolate.hpp" /* debug mode */
+#include "sp3/sv_interpolate.hpp"
 #include "var_utils.hpp"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
-#include <datetime/dtcalendar.hpp>
-#include <datetime/dtfund.hpp>
 
 int main(int argc, char *argv[]) {
-  // check input
+  // Check input
   if (argc != 2) {
     fprintf(stderr, "USAGE: %s [YAML CONFIG]\n", argv[0]);
     return 1;
   }
 
-  // resolve the yaml config file and get the root node
+  // Resolve the yaml config file and get the root node
   const YAML::Node config = YAML::LoadFile(argv[1]);
   char buf[256];
   int error;
