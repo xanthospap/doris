@@ -17,7 +17,6 @@ void dso::VariationalEquations(
     dso::IntegrationParameters &params) noexcept {
 
   // current mjd, TAI
-  // const double cmjd = params.mjd_tai + tsec / dso::sec_per_day;
   const dso::TwoPartDate cmjd(params.mjd_tai +
                               dso::TwoPartDate(0e0, tsec / 86400e0));
 
@@ -36,9 +35,6 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 1> gacc;
   test::gravacc3(params.harmonics, r_geo, params.degree, params.harmonics.Re(),
                  params.harmonics.GM(), gacc, gpartials, params.V, params.W);
-  // Eigen::Matrix<double, 3, 1> gacc = dso::grav_potential_accel(
-  //     r_geo, params.degree, params.order, *(params.Lagrange_V),
-  //     *(params.Lagrange_W), params.harmonics, gpartials);
 
   // fucking crap! gravity acceleration in earth-fixed frame; need to
   // have inertial acceleration!
@@ -201,6 +197,131 @@ void dso::VariationalEquations(
   // state derivative (aka [v,a]), in one (first) column
   yPhip.block<3, 1>(0, 0) = v;
   yPhip.block<3, 1>(3, 0) = gacc + sun_acc + mon_acc + drag + gacc_oc + gacc_ec;
+
+  // matrix to vector (column-wise)
+  yPhiP = Eigen::VectorXd(
+      Eigen::Map<Eigen::VectorXd>(yPhip.data(), yPhip.cols() * yPhip.rows()));
+
+  return;
+}
+
+/*
+ * tsec : seconds from reference time
+ *  aka current time t = t0 + tsec
+ * 
+ * yP0 : Initial condition for state and state transition matrix, in column-
+ *  wise oder, i.e.
+ *  yP0 = [ y0, Phi(t0,t0) ] 
+ *      = [ r0_(3x1), v0_(3x1), 
+ *          dr/dr0_(3x3), dr/dv0_(3x3), 
+ *          dv/dr0_(3x3), dv/dv0_(3x3) ]
+ *      = [ x0, y0, z0, v_x0, v_y0, v_z0,             : 6 (elements)
+ *          { dx/dx0, dx/dy0, dx/dz0,
+ *            dy/dx0, dy/dy0, dy/dz0,
+ *            dz/dx0, dz/dy0, dz/dz0 },               : +9 [dr / dr0]
+ *          { dx/dv_x0, dx/dv_y0, dx/dv_z0,
+ *            dy/dv_x0, dy/dv_y0, dy/dv_z0,
+ *            dz/dv_x0, dz/dv_y0, dz/dv_z0 },         : +9 [dr / dv0]
+ *          { dv_x/dx0, dv_x/dy0, dv_x/dz0,
+ *            dv_y/dx0, dv_y/dy0, dv_y/dz0,
+ *            dv_z/dx0, dv_z/dy0, dv_z/dz0 },         : +9 [dv / dr0]
+ *          { dv_x/dv_x0, dv_x/dv_y0, dv_x/dv_z0,
+ *            dv_y/dv_x0, dv_y/dv_y0, dv_y/dv_z0,
+ *            dv_z/dv_x0, dv_z/dv_y0, dv_z/dv_z0 }    : +9 [dv / dv0]
+ *        ] aka a vector of 42 elements/rows
+ *  Initially, the state transition matrix should be set to the identity
+ *  matrix, i.e. Phi(t0,t0) = I_(6x6)
+ */
+void dso::MotionEquations(
+    double tsec, // seconds from reference epoch (TAI)
+    // state and state transition matrix (inertial RF)
+    const Eigen::VectorXd &yP0,
+    // state derivative and state transition matrix derivative (inertial RF)
+    Eigen::Ref<Eigen::VectorXd> yPt,
+    // auxiliary parametrs
+    dso::IntegrationParameters &params) noexcept {
+
+  // current mjd, TAI
+  const dso::TwoPartDate cmjd(params.mjd_tai +
+                              dso::TwoPartDate(0e0, tsec / 86400e0));
+
+  // terretrial to celestial for epoch
+  Eigen::Matrix<double, 3, 3> rc2i, rpom;
+  double era, xlod;
+  assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
+
+  // split position and velocity vectors (inertial)
+  Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
+  Eigen::Matrix<double, 3, 1> v = yP0.block<3, 1>(3, 0);
+
+  // f = y''(t_0,y_0) = a(t_0, y_0) [=(a_x, a_y, a_z)]
+  Eigen::Matrix<double, 3, 1> f  = Eigen::Matrix<double, 3, 1>::Zero();
+  // df = grav(f(t_0,y_0)) = grad(a(t_0, y_0))  
+  //      | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //    = | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //      | da_x/dx0 da_y/dy0 da_z/dz0 |
+  Eigen::Matrix<double, 3, 3> df = Eigen::Matrix<double, 3, 1>::Zero();
+
+  { // compute gravity-induced acceleration (we need the position vector in
+    // ITRF)
+    Eigen::Matrix<double, 3, 3> gpartials;
+    Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
+    Eigen::Matrix<double, 3, 1> gacc;
+    test::gravacc3(params.harmonics, r_geo, params.degree,
+                   params.harmonics.Re(), params.harmonics.GM(), gacc,
+                   gpartials, params.V, params.W);
+
+    // gravity acceleration in earth-fixed frame; need to have inertial 
+    // acceleration!
+    gacc = rter2cel(gacc, rc2i, era, rpom);
+    const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+    gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
+
+    f += gacc;
+    df += gpartials;
+  }
+
+  { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
+    Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
+    Eigen::Matrix<double, 3, 1> rmon; // position of moon, [m] in celestial RF
+    Eigen::Matrix<double, 3, 1> sun_acc;
+    Eigen::Matrix<double, 3, 1> mon_acc;
+    Eigen::Matrix<double, 3, 3> tb_partials;
+    dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
+                 rmon, tb_partials);
+    f += (sun_acc + mon_acc);
+    df += tb_partials;
+  }
+
+  // Differential equation for the state transition matrix Φ(t, t_0) is:
+  //            d/dt[Φ(t,t_0)] = F * Φ(t, t_0)
+  // with initial conditions: Φ(t_0, t_0) = I_(6x6)
+  // where F is the derivative of state transition matrix, aka
+  //     |   0 (3x3)     I (3x3)   |
+  // F = |                         | of size (6x6)
+  //     | da/dr (3x3) da/dv (3x3) | 
+  Eigen::Matrix<double, 6, 6> F; // dfdy
+  {
+    F.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
+    F.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
+    F.block<3, 3>(3, 0) = df;
+    F.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
+  }
+
+  // Derivative of combined state vector and state transition matrix
+  Eigen::Matrix<double, 42, 1> yPt;
+  {
+    // state derivative (aka [v,a]), in one (first) column
+    yPt.block<3, 1>(0, 0) = v;
+    yPt.block<3, 1>(3, 0) = f;
+    Eigen::Matrix<double, 6, 6> Phi0;
+    Phi0.block<3, 3>(0, 0) = yP0.block<6, 1>(6, 0);  // dr/dr0
+    Phi0.block<3, 3>(0, 3) = yP0.block<6, 1>(12, 0); // dr/dv0
+    Phi0.block<3, 3>(3, 0) = yP0.block<6, 1>(18, 0); // dv/dr0
+    Phi0.block<3, 3>(3, 3) = yP0.block<6, 1>(24, 0); // dv/dv0
+    const auto dPhidt = F * Phi0;
+    yPt.block<6, 1>(6, 0) = dPhidt.block<6, 1>(6, 0);
+  }
 
   // matrix to vector (column-wise)
   yPhiP = Eigen::VectorXd(
