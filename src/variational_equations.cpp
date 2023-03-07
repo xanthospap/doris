@@ -253,6 +253,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
   assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
+  printf("[EOP] %.12e %.12e %.12e\n", cmjd.mjd(), dso::rad2deg(era), xlod);
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
@@ -301,6 +302,7 @@ void dso::VariationalEquations(
   if (params.setide)
   { // earth tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
+    Eigen::Matrix<double, 3, 3> taccgrad;
     // Sun and Moon position in ECEF
     const Eigen::Matrix<double, 3, 1> rm_ecef =
         dso::rcel2ter(rmon, rc2i, era, rpom);
@@ -312,7 +314,16 @@ void dso::VariationalEquations(
     const auto ut1 =
         dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
     params.setide->acceleration(cmjd.tai2tt(), ut1, r_geo, rm_ecef, rs_ecef,
-                                tacc);
+                                tacc,taccgrad);
+    f += rter2cel(tacc, rc2i, era, rpom);
+    const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+    df = (rpom * rc2ti) * taccgrad * (rpom * rc2ti).transpose();
+  }
+
+  if (params.octide) 
+  { // oean tides on geopotential, gravity
+    Eigen::Matrix<double, 3, 1> tacc;
+    params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
     f += rter2cel(tacc, rc2i, era, rpom);
   }
 

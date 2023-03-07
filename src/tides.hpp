@@ -177,13 +177,12 @@ public:
       : doodsonFreqs(dfvec), dCS(max_degree, max_order, GMearth, Rearth),
         V(max_degree + 3, max_degree + 3), W(max_degree + 3, max_degree + 3) {}
 
-  int operator()(const dso::TwoPartDate &mjdtt,/* const dso::TwoPartDate &mjdut1,*/
-                 int max_degree, int max_order) noexcept;
+  int operator()(const dso::TwoPartDate &mjdtt, int max_degree,
+                 int max_order) noexcept;
   int acceleration(const dso::TwoPartDate &mjdtt,
-                   /*const dso::TwoPartDate &mjdut1,*/
                    const Eigen::Matrix<double, 3, 1> &rsat,
-                   Eigen::Matrix<double, 3, 1> &acc, int max_degree=-1,
-                   int max_order=-1) noexcept;
+                   Eigen::Matrix<double, 3, 1> &acc, int max_degree = -1,
+                   int max_order = -1) noexcept;
 }; // OceanTide
 
 class SolidEarthTide {
@@ -237,7 +236,8 @@ public:
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    const Eigen::Matrix<double, 3, 1> &rmoon,
                    const Eigen::Matrix<double, 3, 1> &rsun,
-                   Eigen::Matrix<double, 3, 1> &acc) noexcept;
+                   Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
 }; // SolidEarthTide
 
 } // namespace dso

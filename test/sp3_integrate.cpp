@@ -28,6 +28,7 @@
 
 constexpr const double MAXHOURS = 48e0;
 constexpr const int INCLUDE_EARTH_TIDES = true;
+constexpr const int INCLUDE_OCEAN_TIDES = true;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {
   const auto t1 = t.normalized();
@@ -192,6 +193,33 @@ int main(int argc, char *argv[]) {
                              Params.GMSun * 1e9);
   Params.setide = &setide;
   if (!INCLUDE_EARTH_TIDES) Params.setide = nullptr;
+
+  // Ocean Tides Geopotential
+  // ------------------------------------------------------------------------
+  std::vector<dso::DoodsonOceanTideConstituent> vdds;
+  int oc_degree, oc_order;
+  {
+    dso::get_yaml_value_depth2(config, "ocean-tides", "harmonics", buf);
+    error = dso::get_yaml_value_depth2<int>(config, "ocean-tides", "degree",
+                                            oc_degree);
+    error += dso::get_yaml_value_depth2<int>(config, "ocean-tides", "order",
+                                             oc_order);
+    if (error || (oc_order > oc_degree)) {
+      fprintf(stderr, "Invalid ocean tide degree/order, %d/%d!\n", oc_degree,
+              oc_order);
+      return 1;
+    }
+    if (dso::memmap_octide_coefficients(buf, vdds, oc_degree, oc_order, 3,
+                                        1e-11)) {
+      fprintf(stderr, "Failed reading ocean tide loading file %s!\n", buf);
+      return 1;
+    }
+  }
+  // An ocean tide instance
+  dso::OceanTide octide(vdds, harmonics.GM(), harmonics.Re(), oc_degree,
+                        oc_order);
+  Params.octide = &octide;
+  if (!INCLUDE_OCEAN_TIDES) Params.octide = nullptr;
 
   sp3_iterator.begin();
   const dso::TwoPartDate t_start =

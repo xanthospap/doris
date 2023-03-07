@@ -83,11 +83,11 @@ int dso::SolidEarthTide::acceleration(
     const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
     const Eigen::Matrix<double, 3, 1> &rsat,
     const Eigen::Matrix<double, 3, 1> &rmoon,
-    const Eigen::Matrix<double, 3, 1> &rsun,
-    Eigen::Matrix<double, 3, 1> &acc) noexcept {
+    const Eigen::Matrix<double, 3, 1> &rsun, Eigen::Matrix<double, 3, 1> &acc,
+    Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept {
 
   Eigen::Matrix<double, 3, 1> a = Eigen::Matrix<double, 3, 1>::Zero();
-  Eigen::Matrix<double, 3, 3> partials;
+  acc_gradient = Eigen::Matrix<double,3,3>::Zero();
 
   // compute SH coefficient corrections (δC and δS) for Step1 and Step2
   std::array<double, 12> dC, dS;
@@ -97,7 +97,7 @@ int dso::SolidEarthTide::acceleration(
   array2harmonics(dC, dS, cs);
 
   // compute acceleration at satellite position (ITRF, cartesian)
-  test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, partials, &V, &W);
+  test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, acc_gradient, &V, &W);
 
   acc = a;
 

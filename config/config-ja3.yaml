@@ -1,7 +1,8 @@
 ---
 data:
   doris-rinex: data/Jason-3/ja3rx21002.001
-  sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
+  # sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
+  sp3: data/Sentinel-6A/ssas6a20.b20362.e21006.DG_.sp3.001
   beacon-information: data/beacon_information.tbl
 
 reference-frame:
