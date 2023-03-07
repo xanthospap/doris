@@ -27,6 +27,7 @@
 #include <datetime/dtfund.hpp>
 
 constexpr const double MAXHOURS = 48e0;
+constexpr const int INCLUDE_EARTH_TIDES = true;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {
   const auto t1 = t.normalized();
@@ -190,6 +191,7 @@ int main(int argc, char *argv[]) {
                              Params.GMMon * 1e9,
                              Params.GMSun * 1e9);
   Params.setide = &setide;
+  if (!INCLUDE_EARTH_TIDES) Params.setide = nullptr;
 
   sp3_iterator.begin();
   const dso::TwoPartDate t_start =

@@ -298,6 +298,7 @@ void dso::VariationalEquations(
     df += partials;
   }
   
+  if (params.setide)
   { // earth tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     // Sun and Moon position in ECEF
