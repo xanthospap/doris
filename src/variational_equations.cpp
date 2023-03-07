@@ -5,7 +5,7 @@
 #include "orbit_integration.hpp"
 #include <datetime/dtcalendar.hpp>
 
-constexpr const int Np = 1;
+[[maybe_unused]] constexpr const int Np = 1;
 
 /*
 void dso::VariationalEquations(
@@ -249,7 +249,7 @@ void dso::VariationalEquations(
                               dso::TwoPartDate(0e0, tsec / 86400e0));
   const dso::TwoPartDate cmjd = _cmjd.normalized();
 
-  // terretrial to celestial for epoch
+  // terrestrial to celestial for epoch
   Eigen::Matrix<double, 3, 3> rc2i, rpom;
   double era, xlod;
   assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
@@ -264,12 +264,13 @@ void dso::VariationalEquations(
   //      | da_x/dx0 da_y/dy0 da_z/dz0 |
   //    = | da_x/dx0 da_y/dy0 da_z/dz0 |
   //      | da_x/dx0 da_y/dy0 da_z/dz0 |
-  Eigen::Matrix<double, 3, 3> df = Eigen::Matrix<double, 3, 1>::Zero();
+  Eigen::Matrix<double, 3, 3> df = Eigen::Matrix<double, 3, 3>::Zero();
 
+  // satellite position at t, in ECEF
+  Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
   { // compute gravity-induced acceleration (we need the position vector in
     // ITRF)
     Eigen::Matrix<double, 3, 3> gpartials;
-    Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
     Eigen::Matrix<double, 3, 1> gacc;
     test::gravacc3(params.harmonics, r_geo, params.degree,
                    params.harmonics.Re(), params.harmonics.GM(), gacc,
@@ -285,16 +286,33 @@ void dso::VariationalEquations(
     df += gpartials;
   }
 
+  // position of sun/moon, [m] in celestial RF
+  Eigen::Matrix<double, 3, 1> rsun,rmon; 
   { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
-    Eigen::Matrix<double, 3, 1> rsun; // position of sun, [m] in celestial RF
-    Eigen::Matrix<double, 3, 1> rmon; // position of moon, [m] in celestial RF
     Eigen::Matrix<double, 3, 1> sun_acc;
     Eigen::Matrix<double, 3, 1> mon_acc;
-    Eigen::Matrix<double, 3, 3> tb_partials;
+    Eigen::Matrix<double, 3, 3> partials;
     dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
-                 rmon, tb_partials);
+                 rmon, partials);
     f += (sun_acc + mon_acc);
-    df += tb_partials;
+    df += partials;
+  }
+  
+  { // earth tides on geopotential, gravity
+    Eigen::Matrix<double, 3, 1> tacc;
+    // Sun and Moon position in ECEF
+    const Eigen::Matrix<double, 3, 1> rm_ecef =
+        dso::rcel2ter(rmon, rc2i, era, rpom);
+    const Eigen::Matrix<double, 3, 1> rs_ecef =
+        dso::rcel2ter(rsun, rc2i, era, rpom);
+    const auto utc = cmjd.tai2utc();
+    dso::EopRecord eops;
+    assert(!params.eopLUT.interpolate(utc, eops));
+    const auto ut1 =
+        dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
+    params.setide->acceleration(cmjd.tai2tt(), ut1, r_geo, rm_ecef, rs_ecef,
+                                tacc);
+    f += rter2cel(tacc, rc2i, era, rpom);
   }
 
   // Differential equation for the state transition matrix Φ(t, t_0) is:
@@ -312,8 +330,9 @@ void dso::VariationalEquations(
     F.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
   }
 
-  // Derivative of combined state vector and state transition matrix
-  {
+  
+  { // Derivative of combined state vector and state transition matrix
+    // ---------------------------------------------------------------
     //             |   0 (3x3)     I (3x3)   |   | dr/dr0 (3x3) dr/dv0 (3x3) |
     // F*Φ(t,t0) = |                         | * |                           |
     //             | da/dr (3x3) da/dv (3x3) |   | dv/dr0 (3x3) dv/dv0 (3x3) |
@@ -322,28 +341,28 @@ void dso::VariationalEquations(
     // | (da/dr * dr/dr0 + da/dv * dv/dr0) (da/dr * dr/dv0 + da/dv * dv/dv0) |
     yPt.block<3, 1>(0, 0) = v;
     yPt.block<3, 1>(3, 0) = f;
-    yPt.block<18,1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<9,1>(24,0);
+    yPt.block<18,1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<18,1>(24,0);
     
     Eigen::Matrix<double,6,6>  Phi0;
-    Phi0.block<1,3>(0,0) = yP0.block<1,3>(6, 0).transpose();
-    Phi0.block<1,3>(1,0) = yP0.block<1,3>(9, 0).transpose();
-    Phi0.block<1,3>(2,0) = yP0.block<1,3>(12,0).transpose();
-    Phi0.block<1,3>(0,3) = yP0.block<1,3>(15,0).transpose();
-    Phi0.block<1,3>(1,3) = yP0.block<1,3>(18,0).transpose();
-    Phi0.block<1,3>(2,3) = yP0.block<1,3>(21,0).transpose();
-    Phi0.block<1,3>(3,0) = yP0.block<1,3>(24,0).transpose();
-    Phi0.block<1,3>(4,0) = yP0.block<1,3>(27,0).transpose();
-    Phi0.block<1,3>(5,0) = yP0.block<1,3>(30,0).transpose();
-    Phi0.block<1,3>(4,3) = yP0.block<1,3>(33,0).transpose();
-    Phi0.block<1,3>(5,3) = yP0.block<1,3>(36,0).transpose();
-    Phi0.block<1,3>(6,3) = yP0.block<1,3>(39,0).transpose();
+    Phi0.block<1,3>(0,0) = yP0.block<3,1>(6, 0).transpose();
+    Phi0.block<1,3>(1,0) = yP0.block<3,1>(9, 0).transpose();
+    Phi0.block<1,3>(2,0) = yP0.block<3,1>(12,0).transpose();
+    Phi0.block<1,3>(0,3) = yP0.block<3,1>(15,0).transpose();
+    Phi0.block<1,3>(1,3) = yP0.block<3,1>(18,0).transpose();
+    Phi0.block<1,3>(2,3) = yP0.block<3,1>(21,0).transpose();
+    Phi0.block<1,3>(3,0) = yP0.block<3,1>(24,0).transpose();
+    Phi0.block<1,3>(4,0) = yP0.block<3,1>(27,0).transpose();
+    Phi0.block<1,3>(5,0) = yP0.block<3,1>(30,0).transpose();
+    Phi0.block<1,3>(3,3) = yP0.block<3,1>(33,0).transpose();
+    Phi0.block<1,3>(4,3) = yP0.block<3,1>(36,0).transpose();
+    Phi0.block<1,3>(5,3) = yP0.block<3,1>(39,0).transpose();
 
-    const auto t1 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
+    Eigen::Matrix<double,3,3> t1 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
                      F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 0))
                         .transpose();
     yPt.block<9, 1>(24, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
         t1.data(), t1.cols() * t1.rows());
-    const auto t2 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
+    Eigen::Matrix<double,3,3> t2 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
                      F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 3))
                         .transpose();
     yPt.block<9, 1>(33, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(

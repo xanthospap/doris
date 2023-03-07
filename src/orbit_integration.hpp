@@ -142,12 +142,12 @@ yter2cel(const Eigen::Matrix<double, 6, 1> y,
 /// @param[out] sun_pos Sun position in J2000 [m]
 /// @param[out] mon_partials Partials of the Moon-induced acceleration w.r.t
 ///       satellite position vecot (=r), aka d(acc)/dr
-void SunMoon(/*double mjd_tai*/const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
+void SunMoon(const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> &rsat,
              double GMSun, double GMMon, Eigen::Matrix<double, 3, 1> &sun_acc,
              Eigen::Matrix<double, 3, 1> &mon_acc,
              Eigen::Matrix<double, 3, 1> &sun_pos,
              Eigen::Matrix<double, 3, 1> &mon_pos,
-             Eigen::Matrix<double, 3, 3> &mon_partials) noexcept;
+             Eigen::Matrix<double, 3, 3> &gradient) noexcept;
 
 void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,

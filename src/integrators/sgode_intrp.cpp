@@ -8,8 +8,7 @@
 
 /// x = member x
 /// y = member yy
-int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout/*,
-                      Eigen::Ref<Eigen::VectorXd> ypout*/) noexcept {
+int dso::SGOde::intrp(double xout, Eigen::VectorXd &yout) noexcept {
   double MemPool[3 * 13];
   double *__restrict__ g = MemPool;
   double *__restrict__ w = MemPool + 13;
