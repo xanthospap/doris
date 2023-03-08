@@ -29,6 +29,7 @@
 constexpr const double MAXHOURS = 48e0;
 constexpr const int INCLUDE_EARTH_TIDES = true;
 constexpr const int INCLUDE_OCEAN_TIDES = true;
+constexpr const int NOVAREQNS = true;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {
   const auto t1 = t.normalized();
@@ -60,12 +61,18 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   Eigen::Matrix<double, 6 * 6, 1> Iv =
       Eigen::Map<Eigen::Matrix<double, 6 * 6, 1>>(I.data(),
                                                   I.cols() * I.rows());
-  Eigen::Matrix<double, 6 + 6 * 6, 1> yF0;
-  yF0.block<6, 1>(0, 0) = y;
-  yF0.block<6 * 6, 1>(6, 0) = Iv;
+  constexpr const int NumEqns = 6 + ((NOVAREQNS)?(0):(6*6));
+  static_assert(NumEqns >= 6);
+  Eigen::Matrix<double, NumEqns, 1> yF0;
+  if constexpr (!NOVAREQNS) {
+    yF0.block<6 * 6, 1>(6, 0) = Iv;
+    yF0.block<6, 1>(0, 0) = y;
+  } else {
+    yF0 = y;
+  }
 
   // Eigen::Matrix<double, 6 + 6 * 6, 1> solution;
-  Eigen::VectorXd solution = Eigen::Matrix<double,6+6*6,1>::Zero();
+  Eigen::VectorXd solution = Eigen::Matrix<double,NumEqns,1>::Zero();
 
   double t = 0e0;
   params.mjd_tai = dso::TwoPartDate(sp3block.t);
@@ -183,7 +190,9 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6, 1e-12, 1e-15,
+  //dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6, 1e-12, 1e-15,
+  //                      &Params);
+  dso::SGOde Integrator(dso::VariationalEquations, 6, 1e-12, 1e-15,
                         &Params);
 
   // Setup Solid Earth Tide

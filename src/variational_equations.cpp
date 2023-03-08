@@ -235,6 +235,7 @@ void dso::VariationalEquations(
  *  Initially, the state transition matrix should be set to the identity
  *  matrix, i.e. Phi(t0,t0) = I_(6x6)
  */
+constexpr const int NOVAREQNS = true;
 void dso::VariationalEquations(
     double tsec, // seconds from reference epoch (TAI)
     // state and state transition matrix (inertial RF)
@@ -353,32 +354,36 @@ void dso::VariationalEquations(
     // | (da/dr * dr/dr0 + da/dv * dv/dr0) (da/dr * dr/dv0 + da/dv * dv/dv0) |
     yPt.block<3, 1>(0, 0) = v;
     yPt.block<3, 1>(3, 0) = f;
-    yPt.block<18,1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<18,1>(24,0);
-    
-    Eigen::Matrix<double,6,6>  Phi0;
-    Phi0.block<1,3>(0,0) = yP0.block<3,1>(6, 0).transpose();
-    Phi0.block<1,3>(1,0) = yP0.block<3,1>(9, 0).transpose();
-    Phi0.block<1,3>(2,0) = yP0.block<3,1>(12,0).transpose();
-    Phi0.block<1,3>(0,3) = yP0.block<3,1>(15,0).transpose();
-    Phi0.block<1,3>(1,3) = yP0.block<3,1>(18,0).transpose();
-    Phi0.block<1,3>(2,3) = yP0.block<3,1>(21,0).transpose();
-    Phi0.block<1,3>(3,0) = yP0.block<3,1>(24,0).transpose();
-    Phi0.block<1,3>(4,0) = yP0.block<3,1>(27,0).transpose();
-    Phi0.block<1,3>(5,0) = yP0.block<3,1>(30,0).transpose();
-    Phi0.block<1,3>(3,3) = yP0.block<3,1>(33,0).transpose();
-    Phi0.block<1,3>(4,3) = yP0.block<3,1>(36,0).transpose();
-    Phi0.block<1,3>(5,3) = yP0.block<3,1>(39,0).transpose();
+    if constexpr (!NOVAREQNS) {
+      yPt.block<18, 1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<18, 1>(24, 0);
 
-    Eigen::Matrix<double,3,3> t1 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
-                     F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 0))
-                        .transpose();
-    yPt.block<9, 1>(24, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
-        t1.data(), t1.cols() * t1.rows());
-    Eigen::Matrix<double,3,3> t2 = (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
-                     F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 3))
-                        .transpose();
-    yPt.block<9, 1>(33, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
-        t2.data(), t2.cols() * t2.rows());
+      Eigen::Matrix<double, 6, 6> Phi0;
+      Phi0.block<1, 3>(0, 0) = yP0.block<3, 1>(6, 0).transpose();
+      Phi0.block<1, 3>(1, 0) = yP0.block<3, 1>(9, 0).transpose();
+      Phi0.block<1, 3>(2, 0) = yP0.block<3, 1>(12, 0).transpose();
+      Phi0.block<1, 3>(0, 3) = yP0.block<3, 1>(15, 0).transpose();
+      Phi0.block<1, 3>(1, 3) = yP0.block<3, 1>(18, 0).transpose();
+      Phi0.block<1, 3>(2, 3) = yP0.block<3, 1>(21, 0).transpose();
+      Phi0.block<1, 3>(3, 0) = yP0.block<3, 1>(24, 0).transpose();
+      Phi0.block<1, 3>(4, 0) = yP0.block<3, 1>(27, 0).transpose();
+      Phi0.block<1, 3>(5, 0) = yP0.block<3, 1>(30, 0).transpose();
+      Phi0.block<1, 3>(3, 3) = yP0.block<3, 1>(33, 0).transpose();
+      Phi0.block<1, 3>(4, 3) = yP0.block<3, 1>(36, 0).transpose();
+      Phi0.block<1, 3>(5, 3) = yP0.block<3, 1>(39, 0).transpose();
+
+      Eigen::Matrix<double, 3, 3> t1 =
+          (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
+           F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 0))
+              .transpose();
+      yPt.block<9, 1>(24, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+          t1.data(), t1.cols() * t1.rows());
+      Eigen::Matrix<double, 3, 3> t2 =
+          (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
+           F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 3))
+              .transpose();
+      yPt.block<9, 1>(33, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+          t2.data(), t2.cols() * t2.rows());
+    }
   }
 
   return;
