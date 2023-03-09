@@ -61,7 +61,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   Eigen::Matrix<double, 6 * 6, 1> Iv =
       Eigen::Map<Eigen::Matrix<double, 6 * 6, 1>>(I.data(),
                                                   I.cols() * I.rows());
-  constexpr const int NumEqns = 6 + ((NOVAREQNS)?(0):(6*6));
+  constexpr const int NumEqns = 6 + ((NOVAREQNS) ? (0) : (6 * 6));
   static_assert(NumEqns >= 6);
   Eigen::Matrix<double, NumEqns, 1> yF0;
   if constexpr (!NOVAREQNS) {
@@ -72,7 +72,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   }
 
   // Eigen::Matrix<double, 6 + 6 * 6, 1> solution;
-  Eigen::VectorXd solution = Eigen::Matrix<double,NumEqns,1>::Zero();
+  Eigen::VectorXd solution = Eigen::Matrix<double, NumEqns, 1>::Zero();
 
   double t = 0e0;
   params.mjd_tai = dso::TwoPartDate(sp3block.t);
@@ -80,6 +80,8 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   double tout = dt._big * 86400e0 + dt._small * 86400e0;
   integrator.flag() = dso::SGOde::IFLAG::RESTART;
 
+  fprintf(stderr, "[DEBUG] ODE system of %dx%d equations\n", (int)yF0.rows(),
+          (int)yF0.cols());
   if (integrator.de(t, tout, yF0, solution) != dso::SGOde::IFLAG::SUCCESS) {
     fprintf(stderr, "Integration failed!\n");
     return 1;
@@ -97,7 +99,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
 
 int main(int argc, char *argv[]) {
   // Check input
-  if (argc != 2 && argc!= 3) {
+  if (argc != 2 && argc != 3) {
     fprintf(stderr, "USAGE: %s [YAML CONFIG] <INTEGRATION_MIN>\n", argv[0]);
     return 1;
   }
@@ -105,7 +107,7 @@ int main(int argc, char *argv[]) {
   int INTEGRATION_MIN = 30;
   if (argc == 3) {
     INTEGRATION_MIN = std::atoi(argv[2]);
-    assert(INTEGRATION_MIN>0);
+    assert(INTEGRATION_MIN > 0);
   }
   double IDAYS = (INTEGRATION_MIN / 24e0 / 60e0);
 
@@ -190,18 +192,18 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  //dso::SGOde Integrator(dso::VariationalEquations, 6 + 6 * 6, 1e-12, 1e-15,
-  //                      &Params);
-  dso::SGOde Integrator(dso::VariationalEquations, 6, 1e-12, 1e-15,
+  constexpr const int NumEqns = 6 + ((NOVAREQNS) ? (0) : (6 * 6));
+  static_assert(NumEqns >= 6);
+  dso::SGOde Integrator(dso::VariationalEquations, NumEqns, 1e-12, 1e-15,
                         &Params);
 
   // Setup Solid Earth Tide
   // -------------------------------------------------------------------------
-  dso::SolidEarthTide setide(harmonics.GM(), harmonics.Re(),
-                             Params.GMMon * 1e9,
+  dso::SolidEarthTide setide(harmonics.GM(), harmonics.Re(), Params.GMMon * 1e9,
                              Params.GMSun * 1e9);
   Params.setide = &setide;
-  if (!INCLUDE_EARTH_TIDES) Params.setide = nullptr;
+  if (!INCLUDE_EARTH_TIDES)
+    Params.setide = nullptr;
 
   // Ocean Tides Geopotential
   // ------------------------------------------------------------------------
@@ -228,7 +230,8 @@ int main(int argc, char *argv[]) {
   dso::OceanTide octide(vdds, harmonics.GM(), harmonics.Re(), oc_degree,
                         oc_order);
   Params.octide = &octide;
-  if (!INCLUDE_OCEAN_TIDES) Params.octide = nullptr;
+  if (!INCLUDE_OCEAN_TIDES)
+    Params.octide = nullptr;
 
   sp3_iterator.begin();
   const dso::TwoPartDate t_start =
@@ -257,10 +260,11 @@ int main(int argc, char *argv[]) {
       }
       // print results in terrestrial RF
       dso::strftime_ymd_hmfs(dttr(t), buf);
-      printf("[INT] %s %.12e %.12e %.12e %.12e %.12e %.12e\n", buf,
-             state(0), state(1), state(2), state(3), state(4), state(5));
+      printf("[INT] %s %.12e %.12e %.12e %.12e %.12e %.12e\n", buf, state(0),
+             state(1), state(2), state(3), state(4), state(5));
     }
-    if (t0-t_start > dso::TwoPartDate(0,MAXHOURS/24e0)) break;
+    if (t0 - t_start > dso::TwoPartDate(0, MAXHOURS / 24e0))
+      break;
     // next sp3 epoch ...
     if (sp3_iterator.advance()) {
       fprintf(stderr, "ERROR Failed reading next epoch from sp3 file!\n");

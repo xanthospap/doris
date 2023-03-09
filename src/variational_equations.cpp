@@ -237,7 +237,8 @@ void dso::VariationalEquations(
  */
 constexpr const int NOVAREQNS = true;
 void dso::VariationalEquations(
-    double tsec, // seconds from reference epoch (TAI)
+    // seconds from reference epoch (TAI)
+    double tsec,
     // state and state transition matrix (inertial RF)
     const Eigen::VectorXd &yP0,
     // state derivative and state transition matrix derivative (inertial RF)
@@ -299,9 +300,8 @@ void dso::VariationalEquations(
     f += (sun_acc + mon_acc);
     df += partials;
   }
-  
-  if (params.setide)
-  { // earth tides on geopotential, gravity
+
+  if (params.setide) { // earth tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
     // Sun and Moon position in ECEF
@@ -315,7 +315,7 @@ void dso::VariationalEquations(
     const auto ut1 =
         dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
     params.setide->acceleration(cmjd.tai2tt(), ut1, r_geo, rm_ecef, rs_ecef,
-                                tacc,taccgrad);
+                                tacc, taccgrad);
     f += rter2cel(tacc, rc2i, era, rpom);
     const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
     df = (rpom * rc2ti) * taccgrad * (rpom * rc2ti).transpose();
