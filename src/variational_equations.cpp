@@ -235,7 +235,7 @@ void dso::VariationalEquations(
  *  Initially, the state transition matrix should be set to the identity
  *  matrix, i.e. Phi(t0,t0) = I_(6x6)
  */
-constexpr const int NOVAREQNS = true;
+constexpr const int NOVAREQNS = false;
 void dso::VariationalEquations(
     // seconds from reference epoch (TAI)
     double tsec,
@@ -278,11 +278,8 @@ void dso::VariationalEquations(
 
     // gravity acceleration in earth-fixed frame; need to have inertial 
     // acceleration!
-    // gacc = rter2cel(gacc, rc2i, era, rpom);
-    gacc = Rot.gcrf2itrf(gacc);
-    // const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
-    // gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
-    const auto T = Rot.itrf2gcrf_rotation_matrix();
+    gacc = Rot.itrf2gcrf(gacc);
+    const auto T = Rot.itrf2gcrf();
     gpartials = T * gpartials * T.transpose();
 
     f += gacc;
@@ -306,16 +303,11 @@ void dso::VariationalEquations(
     Eigen::Matrix<double, 3, 3> taccgrad;
     // Sun and Moon position in ECEF
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
-        // dso::rcel2ter(rmon, rc2i, era, rpom);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
-        //dso::rcel2ter(rsun, rc2i, era, rpom);
     params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef, rs_ecef,
                                 tacc, taccgrad);
-    // f += rter2cel(tacc, rc2i, era, rpom);
     f += Rot.itrf2gcrf(tacc);
-    //const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
-    //df = (rpom * rc2ti) * taccgrad * (rpom * rc2ti).transpose();
-    const auto T = Rot.itrf2gcrf_rotation_matrix();
+    const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();
   }
 
@@ -323,7 +315,6 @@ void dso::VariationalEquations(
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
-    //f += rter2cel(tacc, rc2i, era, rpom);
     f += Rot.itrf2gcrf(tacc);
   }
 
@@ -354,7 +345,7 @@ void dso::VariationalEquations(
     yPt.block<3, 1>(0, 0) = v;
     yPt.block<3, 1>(3, 0) = f;
     if constexpr (!NOVAREQNS) {
-      yPt.block<18, 1>(6, 0) = /* dvdr0, dv/dv0 */ yP0.block<18, 1>(24, 0);
+      yPt.block<18, 1>(6, 0) = yP0.block<18, 1>(24, 0);
 
       Eigen::Matrix<double, 6, 6> Phi0;
       Phi0.block<1, 3>(0, 0) = yP0.block<3, 1>(6, 0).transpose();

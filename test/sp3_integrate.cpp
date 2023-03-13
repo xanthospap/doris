@@ -30,7 +30,7 @@
 constexpr const double MAXHOURS = 48e0;
 constexpr const int INCLUDE_EARTH_TIDES = true;
 constexpr const int INCLUDE_OCEAN_TIDES = true;
-constexpr const int NOVAREQNS = true;
+constexpr const int NOVAREQNS = false;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {
   const auto t1 = t.normalized();
@@ -48,18 +48,11 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   y << sp3block.state[0] * 1e3, sp3block.state[1] * 1e3,
       sp3block.state[2] * 1e3, sp3block.state[4] * 1e-1,
       sp3block.state[5] * 1e-1, sp3block.state[6] * 1e-1;
-  printf(">> State ITRF: %.6f %.6f %.6f %.6f %.6f %.6f\n", y(0),y(1),y(2),y(3),y(4),y(5));
 
   // terrestrial to celestial for reference epoch
-  {
-    const dso::TwoPartDate t0(sp3block.t);
-    dso::Itrs2Gcrs Rot(t0.tai2tt(), &params.eopLUT);
-    y = Rot.itrf2gcrf(y);
-    const Eigen::Matrix<double,3,1> ypos = y.block<3,1>(0,0);
-    const auto y2 = Rot.gcrf2itrf(ypos);
-    printf(">> State ITRF: %.6f %.6f %.6f\n", y2(0),y2(1),y2(2));
-  }
-  printf(">> State GCRF: %.6f %.6f %.6f %.6f %.6f %.6f\n", y(0),y(1),y(2),y(3),y(4),y(5));
+  const dso::TwoPartDate t0(sp3block.t);
+  dso::Itrs2Gcrs Rot(t0.tai2tt(), &params.eopLUT);
+  y = Rot.itrf2gcrf(y);
 
   // variational equations
   Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
@@ -81,7 +74,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   Eigen::VectorXd solution = Eigen::Matrix<double, NumEqns, 1>::Zero();
 
   double t = 0e0;
-  params.mjd_tai = dso::TwoPartDate(sp3block.t);
+  params.mjd_tai = dso::TwoPartDate(t0);
   const auto dt = t_target - params.mjd_tai;
   double tout = dt._big * 86400e0 + dt._small * 86400e0;
   integrator.flag() = dso::SGOde::IFLAG::RESTART;
@@ -98,12 +91,8 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   tres._small += (tout / 86400e0);
   tres.normalize();
   // terrestrial to celestial for reference epoch
-  {
-    dso::Itrs2Gcrs Rot(tres.tai2tt(), &params.eopLUT);
-    state = Rot.gcrf2itrf(state);
-  }
-  // assert(!gcrs2itrs(tres, params.eopLUT, rc2i, era, rpom, xlod));
-  // state = dso::ycel2ter(state, rc2i, era, xlod, rpom);
+  Rot.prepare(tres.tai2tt());
+  state = Rot.gcrf2itrf(state);
   return 0;
 }
 
