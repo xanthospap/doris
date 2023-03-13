@@ -1,8 +1,8 @@
 #include "astrodynamics.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
-#include "iers2010/iersc.hpp"
 #include "orbit_integration.hpp"
+#include "iers2010/cel2ter.hpp"
 #include <datetime/dtcalendar.hpp>
 
 [[maybe_unused]] constexpr const int Np = 1;
@@ -252,10 +252,7 @@ void dso::VariationalEquations(
   const dso::TwoPartDate cmjd = _cmjd.normalized();
 
   // terrestrial to celestial for epoch
-  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era, xlod;
-  assert(!gcrs2itrs(cmjd, params.eopLUT, rc2i, era, rpom, xlod));
-  printf("[EOP] %.12e %.12e %.12e\n", cmjd.mjd(), dso::rad2deg(era), xlod);
+  dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
@@ -270,7 +267,7 @@ void dso::VariationalEquations(
   Eigen::Matrix<double, 3, 3> df = Eigen::Matrix<double, 3, 3>::Zero();
 
   // satellite position at t, in ECEF
-  Eigen::Matrix<double, 3, 1> r_geo = rcel2ter(r, rc2i, era, rpom);
+  Eigen::Matrix<double, 3, 1> r_geo = Rot.gcrf2itrf(r);
   { // compute gravity-induced acceleration (we need the position vector in
     // ITRF)
     Eigen::Matrix<double, 3, 3> gpartials;
@@ -281,9 +278,12 @@ void dso::VariationalEquations(
 
     // gravity acceleration in earth-fixed frame; need to have inertial 
     // acceleration!
-    gacc = rter2cel(gacc, rc2i, era, rpom);
-    const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
-    gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
+    // gacc = rter2cel(gacc, rc2i, era, rpom);
+    gacc = Rot.gcrf2itrf(gacc);
+    // const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+    // gpartials = (rpom * rc2ti) * gpartials * (rpom * rc2ti).transpose();
+    const auto T = Rot.itrf2gcrf_rotation_matrix();
+    gpartials = T * gpartials * T.transpose();
 
     f += gacc;
     df += gpartials;
@@ -305,27 +305,26 @@ void dso::VariationalEquations(
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
     // Sun and Moon position in ECEF
-    const Eigen::Matrix<double, 3, 1> rm_ecef =
-        dso::rcel2ter(rmon, rc2i, era, rpom);
-    const Eigen::Matrix<double, 3, 1> rs_ecef =
-        dso::rcel2ter(rsun, rc2i, era, rpom);
-    const auto utc = cmjd.tai2utc();
-    dso::EopRecord eops;
-    assert(!params.eopLUT.interpolate(utc, eops));
-    const auto ut1 =
-        dso::TwoPartDate(utc._big, utc._small + eops.dut / 86400e0);
-    params.setide->acceleration(cmjd.tai2tt(), ut1, r_geo, rm_ecef, rs_ecef,
+    const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
+        // dso::rcel2ter(rmon, rc2i, era, rpom);
+    const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
+        //dso::rcel2ter(rsun, rc2i, era, rpom);
+    params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef, rs_ecef,
                                 tacc, taccgrad);
-    f += rter2cel(tacc, rc2i, era, rpom);
-    const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
-    df = (rpom * rc2ti) * taccgrad * (rpom * rc2ti).transpose();
+    // f += rter2cel(tacc, rc2i, era, rpom);
+    f += Rot.itrf2gcrf(tacc);
+    //const auto rc2ti = Eigen::AngleAxisd(era, -Eigen::Vector3d::UnitZ()) * rc2i;
+    //df = (rpom * rc2ti) * taccgrad * (rpom * rc2ti).transpose();
+    const auto T = Rot.itrf2gcrf_rotation_matrix();
+    df += T * taccgrad * T.transpose();
   }
 
   if (params.octide) 
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
-    f += rter2cel(tacc, rc2i, era, rpom);
+    //f += rter2cel(tacc, rc2i, era, rpom);
+    f += Rot.itrf2gcrf(tacc);
   }
 
   // Differential equation for the state transition matrix Φ(t, t_0) is:

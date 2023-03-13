@@ -10,6 +10,7 @@
 #include "geodesy/geoconst.hpp"
 #include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
+#include "iers2010/cel2ter.hpp"
 #include "iers2010/hardisp.hpp"
 #include "iers2010/iers2010.hpp"
 #include "iers2010/iersc.hpp"
@@ -47,13 +48,18 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   y << sp3block.state[0] * 1e3, sp3block.state[1] * 1e3,
       sp3block.state[2] * 1e3, sp3block.state[4] * 1e-1,
       sp3block.state[5] * 1e-1, sp3block.state[6] * 1e-1;
+  printf(">> State ITRF: %.6f %.6f %.6f %.6f %.6f %.6f\n", y(0),y(1),y(2),y(3),y(4),y(5));
 
   // terrestrial to celestial for reference epoch
-  Eigen::Matrix<double, 3, 3> rc2i, rpom;
-  double era, xlod;
-  assert(!gcrs2itrs(dso::TwoPartDate(sp3block.t), params.eopLUT, rc2i, era,
-                    rpom, xlod));
-  y = dso::yter2cel(y, rc2i, era, xlod, rpom);
+  {
+    const dso::TwoPartDate t0(sp3block.t);
+    dso::Itrs2Gcrs Rot(t0.tai2tt(), &params.eopLUT);
+    y = Rot.itrf2gcrf(y);
+    const Eigen::Matrix<double,3,1> ypos = y.block<3,1>(0,0);
+    const auto y2 = Rot.gcrf2itrf(ypos);
+    printf(">> State ITRF: %.6f %.6f %.6f\n", y2(0),y2(1),y2(2));
+  }
+  printf(">> State GCRF: %.6f %.6f %.6f %.6f %.6f %.6f\n", y(0),y(1),y(2),y(3),y(4),y(5));
 
   // variational equations
   Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
@@ -92,8 +98,12 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   tres._small += (tout / 86400e0);
   tres.normalize();
   // terrestrial to celestial for reference epoch
-  assert(!gcrs2itrs(tres, params.eopLUT, rc2i, era, rpom, xlod));
-  state = dso::ycel2ter(state, rc2i, era, xlod, rpom);
+  {
+    dso::Itrs2Gcrs Rot(tres.tai2tt(), &params.eopLUT);
+    state = Rot.gcrf2itrf(state);
+  }
+  // assert(!gcrs2itrs(tres, params.eopLUT, rc2i, era, rpom, xlod));
+  // state = dso::ycel2ter(state, rc2i, era, xlod, rpom);
   return 0;
 }
 
@@ -149,10 +159,12 @@ int main(int argc, char *argv[]) {
     const int start = ref_mjd - 5;
     const int end = ref_mjd + 10;
     // parse C04 EOPs
-    if (parse_iers_C04(buf, start, end, eop_lut)) {
+    if (dso::parse_iers_C0414(buf, start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
+    eop_lut.utc2tt();
+    eop_lut.regularize(false);
   }
 
   // Gravity

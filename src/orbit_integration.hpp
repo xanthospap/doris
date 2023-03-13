@@ -4,7 +4,7 @@
 #include "atmosphere.hpp"
 #include "egravity.hpp"
 #include "eigen3/Eigen/Eigen"
-#include "eop.hpp"
+#include "iers2010/eop.hpp"
 #include "tides.hpp"
 #include "planetpos.hpp"
 #include "satellites.hpp"
@@ -73,24 +73,7 @@ struct IntegrationParameters {
   }
 }; // Integration Parameters
 
-/// @brief Compute the Terrestrial-to-Celestial (aka ITRS to GCRS) matrix
-///        using IAU2000 model
-/// @param[in] mjd_tai TAI date as MJD
-/// @param[in] eop_table A dso::EopLookUpTable to be used to get EOP
-///            parameters for the given date
-/// @param[out] ditrs2gcrs Derivative of the returned Terrestrial-to-Celestial
-///            matrix w.r.t time. For the computation of the derivative,
-///            assuming (Petit et al, 2010): [GCRS] = Q(t) R(t) W(t) [ITRS]
-///            we consider the Q and W matrices as constant, and only compute
-///            the derivative of the R matrix. That is (Montenbruck et al, 2012,
-///            Chapter 5, Excercise 5.2):
-///            if U = Q(t) * R(t) * W(t),
-///            dU/dt = Q(t) * dR(t)/dt * W(t) and dR(t)/dt = ω * T * R(t)
-///                     | 0 +1 0 |
-///            with T = |-1  0 0 |
-///                     | 0  0 0 |
-///            (note that the above derivation follows the Celestial-to-
-///            Terrestrial matrix; we want its transpose).
+/*
 #ifdef ABCD
 Eigen::Matrix<double, 3, 3>
 itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
@@ -125,6 +108,7 @@ Eigen::Matrix<double, 6, 1>
 yter2cel(const Eigen::Matrix<double, 6, 1> y,
          const Eigen::Matrix<double, 3, 3> &rc2i, const double era, double xlod,
          const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
+*/
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.
