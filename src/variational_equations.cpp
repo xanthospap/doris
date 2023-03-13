@@ -253,6 +253,9 @@ void dso::VariationalEquations(
 
   // terrestrial to celestial for epoch
   dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
+  printf("[EOP] %.12f %.6f %.6f %.9f %.9f %.6f %.6f %.12e\n", cmjd.mjd(),
+         Rot.eop().xp, Rot.eop().yp, Rot.eop().dut, Rot.eop().lod, Rot.eop().dx,
+         Rot.eop().dy, Rot.omega_earth());
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);

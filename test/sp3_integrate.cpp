@@ -27,7 +27,7 @@
 #include <cstring>
 #include <datetime/dtfund.hpp>
 
-constexpr const double MAXHOURS = 48e0;
+[[maybe_unused]]constexpr const double MAXHOURS = 3*48e0;
 constexpr const int INCLUDE_EARTH_TIDES = true;
 constexpr const int INCLUDE_OCEAN_TIDES = true;
 constexpr const int NOVAREQNS = false;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     Params.octide = nullptr;
 
   sp3_iterator.begin();
-  const dso::TwoPartDate t_start =
+  [[maybe_unused]]const dso::TwoPartDate t_start =
       dso::TwoPartDate(sp3_iterator.data_block().t);
   dso::Sp3DataBlock sp3block;
   error = 0;
@@ -264,8 +264,9 @@ int main(int argc, char *argv[]) {
       printf("[INT] %s %.12e %.12e %.12e %.12e %.12e %.12e\n", buf, state(0),
              state(1), state(2), state(3), state(4), state(5));
     }
-    if (t0 - t_start > dso::TwoPartDate(0, MAXHOURS / 24e0))
-      break;
+
+    /*if (t0 - t_start > dso::TwoPartDate(0, MAXHOURS / 24e0)) break;*/
+
     // next sp3 epoch ...
     if (sp3_iterator.advance()) {
       fprintf(stderr, "ERROR Failed reading next epoch from sp3 file!\n");
