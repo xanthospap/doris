@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     const int start = ref_mjd - 5;
     const int end = ref_mjd + 10;
     // parse C04 EOPs
-    if (dso::parse_iers_C0414(buf, start, end, eop_lut)) {
+    if (dso::parse_iers_C0420(buf, start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }

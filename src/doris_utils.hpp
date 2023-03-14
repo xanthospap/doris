@@ -54,7 +54,8 @@ int extrapolate_sinex_coordinates(const char *snx_fn, char **site_ids,
                                   const dso::datetime<dso::microseconds> &t,
                                   BeaconCoordinates *results,
                                   int &sites_extrapolated,
-                                  bool missing_site_is_error = true) noexcept;
+                                  bool missing_site_is_error,
+                                  bool apply_site_eccentricities) noexcept;
 
 /// @brief Extrapolate site coordinates using information from a SINEX file
 /// This function is mainly designed to work with DPOD SINEX files (see
@@ -81,7 +82,7 @@ int extrapolate_sinex_coordinates(
     const char *snxfn, const std::vector<dso::BeaconStation> &station_ids,
     const dso::datetime<dso::microseconds> &t,
     std::vector<dso::BeaconCoordinates> &result_array,
-    bool missing_site_is_error = true) noexcept;
+    bool missing_site_is_error, bool apply_site_eccentricities) noexcept;
 
 /// @brief Overload of the above, for any datetime<T> type.
 #if __cplusplus >= 202002L
@@ -96,11 +97,11 @@ template <class T,
         const char *snxfn, const std::vector<dso::BeaconStation> &station_ids,
         const dso::datetime<T> &t,
         std::vector<dso::BeaconCoordinates> &result_array,
-        bool missing_site_is_error) noexcept {
+        bool missing_site_is_error, bool apply_site_eccentricities) noexcept {
   dso::datetime<dso::microseconds> t_micro =
       t.template cast_to<dso::microseconds>();
   return extrapolate_sinex_coordinates(snxfn, station_ids, t_micro,
-                                       result_array, missing_site_is_error);
+                                       result_array, missing_site_is_error,apply_site_eccentricities);
 }
 } // namespace dso
 

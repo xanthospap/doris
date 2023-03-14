@@ -1,7 +1,30 @@
 #include "doris_system_info.hpp"
 #include "doris_utils.hpp"
+#include "geodesy/geodesy.hpp"
 #include "sinex/sinex.hpp"
 #include <cstring>
+
+namespace {
+/// @param[in] xyz  Cartesian coordinates of site (X,Y,Z) in [m]
+/// @param[in] une  Eccentricity components in (up, north, east) topocentric
+///            RR   in [m] (site to antenna RP)
+/// @param[out] arp Cartesian coordinates of the antenna RP at given site
+void apply_eccentricity(const double *const xyz, const double *const une,
+                        double *arp) noexcept {
+  const Eigen::Matrix<double, 3, 1> cxyz =
+      Eigen::Matrix<double, 3, 1>({xyz[0], xyz[1], xyz[2]});
+  const Eigen::Matrix<double, 3, 1> cenu =
+      Eigen::Matrix<double, 3, 1>({une[2], une[1], une[0]});
+  // transform cartesian to ellipsoidal (antenna RP)
+  const Eigen::Matrix<double, 3, 1> lfh =
+      dso::car2ell<dso::ellipsoid::grs80>(cxyz);
+  const Eigen::Matrix<double, 3, 3> R = dso::topocentric_matrix(lfh);
+  const auto carp = cxyz + R.transpose() * cenu;
+  arp[0] = carp(0);
+  arp[1] = carp(1);
+  arp[2] = carp(2);
+  return;
+}
 
 int extrapolate_coordinates(
     const char *siteid, std::vector<dso::sinex::SolutionEstimate> &estimates,
@@ -54,12 +77,13 @@ int extrapolate_coordinates(
   }
   return 0;
 }
+} // unnamed namespace
 
 int dso::extrapolate_sinex_coordinates(
     const char *snxfn, const std::vector<dso::BeaconStation> &beacons,
     const dso::datetime<dso::microseconds> &t,
     std::vector<dso::BeaconCoordinates> &result_array,
-    bool missing_site_is_error) noexcept {
+    bool missing_site_is_error, bool apply_site_eccentricities) noexcept {
   // allocate and fill the list of site id's
   int num_sites = beacons.size();
   char **sites = new char *[num_sites];
@@ -80,7 +104,7 @@ int dso::extrapolate_sinex_coordinates(
   int sites_found;
   int error = dso::extrapolate_sinex_coordinates(
       snxfn, sites, num_sites, t, result_array.data(), sites_found,
-      missing_site_is_error);
+      missing_site_is_error, apply_site_eccentricities);
 
   // successeful or not, we do not need the sites array anymore
   // deallocate memory
@@ -99,7 +123,7 @@ int dso::extrapolate_sinex_coordinates(
     const char *snx_fn, char **station_ids, int num_stations,
     const dso::datetime<dso::microseconds> &t,
     dso::BeaconCoordinates *result_array, int &result_size,
-    bool missing_site_is_error) noexcept {
+    bool missing_site_is_error, bool apply_site_eccentricities) noexcept {
 
   // clear result size
   result_size = 0;
@@ -159,6 +183,25 @@ int dso::extrapolate_sinex_coordinates(
     return 1;
   }
 
+  // if needed, get site eccentricities
+  std::vector<dso::sinex::SiteEccentricity> ecc;
+  if (apply_site_eccentricities) {
+    if (snx.parse_block_site_eccentricity(ecc, t.cast_to<dso::seconds>(), site_vec)) {
+      fprintf(stderr,
+              "[ERROR] Failed to parse site eccentricities in SINEX file %s "
+              "(traceback: %s)\n",
+              snx.filename().c_str(), __func__);
+      return 1;
+    }
+    if (ecc.size() != est_vec.size()) {
+      fprintf(stderr,
+              "[ERROR] Failed to parse site eccentricities for all sites in "
+              "SINEX file %s (traceback: %s)\n",
+              snx.filename().c_str(), __func__);
+      return 1;
+    }
+  }
+
   // for each of the stations, extrapolate the coordinate estimates per
   // component
   double pos[3];
@@ -181,6 +224,27 @@ int dso::extrapolate_sinex_coordinates(
         result_array[result_size].x = pos[0];
         result_array[result_size].y = pos[1];
         result_array[result_size].z = pos[2];
+        // add eccentricity vector to go to Antenna RP
+        if (apply_site_eccentricities) {
+          auto ecc_it =
+              std::find_if(ecc.cbegin(), ecc.cend(),
+                           [&](const dso::sinex::SiteEccentricity &e) {
+                             return !std::strncmp(e.m_id, sid, 4);
+                           });
+          if (ecc_it == ecc.cend()) {
+            fprintf(stderr,
+                    "[ERROR] Failed to find eccentricity for site: %4s in "
+                    "SINEX file %s (traceback: %s)\n",
+                    sid, snx_fn, __func__);
+            return 1;
+          }
+          assert(!std::strncmp(ecc_it->axe, "UNE", 3));
+          double decc[3];
+          apply_eccentricity(pos, ecc_it->une, decc);
+          result_array[result_size].x += decc[0];
+          result_array[result_size].y += decc[1];
+          result_array[result_size].z += decc[2];
+        }
         ++result_size;
       }
     }

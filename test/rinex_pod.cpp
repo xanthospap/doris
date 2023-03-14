@@ -70,13 +70,6 @@ double crange(const Eigen::Matrix<double, 3, 1> &rbeacon_ecef,
     newpos = Eigen::AngleAxisd(-iers2010::OmegaEarth * dt,
                                -Eigen::Vector3d::UnitZ()) *
              rbeacon_ecef;
-
-    // Eigen::Matrix<double, 3, 1> diff = rbeacon_ecef_corr - newpos;
-    // printf("\titeration, dt=%+.9f [sec] and DX=[%.9f, %.9f, %.9f]\n", dt,
-    //        diff(0), diff(1), diff(2));
-    // diff = newpos - rbeacon_ecef;
-    // printf("\t                                  DX=[%.9f, %.9f, %.9f]\n",
-    //        diff(0), diff(1), diff(2));
   }
 
   assert(iteration < max_iterations);
@@ -136,21 +129,6 @@ struct SatBeacon {
     // std::strncpy(id3c, id_, 3); // fuck the warning!
     std::memcpy(id3c, id_, sizeof(char) * 3);
   }
-
-  //SatBeacon &operator=(const SatBeacon &sb) noexcept {
-  //  std::strncpy(id3c, sb.id3c, 3);
-  //  count = sb.count;
-  //  ttai = sb.ttai;
-  //  tproper = sb.tproper;
-  //  Ls1 = sb.Ls1;
-  //  Lu2 = sb.Lu2;
-  //  Diono = sb.Diono;
-  //  Dtropo = sb.Dtropo;
-  //  Drel = sb.Drel;
-  //  s = sb.s;
-  //  crho = sb.crho;
-  //  return *this;
-  //}
 
   void update(const Datetime &ttai_, const Datetime &tproper_, double L1_,
               double L2_, double Diono_, const TropoDetails &Dtropo_,
@@ -335,10 +313,10 @@ int relativity_corrections(const Eigen::Matrix<double, 6, 1> &sv_state,
                            double Re, double GM, double J2, double &Drel_c,
                            double &Drel_r) noexcept;
 
-int prepare_beacon_coordinates(
+/*int prepare_beacon_coordinates(
     std::vector<dso::BeaconCoordinates> &beaconCrdVec,
     const char *beacon_info_tbl,
-    const dso::datetime<dso::nanoseconds> &t) noexcept;
+    const dso::datetime<dso::nanoseconds> &t) noexcept;*/
 
 Eigen::Matrix<double, 3, 1>
 beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
@@ -502,7 +480,7 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
   // Result coordinates per beacon are stored in the beaconCrdVec vector.
-  // Note that these poition vectors are w.r.t the beacon/antenna reference
+  // Note that these posotion vectors are w.r.t the beacon/antenna reference
   // point. When in actual processing, this has to be changed, if we are
   // considering iono-free analysis
   // -------------------------------------------------------------------------
@@ -516,19 +494,19 @@ int main(int argc, char *argv[]) {
   }
   std::vector<dso::BeaconCoordinates> beaconCrdVec;
   beaconCrdVec.reserve(rnx.stations().size());
-  // coordinates of beacons (on ground), ECEF/pdop
+  // coordinates of beacons (on antenna RP), ECEF/pdop
   if (extrapolate_sinex_coordinates(buf, rnx.stations(), rnx.ref_datetime(),
-                                    beaconCrdVec, false)) {
+                                    beaconCrdVec, false, true)) {
     fprintf(stderr,
             "ERROR. Failed extracting/extrapolating beacon coordinates\n");
     return 1;
   }
   // coordinates of beacons (on antenna RP), ECEF/pdop
-  dso::get_yaml_value_depth2(config, "data", "beacon-information", buf);
-  if (prepare_beacon_coordinates(beaconCrdVec, buf, rnx.ref_datetime())) {
-    fprintf(stderr, "ERROR Failed applying eccentricities to beacons!\n");
-    return 1;
-  }
+  //dso::get_yaml_value_depth2(config, "data", "beacon-information", buf);
+  //if (prepare_beacon_coordinates(beaconCrdVec, buf, rnx.ref_datetime())) {
+  //  fprintf(stderr, "ERROR Failed applying eccentricities to beacons!\n");
+  //  return 1;
+  //}
 
   // Troposphere
   // -------------------------------------------------------------------------
@@ -1301,6 +1279,7 @@ beacon_arp2ion(const Eigen::Matrix<double, 3, 1> &bxyz_arp,
   return bxyz_arp + R.transpose() * beacon.iono_free_phase_center();
 }
 
+/*
 int prepare_beacon_coordinates(
     std::vector<dso::BeaconCoordinates> &beaconCrdVec,
     const char *beacon_info_tbl,
@@ -1349,7 +1328,7 @@ int prepare_beacon_coordinates(
   }
 
   return 0;
-}
+}*/
 
 int get_tropo(const dso::datetime<dso::nanoseconds> &t,
               const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
