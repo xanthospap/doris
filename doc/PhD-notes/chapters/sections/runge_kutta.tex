@@ -8,11 +8,11 @@ but allow for higher order and improved stability (see \cite{Griffiths2010}).
 
 The general $s$-stage Runge-Kutta methods, may be written in the form
 \begin{equation}\label{eq:grif95}
-    x_{n+1} = x_n + h \sum_{i=1}^{s} b_i k_i 
+    y_{n+1} = y_n + h \sum_{i=1}^{s} b_i k_i 
 \end{equation}
 where the $k_i$ terms can be computed from the function $f$
 \begin{equation}\label{eq:grif96}
-    k_i = f \left( t_n + c_i h , x_n + h \sum_{j=1}^{s} a_{i,j} k_j \right) \text{ with } i = 1,2,\dots s
+    k_i = f \left( t_n + c_i h , y_n + h \sum_{j=1}^{s} a_{i,j} k_j \right) \text{ with } i = 1,2,\dots s
 \end{equation}
 Typically, we impose the condition
 \begin{equation}
@@ -54,7 +54,7 @@ These can be conveniently displayed in a tableau known as the \emph{Butcher arra
 
 \autoref{eq:grif96} constitutes a nonlinear equation system of size $s$, that can 
 be used to determine $k_i$; once found, they can be substituted into \autoref{eq:grif95} 
-to determine $x_{n+1}$. Thus, a general Runge-Kutta method is implicit (\cite{Griffiths2010}).
+to determine $y_{n+1}$. Thus, a general Runge-Kutta method is implicit (\cite{Griffiths2010}).
 The form of the Butcher array for an implicit Runge-Kutta method is shown in 
 \autoref{table:butcher-array-implicit}. Although early studies were devoted entirely 
 to explicit Runge-Kutta methods, interest has now moved to include implicit methods, 
@@ -73,10 +73,10 @@ to be the difference between the exact and the numerical solution at $t=t_{n+1}$
 \begin{equation}
     T_{n+1} = x(t_{n+1}) - x_{n+1}
 \end{equation}
-with $x_n = x(t_n)$. If $T_{n+1} = \mathcal{O}(h^{p+1})(p>0)$ the method is 
+with $y_n = y(t_n)$. If $T_{n+1} = \mathcal{O}(h^{p+1})(p>0)$ the method is 
 said to be of \emph{order} $p$. In practice, two related Runge-Kutta methods are 
 used, one of order $p$ and another of order $p+1$, to approximate the value of 
-the local truncation error via $T_{n+1} = x^{p+1}_{n+1} - x^{p}_{n+1}$, where the 
+the local truncation error via $T_{n+1} = y^{p+1}_{n+1} - y^{p}_{n+1}$, where the 
 $T_{n+1}$ estimate is for the lowest order method $p$. To perform the calculation 
 in an efficient way, the values of $k$s for the lowest degree method, are chosen 
 so that they are a subset of the higher degree method coefficients. Such methods 
@@ -99,4 +99,4 @@ the step size in each step is adapted to local conditions, so as to take short s
 when the solution varies rapidly and longer steps when there is relatively little 
 activity. Obviously, computing such variable step sizes, should be automatic and 
 inexpensive. A thorough discussion on implementing sophisticated adaptive step size 
-control, fit for computer programs, is given in the classic text \cite{Shampine1975}.
+control, fit for computer programs, is given in the classic text by \cite{Shampine1975}.

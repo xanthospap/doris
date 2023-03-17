@@ -28,8 +28,8 @@
 #include <datetime/dtfund.hpp>
 
 [[maybe_unused]]constexpr const double MAXHOURS = 3*48e0;
-constexpr const int INCLUDE_EARTH_TIDES = true;
-constexpr const int INCLUDE_OCEAN_TIDES = true;
+constexpr const int INCLUDE_EARTH_TIDES = false;
+constexpr const int INCLUDE_OCEAN_TIDES = false;
 constexpr const int NOVAREQNS = false;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {

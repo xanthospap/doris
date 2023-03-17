@@ -5,15 +5,18 @@ satellite, constitute a system of \glspl{ode}. To ``propagate'' the orbit, we ne
 to solve this system, using a reference trajectory at a given instant $t=t_0$ as 
 \emph{initial conditions}. The high accuracy that is nowadays required for \gls{pod} 
 applications, can only be achieved via numerical methods (\cite{Montenbruck2000}).
+Although there are many types of numerical integrators developed for solving \gls{ode} 
+problems, only a few of them are suitable for \gls{pod} due to their limited 
+numerical precision and stability (\cite{Yufeng2020}).\info{Addition}
 
 A variety of methods have been successfully applied to the problem of orbit 
 propagation, each with its own drawbacks, limitations and advantages (see e.g. 
-\cite{Somodi2011} and \cite{Papanikolaou2016}\info{Added references here})
-. Thus, in 
-general, it is not possible to simply select one method as best suited for the 
-prediction of satellite motion.
+\cite{Somodi2011} and \cite{Atallah2020}.\info{Added references here})
+Thus, in general, it is not possible to simply select one method as best 
+suited for the prediction of satellite motion.
 
-In this Thesis, we investigate two kind of integration techniques, namely:
+In this Thesis, two different techniques of numerical integration are investigated, 
+namely:
 \begin{description}
     \item[Runge—Kutta] methods, that have the advantage of being well established 
       and easy to implement, and
@@ -24,11 +27,25 @@ Both of these techniques, are further subdivided into more specialized algorithm
 depending on problem constraints, choice of parameters and algorithmic approach. 
 Typically, application needs indicate the appropriate methodology.
 
+\info{added paragraph} A comparisson of different integration techniques considering a simple, Keplerian 
+orbit is discussed in \cite{Montenbruck1992}, where the highly flexible, variable
+order and step size multistep methods are shown to be ideal candidates for use 
+in general satellite orbit prediction and determination systems. A more realistic 
+scenario is studied in \cite{Somodi2011}, where again the efficiency and robustness 
+of the \emph{Adams} methods is shown. 
+\cite{Papanikolaou2016}, compares integration techniques (including direct 
+2\textsuperscript{nd}-order integrators such as \emph{Gauss-Jackson} methods) 
+in the frame of the \gls{grace} and \gls{goce} satellite missions; the efficiency 
+of the Adams \gls{pece} algorithm compared to \emph{Runge-Kutta} methods is evident, 
+even though only constant-step implementations are considered. A comprehensive 
+study of the precision and efficiency of different \emph{Runge-Kutta} methods 
+(among others) is presented in \cite{Atallah2020}.
+
 It should be noted that the equations of motions considered, constitute a system 
 of \glspl{ode} of seconds degree. Even though methods for direct integration of 
 such equations exist, they will not be considered here, since such methods assume 
 that forces acting on a satellite do not depend on its velocity (an assumption not 
-fulfilled in the \gls{pod} case, see e.g. \autoref{sssec:atmospheric-drag}).
+fulfilled in the \gls{pod} case considered here, see e.g. \autoref{sssec:atmospheric-drag}).
 For a more detailed and general discussion on numerical methods for \glspl{ode}, 
 see \cite{Hairer2009I} and \cite{Hairer2010II}.
 
@@ -40,7 +57,9 @@ the 6-dimensional \emph{state vector} $\bm{y}$
 \end{equation}
 with 
 \begin{equation}
-    \bm{\dot{y}} = \bm{f}(t,\bm{y}) = \begin{pmatrix}\bm{\dot{r}} \\ \bm{a}(t, \bm{r}, \bm{\dot{r}}) \end{pmatrix}
+    \bm{\dot{y}} = \bm{f}(t,\bm{y}) = 
+      \begin{pmatrix}\bm{\dot{r}} \\ 
+      \bm{a}(t, \bm{r}, \bm{\dot{r}}) \end{pmatrix}
 \end{equation}
 so that the original system
 \begin{equation}
@@ -50,3 +69,38 @@ can be written in the general form
 \begin{equation}\label{eq:genode0}
     \bm{\dot{y}} = \bm{f}(t,\bm{y}), \text{ with } \bm{y}, \bm{\dot{y}}, \bm{f} \in \Re
 \end{equation}
+
+\subsection{Goals of Current Chapter}\label{ssec:goals-of-integrator}
+\info{new subsection}
+Orbit integration plays a major role in \gls{pod} as it can be used to ``connect'' 
+the trajectory between observation epochs. Nowadays, the increasingly enhanced 
+ground and space-borne geodetic observation techniques have put forward even higher 
+requirements on the precision of numerical orbit integration. Efficiency 
+constraints and computational resources have to be thoroughly considered in such 
+an integration process, as the computational burden it incurs is significant.
+
+In this chapter a quick overview of the most widely used \gls{ode} 
+solution techniques, as applied to the orbit determination problem, is presented. 
+Focus is placed on \emph{multistep} methods, and more specifically the \emph{Adams} 
+\gls{pece} family of algorithms, as they represent state-of-the-art integration 
+schemes.
+
+Unfortunately, there is a lack of relevant software or software availability; well 
+established, scientific packages performing \gls{pod} are mostly either not freely 
+available or not open-source. Hence, the decision was made to design and implement 
+an efficient, robust integrator from scratch within the framework of this Thesis. 
+The \emph{Adams} \gls{pece} method was adopted as the algorithm of choice, due to  
+the advantages it offers both in terms of precision and efficiency. The implemented 
+scheme follows a \emph{variable step}, \emph{variable order} approach, based on 
+the theoretical groundwork laid by \cite{Shampine1975}.
+
+The implementation details of the software built to address orbit integration, are discussed 
+in \autoref{sec:integrator-implementation}. Elaborate mathematical formulations are 
+employed to allow for as much efficiency as possible; variable, but not rapidly 
+changing step sizes and orders of the integrator are seeked for in every individual 
+step, to accommodate robustness and precision and limit computational burden.
+
+The integrator constitutes a big part of the software package built for this Thesis. 
+As such, it pertains to the overall philosophy of free and open-source software, 
+adopting a modern, generic design and accommodating reusability and adaptability 
+(see \autoref{ssec:design-considerations}).

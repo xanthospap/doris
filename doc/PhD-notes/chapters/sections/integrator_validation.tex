@@ -1,0 +1,103 @@
+\subsection{Integrator Validation}\label{sec:integrator-validation}
+
+\info{new subsection}
+Checking and validating integrator results is not a straight-forward process, since 
+the computation of the complex force field acting on the satellite is required 
+(see \autoref{ssec:perturbed-motion}). Some of these forces further depend on 
+satellite-specific characteristics (e.g. atmospheric drag, solar radiation 
+pressure). Additionally, validation of trajectory extrapolation requires a ``reference'' 
+orbit (i.e. reference state results), which may have been computed using a non 
+identical set of models, reference frames and algorithms.
+
+To test the integrator designed and implemented for this Thesis, \gls{ids}-published 
+(\cite{Willis2016}) \texttt{sp3} files were acquired and used as ``reference'' orbits. 
+These orbits are the accumulated results for the satellite state, tabulated at 
+equidistant epochs, of the individual analysis centers contributing to the service. 
+Hence, they represent state-of-the-art \gls{pod} results using the \gls{doris} 
+satellite system.
+
+The test devised to check the integrator proceed as follows:
+\begin{enumerate}
+  \item Read a state vector off from the sp3 file for an epoch $t$
+  \item Extrapolate the state to a later time $t_i$ (prior to the end of sp3 records)
+  \item Read the state off from the sp3 file for the epoch $t_i$ and compare 
+    with the results obtained from the integrator. Go to (1) and repeat the 
+    process.
+\end{enumerate}
+The force model used within the integrator, does not contain contributions of the 
+solar radiation pressure and atmospheric drag. Ocean tidal loading effects on the 
+geopotential, are limited to the 11 major tides. All other contributions, are 
+computed as described in \autoref{ssec:perturbed-motion}. Handling of the 
+transformation between the \gls{itrf} and \gls{gcrf} is described in 
+\autoref{ssec:the-celestial-reference-frame}.
+
+The validation test is performed for a time interval of approximately one week, 
+starting on 26/08/2022. The satellite mission picked for the test is Jason-3 
+(\cite{Bannoura2011}), since this is the mission used later on, to test the 
+integrated \gls{pod} process.
+
+Normally, in a \gls{pod} process using the \gls{doris} system, there is no need to 
+extrapolate an orbit further than some seconds, after it has been adjusted by the 
+inclusion of observations (see \autoref{ch:pod}). Two distinct measurements are made 
+every \SI{10}{\sec} and the ground network is dense enough so that at least one 
+ground stations is nearly always visible by any \gls{doris}-equipped satellite. 
+For the validation process, extrapolation is tested up to time intervals of 
+\SI{15}{\minute} to gain a thorough view on the robustness of the implemented 
+algorithm (\autoref{fig:sp3-vs-integration-1min}).
+
+\autoref{fig:sp3-vs-integration-1min} depicts the differences in the state vector 
+$\bm{y} = \begin{pmatrix}\bm{r} & \bm{v}\end{pmatrix}^T$ between the reference values 
+obtained by the \texttt{sp3} file and the ones computed using the integrator with 
+an extrapolation interval of \SI{1}{\minute}. Differences in the position range 
+between \qtyrange{-2}{2}{\milli\metre} while for the velocity components the 
+differences are within \qtyrange{-1e-5}{1e-5}{\meter\per\second}. A diurnal 
+signal seems to be present in the latter case, which could be due to unmodeled 
+effects of \begin{itemize}
+  \item (remaining) ocean tidal constituents, 
+  \item solid earth pole tides and ocean pole tides,
+  \item solar radiation pressure acting on the satellite,
+  \item atmospheric drag
+\end{itemize}
+\begin{figure}
+  \centering
+  \includegraphics[height=.4\textheight,keepaspectratio]{intrp.ja3.1min}
+  \caption{Integration results of satellite state compared to respective 
+    \gls{ids}-distributed sp3 file records. Extrapolation is performed for an 
+    interval of \SI{1}{\minute}.}
+  \label{fig:sp3-vs-integration-1min}
+\end{figure}
+
+\autoref{fig:sp3-vs-integration-3min} depicts the differences in the state vector 
+when the integration interval is expanded to \SI{3}{\minute}. Differences in 
+position range between \qtyrange{-5}{5}{\milli\metre} while for the velocity 
+components the differences are within \qtyrange{-2e-5}{2e-5}{\meter\per\second}. As in the 
+case of \SI{1}{\minute} extrapolation (see \autoref{fig:sp3-vs-integration-1min}), 
+velocity differences are dominated by a harmonic, diurnal signal and the same can 
+be told for the position discrepancies.
+\begin{figure}
+  \centering
+  \includegraphics[height=.4\textheight,keepaspectratio]{intrp.ja3.3min}
+  \caption{Integration results of satellite state compared to respective 
+    \gls{ids}-distributed sp3 file records. Extrapolation is performed for an 
+    interval of \SI{3}{\minute}.}
+  \label{fig:sp3-vs-integration-3min}
+\end{figure}
+
+Differences when extrapolating for an interval of \SI{15}{\minute} are depicted 
+in \autoref{fig:sp3-vs-integration-15min}. In this case, differences in position 
+range between \qtyrange{-5}{5}{\centi\metre} while for the velocity components 
+the range is \qtyrange{-.1}{.1}{\milli\meter\per\second}
+\begin{figure}
+  \centering
+  \includegraphics[height=.4\textheight,keepaspectratio]{intrp.ja3.15min}
+  \caption{Integration results of satellite state compared to respective 
+    \gls{ids}-distributed sp3 file records. Extrapolation is performed for an 
+    interval of \SI{15}{\minute}.}
+  \label{fig:sp3-vs-integration-15min}
+\end{figure}
+
+In general, due to the very small magnitude in the discrepancies computed for the 
+extrapolated vs the ``reference'' state (see \autoref{fig:sp3-vs-integration-1min}, 
+\autoref{fig:sp3-vs-integration-3min} and \autoref{fig:sp3-vs-integration-15min}), 
+the design of the algorithm and its implementation seem to be robust, while the 
+discrepancies are attributed to either mismodelled, or unmodelled effects.

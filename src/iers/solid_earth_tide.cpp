@@ -103,3 +103,39 @@ int dso::SolidEarthTide::acceleration(
 
   return 0;
 }
+
+int dso::SolidEarthTide::acceleration(
+    const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
+    double xp_sec, double yp_sec,
+    const Eigen::Matrix<double, 3, 1> &rsat,
+    const Eigen::Matrix<double, 3, 1> &rmoon,
+    const Eigen::Matrix<double, 3, 1> &rsun, Eigen::Matrix<double, 3, 1> &acc,
+    Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept {
+
+  Eigen::Matrix<double, 3, 1> a = Eigen::Matrix<double, 3, 1>::Zero();
+  acc_gradient = Eigen::Matrix<double,3,3>::Zero();
+
+  // compute SH coefficient corrections (δC and δS) for Step1 and Step2
+  std::array<double, 12> dC, dS;
+  this->operator()(mjdtt, mjdut1, rmoon, rsun, dC, dS);
+
+  // compute Pole Tide
+  auto [dc21,ds21] = SolidEarthPoleTide().poleTide(mjdtt, xp_sec, yp_sec);
+  dC[1] += dc21;
+  dS[1] += ds21;
+
+  // permanent tide
+  //const double k20 = 0.30190e0;
+  //const double dC20_pt = 4.4228e-8 * (-0.31460e0) * k20;
+  //dC[0] -= dC20_pt;
+
+  // transform array to harmonics
+  array2harmonics(dC, dS, cs);
+
+  // compute acceleration at satellite position (ITRF, cartesian)
+  test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, acc_gradient, &V, &W);
+
+  acc = a;
+
+  return 0;
+}

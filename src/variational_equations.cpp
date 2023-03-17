@@ -235,6 +235,7 @@ void dso::VariationalEquations(
  *  Initially, the state transition matrix should be set to the identity
  *  matrix, i.e. Phi(t0,t0) = I_(6x6)
  */
+constexpr const int accountforpoletide = true;
 constexpr const int NOVAREQNS = false;
 void dso::VariationalEquations(
     // seconds from reference epoch (TAI)
@@ -307,8 +308,14 @@ void dso::VariationalEquations(
     // Sun and Moon position in ECEF
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
-    params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef, rs_ecef,
-                                tacc, taccgrad);
+    if (accountforpoletide) {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(),
+                                  Rot.eop().xp, Rot.eop().yp, r_geo, rm_ecef,
+                                  rs_ecef, tacc, taccgrad);
+    } else {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef,
+                                  rs_ecef, tacc, taccgrad);
+    }
     f += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();
@@ -319,6 +326,17 @@ void dso::VariationalEquations(
     Eigen::Matrix<double, 3, 1> tacc;
     params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
     f += Rot.itrf2gcrf(tacc);
+  }
+
+  {// should we fucking do this ? --> certainly !NOT!
+   /*
+    Eigen::Matrix<double, 3, 1> o =
+        Eigen::Matrix<double, 3, 1>({0e0, 0e0, Rot.omega_earth()});
+    Eigen::Matrix<double, 6, 1> ygcrf = yP0.block<6, 1>(0, 0);
+    const Eigen::Matrix<double, 6, 1> yitrf = Rot.gcrf2itrf(ygcrf);
+    f -= 2e0 * (o.cross(yitrf.block<3, 1>(3, 0))) +
+         o.cross(o.cross(yitrf.block<3, 1>(0, 0)));
+    */
   }
 
   // Differential equation for the state transition matrix Φ(t, t_0) is:

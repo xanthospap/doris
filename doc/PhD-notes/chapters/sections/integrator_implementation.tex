@@ -1,5 +1,8 @@
 \section{Integrator implementation}\label{sec:integrator-implementation}
 
+\iffalse
+\fi
+
 In this section a brief outline of the integrator designed and implemented for 
 the current Thesis is given. The method used, is a \emph{variable step}, 
 \emph{variable order} Adams-Bashforth-Moulton \gls{pece} algorithm. The 
@@ -16,15 +19,23 @@ problems in which:
     \item many output points are required
 \end{itemize}
 
+\info{Added paragraph}It is worth noting that  major scientific software packages used for \gls{pod}, such 
+as \texttt{GINS}, developed by \gls{cnes} and \gls{grgs} (\cite{Gins2013}) and 
+\texttt{GEODYN} developed by \gls{gsfc} (\cite{Geodyn2015}) use \emph{multi-step} 
+methods for the numerical integration. The algorithm implementation was written 
+from scratch requiring many difficult steps, as explained in the preceding sections. 
+Exisiting libraries were not preferred (when available) as were developed with 
+reduced analytical capabilities for modern computing systems. An overview of the 
+integrator designed for this Thesis, is given in \autoref{fig:sgode}. 
+
 In \gls{pod}, the cost of calling the derivative function $\bm{f}(t, \bm{y}(t))$ 
 is quite heavy and repeated calls can make the integrator inefficient. Hence, care 
 must be taken to limit such computations. The Adams methods, when carefully used, 
 are more efficient in this respect than any other method being used today to 
-solve general \gls{ode} (\cite{Shampine1975}). To achieve this efficiency though, 
-variable step size and order should be used. This however incurs an extra overhead, 
-since to make such decisions, it is necessary to estimate the errors that are, 
-or would be, incurred for various step sizes and orders. To tackle this problem, 
-most steps are taken in groups with a constant step size and constant order.
+solve general \gls{ode} (\cite{Shampine1975}). \info{correction}This incurs an additional overhead, 
+however, because making such decisions necessitates estimating the errors that 
+are, or would be, incurred for various step sizes and orders. To address this 
+issue, most steps are performed in groups with constant step size and order.
 
 \begin{figure}
   \centering
@@ -246,6 +257,7 @@ $i=k, k-1, \dots ,1$. Now, \autoref{eq:sg514} and \autoref{eq:sg515} can be writ
   \phi _{i} (n+1)     &= \phi ^{e}_{i} (n+1) - \left( f^{p}_{n+1} - \phi ^{e}_{1} (n+1) \right) \label{eq:sg520}
 \end{align}
 
+The combined predictor-corrector step phase is depicted in \autoref{fig:adams-pece}.
 \begin{figure}
   \centering
   \input{tikz/adams-pece}
@@ -270,7 +282,7 @@ This quantity was introduced by \cite{Shampine1975} and is given by
 In reality, $ERK$ estimates what the local error at $x_{n+1}$ would have been, 
 had the preceding steps been of constant size $h$. Given a successful step, the 
 next step (to $x_{n+2}$) of size $rh$, will have a local error of $r^{k+1} ERK$. 
-If on contrary the step was to be repeated with a step size of $rh$, then again 
+If on contrary the step were to be repeated with a step size of $rh$, then again 
 its error estimate would be $r^{k+1} ERK$.
 
 For order selection, three further quantities are introduced, based on \cite{Shampine1975}
@@ -332,15 +344,3 @@ are allocated in a contiguous manner, minimizing cache misses.
 Part of the source code uses the \texttt{eigen} (\cite{eigenweb}) library, which 
 supports vectorization (\emph{Single Instruction, Multiple Data} (SIMD) instructions) 
 including the widely used \emph{Advanced Vector Extensions} AVX, AVX2 and AVX512.
-
-%An estimate of local error used in the algorithm and introduced by \cite{Shampine1975}, 
-%is given by
-%\begin{equation}
-%  ERR = \norm{h_{n+1} \left( g_{k+1,1} - g_{k,1} \right) \phi ^{p}_{k+1}(n+1)} 
-%    \equiv \norm{le_{n+1}(k)}
-%\end{equation}
-%When trying to make step, e.g. from $x_n$ to $x_{n+1}$, the error estimate is used 
-%to either predict the next step's error (via 
-%$\norm{le_{n+2}(k)} \equiv \norm{h_{n+2} \left( g_{k+1,1} - g_{k,1} \right) \phi ^{p}_{k+1}(n+2)}$), or repeat the step with a smaller step size and possibly a different order. 
-%The algorith tries to find the largest step size for which the predicted local 
-%error is acceptable.

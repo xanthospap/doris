@@ -159,7 +159,7 @@ if len(include_test_list):
 env.Append(RPATH=root_dir)
 for tsource in test_sources:
     ttarget = tsource.replace('_', '-').replace('.cpp', '.out')
-    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
+    env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')
 
 ## Unit Tests (only build if user selected)
 if ARGUMENTS.get('make-check', 0):

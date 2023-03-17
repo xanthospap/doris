@@ -14,84 +14,6 @@
 
 namespace dso {
 
-/// @brief Resolve a Doodson number string to 6 integers.
-/// These integers are actually the multipliers for the Doodson variables
-/// [τ, s, h, p, N', ps], in this order.
-/// @param[in] str A Doodson number as string. The string must be composed
-///                of 3 ints, followed by a '.' or ',' character, followed
-///                by 3 ints.
-///                Ex. "055.555", "167,555"
-/// @param[out] arr The resulting array of 6 integers
-/// @return Anything other than 0 denotes an error
-/// int doodson2intarray(const char *const str, int *arr) noexcept;
-/*class DoodsonNumber {
-private:
-  int iar[6] = {0};
-
-public:
-  explicit DoodsonNumber(const char *str);
-  explicit DoodsonNumber(const int *ar = nullptr) {
-    if (ar)
-      std::memcpy(iar, ar, sizeof(int) * 6);
-  }
-  char *str(char *buf) const noexcept;
-  bool operator==(const DoodsonNumber &other) const noexcept {
-    int diff = 0;
-    for (int i = 0; i < 6; i++)
-      diff += (iar[i] != other.iar[i]);
-    return (diff == 0);
-  }
-  bool operator!=(const DoodsonNumber &other) const noexcept {
-    return !(this->operator==(other));
-  }
-  int *multipliers(int *mults) const noexcept {
-    mults[0] = iar[0];
-    mults[1] = iar[1] - 5;
-    mults[2] = iar[2] - 5;
-    mults[3] = iar[3] - 5;
-    mults[4] = iar[4] - 5;
-    mults[5] = iar[5] - 5;
-    return mults;
-  }
-  /// @brief Compute θ_f = Σ(β_i * n_i), i=1,..,6
-  double theta_angle(const double *const doodson_vars) const noexcept {
-    return dso::anp(
-        doodson_vars[0] * iar[0] + doodson_vars[1] * (iar[1] - 5) +
-        doodson_vars[2] * (iar[2] - 5) + doodson_vars[3] * (iar[3] - 5) +
-        doodson_vars[4] * (iar[4] - 5) + doodson_vars[5] * (iar[5] - 5));
-  }
-};*/
-
-/// @brief Fundamental (Delaunay) arguments to Doodson variables.
-/// All angles are in [rad] in the range [0,2π)
-/// @param[in] fundarg Fundamental (Delaunay) arguments, in the order
-///             [l, lp, f, d, Ω], see notes.
-/// @param[out] doodson Corresponding Doodson variables, in the order
-///             [τ, s, h, p, N', ps]
-/// @note Explanation of symbols used:
-///   * [0] l  : Mean anomaly of the Moon [rad]
-///   * [1] lp : Mean anomaly of the Sun [rad]
-///   * [2] f  : L - Ω [rad]
-///   * [3] d  : Mean elongation of the Moon from the Sun [rad]
-///   * [4] Ω  : Mean longitude of the ascending node of the Moon [rad]
-///
-///   * [0] τ  : GMST + π - s
-///   * [1] s  : Moon's mean longitude [rad]
-///   * [2] h  : Sun's mean longitude [rad]
-///   * [3] p  : Longitude of Moon's mean perigee
-///   * [4] N' : Negative longitude of Moon's mean node
-///   * [5] pl : Longitude of Sun's mean perigee
-/*inline int fundarg2doodson(const double *const fundarg, double gmst,
-                           double *doodson) noexcept {
-  doodson[1] = dso::anp(fundarg[2] + fundarg[4]);
-  doodson[2] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3]);
-  doodson[3] = dso::anp(fundarg[2] + fundarg[4] - fundarg[0]);
-  doodson[4] = dso::anp(-fundarg[4]);
-  doodson[5] = dso::anp(fundarg[2] + fundarg[4] - fundarg[3] - fundarg[1]);
-  doodson[0] = dso::anp(gmst + dso::DPI - doodson[1]);
-  return 0;
-}*/
-
 /// @brief Compute Pole Tides according to IERS 2010, Sec. 7.1.4
 Eigen::Matrix<double, 3, 1>
 pole_tide(double tfyears, double xp, double yp,
@@ -185,6 +107,35 @@ public:
                    int max_order = -1) noexcept;
 }; // OceanTide
 
+class SolidEarthPoleTide {
+  double m1,m2; // arcsec
+ int operator()(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
+   // secular pole (IERS2010, Sec7.2.4 Eq. 21)
+   const double fyrs = mjdtt.as_fractional_years();
+   const double xs = 55e0 + 1.677e0*(fyrs-2e3);    // [mas]
+   const double ys = 320.5e0 + 3.460e0*(fyrs-2e3); // [mas]
+   // "wobble" variables (IERS2010, Sec7.2.4 Eq. 25)
+   m1 = xp_sec - xs*1e-3;    // [as]
+   m2 = -(yp_sec - ys*1e-3); // [as]
+   return 0;
+ }
+public:
+ auto poleTide(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
+   struct dCS21 { double dc21,ds21; };
+   // compute "wobble" variables of date
+   this->operator()(mjdtt,xp_sec,yp_sec);
+   double dC21,dS21;
+   // compute solid earth pole tide
+   dC21 = -1.3331e-9*(m1+0.0115*m2);
+   dS21 = -1.3331e-9*(m2-0.0115*m1);
+   // ocean pole tide
+   dC21 += -2.1778e-10*(m1-0.01724*m2);
+   dS21 += -1.7232e-10*(m2-0.03365*m1);
+
+   return dCS21{dC21,dS21};
+ }
+}; // SolidEarthPoleTide
+
 class SolidEarthTide {
   static constexpr const int degree = 4;
 
@@ -233,6 +184,15 @@ public:
 
   int acceleration(const dso::TwoPartDate &mjdtt,
                    const dso::TwoPartDate &mjdut1,
+                   const Eigen::Matrix<double, 3, 1> &rsat,
+                   const Eigen::Matrix<double, 3, 1> &rmoon,
+                   const Eigen::Matrix<double, 3, 1> &rsun,
+                   Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
+  
+  int acceleration(const dso::TwoPartDate &mjdtt,
+                   const dso::TwoPartDate &mjdut1,
+                   double xp_sec, double yp_sec,
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    const Eigen::Matrix<double, 3, 1> &rmoon,
                    const Eigen::Matrix<double, 3, 1> &rsun,

@@ -4,14 +4,22 @@
 
 \subsection{Adams Method(s)}\label{ssec:adams-method}
 
-In the Runge-Kutta method (see \autoref{sec:runge-kutta}), each step in the 
-integration process is completely independent and once used for computation is 
-discarded (for this reason they are often called \emph{single-step} methods). 
-To reduce the number of function calls and thus allow for efficiency, \emph{multi-step} 
-methods have been introduced. These store values of previous steps, and reuse them 
-in the next steps to be taken, so that to generate an approximation for the next 
-step, the already computed $x$ and $\dot{x}$ values computed at the previous $k$ 
-steps are combined.
+%In the Runge-Kutta method (see \autoref{sec:runge-kutta}), each step in the 
+%integration process is completely independent and once used for computation is 
+%discarded (for this reason they are often called \emph{single-step} methods). 
+%To reduce the number of function calls and thus allow for efficiency, \emph{multi-step} 
+%methods have been introduced. These store values of previous steps, and reuse them 
+%in the next steps to be taken, so that to generate an approximation for the next 
+%step, the already computed $x$ and $\dot{x}$ values computed at the previous $k$ 
+%steps are combined.
+Each step in the integration process in the \emph{Runge-Kutta} method (see 
+\autoref{sec:runge-kutta}) is completely independent and is discarded once 
+used for computation (this is why they are often referred to as \emph{single-step} 
+methods). To cut down on the number of function calls \emph{multi-step} methods 
+have been introduced to allow for efficiency. These store previous step values 
+and reuse them in the subsequent steps, so that to generate an approximation 
+for the next step, the previously computed $y$ and $\dot{y}$ values computed 
+at the previous $k$ steps are combined.
 
 In general, starting with the \gls{ode} $\bm{\dot{y}} = \bm{f}(t,\bm{y})$, and 
 integrating both sides for the interval $t_i$ to $t_{i+j}$ the following expression 

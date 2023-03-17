@@ -235,6 +235,7 @@
 \newacronym{ilrs}{ILRS}{International Laser Ranging Service}
 \newacronym{ivs}{IVS}{International VLBI Service for Geodesy and Astronomy}
 \newacronym{uso}{USO}{Ultra Stable Oscillator}
+\newacronym{gsfc}{GSFC}{Goddard Space Flight Center}
 %\newacronym{}{}{}
 
 \title{PhD Memo and Notes}
@@ -284,7 +285,7 @@
       \input{chapters/sections/ocean_tides_gravity}
       \input{chapters/sections/atmospheric_drag}
       \subsubsection{Solar Radiation Pressure}
-    \section{The Celestial Reference Frame}
+    \section{The Celestial Reference Frame}\label{ssec:the-celestial-reference-frame}
       \input{chapters/sections/icrf}
       \input{chapters/sections/earth_attitude}
       \input{chapters/sections/terrestrial_to_celestial}
@@ -301,9 +302,10 @@
   \input{chapters/sections/runge_kutta}
   \input{chapters/sections/multistep_methods}
   \input{chapters/sections/integrator_implementation}
+    \input{chapters/sections/integrator_validation}
 %\fi
 
-\chapter{Precise Orbit Determination}\label{ch:pod}
+\chapter{\gls{pod}}\label{ch:pod}
 %\iffalse
   \input{chapters/sections/pod_introduction}
     \input{chapters/sections/pod_goals}
@@ -316,7 +318,7 @@
   \input{chapters/sections/pod_implementation}
 %\fi
 
-\chapter{DORIS}\label{ch:doris}
+\chapter{\gls{doris}}\label{ch:doris}
   \input{chapters/sections/doris_introduction}
     \input{chapters/sections/doris_fundamentals}
   \input{chapters/sections/doris_ground_segment}
@@ -324,6 +326,8 @@
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
+
+\chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
 
 \iffalse
   \include{chapters/orbit_intergators}
