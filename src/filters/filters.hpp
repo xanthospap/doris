@@ -4,7 +4,6 @@
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "filters/ekf.hpp"
-#include <datetime/dtfund.hpp>
 #ifdef DEBUG
 #include <cassert>
 #include <cstdio>
@@ -15,8 +14,8 @@ namespace dso {
 enum class BeaconClockModel : char { None, Linear };
 
 template <int Np, BeaconClockModel bcm> struct EkfFilterImpl {
-  ExtendedKalmanFilter<dso::nanoseconds> _ekf;
-  dso::datetime<dso::nanoseconds> _ref_epoch;
+  ExtendedKalmanFilter _ekf;
+  dso::TwoPartDate _ref_epoch;
   int _num_stations{0};
 
   static std::size_t num_params(int num_stations) noexcept {
@@ -43,11 +42,11 @@ template <int Np, BeaconClockModel bcm> struct EkfFilterImpl {
   Eigen::MatrixXd &P() noexcept { return _ekf.P; }
 
   EkfFilterImpl(int num_stations,
-                const dso::datetime<dso::nanoseconds> ref_epoch) noexcept
+                const dso::TwoPartDate &ref_epoch) noexcept
       : _ekf(EkfFilterImpl<Np, bcm>::num_params(num_stations)),
         _ref_epoch(ref_epoch), _num_stations(num_stations) {}
 
-  void time_update(const dso::datetime<dso::nanoseconds> &tk,
+  void time_update(const dso::TwoPartDate &tk,
                    const Eigen::VectorXd &xk,
                    const Eigen::MatrixXd &phi) noexcept {
     _ekf.time_update(tk, xk, phi);
@@ -66,7 +65,7 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::Linear> {
   EkfFilterImpl<Np, BeaconClockModel::Linear> _ekf;
 
   EkfFilter(int num_stations,
-            const dso::datetime<dso::nanoseconds> ref_epoch) noexcept
+            const dso::TwoPartDate &ref_epoch) noexcept
       : _ekf(num_stations, ref_epoch) {}
 
   std::size_t num_params() const noexcept { return _ekf.num_params(); }
@@ -74,9 +73,10 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::Linear> {
   Eigen::MatrixXd estimates() const noexcept { return _ekf.estimates(); }
   Eigen::MatrixXd &P() noexcept { return _ekf.P(); }
 
-  double deltat(const dso::datetime<dso::nanoseconds> &t) const noexcept {
-    const dso::nanoseconds dtsec = t.delta_sec(_ekf._ref_epoch);
-    return dtsec.to_fractional_seconds();
+  double deltat(const dso::TwoPartDate &t) const noexcept {
+    //const dso::nanoseconds dtsec = t.delta_sec(_ekf._ref_epoch);
+    // return dtsec.to_fractional_seconds();
+   return t.diff<dso::DateTimeDifferenceType::FractionalSeconds>(_ekf._ref_epoch);
   }
 
   constexpr std::size_t tropo_index(int beacon_nr) const noexcept {
@@ -103,22 +103,24 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::Linear> {
   double &tropo_estimate(int beacon_nr) noexcept {
     return _ekf._ekf.x(tropo_index(beacon_nr));
   }
+
   double
   rfoff_estimate(int beacon_nr,
-                 const dso::datetime<dso::nanoseconds> &t) const noexcept {
+                 const dso::TwoPartDate &t) const noexcept {
     const int idx = rfoff_index(beacon_nr);
 #ifdef DEBUG
     assert(idx >= 0 && idx < _ekf._ekf.x.rows());
 #endif
-    const dso::nanoseconds dtsec = t.delta_sec(_ekf._ref_epoch);
-    const double dt = dtsec.to_fractional_seconds();
+    //const dso::nanoseconds dtsec = t.delta_sec(_ekf._ref_epoch);
+    //const double dt = dtsec.to_fractional_seconds();
+    const double dt = t.diff<dso::DateTimeDifferenceType::FractionalSeconds>(_ekf._ref_epoch);
     return _ekf._ekf.x(idx) + dt * _ekf._ekf.x(idx + 1);
   }
   // double &rfoff_estimate(int beacon_nr) noexcept {
   //     return _ekf._ekf.x(rfoff_index(beacon_nr));
   // }
 
-  void time_update(const dso::datetime<dso::nanoseconds> &tk,
+  void time_update(const dso::TwoPartDate &tk,
                    const Eigen::VectorXd &xk,
                    const Eigen::MatrixXd &phi) noexcept {
     _ekf.time_update(tk, xk, phi);
@@ -215,7 +217,7 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::None> {
   EkfFilterImpl<Np, BeaconClockModel::None> _ekf;
 
   EkfFilter(int num_stations,
-            const dso::datetime<dso::nanoseconds> ref_epoch) noexcept
+            const dso::TwoPartDate &ref_epoch) noexcept
       : _ekf(num_stations, ref_epoch) {}
 
   std::size_t num_params() const noexcept { return _ekf.num_params(); }
@@ -250,7 +252,7 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::None> {
     return _ekf._ekf.x(rfoff_index(beacon_nr));
   }
 
-  void time_update(const dso::datetime<dso::nanoseconds> &tk,
+  void time_update(const dso::TwoPartDate &tk,
                    const Eigen::VectorXd &xk,
                    const Eigen::MatrixXd &phi) noexcept {
     _ekf.time_update(tk, xk, phi);

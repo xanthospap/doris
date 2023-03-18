@@ -25,14 +25,15 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <iers2010/eop.hpp>
 
 //
-constexpr const int MaxArcHours = 13; 
+// constexpr const int MaxArcHours = 13; 
 
 constexpr const int Np = 1;
 
 // max time difference between two observations to mark a new arc pass [sec]
-constexpr const long max_sec_for_new_arc = 5 * 60L;
+constexpr const double max_sec_for_new_arc = 5 * 60;
 
 // default, i.e. a-priori value for Dfe / feN (relative frequency offset for
 // emitter)
@@ -47,12 +48,9 @@ constexpr const double DragCoefSigma = .05e0;
 // Standard gravitational parameters for Sun and Moon in [km^3 / sec^2]
 double GMSun, GMMoon;
 
-// usually using these datetimes ...
-using Datetime = dso::datetime<dso::nanoseconds>;
-
 double crange(const Eigen::Matrix<double, 3, 1> &rbeacon_ecef,
               const Eigen::Matrix<double, 3, 1> &rsat_ecef,
-              [[maybe_unused]] const dso::datetime<dso::nanoseconds> &ttai,
+              [[maybe_unused]] const dso::TwoPartDate &ttai,
               Eigen::Matrix<double, 3, 1> &rbeacon_ecef_corr) noexcept {
   // return (rsat_ecef - rbeacon_ecef).norm()
   //   + iers2010::OmegaEarth * (rbeacon_ecef.dot(rsat_eci))/iers2010::C;
@@ -109,7 +107,7 @@ struct TropoDetails {
 struct SatBeacon {
   char id3c[3];                  ///< beacons internal (3-char) id
   int count;                     ///< internally used integer id
-  Datetime ttai, tproper;        ///< time
+  dso::TwoPartDate ttai, tproper;        ///< time
   double Ls1, Lu2;               ///< cycles on L1 (S1)
   double Diono;                  ///< ionospheric corrections [cycles]
   double Drel;                   ///< relativity correction
@@ -120,8 +118,8 @@ struct SatBeacon {
   int arcnr{0};
   int reinitialize{0}; ///< measurement marked as discontinuity
 
-  SatBeacon(const char *id_, int count_, const Datetime &ttai_,
-            const Datetime &tproper_, double L1, double L2, double Diono_,
+  SatBeacon(const char *id_, int count_, const dso::TwoPartDate &ttai_,
+            const dso::TwoPartDate &tproper_, double L1, double L2, double Diono_,
             const TropoDetails &Dtropo_, double Drel_,
             const Eigen::Matrix<double, 3, 1> &s_, double _crho) noexcept
       : count(count_), ttai(ttai_), tproper(tproper_), Ls1(L1), Lu2(L2),
@@ -130,7 +128,7 @@ struct SatBeacon {
     std::memcpy(id3c, id_, sizeof(char) * 3);
   }
 
-  void update(const Datetime &ttai_, const Datetime &tproper_, double L1_,
+  void update(const dso::TwoPartDate &ttai_, const dso::TwoPartDate &tproper_, double L1_,
               double L2_, double Diono_, const TropoDetails &Dtropo_,
               double Drel_, const Eigen::Matrix<double, 3, 1> &s_,
               double _crho) noexcept {
@@ -149,12 +147,13 @@ struct SatBeacon {
 };
 
 // hold satellite state & time
-struct SatelliteState {
+struct OrbitIntegrator {
   // Current datetime in TAI
-  // double mjd_tai;
   dso::TwoPartDate mjd_tai;
   // state vector at t=tai in ECEF, at DORIS receiver RP (Iono-Free)
   Eigen::Matrix<double, 6, 1> state;
+  // An EOP look-up table to use for ITRF-to-GCRF transformations
+  const dso::EopLookUpTable *eoplut;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
   Eigen::Matrix<double, 6, Np> S;
@@ -165,21 +164,12 @@ struct SatelliteState {
   // Body-quaternion hunter
   dso::JasonQuaternionHunter *qhunt{nullptr};
 
-  // transform state vector state from ECEF to GCRF for mjd_tai
-  Eigen::Matrix<double, 6, 1>
-  celestial(const dso::EopLookUpTable &elut) const noexcept {
-    Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    double era, lod;
-    assert(!gcrs2itrs(mjd_tai, elut, rc2i, era, rpom, lod));
-    return dso::yter2cel(state, rc2i, era, lod, rpom);
-  }
-
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
   // aka dx = CoG - ARP in GCRF
   Eigen::Matrix<double, 3, 1>
   eccentricity([[maybe_unused]] const Eigen::Quaternion<double> &q) noexcept {
     // assuming that the quaternion acts as:
-    // X_sat-fixed = Q * X_sat-gcrs
+    // X_sat_fixed = Q * X_sat-gcrs
     return (cog_sf) ? (q.conjugate().normalized() * (*cog_sf - *arp_sf))
                     : (Eigen::Matrix<double, 3, 1>::Zero());
   }
@@ -191,14 +181,17 @@ struct SatelliteState {
     // apply eccentricity (ARP to  CoM)
     static int call_nr = 0;
 
+    // an instance to transform between ITRF and GCRF coordinates
+    dso::Itrs2Gcrs Rot(mjd_tai.tai2tt(), eoplut);
+    
     // Vector containing state + variational equations size: 6 + 6x(6+Np)
     // Stored in plain format, one column at a time
     // Ref. Frame: inertial
-    Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1> yPhi =
+    Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1> yPhi0 =
         Eigen::Matrix<double, 6 + 6 * 6 + 6 * Np, 1>::Zero();
-
+    
     // transform state from ECEF to GCRF (satellite ARP)
-    yPhi.block<6, 1>(0, 0) = celestial(integrator.params->eopLUT);
+    yPhi0.block<6, 1>(0, 0) = Rot.itrf2gcrf(state);
 
 #ifndef NO_ATTITUDE
     // if needed, go from antenna RP to CoG (this is not needed in the first
@@ -211,7 +204,7 @@ struct SatelliteState {
         assert(false);
       }
       // GCRF: from satellite ARP to CoG
-      yPhi.block<3, 1>(0, 0) += eccentricity(q);
+      yPhi0.block<3, 1>(0, 0) += eccentricity(q);
     }
 #endif
 
@@ -220,20 +213,23 @@ struct SatelliteState {
     // Note that the matrix is stored in plain format, one column at a time
     // First column contains the state, skip it.
     {
-      int k = 6;
-      for (int col = 1; col < 6; col++)
-        for (int row = 0; row < 6; row++)
-          yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
+      //int k = 6;
+      //for (int col = 1; col < 6; col++)
+      //  for (int row = 0; row < 6; row++)
+      //    yPhi(k++) = (col - 1 == row) ? 1e0 : 0e0;
+      const Eigen::Matrix<double,6,6> I = Eigen::Matrix<double,6,6>::Identity();
+      yPhi0.block<36,1>(6,0) = Eigen::Matrix<double, 6 * 6, 1>(I.data());
     }
 
     // Initial condition for state transition matrix S(t0) = I
     // last 6 * Np elements should be zero (already done in initialization of
     // the matrix)
+    yPhi0.block<6*Np,1>(6+36,0) = Eigen::Matrix<double, 6*Np, 1>::Zero();
 
-    // t0 for variational equations (TAI), aka current reference time
+    // t0 for integration (TAI), aka current reference time
     integrator.params->mjd_tai = mjd_tai;
 
-    // target t for variational equations; seconds after t0
+    // target t for integration; seconds after t0
     double tout =
         mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
             mjd_tai);
@@ -244,22 +240,20 @@ struct SatelliteState {
 
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
-    // set initial intergation flag
     integrator.flag() = dso::SGOde::IFLAG::RESTART;
-    if (integrator.de(tsec, tout, yPhi, sol) != dso::SGOde::IFLAG::SUCCESS) {
+    if (integrator.de(tsec, tout, yPhi0, sol) != dso::SGOde::IFLAG::SUCCESS) {
       fprintf(stderr, "[ERROR] Integrator error!\n");
-      return 150;
+      return 1;
     }
 
-    // output epoch (after integration) as datetime, we reached the epoch:
-    // mjd_tai + tout[sec]
-    // double tout_mjd = integrator.params->mjd_tai + tsec / 86400e0;
-    const dso::TwoPartDate tout_mjd(integrator.params->mjd_tai +
-                                    dso::TwoPartDate(0e0, tsec/86400e0));
+    // output epoch (after integration) as datetime, we reached the epoch
+    const dso::TwoPartDate tout_mjd(
+        dso::TwoPartDate(mjd_tai + dso::TwoPartDate(0e0, tsec / 86400e0))
+            .normalized());
 
     // let's see were we are at
     if (std::abs(tout_mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-            mjd_target)) > 1e-3) {
+            mjd_target)) > 1e-6) {
       fprintf(stderr,
               "ERROR wanted integration to %.9f and got up to %.9f, that is "
               "%.9f sec apart!\n",
@@ -284,21 +278,18 @@ struct SatelliteState {
 #endif
 
     // Transform state back to ECEF (from GCRF), wrt the satellite ARP
-    Eigen::Matrix<double, 3, 3> rc2i, rpom;
-    double era, lod;
-    assert(
-        !gcrs2itrs(mjd_tai, integrator.params->eopLUT, rc2i, era, rpom, lod));
-    state = dso::ycel2ter(sol.block<6, 1>(0, 0), rc2i, era, lod, rpom);
+    Rot.prepare(mjd_tai.tai2tt());
+    state = Rot.gcrf2itrf(Eigen::Matrix<double,6,1>(sol.block<6,1>(0,0)));
 
     // assign Phi matrix (6x6)
     for (int i = 0; i < 6; i++) {
-      Phi.col(i) = yPhi.block<6, 1>(6 * (i + 1), 0);
+      Phi.col(i) = sol.block<6, 1>(6 * (i + 1), 0);
     }
 
     // assign S matrix (6xNp)
     if (Np) {
       for (int i = 0; i < Np; i++) {
-        S.col(i) = yPhi.block<6, 1>(6 * (i + 1) + 6 * 6, 0);
+        S.col(i) = sol.block<6, 1>(6 * (i + 1) + 6 * 6, 0);
       }
     }
 
@@ -424,7 +415,7 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   // Initial satellite state, get it from the Sp3 using the RINEX's time of
   // first obs
-  SatelliteState svState;
+  OrbitIntegrator svState;
   dso::get_yaml_value_depth2(config, "data", "sp3", buf);
   dso::Sp3c sp3(buf);
   dso::Sp3Iterator sp3_iterator(sp3);
@@ -443,7 +434,7 @@ int main(int argc, char *argv[]) {
     const int start = ref_mjd - 5;
     const int end = ref_mjd + 6;
     // parse C04 EOPs 
-    if (parse_iers_C04(buf, start, end, eop_lut)) {
+    if (parse_iers_C0414(buf, start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
@@ -708,16 +699,18 @@ int main(int argc, char *argv[]) {
 
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
+    // current proper time (aka τ)
+    const auto tobs_proper    = dso::TwoPartDate(it.proper_time());
+    const auto tobs_proper_dt = it.proper_time();
 
-    // the current reference time for the L1 observation (corrected for
-    // receiver clock offset). That is tl1 is approximately TAI.
-    // aka proper-time to coordinate-time
-    const auto tl1 = it.corrected_l1_epoch(); // as datetime instance
-    const auto tl1c = dso::TwoPartDate(tl1); // as TwoPartDate instance
-    const auto tl1_utc = tl1c.tai2utc(); // UTC
+    // get current observation epoch (tobs) from proper time to TAI
+    const auto tobs_tai_dt  = it.corrected_l1_epoch();
+    const auto tobs_tai = dso::TwoPartDate(tobs_tai_dt);
+    // get current observation epoch in UTC
+    const auto tobs_utc = tobs_tai.tai2utc();
 
-    // current proper time (aka tau)
-    const auto tproper = it.proper_time();
+    // form a rotation instance (ITRF-to-GCRF) for current epoch
+    dso::Itrs2Gcrs Rot(tobs_tai.tai2tt(), &eop_lut);
 
     // a buffer to write datetime strings to
     char dtbuf[64];
@@ -725,11 +718,11 @@ int main(int argc, char *argv[]) {
     // integrate orbit to here (TAI)
     // first get reference state from sp3, for an epoch as close as possible
     if (!dummy_counter) {
-      if (sp3_iterator.goto_epoch(tl1)) {
+      if (sp3_iterator.goto_epoch(tobs_tai_dt)) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
       }
-      arc_start_at = tl1;
+      arc_start_at = tobs_tai_dt;
       svState.mjd_tai =  dso::TwoPartDate(sp3_iterator.current_time());
       svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
       svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
@@ -737,12 +730,12 @@ int main(int argc, char *argv[]) {
       svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
       svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
       svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
-      if (svState.integrate(tl1c, Integrator)) {
+      if (svState.integrate(tobs_tai, Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
     } else {
-      if (svState.integrate(tl1c, Integrator)) {
+      if (svState.integrate(tobs_tai, Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
@@ -757,15 +750,15 @@ int main(int argc, char *argv[]) {
     Eigen::Matrix<double, 3, 1> rmoon, rsun; // [m], ITRF
     {
       double rm[3], rs[3], dummy;
-      double et = dso::cspice::jd2et(tl1c.tai2tt().mjd() + dso::mjd0_jd);
-      /* coordinates in km, ECI */
+      double et = dso::cspice::jd2et(tobs_tai.tai2tt().mjd() + dso::mjd0_jd);
+      // coordinates in km, ECI
       spkezp_c(301, et, "J2000", "NONE", 399, rm, &dummy);
       Eigen::Matrix<double, 3, 1> rmoon_icrf(rm[0], rm[1], rm[2]); // [km]
       spkezp_c(10, et, "J2000", "NONE", 399, rs, &dummy);
       Eigen::Matrix<double, 3, 1> rsun_icrf(rs[0], rs[1], rs[2]); // [km]
-      /* ECI to ECEF [m] */
-      rmoon = dso::rcel2ter(rmoon_icrf, rc2i_now, era_now, rpom_now) * 1e3;
-      rsun = dso::rcel2ter(rsun_icrf, rc2i_now, era_now, rpom_now) * 1e3;
+      // ECI to ECEF [m]
+      rmoon = Rot.gcrf2itrf(rmoon_icrf)*1e3;
+      rsun  = Rot.gcrf2itrf(rsun_icrf)*1e3;
     }
 
     // Kalman filter time update:
@@ -777,7 +770,7 @@ int main(int argc, char *argv[]) {
     PhiP.block<6, 6>(0, 0) = svState.Phi;
     auto estimates = Filter.estimates();
     estimates.block<6, 1>(0, 0) = svState.state;
-    Filter.time_update(tl1, estimates, PhiP);
+    Filter.time_update(tobs_tai, estimates, PhiP);
 #ifdef FIX_ORBIT
     Filter.P().block<6, 6>(0, 0) =
         Eigen::Matrix<double, 6, 6>::Identity() * 1e-12;
@@ -837,15 +830,15 @@ int main(int argc, char *argv[]) {
 
         // add tidal displacement (dehanttideinel)
         std::vector<Eigen::Matrix<double, 3, 1>> vsta(1, bxyz_sta), vcor;
-        iers2010::dehanttideinel_impl(tl1c.tai2tt().jcenturies_sinceJ2000(),
-                                      tl1_utc._small / 24e0, rsun, rmoon, vsta,
+        iers2010::dehanttideinel_impl(tobs_tai.tai2tt().jcenturies_sinceJ2000(),
+                                      tobs_utc._small / 24e0, rsun, rmoon, vsta,
                                       vcor);
         bxyz_sta += vcor[0];
 
         // add ocean tide deformation
         {
           double dr, dw, ds;
-          ocdeform(tl1c.tai2tt());
+          ocdeform(tobs_tai.tai2tt());
           ocdeform.hardisp(*find_site_blq(blqInfoVec, beacon_it->m_station_id),
                            dr, dw, ds);
           const Eigen::Matrix<double, 3, 1> lfh__ =
@@ -870,7 +863,7 @@ int main(int argc, char *argv[]) {
         // correct the satellite-beacon distance for Earth rotation
         {
           Eigen::Matrix<double, 3, 1> corrected_beacon;
-          rho = crange(bxyz_ion, svState.state.block<3, 1>(0, 0), tl1,
+          rho = crange(bxyz_ion, svState.state.block<3, 1>(0, 0), tobs_tai,
                        corrected_beacon);
           bxyz_ion = corrected_beacon;
           // !! WARNING !!
@@ -898,10 +891,8 @@ int main(int argc, char *argv[]) {
           // if we do, check if we have to start a new arc. Check
           // performed in proper time
           if (pprev_obs != prevec.end()) {
-            if (tproper.delta_sec(pprev_obs->tproper) >
-                dso::nanoseconds(max_sec_for_new_arc *
-                                 dso::nanoseconds::sec_factor<
-                                     dso::nanoseconds::underlying_type>())) {
+            if (tobs_proper.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                    pprev_obs->tproper) > max_sec_for_new_arc) {
               start_new_arc = true;
             }
           }
@@ -925,7 +916,7 @@ int main(int argc, char *argv[]) {
           TropoDetails cDtropo;
           char __siteid5[5] = {'\0'};
           std::memcpy(__siteid5, beacon_it->m_station_id, 4 * sizeof(char));
-          if (!get_tropo_vmf(__siteid5, tl1, bxyz_ion, dso::DPI / 2e0 - el,
+          if (!get_tropo_vmf(__siteid5, tobs_tai_dt, bxyz_ion, dso::DPI / 2e0 - el,
                              feed, cDtropo)) {
 
             // relativistic correction
@@ -945,7 +936,7 @@ int main(int argc, char *argv[]) {
               if (pprev_obs != prevec.end()) {
                 // not the first observation for the beacon; update last
                 // observation info
-                pprev_obs->update(tl1, tproper,
+                pprev_obs->update(tobs_tai, tobs_proper,
                                   beaconobs->m_values[l1i].m_value,
                                   beaconobs->m_values[l2i].m_value, cDiono,
                                   cDtropo, cDrel, r_enu, rho);
@@ -962,7 +953,7 @@ int main(int argc, char *argv[]) {
               } else {
                 // first observation for the beacon
                 prevec.emplace_back(
-                    SatBeacon(beaconobs->id(), receiver_count, tl1, tproper,
+                    SatBeacon(beaconobs->id(), receiver_count, tobs_tai, tobs_proper,
                               beaconobs->m_values[l1i].m_value,
                               beaconobs->m_values[l2i].m_value, cDiono, cDtropo,
                               cDrel, r_enu, rho));
@@ -982,25 +973,21 @@ int main(int argc, char *argv[]) {
               // we need to find the true proper frequency of the receiver
               // (aka satellite), f_rT [Hz]
               const double frT = dso::DORIS_FREQ1_MHZ * 1e6 *
-                                 (1e0 + rfo_fit.value_at(tproper) * 1e-11);
+                                 (1e0 + rfo_fit.value_at(tobs_proper_dt) * 1e-11);
 
               // Doppler count and delta time (proper)
               const double Ndop =
                   beaconobs->m_values[l1i].m_value - pprev_obs->Ls1;
-              const auto delta_tau = tproper.delta_sec(pprev_obs->tproper);
-              const double NdopDt = Ndop / delta_tau.to_fractional_seconds();
+              const auto delta_tau = tobs_proper.diff<dso::DateTimeDifferenceType::FractionalSeconds>(pprev_obs->tproper);
+              const double NdopDt = Ndop / delta_tau; //.to_fractional_seconds();
               //printf("%.3s Lt(i)=%.6f Lt(i-1)=%.6f", beaconobs->id(),
               //       beaconobs->m_values[l1i].m_value, pprev_obs->Ls1);
               //printf(" Dt=%.9f", delta_tau.to_fractional_seconds());
 
-              // we will need the true emitter frequency, feT = feN * (1 + Dfe)
-              // const double feT =
-              //    feN * (1e0 + Filter.rfoff_estimate(receiver_number, tl1));
-
               // Ionospheric path delay in [m/sec]
               const double Dion = (iers2010::C / feN) *
                                   (cDiono - pprev_obs->Diono) /
-                                  delta_tau.to_fractional_seconds();
+                                  delta_tau; //.to_fractional_seconds();
               // printf(" Dion=%.9f", Dion);
 
               // Tropospheric delay in [m/sec]
@@ -1008,19 +995,19 @@ int main(int argc, char *argv[]) {
               const double cWzd = Filter.tropo_estimate(receiver_number);
               const double Dtropo =
                   (cDtropo.sum(cWzd) - pprev_obs->Dtropo.sum(cWzd)) /
-                  delta_tau.to_fractional_seconds();
+                  delta_tau;//.to_fractional_seconds();
               // printf(" Dtropo=%.9f", Dtropo);
 
               // Relativistic corrections
               const double Drel =
-                  (cDrel - pprev_obs->Drel) / delta_tau.to_fractional_seconds();
+                  (cDrel - pprev_obs->Drel) / delta_tau;//.to_fractional_seconds();
               // printf(" Drelc=%.9f", Drel);
 
               // we will need the estimated Δf_e / f_eN
 #ifdef RANDOM_RFO
               const double DfefeN = Filter.rfoff_estimate(receiver_number);
 #else
-              const double DfefeN = Filter.rfoff_estimate(receiver_number, tl1);
+              const double DfefeN = Filter.rfoff_estimate(receiver_number, tobs_tai);
 #endif
               //printf(" Dfe/feN=%.6e feN=%.6f frT=%.6f Rt(i)=%.6f Rt(i-1)=%.6f "
               //       "[%.6f %.6f %.6f]\n",
@@ -1029,7 +1016,7 @@ int main(int argc, char *argv[]) {
 
               // handle range-rate measurement
               // ---------------------------------------------------------
-              const double Dtau = delta_tau.to_fractional_seconds();
+              const double Dtau = delta_tau;//.to_fractional_seconds();
               // Warning! Uobs and Utheo have oposite signs, aka Uobs ~= -Utheo
               const double Uobs =
                   (iers2010::C / feN) * (feN - frT - NdopDt) + Dion + Drel;
@@ -1071,7 +1058,7 @@ int main(int argc, char *argv[]) {
                 dHdX(_idx) = -(iers2010::C / feN) * (NdopDt + frT);
                 // dz/dDf -- b term
                 dHdX(_idx + 1) =
-                    -Filter.deltat(tl1) * (iers2010::C / feN) * (NdopDt + frT);
+                    -Filter.deltat(tobs_tai) * (iers2010::C / feN) * (NdopDt + frT);
 #endif
                 // dz/dLwet
                 dHdX(Filter.tropo_index(receiver_number)) =
@@ -1087,7 +1074,7 @@ int main(int argc, char *argv[]) {
                     Uobs, -Utheo, obs_sigma / std::sin(el) * std::sin(el),
                     dHdX);
 
-                dso::strftime_ymd_hmfs(tl1, dtbuf);
+                dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
                 printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
                        "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f "
                        "%.3f %.12f "
@@ -1099,15 +1086,15 @@ int main(int argc, char *argv[]) {
 #ifdef RANDOM_RFO
                        Filter.rfoff_estimate(receiver_number),
 #else
-                       Filter.rfoff_estimate(receiver_number, tl1),
+                       Filter.rfoff_estimate(receiver_number, tobs_tai),
 #endif
                        Filter.tropo_estimate(receiver_number),
-                       Filter.drag_coef(), oc, dso::rad2deg(el), tl1.as_mjd());
+                       Filter.drag_coef(), oc, dso::rad2deg(el), tobs_tai.mjd());
 
                 svState.state = Filter.estimates().block<6, 1>(0, 0);
 
               } else {
-                dso::strftime_ymd_hmfs(tl1, dtbuf);
+                dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
                 fprintf(stderr,
                         "WARNING! Skipping observation at %s (TAI) for beacon "
                         "%.4s cause of too big "
@@ -1118,7 +1105,7 @@ int main(int argc, char *argv[]) {
               }
 
               // update previous observation for next Ndop
-              pprev_obs->update(tl1, tproper, beaconobs->m_values[l1i].m_value,
+              pprev_obs->update(tobs_tai, tobs_proper, beaconobs->m_values[l1i].m_value,
                                 beaconobs->m_values[l2i].m_value, cDiono,
                                 cDtropo, cDrel, r_enu, rho);
               ++ndop_count;
@@ -1142,11 +1129,11 @@ int main(int argc, char *argv[]) {
     svState.state = Filter.estimates().block<6, 1>(0, 0);
 
     // transform to keplerian elements, just for printing
-    if (1 == 2) {
+    /*if (1 == 2) {
       Eigen::Matrix<double, 6, 1> inertial_state;
       Eigen::Matrix<double, 3, 3> rc2i, rpom;
       double era, lod;
-      assert(!gcrs2itrs(tl1c, Integrator.params->eopLUT, rc2i, era,
+      assert(!gcrs2itrs(tobs_tai, Integrator.params->eopLUT, rc2i, era,
                         rpom, lod));
       inertial_state =
           dso::yter2cel(svState.state.block<6, 1>(0, 0), rc2i, era, lod, rpom);
@@ -1156,11 +1143,9 @@ int main(int argc, char *argv[]) {
              dso::rad2deg(kepler.eccentricity()),
              dso::rad2deg(kepler.inclination()), dso::rad2deg(kepler.Omega()),
              dso::rad2deg(kepler.omega()), dso::rad2deg(kepler.mean_anomaly()));
-    }
+    }*/
 
-    if (tl1.delta_sec(rnx.time_of_first_obs()) >
-        dso::cast_to<dso::seconds, dso::nanoseconds>(
-            dso::seconds(12 * 60 * 60)))
+    if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalDays>(dso::TwoPartDate(rnx.time_of_first_obs())) > 0.6)
       break;
 
     // check if we exceed the max arc time interval. If so, restart estimation
