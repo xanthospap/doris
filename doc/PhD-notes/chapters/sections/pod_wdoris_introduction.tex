@@ -1,0 +1,32 @@
+\section{Introduction}\label{sec:podwdoris-introduction}
+
+With the introduction of the \gls{doris} system and the observation model 
+discussed in \autoref{ch:doris}, and using the developments presented earlier 
+in the Thesis, a full orbit determination process can now be put together. The 
+theoretical background and implementation details of the fundamental building 
+blocks of the analysis (discussed above), include:
+\begin{description}
+  \item[Astrodynamics] and the effective modelling of the \emph{perturbed} motion 
+    of an artificial earth orbiting satellite (see \autoref{ssec:orbital-mechanics})
+  \item[Spatial and Temporal Reference Systems] where the equations of motion 
+    can be described in, as well as the transformation mechanisms between their 
+    realizations (see \autoref{ssec:the-celestial-reference-frame} and 
+    \autoref{ssec:time-systems-and-scales})
+  \item[Earth's Attitude], i.e. modelling the Earth's variable rotation and dynamics 
+    (see \autoref{ssec:earth-attitude})
+  \item[Orbit integration] for the efficient and precise extrapolation of the 
+    satellite's trajectory (see \autoref{ch:orbit-integration}),
+  \item[Orbit estimation] or \emph{orbit improvement}, where data are processed in 
+    a robust fashion to produce estimates for the satellite's state vector or 
+    equivalently orbital elements (see \autoref{ch:pod})
+  \item[Data analysis] where measurements obtained using the \gls{doris} system are 
+    processed using the observation model described in \autoref{ch:doris}, to obtain 
+    precise relative velocity values between the emitter and the receiver
+\end{description}
+
+State-of-the-art \gls{pod} software packages utilizing \gls{doris} observations, 
+can reach accuracies in the centimeter level (\cite{Rudenko2023}). It should be 
+noted that such software are only seldom limited to one satellite technique; most 
+often either \gls{slr} and/or \gls{gnss} datasets are included in the analysis, 
+either for validation purposes or for integrated processing.
+

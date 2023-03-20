@@ -1,1 +1,65 @@
 \section{The Software}\label{sec:the-software}
+
+In the framework of the Thesis, a software package was designed and implemented, to 
+perform orbit determination using the \gls{doris} satellite system. The software 
+was built from scratch, with minimum (external) dependencies. The purpose of the 
+package is to act as the fundamental building block of a state-of-the-art scientific 
+software toolset, utlizing \gls{doris} observations for a wide range of geodetic 
+studies, including but not limited to \gls{pod}, reference frame maintenance, 
+earth dynamics and atmospheric studies. A first, imminent step towards this direction, 
+would be for the software to reach \gls{ids} standards, a goal not too far-fetched, 
+since the bulk of the work has already been done.
+
+Writing scientific software to meet such high accuracy and efficiency standards 
+is a chalenging task. This is evident by the limited number of packages delivering 
+such robust products. A deep understanding of the underlying scientific notions is 
+a prerequisit (including e.g. celestial mechanics, spatial/Temporal reference frames, 
+geodesy and estimation theory) coupled with software engineering skills to match the 
+high volume and high calibre of work needed (about 100000 lines of source code were 
+written for this Thesis, \autoref{table:software-components}).
+
+\begin{figure}
+  \centering
+  \input{tikz/software_hierarchy}
+  \caption{Overview of the software structure, dependencies and hierarchy.}
+  \label{fig:software-hierarchy}
+\end{figure}
+
+The software is hosted and developed on the public domain, adopting a \emph{free} 
+and \emph{open}-source policy. Any interested party is free to use and/or adapt 
+the source code, fitting indivdual needs. It is a strong belief that adhering to 
+such an open-developement, open-access paradigm, can prove to be highly beneficial 
+both for the scientific community and for the development team. Already individual 
+modules/libraries built for the Thesis have been ``forked'' from different users.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{p{0.20\linewidth} | p{0.2\linewidth} | p{0.20\linewidth} | p{0.25\linewidth}}
+        \hline
+        \textbf{Library} & \textbf{Language} & \textbf{Lines of Code} & \textbf{Comment}\\
+        \hline
+        \multirow{2}{*}{\texttt{doris}}  & \texttt{C++} & 18286 & \multirow{2}{4cm}{Including source code for executables}\\
+          & \texttt{Python} & 2068 & \\
+        \hline
+        \multirow{3}{*}{\texttt{iers2010}}  & \texttt{C++} & 50000 & \multirow{3}{4cm}{Python \& Fortran mainly used for unit testing} \\
+          & \texttt{C} & 1801 \\
+          & \texttt{Python \& Fortran} &  17120 \\
+        \hline
+        \texttt{sp3}    & \texttt{C++} & 1287 & \\
+        \hline
+        \texttt{sinex}  & \texttt{C++} & 1392 & \\
+        \hline
+        \multirow{2}{*}{\texttt{datetime}}  & \texttt{C++} & 4432 & \multirow{2}{*}{Mostly header files}\\
+          & \texttt{C}      & 136 \\
+        \hline
+        \multirow{2}{*}{\texttt{geodesy}}  & \texttt{C++} & 3755 & \multirow{2}{*}{}\\
+          & \texttt{Python} & 120 \\
+        \hline
+        Total & & 100397\\
+        \hline
+    \end{tabular}
+    \caption{Software components of the package designed and implemented for the Thesis.}
+    \label{table:software-components}
+\end{table}
+
+The software is built using modular

@@ -3,10 +3,12 @@
 #include "geodesy/units.hpp"
 #include "orbit_integration.hpp"
 #include "iers2010/cel2ter.hpp"
-#include <datetime/dtcalendar.hpp>
 
-[[maybe_unused]] constexpr const int Np = 1;
-
+constexpr const int accountforpoletide = true;
+constexpr const int NOVAREQNS = false;
+constexpr const int m = 0;
+constexpr const int n = 6 + m;
+[[maybe_unused]]constexpr const int include_drag = false;
 /*
 void dso::VariationalEquations(
     double tsec, // seconds from reference epoch (TAI)
@@ -75,88 +77,6 @@ void dso::VariationalEquations(
     gacc_ec = rter2cel(tmp, rc2i, era, rpom);
   }
 
-  // Drag
-  // Warning only valid for Jason-3
-  // get the quaternion
-  Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
-  Eigen::Matrix<double, 3, 3> ddragdr;
-  Eigen::Matrix<double, 3, 3> ddragdv;
-  Eigen::Matrix<double, 3, 1> ddragdC;
-  Eigen::Quaternion<double> q;
-  if (params.qhunt->get_at(cmjd, q)) {
-    fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
-    assert(false);
-  } else {
-    // compute cross-section area
-    constexpr const double omegav[] = {0e0, 0e0, iers2010::OmegaEarth};
-    const Eigen::Matrix<double, 3, 1> omega{omegav};
-    // Velocity relative to the Earth's atmosphere
-    const Eigen::Matrix<double, 3, 1> vrel = v - omega.cross(r);
-    // normalize
-    [[maybe_unused]] const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
-    // loop over flat plates of satellite
-    double ProjArea = 0e0;
-    for (int i = 0; i < params.numMacroModelComponents; i++) {
-      const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
-      const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
-      const double ctheta = rv.dot(vr);
-      if (ctheta > 0e0) {
-        ProjArea += params.macromodel[i].m_surf * ctheta;
-      }
-    }
-    // get atmospheric density, using the UTC date
-    // TODO for now use TAI date
-    assert(
-        !params.AtmDataFeed->update_params(cmjd._big, cmjd._small * 86400e0));
-    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
-    dso::nrlmsise00::OutParams aout;
-    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-    const double atmdens = aout.d[5];
-    Eigen::Matrix<double, 3, 1> drhodr;
-    { // approximate arithmetic derivative w.r.t satellite ECEF position
-      Eigen::Matrix<double, 3, 1> unitv = Eigen::Matrix<double, 3, 1>::Zero();
-      double p1, m1;
-      // w.r.t X component
-      unitv << 1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << -1e0, 0e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(0) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
-      // w.r.t Y component
-      unitv << 0e0, 1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, -1e0, 0e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(1) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
-      // w.r.t Z component
-      unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, 0e0, 1e0;
-      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
-                                                     unitv);
-      assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(2) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
-    }
-    drag =
-        dso::drag_accel(r, v, ProjArea, *(params.drag_coef), *(params.SatMass),
-                        atmdens, drhodr, ddragdr, ddragdv, ddragdC);
-  }
 
   // split state transition and S matrix,
   // yPhi =  | y, F |, size y: 6x1
@@ -235,8 +155,6 @@ void dso::VariationalEquations(
  *  Initially, the state transition matrix should be set to the identity
  *  matrix, i.e. Phi(t0,t0) = I_(6x6)
  */
-constexpr const int accountforpoletide = true;
-constexpr const int NOVAREQNS = false;
 void dso::VariationalEquations(
     // seconds from reference epoch (TAI)
     double tsec,
@@ -254,9 +172,9 @@ void dso::VariationalEquations(
 
   // terrestrial to celestial for epoch
   dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
-  printf("[EOP] %.12f %.6f %.6f %.9f %.9f %.6f %.6f %.12e\n", cmjd.mjd(),
-         Rot.eop().xp, Rot.eop().yp, Rot.eop().dut, Rot.eop().lod, Rot.eop().dx,
-         Rot.eop().dy, Rot.omega_earth());
+  //printf("[EOP] %.12f %.6f %.6f %.9f %.9f %.6f %.6f %.12e\n", cmjd.mjd(),
+  //       Rot.eop().xp, Rot.eop().yp, Rot.eop().dut, Rot.eop().lod, Rot.eop().dx,
+  //       Rot.eop().dy, Rot.omega_earth());
 
   // split position and velocity vectors (inertial)
   Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
@@ -329,14 +247,12 @@ void dso::VariationalEquations(
   }
 
   {// should we fucking do this ? --> certainly !NOT!
-   /*
-    Eigen::Matrix<double, 3, 1> o =
-        Eigen::Matrix<double, 3, 1>({0e0, 0e0, Rot.omega_earth()});
-    Eigen::Matrix<double, 6, 1> ygcrf = yP0.block<6, 1>(0, 0);
-    const Eigen::Matrix<double, 6, 1> yitrf = Rot.gcrf2itrf(ygcrf);
-    f -= 2e0 * (o.cross(yitrf.block<3, 1>(3, 0))) +
-         o.cross(o.cross(yitrf.block<3, 1>(0, 0)));
-    */
+  //  Eigen::Matrix<double, 3, 1> o =
+  //      Eigen::Matrix<double, 3, 1>({0e0, 0e0, Rot.omega_earth()});
+  //  Eigen::Matrix<double, 6, 1> ygcrf = yP0.block<6, 1>(0, 0);
+  //  const Eigen::Matrix<double, 6, 1> yitrf = Rot.gcrf2itrf(ygcrf);
+  //  f -= 2e0 * (o.cross(yitrf.block<3, 1>(3, 0))) +
+  //       o.cross(o.cross(yitrf.block<3, 1>(0, 0)));
   }
 
   // Differential equation for the state transition matrix Φ(t, t_0) is:
@@ -396,6 +312,283 @@ void dso::VariationalEquations(
           t2.data(), t2.cols() * t2.rows());
     }
   }
+
+  return;
+}
+
+namespace {
+//
+//  yPhi0 = [ r, v, φ1, φ2, φ3 ]
+//  where:
+//  r  = [x y z]     : 3x1
+//  v  = [Vx Vy Vz]  : 3x1
+//  φ1 = dr/dy0      : 3xn
+//       +----- 3 cols -------+-------- 3 cols -------+---- m cols ------|
+//       | dx/x0 dx/dy0 dx/dz0 dx/dVx0 dx/dVy0 dx/dVz0 dx/dp1 dx/dp2 ... | -> index: [6,6+n)
+//     = | dy/x0 dy/dy0 dy/dz0 dy/dVx0 dy/dVy0 dy/dVz0 dy/dp1 dy/dp2 ... | -> index: [6+n, 6+2n)
+//       | dz/x0 dz/dy0 dz/dz0 dz/dVx0 dz/dVy0 dz/dVz0 dz/dp1 dz/dp2 ... | -> index: [6+2n, 6+3n)
+// 
+//  φ2 = dv/dy0      : 3xn
+//  +----- 3 cols ----------+-------- 3 cols ----------+------ m cols ------|
+//  | dVx/x0 dVx/dy0 dVx/dz0 dVx/dVx0 dVx/dVy0 dVx/dVz0 dVx/dp1 dVx/dp2 ... | -> index: [6+3n, 6+4n)
+//  | dVy/x0 dVy/dy0 dVy/dz0 dVy/dVx0 dVy/dVy0 dVy/dVz0 dVy/dp1 dVy/dp2 ... | -> index: [6+4n, 6+5n)
+//  | dVz/x0 dVz/dy0 dVz/dz0 dVz/dVx0 dVz/dVy0 dVz/dVz0 dVz/dp1 dVz/dp2 ... | -> index: [6+5n, 6+6n)
+// 
+//  φ3 = dp/dy0      : mxn
+//  +----- 3 cols ----------+-------- 3 cols ----------+------ m cols ------|
+//  | dp1/x0 dp1/dy0 dp1/dz0 dp1/dVx0 dp1/dVy0 dp1/dVz0 dp1/dp1 dp1/dp2 ... | -> index: [6+6n, 6+7n)
+//  | dp2/x0 dp2/dy0 dp2/dz0 dp2/dVx0 dp2/dVy0 dp2/dVz0 dp2/dp1 dp2/dp2 ... | -> index: [6+7n, 6+8n)
+//                                                                            -> index: [ ..., 6+(6+m)n )
+//     = [ 0(mx6) I(mxm) ]
+// 
+Eigen::Matrix<double, m, n> phi3() noexcept {
+  Eigen::Matrix<double, m, n> f3;
+  f3.block<m, 6>(0, 0) = Eigen::Matrix<double, m, 6>::Zero();
+  f3.block<m, m>(0, 6) = Eigen::Matrix<double, m, m>::Identity();
+  return f3;
+}
+Eigen::Matrix<double, 3, n>
+phi1(const Eigen::Matrix<double, (6 + 6*n), 1> &yp0) noexcept {
+  Eigen::Matrix<double, 3, n> f1;
+  constexpr const int of = 6;
+  f1.block<1, n>(0, 0) = yp0.block<n, 1>(of, 0).transpose();
+  f1.block<1, n>(1, 0) = yp0.block<n, 1>(of + n, 0).transpose();
+  f1.block<1, n>(2, 0) = yp0.block<n, 1>(of + 2 * n, 0).transpose();
+  return f1;
+}
+Eigen::Matrix<double, 3, n>
+phi2(const Eigen::Matrix<double, (6 + 6*n), 1> &yp0) noexcept {
+  Eigen::Matrix<double, 3, n> f2;
+  constexpr const int of = 6 + 3 * n;
+  f2.block<1, n>(0, 0) = yp0.block<n, 1>(of, 0).transpose();
+  f2.block<1, n>(1, 0) = yp0.block<n, 1>(of + n, 0).transpose();
+  f2.block<1, n>(2, 0) = yp0.block<n, 1>(of + 2 * n, 0).transpose();
+  return f2;
+}
+} //unnamed namespace
+void dso::VariationalEquations2(
+    // seconds from reference epoch (TAI)
+    double tsec,
+    // state and state transition matrix (inertial RF) column-vector of size 6+6*n
+    const Eigen::VectorXd &yP0,
+    // state derivative and state transition matrix derivative (inertial RF)
+    Eigen::Ref<Eigen::VectorXd> yPt, // column-vector of size 6+6*n
+    // auxiliary parametrs
+    dso::IntegrationParameters &params) noexcept {
+
+  // current mjd, TAI
+  const dso::TwoPartDate _cmjd(params.mjd_tai +
+                              dso::TwoPartDate(0e0, tsec / 86400e0));
+  const dso::TwoPartDate cmjd = _cmjd.normalized();
+
+  // terrestrial to celestial for requested epoch t
+  dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
+
+  // split position and velocity vectors (GCRF) at t=t0
+  Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
+  Eigen::Matrix<double, 3, 1> v = yP0.block<3, 1>(3, 0);
+
+  // f = y''(t_0,y_0) = a(t_0, y_0) [=(a_x, a_y, a_z)]
+  Eigen::Matrix<double, 3, 1> f  = Eigen::Matrix<double, 3, 1>::Zero();
+  // df = grav(f(t_0,y_0)) = grad(a(t_0, y_0))  
+  //                 | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //               = | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //                 | da_x/dx0 da_y/dy0 da_z/dz0 |
+  Eigen::Matrix<double, 3, 3> dadr = Eigen::Matrix<double, 3, 3>::Zero();
+  Eigen::Matrix<double, 3, 3> dadv = Eigen::Matrix<double, 3, 3>::Zero();
+  Eigen::Matrix<double, m, 3> dadp = Eigen::Matrix<double, m, 3>::Zero();
+
+  // satellite position at t=t0 (ITRF)
+  Eigen::Matrix<double, 3, 1> r_itrf = Rot.gcrf2itrf(r);
+
+  { // compute gravity-induced acceleration
+    Eigen::Matrix<double, 3, 3> gradient;
+    Eigen::Matrix<double, 3, 1> acc;
+    test::gravacc3(params.harmonics, r_itrf, params.degree,
+                   params.harmonics.Re(), params.harmonics.GM(), acc,
+                   gradient, params.V, params.W);
+
+    // transform acceleration and gradient to GCRF
+    acc = Rot.itrf2gcrf(acc);
+    const auto T = Rot.itrf2gcrf();
+    gradient = T * gradient* T.transpose();
+
+    f += acc;
+    dadr += gradient;
+  }
+
+  // position of sun/moon, [m] in GCRF
+  Eigen::Matrix<double, 3, 1> rsun,rmon; 
+  { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
+    Eigen::Matrix<double, 3, 1> sun_acc;
+    Eigen::Matrix<double, 3, 1> mon_acc;
+    Eigen::Matrix<double, 3, 3> gradient;
+    dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
+                 rmon, gradient);
+    f += (sun_acc + mon_acc);
+    dadr += gradient;
+  }
+
+  if (params.setide) { 
+    // earth tides on geopotential
+    Eigen::Matrix<double, 3, 1> acc;
+    Eigen::Matrix<double, 3, 3> gradient;
+    // Sun and Moon position in ECEF
+    const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
+    const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
+    if (accountforpoletide) {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(),
+                                  Rot.eop().xp, Rot.eop().yp, r_itrf, rm_ecef,
+                                  rs_ecef, acc, gradient);
+    } else {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, rm_ecef,
+                                  rs_ecef, acc, gradient);
+    }
+    // acceleration and gradient to GCRF
+    f += Rot.itrf2gcrf(acc);
+    const auto T = Rot.itrf2gcrf();
+    dadr += T * gradient * T.transpose();
+  }
+
+  if (params.octide) {
+    // oean tides on geopotential, gravity
+    Eigen::Matrix<double, 3, 1> acc;
+    params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc);
+    f += Rot.itrf2gcrf(acc);
+  }
+  
+  // Drag, Warning only valid for Jason-3
+  // get the quaternion
+  //if (include_drag)
+  //{
+  //  Eigen::Matrix<double, 3, 1> drag = Eigen::Matrix<double, 3, 1>::Zero();
+  //  Eigen::Matrix<double, 3, 3> ddragdr;
+  //  Eigen::Matrix<double, 3, 3> ddragdv;
+  //  Eigen::Matrix<double, 3, 1> ddragdC;
+  //  Eigen::Quaternion<double> q;
+  //  if (params.qhunt->get_at(cmjd, q)) {
+  //    fprintf(stderr, "ERROR Failed to find quaternion for datetime\n");
+  //    assert(false);
+  //  } else {
+  //    // compute cross-section area
+  //    const Eigen::Matrix<double, 3, 1> omega{0e0, 0e0, Rot.omega_earth()};
+  //    // Velocity relative to the Earth's atmosphere
+  //    const Eigen::Matrix<double, 3, 1> vrel = v - omega.cross(r);
+  //    // normalize
+  //    [[maybe_unused]] const Eigen::Matrix<double, 3, 1> vr = vrel.normalized();
+  //    // loop over flat plates of satellite
+  //    double ProjArea = 0e0;
+  //    for (int i = 0; i < params.numMacroModelComponents; i++) {
+  //      const Eigen::Matrix<double, 3, 1> nb(params.macromodel[i].m_normal);
+  //      const Eigen::Matrix<double, 3, 1> rv = q.conjugate().normalized() * nb;
+  //      const double ctheta = rv.dot(vr);
+  //      if (ctheta > 0e0) {
+  //        ProjArea += params.macromodel[i].m_surf * ctheta;
+  //      }
+  //    }
+  //    // get atmospheric density, using the UTC date
+  //    const dso::TwoPartDate utc = cmjd.tai2utc();
+  //    assert(
+  //        !params.AtmDataFeed->update_params(utc._big, utc._small * 86400e0));
+  //    params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0));
+  //    dso::nrlmsise00::OutParams aout;
+  //    assert(!params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //    const double atmdens = aout.d[5];
+  //    Eigen::Matrix<double, 3, 1> drhodr;
+  //    { // approximate arithmetic derivative w.r.t satellite ECEF position
+  //      Eigen::Matrix<double, 3, 1> unitv = Eigen::Matrix<double, 3, 1>::Zero();
+  //      double p1, m1;
+  //      // w.r.t X component
+  //      unitv << 1e0, 0e0, 0e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      p1 = aout.d[5];
+  //      unitv << -1e0, 0e0, 0e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      m1 = aout.d[5];
+  //      drhodr(0) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+  //      // w.r.t Y component
+  //      unitv << 0e0, 1e0, 0e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      p1 = aout.d[5];
+  //      unitv << 0e0, -1e0, 0e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      m1 = aout.d[5];
+  //      drhodr(1) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+  //      // w.r.t Z component
+  //      unitv << 0e0, 0e0, 1e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      p1 = aout.d[5];
+  //      unitv << 0e0, 0e0, 1e0;
+  //      params.AtmDataFeed->set_spatial_from_cartesian(yPhi.block<3, 1>(0, 0) +
+  //                                                     unitv);
+  //      assert(
+  //          !params.nrlmsise00->gtd7d(&(params.AtmDataFeed->params_), &aout));
+  //      m1 = aout.d[5];
+  //      drhodr(2) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+  //    }
+  //    drag = dso::drag_accel(r, v, ProjArea, *(params.drag_coef),
+  //                           *(params.SatMass), atmdens, drhodr, ddragdr,
+  //                           ddragdv, ddragdC);
+  //  }
+  //  f += drag;
+  //  dadr += ddragdr;
+  //  dadv += ddragdv;
+  //  dadp.block<3,1>(0,0) = ddragdC;
+  //}
+
+  //const Eigen::Matrix<double, 3, 3> dadr = df;
+  //const Eigen::Matrix<double, 3, 3> dadv = Eigen::Matrix<double, 3, 3>::Zero();
+  //const Eigen::Matrix<double, 3, m> dadp =
+  //    Eigen::Matrix<double, 3, m>::Zero(); // TODO here is da/dC
+
+  Eigen::Matrix<double,n,n> f123;
+  {
+    f123.block<3,n>(0,0) = phi1(yP0);
+    f123.block<3,n>(3,0) = phi2(yP0);
+    if (m) f123.block<m,n>(6,0) = phi3();
+  }
+  Eigen::Matrix<double,n,n> A;
+  {
+    A.block<3,3>(0,0) = Eigen::Matrix<double, 3, 3>::Zero();
+    A.block<3,3>(0,3) = Eigen::Matrix<double, 3, 3>::Identity();
+    if (m) A.block<3,m>(0,6) = Eigen::Matrix<double, 3, m>::Zero();
+
+    A.block<3,3>(3,0) = dadr;
+    A.block<3,3>(3,3) = dadv;
+    if (m) A.block<3,m>(3,6) = dadp;
+
+    if (m) {
+    A.block<m,3>(6,0) = Eigen::Matrix<double, m, 3>::Zero();
+    A.block<m,3>(6,3) = Eigen::Matrix<double, m, 3>::Zero();
+    A.block<m,m>(6,6) = Eigen::Matrix<double, m, m>::Zero();
+    }
+  }
+  Eigen::Matrix<double,n,n> F = A * f123;
+
+  // Assign to yPt
+  yPt.block<3,1>(0,0) = v;
+  yPt.block<3,1>(3,0) = f;
+  yPt.block<n,1>(6+0*n,0) = F.block<1,n>(0,0).transpose(); // dφ1(t,t0) / dt
+  yPt.block<n,1>(6+1*n,0) = F.block<1,n>(1,0).transpose();
+  yPt.block<n,1>(6+2*n,0) = F.block<1,n>(2,0).transpose();
+  yPt.block<n,1>(6+3*n,0) = F.block<1,n>(3,0).transpose(); // dφ2(t,t0) / dt
+  yPt.block<n,1>(6+4*n,0) = F.block<1,n>(4,0).transpose();
+  yPt.block<n,1>(6+5*n,0) = F.block<1,n>(5,0).transpose();
 
   return;
 }

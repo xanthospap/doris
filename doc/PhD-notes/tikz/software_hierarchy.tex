@@ -1,0 +1,73 @@
+  %every node/.style = {
+  %  draw=black, 
+  %  rounded corners, 
+  %  fill=gray!20,
+  %  minimum width=2cm,
+  %  minimum height=0.5cm,
+  %  align=center},
+  %  every path/.style = {draw, -latex}
+  %]
+
+\tikzset{bin/.style=   {black, draw=blue, fill=red!20,   rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{level1/.style={black, draw=blue, fill=blue!25,  rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{level2/.style={black, draw=blue, fill=blue!20,  rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{level3/.style={black, draw=blue, fill=blue!15,  rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{level4/.style={black, draw=blue, fill=blue!10, rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{external/.style={black, draw=blue, fill=brown!10, rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=2.5cm}}
+\tikzset{data/.style=  {black, draw=blue, fill=green!20, rounded corners=3pt, align=center, minimum height=1.2cm, minimum width=3.0cm}}
+  
+\begin{tikzpicture}
+  \draw [red, very thick] (-8,-1.5) rectangle (8,.4);
+  \node [] at (-5,-1.7) {\texttt{Executables}};
+  \node [bin] (bin) at (0,-.6) {\texttt{bin}};
+  
+  \draw [blue, very thick] (-8,1.2) rectangle (8,9.7);
+  \node [] at (-5,.9) {\texttt{Libraries \& Dependencies}};
+  \node [level1] (doris) at (2,2)  {\texttt{doris}};
+  \node [external] (yaml) at (-2,2) {\texttt{yaml-cpp}};
+  
+  \node [external] (cspice) at (6,4.5)  {\texttt{cspice}};
+  \node [level2] (sinex) at (2,4.5)  {\texttt{sinex}};
+  \node [level2] (iers10) at (-2,4.5) {\texttt{iers2010}};
+  \node [level2] (sp3) at (-6,4.5) {\texttt{sp3}};
+  
+  \node [level3] (geodesy) at (0,6.8)  {\texttt{geodesy}};
+
+  \node [external] (eigen) at (2,9)  {\texttt{eigen}};
+  \node [level4] (datetime) at (-2,9) {\texttt{datetime}};
+  
+  \draw [green, very thick] (-8,-2) rectangle (8,-6);
+  \node [data] (din1) at (6,-3)    {\texttt{eop (C04)}};
+  \node [data] (din2) at (2,-3)    {\texttt{satellite}\\\texttt{macromodel}};
+  \node [data] (din3) at (-2,-3)   {\texttt{space}\\ \texttt{weather}};
+  \node [data] (din4) at (-6,-3)   {\texttt{gravity}\\ \texttt{model}};
+  \node [data] (din5) at (0,-5)    {\texttt{Configuration File}};
+  \node []     (din6) at (-5,-6.5) {\texttt{User Input and Models}};
+
+  \draw[thick,-Latex] (yaml.south) to[bend right] (bin.west);
+  \draw[thick,-Latex] (doris.south) to[bend left] (bin.east);
+  %\draw[->] (cspice.south) to[bend left] (doris.east);
+  \draw[thick,-] (-6,3.2) to (6,3.2);
+  \draw[thick,-Latex] (sinex.south) to (doris.north);
+  \draw[thick,-Latex] (cspice.south) to (6,3.2);
+  \draw[thick,-Latex] (sinex.south) to (2,3.2);
+  \draw[thick,-Latex] (iers10.south) to (-2,3.2);
+  \draw[thick,-Latex] (sp3.south) to (-6,3.2);
+  
+  \draw[thick,-] (-6,5.8) to (2,5.8);
+  \draw[thick,-Latex] (geodesy.south) to (0,5.8);
+  \draw[thick,Latex-] (sinex.north) to (2,5.8);
+  \draw[thick,Latex-] (iers10.north) to (-2,5.8);
+  \draw[thick,Latex-] (sp3.north) to (-6,5.8);
+  
+  \draw[thick,-Latex] (datetime.south) to[bend right] (geodesy.west);
+  \draw[thick,-Latex] (eigen.south) to[bend left] (geodesy.east);
+
+  \draw[thick,-Latex] (0,-2) -- (bin.south);
+  \draw[-Latex] (din1.south) to[bend left] (din5.east);
+  \draw[-Latex] (din4.south) to[bend right] (din5.west);
+  \draw[-Latex] (din3.south) to[] ($(din5.north) + (-1,0)$);
+  \draw[-Latex] (din2.south) to[] ($(din5.north) + (+1,0)$);
+  %\path[->] (din1) to[bend left] node[midway,inner sep=2pt,draw=blue, fill=green!20, rounded corners=3pt, minimum height=.5cm, minimum width=.95cm] {$\cdots$} (din5);
+
+\end{tikzpicture}

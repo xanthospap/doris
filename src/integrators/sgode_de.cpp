@@ -115,7 +115,7 @@ constexpr const double fouru = 4e0 * umach;
 dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
   assert(y0.rows() == yout.rows());
-  printf(">> Integrating a system of %d equations\n", (int)yout.rows());
+  // printf(">> Integrating a system of %d equations\n", (int)yout.rows());
   
   // test for improper parameters
   double eps = std::max(relerr, abserr);

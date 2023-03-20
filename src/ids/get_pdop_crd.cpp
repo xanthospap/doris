@@ -195,10 +195,10 @@ int dso::extrapolate_sinex_coordinates(
     }
     if (ecc.size() != est_vec.size()) {
       fprintf(stderr,
-              "[ERROR] Failed to parse site eccentricities for all sites in "
+              "[WRNNG] Failed to parse site eccentricities for all sites in "
               "SINEX file %s (traceback: %s)\n",
               snx.filename().c_str(), __func__);
-      return 1;
+      if (missing_site_is_error) return 1;
     }
   }
 
@@ -224,6 +224,7 @@ int dso::extrapolate_sinex_coordinates(
         result_array[result_size].x = pos[0];
         result_array[result_size].y = pos[1];
         result_array[result_size].z = pos[2];
+        // printf("%.4s %.3f %.3f %.3f\n", result_array[result_size].id, result_array[result_size].x, result_array[result_size].y, result_array[result_size].z);
         // add eccentricity vector to go to Antenna RP
         if (apply_site_eccentricities) {
           auto ecc_it =
@@ -241,9 +242,10 @@ int dso::extrapolate_sinex_coordinates(
           assert(!std::strncmp(ecc_it->axe, "UNE", 3));
           double decc[3];
           apply_eccentricity(pos, ecc_it->une, decc);
-          result_array[result_size].x += decc[0];
-          result_array[result_size].y += decc[1];
-          result_array[result_size].z += decc[2];
+          result_array[result_size].x = decc[0];
+          result_array[result_size].y = decc[1];
+          result_array[result_size].z = decc[2];
+          // printf("%.4s %.3f %.3f %.3f\n", result_array[result_size].id, result_array[result_size].x, result_array[result_size].y, result_array[result_size].z);
         }
         ++result_size;
       }

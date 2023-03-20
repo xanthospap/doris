@@ -28,8 +28,8 @@
 #include <datetime/dtfund.hpp>
 
 [[maybe_unused]]constexpr const double MAXHOURS = 3*48e0;
-constexpr const int INCLUDE_EARTH_TIDES = false;
-constexpr const int INCLUDE_OCEAN_TIDES = false;
+constexpr const int INCLUDE_EARTH_TIDES = true;
+constexpr const int INCLUDE_OCEAN_TIDES = true;
 constexpr const int NOVAREQNS = false;
 
 dso::datetime<dso::nanoseconds> dttr(const dso::TwoPartDate &t) {
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
   constexpr const int NumEqns = 6 + ((NOVAREQNS) ? (0) : (6 * 6));
   static_assert(NumEqns >= 6);
-  dso::SGOde Integrator(dso::VariationalEquations, NumEqns, 1e-12, 1e-15,
+  dso::SGOde Integrator(dso::VariationalEquations2, NumEqns, 1e-12, 1e-15,
                         &Params);
 
   // Setup Solid Earth Tide

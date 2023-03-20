@@ -10,7 +10,6 @@
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include <cassert>
-#include <datetime/dtcalendar.hpp>
 
 namespace dso {
 
@@ -134,6 +133,9 @@ void SunMoon(const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> 
              Eigen::Matrix<double, 3, 3> &gradient) noexcept;
 
 void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
+                          Eigen::Ref<Eigen::VectorXd> yPhiP,
+                          dso::IntegrationParameters &params) noexcept;
+void VariationalEquations2(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 

@@ -49,4 +49,4 @@ filtering:
   ## Units: [m/sec]
   observation-sigma: .5e0
   ## Units: [degrees]
-  elevation-cut-off: 15e0 ## in degrees
+  elevation-cut-off: 10e0 ## in degrees

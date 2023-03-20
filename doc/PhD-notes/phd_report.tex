@@ -55,6 +55,7 @@
 \usepackage{enumitem} %% format description an lists
 
 %% TikZ stuff %%
+\usepackage{forest}
 \usepackage{tikz} % add a few drawings ...
 \usepackage{tkz-euclide}
 \usepackage{tikz-3dplot}
@@ -272,6 +273,7 @@
 \input{chapters/sections/the_software}
 \input{chapters/sections/costg_benchmark_test}
 
+\iffalse
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
 %\iffalse
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
@@ -291,7 +293,7 @@
       \input{chapters/sections/terrestrial_to_celestial}
       \input{chapters/sections/eop_interpolation}
     
-    \section{Time Systems and Scales}
+    \section{Time Systems and Scales}\label{ssec:time-systems-and-scales}
       \input{chapters/sections/time_systems}
       \input{chapters/sections/time_scales_implementation}
 %\fi
@@ -326,8 +328,10 @@
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
+\fi
 
 \chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
+  \input{chapters/sections/pod_wdoris_introduction.tex}
 
 \iffalse
   \include{chapters/orbit_intergators}
