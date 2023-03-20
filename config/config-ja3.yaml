@@ -1,12 +1,14 @@
 ---
 data:
-  doris-rinex: data/Jason-3/ja3rx21002.001
+  # doris-rinex: data/Jason-3/ja3rx21002.001
+  doris-rinex: data/Jason-3/ja3rx22248.001
   # sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
   # sp3: data/Sentinel-6A/ssas6a20.b20362.e21006.DG_.sp3.001
   sp3: data/Jason-3/ssaja320.b22238.e22248.DG_.sp3.001
 
 reference-frame:
-  station-coordinates: data/dpod2014_053.snx
+  # station-coordinates: data/dpod2014_053.snx
+  station-coordinates: data/dpod2020_01.snx
 
 eop-info:
   # eop-file: data/EOP_14_C04_IAU2000A_one_file_1962-now.txt
@@ -25,8 +27,8 @@ ocean-tides:
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
@@ -34,7 +36,7 @@ troposphere:
   gpt3:
     grid: data/gpt3_5.grd
   vmf3:
-    grid: data/y2021.v3gr_d
+    grid: data/2022248.v3gr_d
 
 force-model:
   atmospheric-drag:
@@ -43,7 +45,7 @@ force-model:
 
 attitude:
   mass-cog: data/Jason-3/ja3mass.txt
-  body-quaternion: data/Jason-3/ja3qbody20210101220000_20210103020000.001
+  body-quaternion: data/Jason-3/ja3qbody20220904220000_20220906020000.001
 
 filtering:
   ## Units: [m/sec]

@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
     const int start = ref_mjd - 8;
     const int end = ref_mjd + 10;
     // parse C04 EOPs 
-    if (parse_iers_C0414(buf, start, end, eop_lut)) {
+    if (parse_iers_C0420(buf, start, end, eop_lut)) {
       fprintf(stderr, "ERROR. Failed collecting EOP data\n");
       return 1;
     }
@@ -494,6 +494,7 @@ int main(int argc, char *argv[]) {
               "ERROR. Failed extracting/extrapolating beacon coordinates\n");
       return 1;
     }
+    printf("[DEBUG] Number of beacons in RINEX file %d, extracted coordinates for %d\n", (int)rnx.stations().size(), (int)beaconCrdVec.size());
   }
 
   // Troposphere

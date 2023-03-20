@@ -42,6 +42,7 @@
 \usepackage[acronym, toc, nonumberlist]{glossaries} %% for acronyms
 \usepackage{tabularx}
 \usepackage{multirow}  %% for tabular
+\usepackage{booktabs}  %% toprule, bottomrule
 \usepackage{colortbl} %% for \arrayrulecolor, colored hlines
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes} %% fancy, right-margin notes
 \newcommandx{\unsure}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
@@ -55,7 +56,6 @@
 \usepackage{enumitem} %% format description an lists
 
 %% TikZ stuff %%
-\usepackage{forest}
 \usepackage{tikz} % add a few drawings ...
 \usepackage{tkz-euclide}
 \usepackage{tikz-3dplot}
@@ -237,7 +237,7 @@
 \newacronym{ivs}{IVS}{International VLBI Service for Geodesy and Astronomy}
 \newacronym{uso}{USO}{Ultra Stable Oscillator}
 \newacronym{gsfc}{GSFC}{Goddard Space Flight Center}
-%\newacronym{}{}{}
+\newacronym{nasa}{NASA}{National Aeronautics and Space Administration}
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -273,7 +273,6 @@
 \input{chapters/sections/the_software}
 \input{chapters/sections/costg_benchmark_test}
 
-\iffalse
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
 %\iffalse
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
@@ -305,7 +304,6 @@
   \input{chapters/sections/multistep_methods}
   \input{chapters/sections/integrator_implementation}
     \input{chapters/sections/integrator_validation}
-%\fi
 
 \chapter{\gls{pod}}\label{ch:pod}
 %\iffalse
@@ -328,7 +326,6 @@
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
-\fi
 
 \chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
   \input{chapters/sections/pod_wdoris_introduction.tex}
