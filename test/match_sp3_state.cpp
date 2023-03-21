@@ -30,7 +30,6 @@
 
 constexpr const int INCLUDE_EARTH_TIDES = true;
 constexpr const int INCLUDE_OCEAN_TIDES = true;
-constexpr const int NOVAREQNS = false;
 
 int integrate(const dso::Sp3DataBlock &sp3block,
               const dso::TwoPartDate &t_target, dso::SGOde &integrator,
@@ -46,6 +45,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   const dso::TwoPartDate t0(sp3block.t);
   dso::Itrs2Gcrs Rot(t0.tai2tt(), &params.eopLUT);
   y = Rot.itrf2gcrf(y);
+  const Eigen::Matrix<double,6,1> Y0 = y;
 
   // variational equations
   Eigen::Matrix<double, 6, 6> I = Eigen::Matrix<double, 6, 6>::Identity();
@@ -53,17 +53,12 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   Eigen::Matrix<double, 6 * 6, 1> Iv =
       Eigen::Map<Eigen::Matrix<double, 6 * 6, 1>>(I.data(),
                                                   I.cols() * I.rows());
-  constexpr const int NumEqns = 6 + ((NOVAREQNS) ? (0) : (6 * 6));
+  constexpr const int NumEqns = 6 + (6 * 6);
   static_assert(NumEqns >= 6);
   Eigen::Matrix<double, NumEqns, 1> yF0;
-  if constexpr (!NOVAREQNS) {
-    yF0.block<6 * 6, 1>(6, 0) = Iv;
-    yF0.block<6, 1>(0, 0) = y;
-  } else {
-    yF0 = y;
-  }
+  yF0.block<6 * 6, 1>(6, 0) = Iv;
+  yF0.block<6, 1>(0, 0) = y;
 
-  // Eigen::Matrix<double, 6 + 6 * 6, 1> solution;
   Eigen::VectorXd solution = Eigen::Matrix<double, NumEqns, 1>::Zero();
 
   double t = 0e0;
@@ -83,7 +78,16 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   dso::TwoPartDate tres(params.mjd_tai);
   tres._small += (tout / 86400e0);
   tres.normalize();
-  // terrestrial to celestial for reference epoch
+
+  // check results
+  /*{
+    const Eigen::Matrix<double,6,1> _y = solution.block<6,1>(0,0);
+    const Eigen::Matrix<double,6,6> _F(solution.data()+6);
+    const Eigen::Matrix<double,6,1> _y2 = _F * (Y0 -_y);
+    printf("[CHK]                               %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n",_y(0)-_y2(0),_y(1)-_y2(1),_y(2)-_y2(2),_y(3)-_y2(3),_y(4)-_y2(4),_y(5)-_y2(5));
+  }*/
+
+  // celestial to terestrial for epoch
   Rot.prepare(tres.tai2tt());
   state = Rot.gcrf2itrf(state);
   return 0;
@@ -204,7 +208,7 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  constexpr const int NumEqns = 6 + ((NOVAREQNS) ? (0) : (6 * 6));
+  constexpr const int NumEqns = 6 + (6 * 6);
   static_assert(NumEqns >= 6);
   dso::SGOde Integrator(dso::VariationalEquations2, NumEqns, 1e-12, 1e-15,
                         &Params);
@@ -247,8 +251,9 @@ int main(int argc, char *argv[]) {
 
   sp3_iterator.begin();
   dso::Sp3DataBlock sp3block;
+  auto tend = std::unique(tvec.begin(), tvec.end());
   error = 0;
-  for (auto t = tvec.begin(); t != tvec.end(); ++t) {
+  for (auto t = tvec.begin(); t != tend; ++t) {
     dso::strftime_ymd_hmfs<dso::nanoseconds>(*t, buf);
     if (sp3_iterator.goto_epoch(*t)) {
       fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
@@ -265,10 +270,10 @@ int main(int argc, char *argv[]) {
     }
     // print results in terrestrial RF
     dso::strftime_ymd_hmfs<dso::nanoseconds>(*t, buf);
-    printf("[INT] %s %.12e %.12e %.12e %.12e %.12e %.12e\n", buf, state(0),
+    printf("%s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", buf, state(0),
            state(1), state(2), state(3), state(4), state(5));
     const dso::TwoPartDate t1(*t);
-    printf("[CMT] Integration interval: %.3f[sec]\n",
+    printf("#[CMT] Integration interval: %.3f[sec]\n",
            t1.diff<dso::DateTimeDifferenceType::FractionalSeconds>(t0));
   }
 

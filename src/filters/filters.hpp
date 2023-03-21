@@ -87,7 +87,9 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::Linear> {
     return 6 + Np + beacon_nr * 3 + 1; // + dt * next-index !!
   }
   constexpr std::size_t drag_coef_index() const noexcept {
-    static_assert(Np >= 1);
+    if constexpr (Np<1) {
+      static_assert(Np >= 1);
+    }
     return 6;
   }
 
@@ -233,7 +235,9 @@ template <int Np> struct EkfFilter<Np, BeaconClockModel::None> {
     return 6 + Np + beacon_nr * 2 + 1;
   }
   constexpr std::size_t drag_coef_index() const noexcept {
+    if constexpr (Np<1) {
     static_assert(Np >= 1);
+    }
     return 6;
   }
 

@@ -27,9 +27,8 @@
 #include <cstring>
 #include <iers2010/eop.hpp>
 
-//
 // constexpr const int MaxArcHours = 13; 
-constexpr const int m = 1;
+constexpr const int m = 0;
 constexpr const int n = 6 + m;
 
 // max time difference between two observations to mark a new arc pass [sec]
@@ -163,16 +162,26 @@ struct OrbitIntegrator {
   // Body-quaternion hunter
   dso::JasonQuaternionHunter *qhunt{nullptr};
 
-  Eigen::Matrix<double, 6, 6> extractState(
+  Eigen::Matrix<double, 6, 6> extractStateTransitionMatrix(
       const Eigen::Matrix<double, (6 + 6 * n), 1> &yP) noexcept {
     Eigen::Matrix<double, 6, 6> F;
-    F.block<1, 6>(0, 0) = yP.block<6, 1>(6 + 0 * n, 0).transpose();
-    F.block<1, 6>(1, 0) = yP.block<6, 1>(6 + 1 * n, 0).transpose();
-    F.block<1, 6>(2, 0) = yP.block<6, 1>(6 + 2 * n, 0).transpose();
-    F.block<1, 6>(3, 0) = yP.block<6, 1>(6 + 3 * n, 0).transpose();
-    F.block<1, 6>(4, 0) = yP.block<6, 1>(6 + 4 * n, 0).transpose();
-    F.block<1, 6>(5, 0) = yP.block<6, 1>(6 + 5 * n, 0).transpose();
+    int of = 6;
+    F.row(0) = yP.block<6,1>(of,0);
+    F.row(1) = yP.block<6,1>(of+1*n,0);
+    F.row(2) = yP.block<6,1>(of+2*n,0);
+    F.row(3) = yP.block<6,1>(of+3*n,0);
+    F.row(4) = yP.block<6,1>(of+4*n,0);
+    F.row(5) = yP.block<6,1>(of+5*n,0);
     return F;
+  }
+
+  void setInitialconditions(Eigen::Matrix<double,(6+6*n),1> &yP0) noexcept {
+    int of = 6;
+    yP0.block<6*n,1>(6,0) = Eigen::Matrix<double,(6*n),1>::Zero();
+    for (int i=0; i<6; i++) {
+      int start = of + i*n;
+      yP0(start+i) = 1e0;
+    }
   }
 
   // Vector to go from receiver ARP to satellite's CoG, in GCRS
@@ -198,8 +207,7 @@ struct OrbitIntegrator {
     // Vector containing state + variational equations size: 6 + 6xn
     // Stored in plain format, one column at a time
     // Ref. Frame: inertial
-    Eigen::Matrix<double, 6+6*n, 1> yPhi0 =
-        Eigen::Matrix<double, 6+6*n, 1>::Zero();
+    Eigen::Matrix<double, 6+6*n, 1> yPhi0 = Eigen::Matrix<double, 6+6*n, 1>::Zero();
     
     // transform state from ECEF to GCRF (satellite ARP)
     yPhi0.block<6, 1>(0, 0) = Rot.itrf2gcrf(state);
@@ -224,10 +232,7 @@ struct OrbitIntegrator {
     // Note that the matrix is stored in plain format, one column at a time
     // First column contains the state, skip it.
     {
-      Eigen::Matrix<double,6,n> I = Eigen::Matrix<double,6,n>::Zero();
-      I.block<6,6>(0,0) = Eigen::Matrix<double,6,6>::Identity();
-      for (int i=0; i<6; i++)
-        yPhi0.block<n,1>(6+i*n,0) = I.block<1,n>(i,0).transpose();
+      setInitialconditions(yPhi0);
     }
 
     // t0 for integration (TAI), aka current reference time
@@ -242,6 +247,7 @@ struct OrbitIntegrator {
     // As yPhi, this is in plain format, one column at a time
     Eigen::VectorXd sol(6+6*n);
 
+    printf("Starting Integration with state: %.6f %.6f %.6f %.9f %.9f %.9f\n", yPhi0(0), yPhi0(1),yPhi0(2),yPhi0(3),yPhi0(4),yPhi0(5));
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
     integrator.flag() = dso::SGOde::IFLAG::RESTART;
@@ -249,6 +255,7 @@ struct OrbitIntegrator {
       fprintf(stderr, "[ERROR] Integrator error!\n");
       return 1;
     }
+    printf("Ending   Integration with state: %.6f %.6f %.6f %.9f %.9f %.9f\n", sol(0), sol(1),sol(2),sol(3),sol(4),sol(5));
 #ifdef DEBUG
     printf("Integrator ended, Input: %dx%d Output: %dx%d\n", (int)yPhi0.rows(), (int)yPhi0.cols(), (int)sol.rows(), (int)sol.cols());
 #endif
@@ -267,6 +274,15 @@ struct OrbitIntegrator {
               mjd_target.mjd(), tout_mjd.mjd(),
               (mjd_target.mjd() - mjd_tai.mjd()) * 86400e0);
       return 1;
+    }
+
+    /* debug check */
+    {
+      // solution (CoG) at t
+      //const Eigen::Matrix<double,6,1> _sol = sol.block<6,1>(0,0);
+      //const Eigen::Matrix<double,6,6> _Ftt0 = extractStateTransitionMatrix(sol);
+      //const Eigen::Matrix<double,6,1> _sol2 = _Ftt0 * yPhi0.block<6, 1>(0, 0);
+      //printf("x(t) - F(t,t0)*x(t0) = %.6f %.6f %.6f %.9f %.9f %.9f\n", _sol(0)-_sol2(0), _sol(1)-_sol2(1), _sol(2)-_sol2(2), _sol(3)-_sol2(3), _sol(4)-_sol2(4), _sol(5)-_sol2(5));
     }
 
     // everything seems ok, update state and time
@@ -289,7 +305,7 @@ struct OrbitIntegrator {
     state = Rot.gcrf2itrf(Eigen::Matrix<double,6,1>(sol.block<6,1>(0,0)));
 
     // assign Phi matrix 6x6
-    Phi = extractState(sol);
+    Phi = extractStateTransitionMatrix(sol);
 
     ++call_nr;
     return 0;
@@ -655,7 +671,9 @@ int main(int argc, char *argv[]) {
   // Important !!
   // set integration parameter estimates to point to the Filter
   // IntegrationParams.estimates = &Filter.x;
-  IntegrationParams.drag_coef = &(Filter._ekf._ekf.x(Filter.drag_coef_index()));
+  // TODO
+  //if constexpr (m>=1)
+  //IntegrationParams.drag_coef = &(Filter._ekf._ekf.x(Filter.drag_coef_index()));
 
   // Important !! OC-TIDES
   IntegrationParams.octide = &octide;
@@ -744,7 +762,8 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
-    printf("\tOrbit integrated\n");
+
+    if (dummy_counter) return 9;
 
     // We now have the state vector svState.state in ECEF coordinates wrt
     // the satellite antenna RP. The state vector referes to svState.tai_mjd.
@@ -1057,8 +1076,11 @@ int main(int argc, char *argv[]) {
                     (r_enu / rho - pprev_obs->s / pprev_obs->rho()) *
                     (1e0 / Dtau);
                 dHdX.block<3, 1>(3, 0) = Eigen::VectorXd::Zero(3);
-                // dz/dC_drag
-                dHdX(Filter.drag_coef_index()) = 1e0;
+                // TODO
+                //if constexpr (m>=1) {
+                //// dz/dC_drag
+                //dHdX(Filter.drag_coef_index()) = 1e0;
+                //}
 #ifdef RANDOM_RFO
                 // dz/dDf
                 dHdX(Filter.rfoff_index(receiver_number)) =
@@ -1086,6 +1108,8 @@ int main(int argc, char *argv[]) {
                     dHdX);
 
                 dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
+                // const double Cd = (m>=1)?Filter.drag_coef():0e0; TODO
+                const double Cd = 0e0;
                 printf("%s (TAI) %.4s %d %+12.3f %+12.3f %+12.3f "
                        "%+10.6f %+10.6f %+10.6f %+9.6e %9.6f %+9.6f %+9.6f "
                        "%.3f %.12f "
@@ -1100,7 +1124,7 @@ int main(int argc, char *argv[]) {
                        Filter.rfoff_estimate(receiver_number, tobs_tai),
 #endif
                        Filter.tropo_estimate(receiver_number),
-                       Filter.drag_coef(), oc, dso::rad2deg(el), tobs_tai.mjd());
+                       Cd, oc, dso::rad2deg(el), tobs_tai.mjd());
 
                 svState.state = Filter.estimates().block<6, 1>(0, 0);
 
@@ -1137,7 +1161,7 @@ int main(int argc, char *argv[]) {
       ++beaconobs;
     } // while (beaconobs != it.cblock.end())
 
-    svState.state = Filter.estimates().block<6, 1>(0, 0);
+    // svState.state = Filter.estimates().block<6, 1>(0, 0);
 
     if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalDays>(
             dso::TwoPartDate(rnx.time_of_first_obs())) > 0.6)
@@ -1344,6 +1368,8 @@ void restart_filter(dso::EkfFilter<m, dso::BeaconClockModel::Linear> &Filter,
 #endif
 
   Filter.set_tropo_apriori_sigma(.5e0 * .5e0);
+  if constexpr (m>=1) {
   Filter.set_drag_coef_apriori(dragcoef);
   Filter.set_drag_coef_apriori_sigma(dragcoefsigma * dragcoefsigma);
+  }
 }

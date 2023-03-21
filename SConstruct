@@ -97,7 +97,7 @@ hdr_src_files = glob.glob(r"src/*.hpp")
 denv = Environment(CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -Wdisabled-optimization -DDEBUG')
 ## .. for checking the integrator ...
 #penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DRANDOM_RFO -DINTEGRATOR_CHECK')
-penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DRANDOM_RFO')
+penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DRANDOM_RFO -FIX_ORBIT')
 
 ## Command line arguments ...
 debug = ARGUMENTS.get('debug', 0)

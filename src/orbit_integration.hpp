@@ -10,6 +10,7 @@
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include <cassert>
+#include <datetime/dtcalendar.hpp>
 
 namespace dso {
 
@@ -18,21 +19,26 @@ namespace dso {
 ///        of (the system of) variational equations.
 struct IntegrationParameters {
   ///< time in TAI
-  // double mjd_tai;
   dso::TwoPartDate mjd_tai;
+  dso::TwoPartDate &reference_epoch() noexcept { return mjd_tai; }
+  dso::TwoPartDate reference_epoch() const  noexcept { return mjd_tai; }
   ///< EOP parameters Look-up table
   const dso::EopLookUpTable &eopLUT;
+  const dso::EopLookUpTable &eop_lookup_table() const noexcept { return eopLUT; }
   ///< gravity harmonics
   const dso::HarmonicCoeffs &harmonics;
-  ///< memmory for Lagrange polynomials
-  // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_V{nullptr};
-  // dso::Mat2D<dso::MatrixStorageType::Trapezoid> *Lagrange_W{nullptr};
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr};
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
   ///< degree and order of geopotential harmonics
   int degree, order;
   ///< Sun/Moon gravitational parameters, in [km^3/ sec^2]
   double GMSun, GMMon;
+  ///< Ocean Tides
+  dso::OceanTide *octide;
+  ///< Earth Tides
+  dso::SolidEarthTide *setide;
+  ///< memmory for Lagrange polynomials
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr};
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
+  /*
   ///< Satellite Macromodel and number of individual flat plates
   const MacroModelComponent *macromodel{nullptr};
   int numMacroModelComponents{0};
@@ -43,23 +49,19 @@ struct IntegrationParameters {
       dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
   dso::Nrlmsise00 *nrlmsise00;
   const double *drag_coef{nullptr};
-  // Ocean Tides
-  dso::OceanTide *octide;
-  // Earth Tides
-  dso::SolidEarthTide *setide;
+  */
 
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
                         const dso::HarmonicCoeffs &harmonics_,
                         const char *pck_kernel) noexcept
-      : eopLUT(eoptable_), harmonics(harmonics_),
+      : eopLUT(eoptable_), harmonics(harmonics_), degree(degree_),
+        order(order_),
         V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
             degree_ + 3, degree_ + 3)),
         W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
-            degree_ + 3, degree_ + 3)),
-        degree(degree_), order(order_) {
+            degree_ + 3, degree_ + 3)) {
     assert(degree_ == harmonics_.max_degree());
-    // gravitational parameters
     assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon)); // [km^3/ sec^2]
   };
 
@@ -136,6 +138,9 @@ void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 void VariationalEquations2(double tsec_away, const Eigen::VectorXd &yPhi,
+                          Eigen::Ref<Eigen::VectorXd> yPhiP,
+                          dso::IntegrationParameters &params) noexcept;
+void VariationalEquations_mg(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 
