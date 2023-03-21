@@ -59,30 +59,34 @@ def trim_excess_epochs(dct, max_hours):
     return new_dct
 
 ## Assuming
-## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res El Mjd
-## 0        1           2   3      4   5     8        11   12   14  15 16
+## %Y-%m-%d %H:%M:%S.%f TAI Beacon Arc x y z Vx Vy Vz Df/f Lw C Res El
+## 0        1           2   3      4   5     8        11   12   14  15
 def parse(fn, max_hours):
     dct = {}
     with open(fn, 'r') as fin:
         for line in fin.readlines():
-            l = line.split()
-            try:
-                t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
-            except:
-                try:
-                  t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
-                except:
-                  print("ERROR Failed to read datetime from line \"{:}\", filename={:}".format(line.strip(), fn), file=sys.stderr)
-                  sys.exit(9)
-            x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd = [float(k) for k in l[5:]]
-            beacon = l[3]
-            arc_nr = int(l[4])
-            dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,el,mjd]
+            if line[0] != '#': 
+              l = line.split()
+              line_is_valid = False
+              try:
+                  t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+                  line_is_valid = True
+              except:
+                  try:
+                    t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                  except:
+                    pass
+              if line_is_valid:
+                x,y,z,vx,vy,vz,dff,lw,c,res,el = [float(k) for k in l[5:16]]
+                beacon = l[3]
+                arc_nr = int(l[4])
+                dct[t] = [beacon,arc_nr,x,y,z,vx,vy,vz,dff,lw,c,res,el]
     return trim_excess_epochs(dct, max_hours)
 
 ## Assuming
-## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz Mjd
-## 0        1           2     5        8
+## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz
+## 0        1           2     5       
 def parse_reference(fn, max_hours):
     dct = {}
     with open(fn, 'r') as fin:
@@ -92,8 +96,8 @@ def parse_reference(fn, max_hours):
                 t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
             except:
                 t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
-            x,y,z,vx,vy,vz,mjd = [float(k) for k in l[2:]]
-            dct[t] = [x,y,z,vx,vy,vz,mjd]
+            x,y,z,vx,vy,vz = [float(k) for k in l[2:8]]
+            dct[t] = [x,y,z,vx,vy,vz]
     return trim_excess_epochs(dct, max_hours)
 
 def colAsArray(dct,col,fac=1e0,site=None):
@@ -278,11 +282,11 @@ def plot_state_diffs(fnref, fntest, max_hours):
           if t not in dct:
               print('## Warning! failed to find record for date: {:}'.format(t))
           else:
-              vals2 = dct[t][2:8] + [dct[t][-1]]
-              if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
-              assert(abs(vals[-1] - vals2[-1]) < 1e-9)
+              vals2 = dct[t][2:8] #+ [dct[t][-1]]
+              #if vals[-1] != vals2[-1]: print('Ops! difference is {:.15e}'.format(abs(vals[-1] - vals2[-1])))
+              #assert(abs(vals[-1] - vals2[-1]) < 1e-9)
               if len(vals) > len(vals2):
-                  cvals = vals[2:8] + [vals[-1]]
+                  cvals = vals[2:8] #+ [vals[-1]]
               else:
                   cvals = vals
               diffs = [ x[0]-x[1] for x in zip(cvals,vals2)]
