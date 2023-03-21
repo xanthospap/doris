@@ -31,6 +31,97 @@
 constexpr const int m = 0;
 constexpr const int n = 6 + m;
 
+struct TropoDetails {
+  // Dtropo_hydrostatic = zhd0 * mfh;
+  // Dtropo_wet         = zwd0 * mfw;
+  double zhd, mfh, zwd, mfw;
+};
+
+struct RcSv {
+  dso::TwoPartDate mjd_tai{dso::TwoPartDate()};
+  char fcid[5]={'\0'};
+  int restart={0};
+  double dIon{0};
+  TropoDetails dTro;
+
+  void mark_restart() noexcept {restart=0;}
+};
+
+int get_tropo_vmf(const char *fcid, const dso::datetime<dso::nanoseconds> &t,
+                  const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
+                  dso::SiteVMF3Feed &feed, TropoDetails &Dtrop) noexcept {
+  assert(zd >= 0e0 && zd <= dso::DPI / 2e0);
+
+  // ellipsoidal coordinates of the station; store them in an array
+  // note: ellipsoidal = longitude, latitude, h_ell
+  Eigen::Matrix<double, 3, 1> bell = dso::car2ell<dso::ellipsoid::grs80>(bxyz);
+
+  // interpolate for site
+  dso::vmf3_details::SiteVMF3GRMeteoRecord meteo;
+  if (feed.interpolate(fcid, t, meteo))
+    return 1;
+
+  double mfh, mfw;
+  if (dso::vmf3(meteo.ah, meteo.aw, t, bell(1), bell(0), dso::deg2rad(zd), mfh,
+                mfw)) {
+    fprintf(stderr, "ERROR Failed to compute vmf3!\n");
+    return 1;
+  }
+
+  Dtrop.zhd = meteo.zhd;
+  Dtrop.mfh = mfh;
+  Dtrop.zwd = meteo.zwd;
+  Dtrop.mfw = mfw;
+
+  return 0;
+}
+
+std::vector<const char *>
+beaconcrs2cchar_vec(const std::vector<dso::BeaconCoordinates> &bcv) noexcept {
+  std::vector<const char *> site_names;
+  site_names.reserve(bcv.size());
+  for (auto it = bcv.begin(); it != bcv.end(); ++it) {
+    site_names.push_back(it->id);
+  }
+  return site_names;
+}
+
+auto findLastObs(const char *fcid, std::vector<RcSv> &vec) noexcept {
+  return std::find_if(vec.begin(), vec.end(), [=](const RcSv &it) {
+    return !(std::strncmp(fcid, it.fcid, 4));
+  });
+}
+auto findItrfCrd(const char *fcid, const std::vector<dso::BeaconCoordinates> &vec) noexcept {
+  return std::find_if(vec.begin(), vec.end(), [=](const dso::BeaconCoordinates &it) {
+    return !(std::strncmp(fcid, it.id, 4));
+  });
+}
+auto getItrfCrd(std::vector<dso::BeaconCoordinates>::const_iterator it) noexcept {
+  return Eigen::Matrix<double,3,1>({it->x, it->y, it->z});
+}
+
+double iono_l2_correction(const dso::BeaconObservations &obs, int l1i,
+                          int l2i) noexcept {
+  /* (L[2GHz] - sqrt(γ) L[400MHz]) / (γ-1) in [cycles]*/
+  return (obs.m_values[l1i].m_value -
+          dso::GAMMA_FACTOR_SQRT * obs.m_values[l2i].m_value) /
+         (dso::GAMMA_FACTOR - 1e0);
+}
+
+int check_obs_flags(const dso::BeaconObservations &obs, int l1i,
+                    int l2i, int w1i, int w2i) noexcept {
+  if (obs.m_values[l1i].m_flag1 == '1' || // 2 GHz central frequency measurement
+      obs.m_values[l1i].m_flag2 == '1' || // discontinuity of 2 GHZ measurement
+      obs.m_values[l2i].m_flag1 ==
+          '1' || // 400 MHz central frequency measurement
+      obs.m_values[l2i].m_flag2 ==
+          '1' || // discontinuity of 400 MHZ measurement
+      obs.m_values[w1i].m_flag1 == '1' || // station on restart mode
+      obs.m_values[w2i].m_flag1 == '1'    // station on restart mode
+  ) return 1;
+  return 0;
+}
+
 int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1_idx, int &l2_idx,
                       int &f_idx, int &w1_idx, int &w2_idx) noexcept {
   l1_idx = rnx.get_observation_code_index(
@@ -72,6 +163,10 @@ struct OrbitIntegrator {
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
+
+  Eigen::Matrix<double,3,1> itrf_position() const noexcept {
+    return Eigen::Matrix<double,3,1>(state.block<3,1>(0,0));
+  }
 
   Eigen::Matrix<double, 6, 6> extractStateTransitionMatrix(
       const Eigen::Matrix<double, (6 + 6 * n), 1> &yP) noexcept {
@@ -182,7 +277,7 @@ int main(int argc, char *argv[]) {
 
   // Elevation Cut-Off Angle in [degrees]
   // -------------------------------------------------------------------------
-  double EleCutOff;
+  double EleCutOff; // [deg]
   if (dso::get_yaml_value_depth2<double>(config, "filtering",
                                          "elevation-cut-off", EleCutOff)) {
     fprintf(stderr, "ERROR failed to find spk kernel\n");
@@ -302,6 +397,17 @@ int main(int argc, char *argv[]) {
            (int)rnx.stations().size(), (int)beaconCrdVec.size());
   }
 
+  /*
+   * Troposphere
+   * -------------------------------------------------------------------------
+   * read-in the grid file. That is all for now
+   */
+  {
+    dso::get_yaml_value_depth3(config, "troposphere", "vmf3", "grid", buf);
+  }
+  auto site_names_vec = beaconcrs2cchar_vec(beaconCrdVec);
+  dso::SiteVMF3Feed feed(buf, site_names_vec);
+
   // Ocean Tides Deformation
   dso::get_yaml_value_depth2(config, "ocean-tides", "blq", buf);
   std::vector<dso::BlqSiteInfo> blqInfoVec;
@@ -399,6 +505,10 @@ int main(int argc, char *argv[]) {
   [[maybe_unused]]unsigned num_blocks = 0; // RINEX block count
   // error flag
   error = 0;
+
+  /* store last beacon observation */
+  std::vector<RcSv> vLastObs;
+  vLastObs.reserve(rnx.stations().size());
   
   // for every new data block in the RINEX file (aka every epoch) ...
   while (!(error = it.next())) {
@@ -441,10 +551,74 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
+    
+    { // print state
     dso::strftime_ymd_hmfs(tobs_tai_dt, buf);
     printf("%s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", buf,
            svState.state(0), svState.state(1), svState.state(2),
            svState.state(3), svState.state(4), svState.state(5));
+    }
+
+    /* iterate through beacons in current block (epoch) */
+    auto beaconIt = it.cblock.begin();
+    while (beaconIt != it.cblock.end()) {
+      /* augment obs */
+      ++num_obs;
+      /* Beacon's 4-char id */
+      const char *b4id = rnx.beacon_internal_id2id(beaconIt->id());
+      /* check flags */
+      if (check_obs_flags(*beaconIt,l1i,l2i,w1i,w2i)) {
+        ++flaged_obs;
+        /* mark discontinuity */
+        if (auto vit = findLastObs(b4id,vLastObs); vit != vLastObs.end())
+          vit->mark_restart();
+      } else { /* observation falgs ok, keep on */
+        /* coordinates of beacon, ITRF */
+        Eigen::Matrix<double,3,1> bcrd;
+        if (auto vit = findItrfCrd(b4id,beaconCrdVec); vit != beaconCrdVec.end()) {
+          bcrd = getItrfCrd(vit);
+        } else {
+          fprintf(stderr,"[ERROR] Failed to find coordinates for station %4s\n", b4id);
+          assert(1==2);
+        }
+        /* Rc-Sv azimouth [rad], elevation [rad] and range [m] */
+        double az,el,s;
+        {
+          Eigen::Matrix<double, 3, 1> r_enu =
+              dso::car2top<dso::ellipsoid::grs80>(bcrd,
+                                                  svState.itrf_position());
+          s = dso::top2dae(r_enu, az, el);
+        }
+        /* only procced if elevation angle is large enough */
+        if (dso::rad2deg(el) > EleCutOff) {
+          /* get beacon nominal frequency, f_eN at 2GHz in [Hz] */
+          double feN;
+          {
+            int k; // shift factor
+            if (rnx.beacon_shift_factor(beaconIt->id(), k)) {
+              fprintf(stderr,
+                      "[ERROR] Failed to find shift factor for beacon %.4s\n",
+                      b4id);
+              return 1;
+            }
+            double fe2N; // [Hz]
+            dso::beacon_nominal_frequency(k, feN, fe2N);
+          }
+          /* Iono correction in [cycles] */
+          const double Dion = iono_l2_correction(*beaconIt,l1i,l2i);
+          /* Tropospheric correction */
+          TropoDetails Dtro;
+          if (get_tropo_vmf(b4id, tobs_tai_dt, bcrd, dso::DPI / 2e0 - el, feed,
+                            Dtro)) {
+            fprintf(stderr,
+                    "[WRNNG] Failed to get tropo ceorrection for %s at %s; "
+                    "observation skipped\n",
+                    b4id, buf);
+          }
+        } /* end of observation with acceptable elevation */
+      } /* end of non-flaged observation processing */
+    } /* end of beacons in current block */
+    
     ++num_blocks; /* augment data block counter */
   } /* data blocks ended, no more data in RINEX */
 
