@@ -30,22 +30,91 @@
 
 constexpr const int m = 0;
 constexpr const int n = 6 + m;
+/* only compute Doppler count if two observation are within this time interval */
+constexpr const double RESTART_AFTER_SEC = 60e0;
+constexpr const double MAX_HOURS = 6;
+
+struct Kalman {
+  dso::TwoPartDate t;
+  Eigen::VectorXd x;
+  Eigen::MatrixXd P;
+  Eigen::VectorXd K;
+
+  Kalman(int numParams, dso::TwoPartDate tai=dso::TwoPartDate{}) noexcept
+    : t(tai),
+    x(Eigen::VectorXd::Zero(numParams)),
+    P(Eigen::MatrixXd::Identity(numParams,numParams)),
+    K(Eigen::VectorXd::Zero(numParams))
+    {}
+
+  void time_update(const dso::TwoPartDate &ti, const Eigen::MatrixXd &F) noexcept {
+    //assert(F.rows() == F.cols() == P.rows());
+    P = F * P * F.transpose();
+    t = ti;
+  }
+
+  double parameter(int index) const noexcept { return x(index); }
+  double &parameter(int index) noexcept { return x(index); }
+
+  void observation_update(double z, double g, double sigma,
+                          const Eigen::VectorXd &H) noexcept {
+    double inv_w = sigma * sigma;
+    // kalman gain
+    K = P * H / (inv_w + H.dot(P * H));
+    // state update
+    x = x + K * (z - g);
+    const int N = x.rows();
+    // covariance update (Joseph variant)
+    auto KWm1Kt = (K * sigma) * (K * sigma).transpose();
+    auto ImKG = Eigen::MatrixXd::Identity(N, N) - K * H.transpose();
+    P = ImKG * P * ImKG.transpose() + KWm1Kt;
+  }
+};
 
 struct TropoDetails {
   // Dtropo_hydrostatic = zhd0 * mfh;
   // Dtropo_wet         = zwd0 * mfw;
   double zhd, mfh, zwd, mfw;
+  double operator()() const noexcept { return zhd * mfh + zwd * mfw; }
 };
 
 struct RcSv {
-  dso::TwoPartDate mjd_tai{dso::TwoPartDate()};
+  dso::TwoPartDate tai{dso::TwoPartDate()};
   char fcid[5]={'\0'};
-  int restart={0};
-  double dIon{0};
+  double s; /* beacon satellite distance, [m] */
+  double l2_cycles; /* L [2GHz] measurement */
+  double dIon{0}; /* Iono correction in L2GHz cycles */
   TropoDetails dTro;
+  int restart={0};
 
   void mark_restart() noexcept {restart=0;}
+  RcSv(const char *b4cid, const dso::TwoPartDate &t, double rho, double L2,
+       double dion, const TropoDetails &trp) noexcept
+      : tai(t), s(rho), l2_cycles(L2), dIon(dion), dTro(trp), restart(0) {
+    std::memcpy(fcid, b4cid, sizeof(char) * 4);
+  }
 };
+
+int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
+                         double DfeFen, double &Vobs, double &Vtheo, double &dDfeNfeN) noexcept {
+  constexpr const double c = iers2010::C;
+  const double dt =
+      v2.tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(v1.tai);
+  [[maybe_unused]]const double dIon = (c/feN)*(v2.dIon - v1.dIon) / dt;
+  [[maybe_unused]]const double dTro = (v2.dTro() - v1.dTro()) / dt;
+  const double Ndop = v2.l2_cycles - v1.l2_cycles;
+
+  Vobs = (c / feN) * (feN - frT - Ndop / dt) + dIon;
+  Vtheo =
+      (v2.s - v1.s) / dt - (c/feN) * (Ndop / dt + frT) * DfeFen + dTro;
+  Vtheo =
+      (v2.s - v1.s) / dt;
+
+  // partials
+  dDfeNfeN = -(c * (Ndop / dt + frT) / feN);
+
+  return 0;
+}
 
 int get_tropo_vmf(const char *fcid, const dso::datetime<dso::nanoseconds> &t,
                   const Eigen::Matrix<double, 3, 1> &bxyz, double zd,
@@ -308,6 +377,15 @@ int main(int argc, char *argv[]) {
 
   // Construct the Doris RINEX instance rnx
   dso::DorisObsRinex rnx(buf);
+  // Fit a linear Model for the Relative Receiver Offset Values (use proper
+  // time for this).
+  dso::PolynomialModel<dso::datetime<dso::nanoseconds>> rfo_fit(1);
+  {
+    if (dso::fit_relative_frequency_offset(buf, rfo_fit, false, 4)) {
+      fprintf(stderr, "ERROR! Failed to fit RFO values!\n");
+      return 2;
+    }
+  }
 
   // Initial Orbit
   // -------------------------------------------------------------------------
@@ -486,6 +564,13 @@ int main(int argc, char *argv[]) {
 
   OrbitIntegrator svState;
 
+  /*
+   * Setup the Kalman filter
+   * Δfe/feN per beacon : # NumBeacons
+   */
+  const int NumBeacons = beaconCrdVec.size();
+  Kalman filter(NumBeacons);
+
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
   // get an iterator to the RINEXs data blocks
@@ -551,7 +636,11 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
-    
+
+    /* filter time-update */
+    filter.time_update(
+        tobs_tai, Eigen::MatrixXd::Identity(NumBeacons,NumBeacons));
+
     { // print state
     dso::strftime_ymd_hmfs(tobs_tai_dt, buf);
     printf("%s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", buf,
@@ -573,10 +662,13 @@ int main(int argc, char *argv[]) {
         if (auto vit = findLastObs(b4id,vLastObs); vit != vLastObs.end())
           vit->mark_restart();
       } else { /* observation falgs ok, keep on */
+        /* index for referencing beacon parameters in filter */
+        int beaconFilterIndex;
         /* coordinates of beacon, ITRF */
         Eigen::Matrix<double,3,1> bcrd;
         if (auto vit = findItrfCrd(b4id,beaconCrdVec); vit != beaconCrdVec.end()) {
           bcrd = getItrfCrd(vit);
+          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit);
         } else {
           fprintf(stderr,"[ERROR] Failed to find coordinates for station %4s\n", b4id);
           assert(1==2);
@@ -606,20 +698,71 @@ int main(int argc, char *argv[]) {
           }
           /* Iono correction in [cycles] */
           const double Dion = iono_l2_correction(*beaconIt,l1i,l2i);
-          /* Tropospheric correction */
+          /* Tropospheric correction (only proceed if ok) */
           TropoDetails Dtro;
           if (get_tropo_vmf(b4id, tobs_tai_dt, bcrd, dso::DPI / 2e0 - el, feed,
                             Dtro)) {
             fprintf(stderr,
-                    "[WRNNG] Failed to get tropo ceorrection for %s at %s; "
+                    "[WRNNG] Failed to get tropo ceorrection for %.4s at %s; "
                     "observation skipped\n",
                     b4id, buf);
-          }
+            // return 1;
+          } else {
+            /* Hold current measurement details in a struct */
+            RcSv cObs(b4id, tobs_tai, s, beaconIt->m_values[l1i].m_value, Dion,
+                      Dtro);
+            /* depending on if we already have a records for the beacon */
+            const auto pObs = std::find_if(
+                vLastObs.begin(), vLastObs.end(), [=](const RcSv &v) {
+                  return !(std::strncmp(b4id, v.fcid, 4));
+                });
+            if (pObs == vLastObs.end()) {
+              vLastObs.emplace_back(cObs);
+            } else {
+              if (pObs->restart ||
+                  tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                      pObs->tai) > RESTART_AFTER_SEC) {
+                *pObs = cObs;
+              } else {
+                /* observation equation */
+                double Vobs, Vtheo;
+                /* true proper frequency of the receiver f_rT [Hz] */
+                const double frT =
+                    dso::DORIS_FREQ1_MHZ * 1e6 *
+                    (1e0 + rfo_fit.value_at(tobs_proper_dt) * 1e-11);
+                const double DfeFen = filter.parameter(beaconFilterIndex);
+                /* partials */
+                double d_DfedeN;
+                observation_equation(*pObs, cObs, feN, frT, DfeFen, Vobs, Vtheo,
+                                     d_DfedeN);
+                /* debug print */
+                printf("[RES] %.4s %+.6f (%+.3f %+.3f %.3f %.3f %.3e %.6f)\n",
+                       b4id, Vobs + Vtheo, Vobs, Vtheo, feN, frT, DfeFen,
+                       Vtheo / Vobs);
+                /* filter observation update */
+                {
+                  Eigen::VectorXd H = Eigen::VectorXd::Zero(NumBeacons);
+                  H(beaconFilterIndex) = d_DfedeN;
+                  filter.observation_update(Vobs, -Vtheo, 5e0, H);
+                }
+                /* push back */
+                *pObs = cObs;
+              }
+            } /* tropospheric correction found/applied */
+          } /* end handling current observation, cObs */
         } /* end of observation with acceptable elevation */
+        else if (dso::rad2deg(el)<0) {
+          fprintf(stderr, "[WRNNG] Unexpected elevation angle encountered for %.4s at %s\n", b4id, buf);
+        }
       } /* end of non-flaged observation processing */
+      ++beaconIt;
     } /* end of beacons in current block */
     
     ++num_blocks; /* augment data block counter */
+
+    if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalDays>(
+            dso::TwoPartDate(rnx.time_of_first_obs())) > MAX_HOURS / 24e0)
+      break;
   } /* data blocks ended, no more data in RINEX */
 
   printf("#[DEBUG] Number of data block read: %u\n", num_blocks);
