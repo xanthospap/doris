@@ -31,7 +31,7 @@
 constexpr const int m = 0;
 constexpr const int n = 6 + m;
 /* only compute Doppler count if two observation are within this time interval */
-constexpr const double RESTART_AFTER_SEC = 60e0;
+constexpr const double RESTART_AFTER_SEC = 11e0;
 constexpr const double MAX_HOURS = 6;
 
 struct Kalman {
@@ -96,7 +96,8 @@ struct RcSv {
 };
 
 int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
-                         double DfeFen, double &Vobs, double &Vtheo, double &dDfeNfeN) noexcept {
+                         double DfeFen, double &Vobs, double &Vtheo,
+                         double &dDfeNfeN) noexcept {
   constexpr const double c = iers2010::C;
   const double dt =
       v2.tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(v1.tai);
@@ -107,11 +108,9 @@ int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
   Vobs = (c / feN) * (feN - frT - Ndop / dt) + dIon;
   Vtheo =
       (v2.s - v1.s) / dt - (c/feN) * (Ndop / dt + frT) * DfeFen + dTro;
-  Vtheo =
-      (v2.s - v1.s) / dt;
 
   // partials
-  dDfeNfeN = -(c * (Ndop / dt + frT) / feN);
+  dDfeNfeN = (c/feN) * (Ndop / dt + frT);
 
   return 0;
 }
@@ -262,7 +261,7 @@ struct OrbitIntegrator {
   int integrate(const dso::TwoPartDate &mjd_target,
                 dso::SGOde &integrator) noexcept {
     // count calls
-    static int call_nr = 0;
+    [[maybe_unused]]static int call_nr = 0;
 
     // number of equations: 
     // 6 for the state + 6*n for the variational equations, where n = 6 + m
@@ -743,7 +742,7 @@ int main(int argc, char *argv[]) {
                 {
                   Eigen::VectorXd H = Eigen::VectorXd::Zero(NumBeacons);
                   H(beaconFilterIndex) = d_DfedeN;
-                  filter.observation_update(Vobs, -Vtheo, 5e0, H);
+                  filter.observation_update(Vobs, -Vtheo, 1e0, H);
                 }
                 /* push back */
                 *pObs = cObs;
