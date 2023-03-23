@@ -171,6 +171,15 @@ parser.add_argument(
     help='File holding reference state')
 
 parser.add_argument(
+    '-o',
+    '--save-plot',
+    metavar='SAVE_PLOT_AS',
+    dest='save_as',
+    default=None,
+    required=False,
+    help='Save plot as')
+
+parser.add_argument(
     '-s',
     '--sites',
     metavar='SITES',
@@ -270,7 +279,7 @@ def plot_site(fn, site):
   fig.suptitle('Site {:}@{:}\n'.format(site, tmin.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
-def plot_state_diffs(fnref, fntest, max_hours):
+def plot_state_diffs(fnref, fntest, max_hours, save_as):
   def whichCol(component, posvel):
       return component + int(posvel==1)*3
   def whichTitle(component, posvel, fac=1e0):
@@ -327,6 +336,9 @@ def plot_state_diffs(fnref, fntest, max_hours):
   ## Rotate date labels automatically
   fig.autofmt_xdate()
   fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  if save_as:
+      print('Saving figure to {:}'.format(save_as))
+      plt.savefig(save_as)
   plt.show()
 
 if __name__ == '__main__':
@@ -334,7 +346,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.ref_state:
-      plot_state_diffs(args.ref_state, args.input, args.max_hours)
+      plot_state_diffs(args.ref_state, args.input, args.max_hours, args.save_as)
 
     if args.plot_res:
       plot_residuals(args.input)

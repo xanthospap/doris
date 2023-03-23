@@ -4,7 +4,7 @@ data:
   doris-rinex: data/Jason-3/ja3rx22248.001
   # sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
   # sp3: data/Sentinel-6A/ssas6a20.b20362.e21006.DG_.sp3.001
-  sp3: data/Jason-3/ssaja320.b22238.e22248.DG_.sp3.001
+  sp3: data/Jason-3/ssaja320.b22238.e22258.DG_.sp3.001
 
 reference-frame:
   # station-coordinates: data/dpod2014_053.snx
@@ -27,8 +27,8 @@ ocean-tides:
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
@@ -49,6 +49,8 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: .5e0
+  observation-sigma: .5e-1
+  ## A-priori sigma for Δfe / feN
+  deffen-sigma: 1e-1
   ## Units: [degrees]
   elevation-cut-off: 10e0 ## in degrees
