@@ -53,6 +53,9 @@ struct Kalman {
     t = ti;
   }
 
+  Eigen::VectorXd &estimates() noexcept {return x;}
+  Eigen::VectorXd estimates() const noexcept {return x;}
+
   double parameter(int index) const noexcept { return x(index); }
   double &parameter(int index) noexcept { return x(index); }
 
@@ -85,19 +88,23 @@ struct RcSv {
   double l2_cycles; /* L [2GHz] measurement */
   double dIon{0}; /* Iono correction in L2GHz cycles */
   TropoDetails dTro;
+  Eigen::Matrix<double,3,1> svGcrf; /* Sv position at t=tai */
   int restart={0};
 
   void mark_restart() noexcept {restart=0;}
   RcSv(const char *b4cid, const dso::TwoPartDate &t, double rho, double L2,
-       double dion, const TropoDetails &trp) noexcept
-      : tai(t), s(rho), l2_cycles(L2), dIon(dion), dTro(trp), restart(0) {
+       double dion, const TropoDetails &trp,
+       const Eigen::Matrix<double, 3, 1> &sv_gcrf) noexcept
+      : tai(t), s(rho), l2_cycles(L2), dIon(dion), dTro(trp), 
+        svGcrf(sv_gcrf), restart(0){
     std::memcpy(fcid, b4cid, sizeof(char) * 4);
   }
 };
 
 int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
                          double DfeFen, double &Vobs, double &Vtheo,
-                         double &dDfeNfeN) noexcept {
+                         double &dDfeNfeN, Eigen::Matrix<double, 3, 1> &dObsdr,
+                         Eigen::Matrix<double, 3, 1> &dObsdv) noexcept {
   constexpr const double c = iers2010::C;
   const double dt =
       v2.tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(v1.tai);
@@ -111,6 +118,14 @@ int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
 
   // partials
   dDfeNfeN = (c/feN) * (Ndop / dt + frT);
+  // grad of Vtheo w.r.t dr (satellite in GCRF)
+  {
+    dObsdr = (v2.svGcrf / v2.s - v1.svGcrf / v1.s) / dt;
+  }
+  // grad of Vtheo w.r.t dv (satellite in GCRF)
+  {
+    dObsdv = Eigen::Matrix<double, 3, 1>::Zero();
+  }
 
   return 0;
 }
@@ -224,16 +239,48 @@ int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1_idx, int &l2_idx,
 }
 
 // hold satellite state & time
-struct OrbitIntegrator {
+class OrbitIntegrator {
   // Current datetime in TAI
   dso::TwoPartDate mjd_tai;
-  // state vector at t=tai in ECEF, at DORIS receiver RP (Iono-Free)
+  // state vector at t=tai in GCRF, at DORIS receiver RP (Iono-Free)
   Eigen::Matrix<double, 6, 1> state;
   // state transition matrix at t=tai
   Eigen::Matrix<double, 6, 6> Phi;
+  // an instance to transform between ITRF and GCRF coordinates
+  dso::Itrs2Gcrs Rot;
 
+public:
+  OrbitIntegrator(const dso::TwoPartDate &tai, const dso::EopLookUpTable &eops)
+      : mjd_tai(tai), Rot(tai, &eops){};
+
+  dso::TwoPartDate &tai_time() noexcept {return mjd_tai;}
+  dso::TwoPartDate tai_time() const noexcept {return mjd_tai;}
+
+  Eigen::Matrix<double,6,6> stateTransitionMatrix() const noexcept {
+    return Phi;
+  }
+
+  Eigen::Matrix<double,3,1> gcrf_position() const noexcept {
+    return state.block<3,1>(0,0);
+  }
+  Eigen::Matrix<double,6,1> gcrf_state() const noexcept {
+    return state;
+  }
+  Eigen::Matrix<double,6,1> &gcrf_state() noexcept {
+    return state;
+  }
   Eigen::Matrix<double,3,1> itrf_position() const noexcept {
-    return Eigen::Matrix<double,3,1>(state.block<3,1>(0,0));
+    return Rot.gcrf2itrf(gcrf_position());
+  }
+  Eigen::Matrix<double,6,1> itrf_state() const noexcept {
+    return Rot.gcrf2itrf(gcrf_state());
+  }
+
+  void set_state_from_itrf(const dso::TwoPartDate &tai,
+                           const Eigen::Matrix<double, 6, 1> &itrf) noexcept {
+    mjd_tai = tai;
+    Rot.prepare(mjd_tai);
+    gcrf_state() = Rot.itrf2gcrf(itrf);
   }
 
   Eigen::Matrix<double, 6, 6> extractStateTransitionMatrix(
@@ -267,16 +314,12 @@ struct OrbitIntegrator {
     // 6 for the state + 6*n for the variational equations, where n = 6 + m
     constexpr const int NumEqn = 6 + 6*n;
 
-    // an instance to transform between ITRF and GCRF coordinates
-    dso::Itrs2Gcrs Rot(mjd_tai.tai2tt().normalized(),
-                       &(integrator.params->eop_lookup_table()));
-
     // Vector containing state + variational equations size: 6 + 6xn
     Eigen::Matrix<double, NumEqn, 1> yPhi0 =
         Eigen::Matrix<double, NumEqn, 1>::Zero();
 
     // transform state from ITRF to GCRF
-    yPhi0.block<6, 1>(0, 0) = Rot.itrf2gcrf(state);
+    yPhi0.block<6, 1>(0, 0) = gcrf_state();
 
     // Initial condition for state transition matrix Φ(t0,t0) = I
     setInitialconditions(yPhi0);
@@ -319,12 +362,13 @@ struct OrbitIntegrator {
     // everything seems ok, update state and time
     mjd_tai = tout_mjd;
 
-    // Transform state back to ITRF (from GCRF)
-    Rot.prepare(mjd_tai.tai2tt());
-    state = Rot.gcrf2itrf(Eigen::Matrix<double,6,1>(sol.block<6,1>(0,0)));
-
     // assign Phi matrix 6x6
     Phi = extractStateTransitionMatrix(sol);
+    state = sol.block<6,1>(0,0);
+
+    // ! warning !
+    // do not forget this step, rotation matrix for now
+    Rot.prepare(mjd_tai);
 
     ++call_nr;
     return 0;
@@ -373,7 +417,6 @@ int main(int argc, char *argv[]) {
             argv[1]);
     return 1;
   }
-
   // Construct the Doris RINEX instance rnx
   dso::DorisObsRinex rnx(buf);
   // Fit a linear Model for the Relative Receiver Offset Values (use proper
@@ -546,6 +589,12 @@ int main(int argc, char *argv[]) {
   dso::SGOde Integrator(dso::VariationalEquations2, (6+6*n), 1e-12,
                         1e-15, &IntegrationParams);
 
+  // Default observation sigma for a range-rate observable at zenith
+  double sigma_obs;
+  error = dso::get_yaml_value_depth2<double>(config, "filtering",
+                                             "observation-sigma", sigma_obs);
+  assert(sigma_obs > 0e0 && sigma_obs < 1e2 && (!error));
+
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi, w1i, w2i;
   {
@@ -561,14 +610,16 @@ int main(int argc, char *argv[]) {
                              IntegrationParams.GMSun * 1e9);
   IntegrationParams.setide = &setide;
 
-  OrbitIntegrator svState;
+  OrbitIntegrator svState(dso::TwoPartDate(rnx.time_of_first_obs()), eop_lut);
 
   /*
    * Setup the Kalman filter
-   * Δfe/feN per beacon : # NumBeacons
+   * Satellite state vector : # 6
+   * Δfe/feN per beacon     : # NumBeacons
    */
   const int NumBeacons = beaconCrdVec.size();
-  Kalman filter(NumBeacons);
+  const int NumParams  = 6 + NumBeacons;
+  Kalman filter(NumParams);
 
   // Start RINEX data-block iteration
   // -------------------------------------------------------------------------
@@ -618,13 +669,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
       }
-      svState.mjd_tai =  dso::TwoPartDate(sp3_iterator.current_time());
-      svState.state(0) = sp3_iterator.data_block().state[0] * 1e3;
-      svState.state(1) = sp3_iterator.data_block().state[1] * 1e3;
-      svState.state(2) = sp3_iterator.data_block().state[2] * 1e3;
-      svState.state(3) = sp3_iterator.data_block().state[4] * 1e-1;
-      svState.state(4) = sp3_iterator.data_block().state[5] * 1e-1;
-      svState.state(5) = sp3_iterator.data_block().state[6] * 1e-1;
+      Eigen::Matrix<double,6,1> itrf;
+      itrf(0) = sp3_iterator.data_block().state[0] * 1e3;
+      itrf(1) = sp3_iterator.data_block().state[1] * 1e3;
+      itrf(2) = sp3_iterator.data_block().state[2] * 1e3;
+      itrf(3) = sp3_iterator.data_block().state[4] * 1e-1;
+      itrf(4) = sp3_iterator.data_block().state[5] * 1e-1;
+      itrf(5) = sp3_iterator.data_block().state[6] * 1e-1;
+      svState.set_state_from_itrf(dso::TwoPartDate(sp3_iterator.current_time()), itrf);
       if (svState.integrate(tobs_tai, Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
@@ -637,14 +689,19 @@ int main(int argc, char *argv[]) {
     }
 
     /* filter time-update */
-    filter.time_update(
-        tobs_tai, Eigen::MatrixXd::Identity(NumBeacons,NumBeacons));
+    {
+      Eigen::MatrixXd F = Eigen::MatrixXd::Identity(NumParams, NumParams);
+      F.block<6, 6>(0, 0) = svState.stateTransitionMatrix();
+      filter.time_update(tobs_tai, F);
+      filter.estimates().block<6,1>(0,0) = svState.gcrf_state();
+    }
 
     { // print state
     dso::strftime_ymd_hmfs(tobs_tai_dt, buf);
     printf("%s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", buf,
-           svState.state(0), svState.state(1), svState.state(2),
-           svState.state(3), svState.state(4), svState.state(5));
+           svState.itrf_state()(0), svState.itrf_state()(1),
+           svState.itrf_state()(2), svState.itrf_state()(3),
+           svState.itrf_state()(4), svState.itrf_state()(5));
     }
 
     /* iterate through beacons in current block (epoch) */
@@ -667,7 +724,7 @@ int main(int argc, char *argv[]) {
         Eigen::Matrix<double,3,1> bcrd;
         if (auto vit = findItrfCrd(b4id,beaconCrdVec); vit != beaconCrdVec.end()) {
           bcrd = getItrfCrd(vit);
-          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit);
+          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit) + 6;
         } else {
           fprintf(stderr,"[ERROR] Failed to find coordinates for station %4s\n", b4id);
           assert(1==2);
@@ -709,7 +766,7 @@ int main(int argc, char *argv[]) {
           } else {
             /* Hold current measurement details in a struct */
             RcSv cObs(b4id, tobs_tai, s, beaconIt->m_values[l1i].m_value, Dion,
-                      Dtro);
+                      Dtro, svState.gcrf_position());
             /* depending on if we already have a records for the beacon */
             const auto pObs = std::find_if(
                 vLastObs.begin(), vLastObs.end(), [=](const RcSv &v) {
@@ -732,17 +789,20 @@ int main(int argc, char *argv[]) {
                 const double DfeFen = filter.parameter(beaconFilterIndex);
                 /* partials */
                 double d_DfedeN;
+                Eigen::Matrix<double,3,1> dObsdr, dObsdv;
                 observation_equation(*pObs, cObs, feN, frT, DfeFen, Vobs, Vtheo,
-                                     d_DfedeN);
+                                     d_DfedeN, dObsdr, dObsdv);
                 /* debug print */
                 printf("[RES] %.4s %+.6f (%+.3f %+.3f %.3f %.3f %.3e %.6f)\n",
                        b4id, Vobs + Vtheo, Vobs, Vtheo, feN, frT, DfeFen,
                        Vtheo / Vobs);
                 /* filter observation update */
                 {
-                  Eigen::VectorXd H = Eigen::VectorXd::Zero(NumBeacons);
+                  Eigen::VectorXd H = Eigen::VectorXd::Zero(NumParams);
+                  H.block<3,1>(0,0) = dObsdr;
+                  H.block<3,1>(3,0) = dObsdv;
                   H(beaconFilterIndex) = d_DfedeN;
-                  filter.observation_update(Vobs, -Vtheo, 1e0, H);
+                  filter.observation_update(Vobs, -Vtheo, sigma_obs, H);
                 }
                 /* push back */
                 *pObs = cObs;
