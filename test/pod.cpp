@@ -942,9 +942,9 @@ int main(int argc, char *argv[]) {
                   } else {
                     filter.observation_update(Vobs, -Vtheo, sigma_obs, H);
                     /* debug print */
-                    printf("[RES] %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f %.3f "
-                           "%.3e %.6f)\n",
-                           b4id, Vobs + Vtheo, res_prediction,
+                    printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f "
+                           "%.3f %.3e %.6f)\n",
+                           dtbuf, b4id, Vobs + Vtheo, res_prediction,
                            std::sqrt(var_prediction), Vobs, Vtheo, feN, frT,
                            DfeFen, Vtheo / Vobs);
                   }
