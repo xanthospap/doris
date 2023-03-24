@@ -111,8 +111,8 @@ struct TropoDetails {
 class RcSv {
   dso::TwoPartDate tai{dso::TwoPartDate()}; /* time of reception */
   dso::TwoPartDate etai{dso::TwoPartDate()}; /* time of emission */
+  dso::TwoPartDate tprop{dso::TwoPartDate()}; /* proper time (receiver) */
   char fcid[5] = {'\0'};
-  // double s;         /* beacon satellite distance, [m] */
   double l2_cycles; /* L [2GHz] measurement */
   double dIon{0};   /* Iono correction in L2GHz cycles */
   TropoDetails dTro;
@@ -131,6 +131,7 @@ public:
   void mark_restart() noexcept { _restart = 0; }
 
   dso::TwoPartDate time_of_reception() const noexcept {return tai;}
+  dso::TwoPartDate proper_time() const noexcept {return tprop;}
   Eigen::Matrix<double, 3, 1> sv_gcrf() const noexcept {return svGcrf;}
   Eigen::Matrix<double, 3, 1> bc_itrf() const noexcept {return bcItrf;}
   TropoDetails tropo() const noexcept {return dTro;}
@@ -143,6 +144,9 @@ public:
                         const dso::EopLookUpTable &eops) noexcept {
     dso::Itrs2Gcrs Rot(t.tai2tt(), &eops);
     R = Rot.itrf2gcrf();
+  }
+  void set_proper_time(const dso::TwoPartDate &t) noexcept {
+    tprop = t;
   }
 
   RcSv(const char *b4cid, const dso::TwoPartDate &t, double L2, double dion,
@@ -185,9 +189,9 @@ int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
                          double &dDfeNfeN, Eigen::Matrix<double, 3, 1> &dObsdr,
                          Eigen::Matrix<double, 3, 1> &dObsdv) noexcept {
   constexpr const double c = iers2010::C;
-  const double dt = v2.time_of_reception()
-                        .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-                            v1.time_of_reception());
+  const double dt =
+      v2.proper_time().diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+          v1.proper_time());
   const double dIon = (c / feN) * (v2.iono_cycles() - v1.iono_cycles()) / dt;
   const double dTro = (v2.tropo()() - v1.tropo()()) / dt;
   const double Ndop = v2.l2GHz_cycles() - v1.l2GHz_cycles();
@@ -893,6 +897,8 @@ int main(int argc, char *argv[]) {
                   correction_aberration(cObs, R);
               cObs.set_emission_tai(tai_emission, eop_lut);
             }
+            /* set proper time */
+            cObs.set_proper_time(tobs_proper);
             /* depending on if we already have a records for the beacon */
             const auto pObs = std::find_if(
                 vLastObs.begin(), vLastObs.end(), [=](const RcSv &v) {
