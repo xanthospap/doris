@@ -171,8 +171,17 @@ dso::TwoPartDate correction_aberration(const RcSv &v, const dso::Itrs2Gcrs &R) n
   return tai_emission;
 }
 
+/* compute Ue + Ve^2 / 2 */
+double emitter_potential(const Eigen::Matrix<double, 3, 1> &ritrf,
+                         double omegaEarth, double GMEarth) noexcept {
+  const double p2 = ritrf(0) * ritrf(0) + ritrf(1) * ritrf(1);
+  const double Ve22 = (omegaEarth * omegaEarth * p2) / 2e0;
+  const double Ue = GMEarth / ritrf.norm();
+  return Ue + Ve22;
+}
+
 int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
-                         double DfeFen, double &Vobs, double &Vtheo,
+                         double DfeFen, double emitterPotential, double &Vobs, double &Vtheo,
                          double &dDfeNfeN, Eigen::Matrix<double, 3, 1> &dObsdr,
                          Eigen::Matrix<double, 3, 1> &dObsdv) noexcept {
   constexpr const double c = iers2010::C;
@@ -182,10 +191,11 @@ int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
   const double dIon = (c / feN) * (v2.iono_cycles() - v1.iono_cycles()) / dt;
   const double dTro = (v2.tropo()() - v1.tropo()()) / dt;
   const double Ndop = v2.l2GHz_cycles() - v1.l2GHz_cycles();
+  const double fac = 1e0 - emitterPotential/c/c;
 
   Vobs = (c / feN) * (feN - frT - Ndop / dt) + dIon;
   Vtheo =
-      (v2.s() - v1.s()) / dt - (c / feN) * (Ndop / dt + frT) * DfeFen + dTro;
+      fac*(v2.s() - v1.s()) / dt - (c / feN) * (Ndop / dt + frT) * DfeFen + dTro;
 
   // partials
   dDfeNfeN = (c / feN) * (Ndop / dt + frT);
@@ -717,13 +727,17 @@ int main(int argc, char *argv[]) {
   const int NumParams = 6 + NumBeacons;
   Kalman filter(NumParams);
   { /* a-priori P matrix */
-    double sigma_dfefen;
+    double sigma_dfefen, sigma_orbsp3;
     error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                                "deffen-sigma", sigma_dfefen);
     assert(sigma_dfefen > 0e0 && sigma_dfefen < 1e2 && (!error));
+    error = dso::get_yaml_value_depth2<double>(config, "filtering",
+                                               "orbsp3-sigma", sigma_orbsp3);
+    assert(sigma_orbsp3 > 0e0 && sigma_orbsp3 < 1e2 && (!error));
     /* a-priori sigma for Δfe / feN */
-    filter.P *= sigma_dfefen;
-    filter.P.block<6,6>(0,0) *= (.5e0)/sigma_dfefen;
+    filter.P *= sigma_dfefen * sigma_dfefen;
+    filter.P.block<6, 6>(0, 0) *=
+        sigma_orbsp3 * sigma_orbsp3 / (sigma_dfefen * sigma_dfefen);
   }
 
   // Start RINEX data-block iteration
@@ -899,11 +913,14 @@ int main(int argc, char *argv[]) {
                     dso::DORIS_FREQ1_MHZ * 1e6 *
                     (1e0 + rfo_fit.value_at(tobs_proper_dt) * 1e-11);
                 const double DfeFen = filter.parameter(beaconFilterIndex);
+                /* emitter potential */
+                const double ePot =
+                    emitter_potential(bcrd, R.omega_earth(), 3.986004418e14);
                 /* partials */
                 double d_DfedeN;
                 Eigen::Matrix<double, 3, 1> dObsdr, dObsdv;
-                observation_equation(*pObs, cObs, feN, frT, DfeFen, Vobs, Vtheo,
-                                     d_DfedeN, dObsdr, dObsdv);
+                observation_equation(*pObs, cObs, feN, frT, DfeFen, ePot, Vobs,
+                                     Vtheo, d_DfedeN, dObsdr, dObsdv);
                 /* filter observation update */
                 {
                   Eigen::VectorXd H = Eigen::VectorXd::Zero(NumParams);
@@ -913,13 +930,18 @@ int main(int argc, char *argv[]) {
                   double var_prediction;
                   double res_prediction = filter.prediction_residual(
                       Vobs, -Vtheo, sigma_obs, H, var_prediction);
-                  filter.observation_update(Vobs, -Vtheo, sigma_obs, H);
-                /* debug print */
-                  printf("[RES] %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f %.3f "
-                         "%.3e %.6f)\n",
-                         b4id, Vobs + Vtheo, res_prediction,
-                         std::sqrt(var_prediction), Vobs, Vtheo, feN, frT,
-                         DfeFen, Vtheo / Vobs);
+                  /* outlier check */
+                  if (res_prediction > 3*std::sqrt(var_prediction)) {
+                    fprintf(stderr, "[WRNNG] Skipping observation at %.4s at %s because of large residual\n", b4id, dtbuf);
+                  } else {
+                    filter.observation_update(Vobs, -Vtheo, sigma_obs, H);
+                    /* debug print */
+                    printf("[RES] %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f %.3f "
+                           "%.3e %.6f)\n",
+                           b4id, Vobs + Vtheo, res_prediction,
+                           std::sqrt(var_prediction), Vobs, Vtheo, feN, frT,
+                           DfeFen, Vtheo / Vobs);
+                  }
                 }
                 /* push back */
                 *pObs = cObs;

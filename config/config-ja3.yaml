@@ -49,8 +49,10 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: .5e-1
+  observation-sigma: 5e-2
   ## A-priori sigma for Δfe / feN
-  deffen-sigma: 1e-1
+  deffen-sigma: 1e-2
+  ## A-priori sigma for initial state (sp3)
+  orbsp3-sigma: 1e0
   ## Units: [degrees]
   elevation-cut-off: 10e0 ## in degrees
