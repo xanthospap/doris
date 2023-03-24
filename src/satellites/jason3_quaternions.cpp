@@ -2,14 +2,18 @@
 #include "datetime/utcdates.hpp"
 #include <charconv>
 #include <cstdio>
-#include <datetime/dtcalendar.hpp>
-#include <datetime/dtfund.hpp>
 #include <exception>
 #include <fstream>
 #include <stdexcept>
+#include <cctype>
 
 namespace {
 constexpr const int LINE_SZ = 512;
+
+const char *skip_ws(const char *str) noexcept {
+  while (*str && std::isspace(*str)) ++str;
+  return str;
+}
 
 int resolve_jason3_body_quaternion_line(
     const char *line, dso::JasonBodyQuaternion &record) noexcept {
@@ -28,32 +32,31 @@ int resolve_jason3_body_quaternion_line(
     return 1;
   }
 
-  const char *last = line + 255;
+  const char *last = line + std::strlen(line);
   int error = 0;
   double qdata[4]; // temporary quaternion buffer
 
-  // skip field UI1 and tab character
+  // skip field UI1 and space/tab character
   const char *c = line + 23 + 1;
-
   // UI1 -- 10 chars, unused value
   c += 10 + 1;
 
   // parse scalar part of quaternion
-  auto pec = std::from_chars(c, last, qdata[0]);
+  auto pec = std::from_chars(skip_ws(c), last, qdata[0]);
   c = pec.ptr;
-  if (*c++ != '\t' || pec.ec != std::errc{}) {
+  if (!std::isspace(*c) || pec.ec != std::errc{}) {
+    fprintf(stderr, "[ERROR] Failed parsing scalar part of quaternion line!\n");
     ++error;
   }
 
   // parse vector part of quaternion
-  for (int i = 0; i < 3; i++ && !error) {
-    // UI2 -- 4 chars, unused value
-    c += 4 + 1;
-    // UI3 -- 10 chars, unused value
-    c += 10 + 1;
-    pec = std::from_chars(c, last, qdata[i + 1]);
+  for (int i = 0; i < 3 && (!error); i++) {
+    /* 4 chars + 1 tab + 10 chars */
+    c += 15;
+    pec = std::from_chars(skip_ws(c), last, qdata[i + 1]);
     c = pec.ptr;
-    if (*c++ != '\t' || pec.ec != std::errc{}) {
+    if (!std::isspace(*c) || pec.ec != std::errc{}) {
+      fprintf(stderr, "[ERROR] Failed parsing imaginary part #%d of quaternion line!\n", i);
       ++error;
     }
   }
@@ -86,8 +89,9 @@ dso::JasonQuaternionHunter::JasonQuaternionHunter(const char *body_fn)
     : bodyin(body_fn) {
   // read-in the first two quaternions
   if (bodyin.get_next(bodyq, 2)) {
-    throw std::runtime_error(
-        "ERROR JasonQuaternionHunter failed to caonstruct\n");
+    //throw std::runtime_error(
+    //    "ERROR JasonQuaternionHunter failed to caonstruct\n");
+    assert(1==2);
   }
 }
 
@@ -126,7 +130,7 @@ int dso::JasonBodyQuaternionFile::get_next(dso::JasonBodyQuaternion *records,
       fin.getline(line, LINE_SZ);
 
     if (resolve_jason3_body_quaternion_line(line, records[i]))
-      return i * 10;
+      return i * 10 + 1;
   }
 
   return 0;

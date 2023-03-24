@@ -34,6 +34,9 @@ constexpr const int n = 6 + m;
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
 constexpr const double MAX_HOURS = 6;
+/* signal a new satellite pass over a beacon */
+constexpr const double NEW_PASS_AFTER_MIN = 30e0;
+constexpr const int INCLUDE_ATTITUDE = true;
 
 struct {
   const char *id;
@@ -55,6 +58,28 @@ const char *fallback_name(const char *fcid) noexcept {
   return nullptr;
 }
 
+struct SvFrame {
+  Eigen::Matrix<double, 3, 1> cog_sf;
+  Eigen::Matrix<double, 3, 1> arp_sf;
+  dso::JasonQuaternionHunter qhunt;
+  double sat_mass{0e0};
+
+  SvFrame(Eigen::Matrix<double, 3, 1> vcog, Eigen::Matrix<double, 3, 1> varp,
+          const char *qfn, double mass)
+      : cog_sf(vcog), arp_sf(varp), qhunt(qfn), sat_mass(mass) {}
+
+  int arp2cog(const dso::TwoPartDate &tai, Eigen::Matrix<double, 3, 1> &dr) {
+    /* r_sat_fixed = Q * r_sat_gcrs */
+    Eigen::Quaternion<double> q;
+    if (qhunt.get_at(tai, q)) {
+      fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
+      return 1;
+    }
+    dr = q.conjugate().normalized() * (cog_sf - arp_sf);
+    return 0;
+  }
+};
+
 struct Kalman {
   dso::TwoPartDate t;
   Eigen::VectorXd x;
@@ -65,6 +90,13 @@ struct Kalman {
       : t(tai), x(Eigen::VectorXd::Zero(numParams)),
         P(Eigen::MatrixXd::Identity(numParams, numParams)),
         K(Eigen::VectorXd::Zero(numParams)) {}
+
+  void reset_frequency_bias(int index, double val0, double sigma0) noexcept {
+    x(index) = val0;
+    P.row(index).setZero();
+    P.col(index).setZero();
+    P(index,index) = sigma0*sigma0;
+  }
 
   void time_update(const dso::TwoPartDate &ti,
                    const Eigen::MatrixXd &F) noexcept {
@@ -165,10 +197,8 @@ dso::TwoPartDate correction_aberration(const RcSv &v, const dso::Itrs2Gcrs &R) n
   // all work done in GCRF
   assert(R.tt() == v.time_of_reception().tai2tt());
   dso::TwoPartDate tai_emission(v.time_of_reception());
-  // temporary distance
-  const double s = v.s();
   // time correction (sec)
-  const double sec = s / iers2010::C;
+  const double sec = v.s() / iers2010::C;
   // time of emission
   tai_emission._small -= (sec / 86400e0);
   tai_emission.normalize();
@@ -358,10 +388,18 @@ class OrbitIntegrator {
   Eigen::Matrix<double, 6, 6> Phi;
   // an instance to transform between ITRF and GCRF coordinates
   dso::Itrs2Gcrs Rot;
+  // SV details
+  SvFrame *sv_frame{nullptr};
 
 public:
   OrbitIntegrator(const dso::TwoPartDate &tai, const dso::EopLookUpTable &eops)
       : mjd_tai(tai), Rot(tai.tai2tt(), &eops){};
+
+  void set_attitude(Eigen::Matrix<double, 3, 1> vcog,
+                    Eigen::Matrix<double, 3, 1> varp, const char *qfn,
+                    double mass) {
+    sv_frame = new SvFrame(vcog, varp, qfn, mass);
+  }
 
   dso::TwoPartDate &tai_time() noexcept { return mjd_tai; }
   dso::TwoPartDate tai_time() const noexcept { return mjd_tai; }
@@ -370,23 +408,40 @@ public:
     return Phi;
   }
 
-  Eigen::Matrix<double, 3, 1> gcrf_position() const noexcept {
+  Eigen::Matrix<double, 3, 1> gcrf_position_cm() const noexcept {
     return state.block<3, 1>(0, 0);
   }
-  Eigen::Matrix<double, 6, 1> gcrf_state() const noexcept { return state; }
-  Eigen::Matrix<double, 6, 1> &gcrf_state() noexcept { return state; }
-  Eigen::Matrix<double, 3, 1> itrf_position() const noexcept {
-    return Rot.gcrf2itrf(gcrf_position());
+  Eigen::Matrix<double, 6, 1> gcrf_state_cm() const noexcept { return state; }
+  Eigen::Matrix<double, 6, 1> &gcrf_state_cm() noexcept { return state; }
+  Eigen::Matrix<double, 3, 1> itrf_position_cm() const noexcept {
+    return Rot.gcrf2itrf(gcrf_position_cm());
   }
-  Eigen::Matrix<double, 6, 1> itrf_state() const noexcept {
-    return Rot.gcrf2itrf(gcrf_state());
+  Eigen::Matrix<double, 6, 1> itrf_state_cm() const noexcept {
+    return Rot.gcrf2itrf(gcrf_state_cm());
+  }
+  
+  Eigen::Matrix<double, 3, 1> gcrf_position_arp() noexcept {
+    // return satellite's Antenna L2 RP position, in GCRF, assuming that 
+    // state is referred to CoM (GCRF)
+    if (sv_frame) {
+      // GCRF: from satellite ARP to CoG
+      Eigen::Matrix<double, 3, 1> dr;
+      assert(! (sv_frame->arp2cog(tai_time(), dr)) );
+      return gcrf_position_cm() + dr;
+    }
+    return gcrf_position_cm();
+  }
+  
+  Eigen::Matrix<double, 3, 1> itrf_position_arp() noexcept {
+    return Rot.gcrf2itrf(gcrf_position_arp());
   }
 
+  /* assumes state is w.r.t SV's CoM */
   void set_state_from_itrf(const dso::TwoPartDate &tai,
                            const Eigen::Matrix<double, 6, 1> &itrf) noexcept {
     mjd_tai = tai;
     Rot.prepare(mjd_tai.tai2tt());
-    gcrf_state() = Rot.itrf2gcrf(itrf);
+    gcrf_state_cm() = Rot.itrf2gcrf(itrf);
   }
 
   Eigen::Matrix<double, 6, 6> extractStateTransitionMatrix(
@@ -414,8 +469,6 @@ public:
 
   int integrate(const dso::TwoPartDate &mjd_target,
                 dso::SGOde &integrator) noexcept {
-    // count calls
-    [[maybe_unused]] static int call_nr = 0;
 
     // number of equations:
     // 6 for the state + 6*n for the variational equations, where n = 6 + m
@@ -426,7 +479,7 @@ public:
         Eigen::Matrix<double, NumEqn, 1>::Zero();
 
     // transform state from ITRF to GCRF
-    yPhi0.block<6, 1>(0, 0) = gcrf_state();
+    yPhi0.block<6, 1>(0, 0) = gcrf_state_cm();
 
     // Initial condition for state transition matrix Φ(t0,t0) = I
     setInitialconditions(yPhi0);
@@ -477,7 +530,6 @@ public:
     // do not forget this step, rotation matrix for now
     Rot.prepare(mjd_tai.tai2tt());
 
-    ++call_nr;
     return 0;
   }
 };
@@ -721,6 +773,36 @@ int main(int argc, char *argv[]) {
   IntegrationParams.setide = &setide;
 
   OrbitIntegrator svState(dso::TwoPartDate(rnx.time_of_first_obs()), eop_lut);
+  
+  // On-board receiver eccentricity, in the satellite-fixed frame
+  // -------------------------------------------------------------------------
+  if (INCLUDE_ATTITUDE) {
+    if (dso::get_yaml_value_depth2(config, "attitude", "mass-cog", buf)) {
+      fprintf(stderr, "ERROR Failed locating Mass and CoG information file\n");
+      return 1;
+    }
+    Eigen::Matrix<double, 3, 1> sat_cog, l3_pco;
+    double sat_mass;
+    // get satellite CoG coordinates in the satellite-fixed RF (with
+    // corrections)
+    assert(!dso::SatelliteInfo<dso::SATELLITE::Jason3>::mass_cog(
+        rnx.ref_datetime(), buf, sat_mass, sat_cog));
+    // get satellite ARP coordinates in the satellite-fixed RF
+    Eigen::Matrix<double, 3, 1> l1_pco, l2_pco;
+    dso::SatelliteInfo<dso::SATELLITE::Jason3>::pco(l1_pco, l2_pco);
+    // compute the iono-free phase center
+    l3_pco = l1_pco + (l2_pco - l1_pco) / (dso::GAMMA_FACTOR - 1e0);
+    printf(
+        "[DEBUG] Satellite CoG coordinates [%+.4f %+.4f %+.4f]m in SV-frame\n",
+        sat_cog(0), sat_cog(1), sat_cog(2));
+    printf("[DEBUG] AV-Antenna RP coordinates [%+.4f %+.4f %+.4f]m (Iono-Free) "
+           "in SV-frame\n",
+           l3_pco(0), l3_pco(1), l3_pco(2));
+    // Attitude Information
+    dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
+    // dso::JasonQuaternionHunter qhunt(buf);
+    svState.set_attitude(sat_cog, l3_pco, buf, sat_mass);
+  }
 
   /*
    * Setup the Kalman filter
@@ -729,6 +811,7 @@ int main(int argc, char *argv[]) {
    */
   const int NumBeacons = beaconCrdVec.size();
   const int NumParams = 6 + NumBeacons;
+  double apriori_sigma_freqbias;
   Kalman filter(NumParams);
   { /* a-priori P matrix */
     double sigma_dfefen, sigma_orbsp3;
@@ -742,6 +825,8 @@ int main(int argc, char *argv[]) {
     filter.P *= sigma_dfefen * sigma_dfefen;
     filter.P.block<6, 6>(0, 0) *=
         sigma_orbsp3 * sigma_orbsp3 / (sigma_dfefen * sigma_dfefen);
+    /* assign for later use */
+    apriori_sigma_freqbias = sigma_dfefen;
   }
 
   // Start RINEX data-block iteration
@@ -802,6 +887,7 @@ int main(int argc, char *argv[]) {
       itrf(3) = sp3_iterator.data_block().state[4] * 1e-1;
       itrf(4) = sp3_iterator.data_block().state[5] * 1e-1;
       itrf(5) = sp3_iterator.data_block().state[6] * 1e-1;
+      /* state in ITRF, w.r.t CoM */
       svState.set_state_from_itrf(dso::TwoPartDate(sp3_iterator.current_time()),
                                   itrf);
       if (svState.integrate(tobs_tai, Integrator)) {
@@ -823,7 +909,7 @@ int main(int argc, char *argv[]) {
       Eigen::MatrixXd F = Eigen::MatrixXd::Identity(NumParams, NumParams);
       F.block<6, 6>(0, 0) = svState.stateTransitionMatrix();
       filter.time_update(tobs_tai, F);
-      filter.estimates().block<6, 1>(0, 0) = svState.gcrf_state();
+      filter.estimates().block<6, 1>(0, 0) = svState.gcrf_state_cm();
     }
 
     /* iterate through beacons in current block (epoch) */
@@ -858,7 +944,7 @@ int main(int argc, char *argv[]) {
         {
           Eigen::Matrix<double, 3, 1> r_enu =
               dso::car2top<dso::ellipsoid::grs80>(bcrd,
-                                                  svState.itrf_position());
+                                                  svState.itrf_position_arp());
           dso::top2dae(r_enu, az, el);
         }
         /* only procced if elevation angle is large enough */
@@ -890,7 +976,7 @@ int main(int argc, char *argv[]) {
           } else {
             /* Hold current measurement details in a struct */
             RcSv cObs(b4id, tobs_tai, beaconIt->m_values[l1i].m_value, Dion,
-                      Dtro, svState.gcrf_position(), bcrd, eop_lut);
+                      Dtro, svState.gcrf_position_arp(), bcrd, eop_lut);
             /* Find emission time (correction of aberration */
             {
               const dso::TwoPartDate tai_emission =
@@ -911,6 +997,17 @@ int main(int argc, char *argv[]) {
                   tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
                       pObs->time_of_reception()) > RESTART_AFTER_SEC) {
                 *pObs = cObs;
+                /* restart frequency bias for new pass if needed */
+                if (tobs_tai
+                        .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                            pObs->time_of_reception()) >
+                    NEW_PASS_AFTER_MIN * 60e0) {
+                  filter.reset_frequency_bias(beaconFilterIndex, 0e0,
+                                              apriori_sigma_freqbias);
+                  printf("[DEBUG] Resetting frequency bias for site %.4s, new "
+                         "pass at %s\n",
+                         b4id, dtbuf);
+                }
               } else {
                 /* observation equation */
                 double Vobs, Vtheo;
@@ -940,7 +1037,7 @@ int main(int argc, char *argv[]) {
                   if (res_prediction > 3*std::sqrt(var_prediction)) {
                     fprintf(stderr, "[WRNNG] Skipping observation at %.4s at %s because of large residual\n", b4id, dtbuf);
                   } else {
-                    filter.observation_update(Vobs, -Vtheo, sigma_obs, H);
+                    filter.observation_update(Vobs, -Vtheo, sigma_obs*std::sin(el), H);
                     /* debug print */
                     printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f "
                            "%.3f %.3e %.6f)\n",
@@ -967,9 +1064,9 @@ int main(int argc, char *argv[]) {
     
     { // print state
       printf("[ORB] %s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", dtbuf,
-             svState.itrf_state()(0), svState.itrf_state()(1),
-             svState.itrf_state()(2), svState.itrf_state()(3),
-             svState.itrf_state()(4), svState.itrf_state()(5));
+             svState.itrf_state_cm()(0), svState.itrf_state_cm()(1),
+             svState.itrf_state_cm()(2), svState.itrf_state_cm()(3),
+             svState.itrf_state_cm()(4), svState.itrf_state_cm()(5));
     }
 
     ++num_blocks; /* augment data block counter */
