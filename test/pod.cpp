@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <datetime/dtfund.hpp>
 #include <iers2010/eop.hpp>
 
 constexpr const int INCLUDE_ATTITUDE = true;
@@ -34,7 +35,7 @@ constexpr const int n = 6 + m;
 /* only compute Doppler count if two observation are within this time interval
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
-constexpr const double MAX_HOURS = 6;
+constexpr const double MAX_HOURS = 12;
 /* signal a new satellite pass over a beacon */
 constexpr const double NEW_PASS_AFTER_MIN = 30e0;
 
@@ -478,6 +479,22 @@ public:
     // integration solution
     Eigen::VectorXd sol(NumEqn);
 
+    char buf[64];
+    {
+      using ST = dso::nanoseconds::underlying_type;
+      const auto T = mjd_tai.normalized();
+      dso::datetime<dso::nanoseconds> wt(
+          dso::modified_julian_day(T._big),
+          dso::nanoseconds(static_cast<ST>(
+              (T._small * 86400e0) * dso::nanoseconds::sec_factor<double>())));
+      dso::strftime_ymd_hmfs(wt, buf);
+      fprintf(stderr, "[LOG] Integrating from %s to ", buf);
+      wt.add_seconds(dso::nanoseconds(static_cast<ST>(
+          (tout) * dso::nanoseconds::sec_factor<double>())));
+      dso::strftime_ymd_hmfs(wt, buf);
+      fprintf(stderr, "%s (%.9f sec away)\n", buf, tout);
+    }
+
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
     integrator.flag() = dso::SGOde::IFLAG::RESTART;
@@ -731,7 +748,7 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12, 1e-15,
+  dso::SGOde Integrator(dso::VariationalEquations_ta, (6 + 6 * n), 1e-12, 1e-12,
                         &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
@@ -885,7 +902,7 @@ int main(int argc, char *argv[]) {
     [[maybe_unused]] const auto tobs_utc = tobs_tai.tai2utc();
 
     dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
-    printf("# New observation (RINEX) at %s\n", dtbuf);
+    printf("# New observation block (RINEX) at %s\n", dtbuf);
 
     // integrate orbit to here (TAI)
     if (!num_blocks) {
@@ -953,11 +970,6 @@ int main(int argc, char *argv[]) {
             vit != beaconCrdVec.end()) {
           bcrd = getItrfCrd(vit);
           beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit) + 6 + m;
-        } else {
-          fprintf(stderr,
-                  "[ERROR] Failed to find coordinates for station %4s\n", b4id);
-          assert(1 == 2);
-        }
         /* Rc-Sv azimouth [rad], elevation [rad] and range [m] */
         double az, el;
         {
@@ -1067,11 +1079,12 @@ int main(int argc, char *argv[]) {
                     if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
                     if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
                     /* debug print */
-                    printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f "
-                           "%.3f %.3e %.6f)\n",
+                    printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3e "
+                           "%.6f %.6f)\n",
                            dtbuf, b4id, Vobs + Vtheo, res_prediction,
-                           std::sqrt(var_prediction), Vobs, Vtheo, feN, frT,
-                           DfeFen, Vtheo / Vobs);
+                           std::sqrt(var_prediction), Vobs, Vtheo, DfeFen,
+                           IntegrationParams.drag_ceofficient(),
+                           IntegrationParams.srp_ceofficient());
                   }
                 }
                 /* push back */
@@ -1085,6 +1098,10 @@ int main(int argc, char *argv[]) {
               stderr,
               "[WRNNG] Unexpected elevation angle encountered for %.4s at %s\n",
               b4id, dtbuf);
+        }
+        } else {
+          fprintf(stderr,
+                  "[ERROR] Failed to find coordinates for station %4s\n", b4id);
         }
       } /* end of non-flaged observation processing */
     } else {

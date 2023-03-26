@@ -193,6 +193,9 @@ void VariationalEquations_mg(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 
+void VariationalEquations_ta(double tsec_away, const Eigen::VectorXd &yPhi,
+                          Eigen::Ref<Eigen::VectorXd> yPhiP,
+                          dso::IntegrationParameters &params) noexcept;
 } // namespace dso
 
 #endif
