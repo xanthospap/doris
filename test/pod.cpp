@@ -7,7 +7,6 @@
 #include "doris_utils.hpp"
 #include "filters/filters.hpp"
 #include "geodesy/geoconst.hpp"
-#include "geodesy/geodesy.hpp"
 #include "geodesy/units.hpp"
 #include "iers2010/cel2ter.hpp"
 #include "iers2010/hardisp.hpp"
@@ -15,6 +14,7 @@
 #include "iers2010/iersc.hpp"
 #include "iers2010/tropo.hpp"
 #include "integrators.hpp"
+#include "orbit_integration.hpp"
 #include "satellites/jason3.hpp"
 #include "satellites/jason3_quaternions.hpp"
 #include "sp3/sp3.hpp"
@@ -24,11 +24,12 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
-#include <datetime/dtcalendar.hpp>
-#include <datetime/dtfund.hpp>
 #include <iers2010/eop.hpp>
 
-constexpr const int m = 0;
+constexpr const int INCLUDE_ATTITUDE = true;
+constexpr const int INCLUDE_ATM_DRAG = true;
+constexpr const int INCLUDE_SRP_DRAG = true;
+constexpr const int m = INCLUDE_ATM_DRAG + INCLUDE_SRP_DRAG;
 constexpr const int n = 6 + m;
 /* only compute Doppler count if two observation are within this time interval
  */
@@ -36,7 +37,13 @@ constexpr const double RESTART_AFTER_SEC = 11e0;
 constexpr const double MAX_HOURS = 6;
 /* signal a new satellite pass over a beacon */
 constexpr const double NEW_PASS_AFTER_MIN = 30e0;
-constexpr const int INCLUDE_ATTITUDE = true;
+
+int site_affected_by_ssa(const char *b4id) noexcept {
+  int affected = 0;
+  affected += !(std::strncmp("ARFB", b4id, 4));
+  affected += !(std::strncmp("CADB", b4id, 4));
+  return affected;
+}
 
 struct {
   const char *id;
@@ -57,28 +64,6 @@ const char *fallback_name(const char *fcid) noexcept {
       return FallBackVmfNames[i].fallback;
   return nullptr;
 }
-
-struct SvFrame {
-  Eigen::Matrix<double, 3, 1> cog_sf;
-  Eigen::Matrix<double, 3, 1> arp_sf;
-  dso::JasonQuaternionHunter qhunt;
-  double sat_mass{0e0};
-
-  SvFrame(Eigen::Matrix<double, 3, 1> vcog, Eigen::Matrix<double, 3, 1> varp,
-          const char *qfn, double mass)
-      : cog_sf(vcog), arp_sf(varp), qhunt(qfn), sat_mass(mass) {}
-
-  int arp2cog(const dso::TwoPartDate &tai, Eigen::Matrix<double, 3, 1> &dr) {
-    /* r_sat_fixed = Q * r_sat_gcrs */
-    Eigen::Quaternion<double> q;
-    if (qhunt.get_at(tai, q)) {
-      fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
-      return 1;
-    }
-    dr = q.conjugate().normalized() * (cog_sf - arp_sf);
-    return 0;
-  }
-};
 
 struct Kalman {
   dso::TwoPartDate t;
@@ -389,16 +374,14 @@ class OrbitIntegrator {
   // an instance to transform between ITRF and GCRF coordinates
   dso::Itrs2Gcrs Rot;
   // SV details
-  SvFrame *sv_frame{nullptr};
+  dso::SvFrame *sv_frame{nullptr};
 
 public:
   OrbitIntegrator(const dso::TwoPartDate &tai, const dso::EopLookUpTable &eops)
       : mjd_tai(tai), Rot(tai.tai2tt(), &eops){};
 
-  void set_attitude(Eigen::Matrix<double, 3, 1> vcog,
-                    Eigen::Matrix<double, 3, 1> varp, const char *qfn,
-                    double mass) {
-    sv_frame = new SvFrame(vcog, varp, qfn, mass);
+  void set_attitude(const dso::IntegrationParameters &params) {
+    sv_frame = params.svFrame;
   }
 
   dso::TwoPartDate &tai_time() noexcept { return mjd_tai; }
@@ -427,7 +410,7 @@ public:
       // GCRF: from satellite ARP to CoG
       Eigen::Matrix<double, 3, 1> dr;
       assert(! (sv_frame->arp2cog(tai_time(), dr)) );
-      return gcrf_position_cm() + dr;
+      return gcrf_position_cm() - dr;
     }
     return gcrf_position_cm();
   }
@@ -748,7 +731,7 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations2, (6 + 6 * n), 1e-12, 1e-15,
+  dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12, 1e-15,
                         &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
@@ -800,33 +783,65 @@ int main(int argc, char *argv[]) {
            l3_pco(0), l3_pco(1), l3_pco(2));
     // Attitude Information
     dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
-    // dso::JasonQuaternionHunter qhunt(buf);
-    svState.set_attitude(sat_cog, l3_pco, buf, sat_mass);
+    /* set attitude in Integration parametrs and */
+    IntegrationParams.set_sv_frame(sat_cog, l3_pco, buf, sat_mass);
+    svState.set_attitude(IntegrationParams);
+  }
+  
+  // Data feed for the NRLMSISE00 model
+  // -------------------------------------------------------------------------
+  if (INCLUDE_ATM_DRAG) {
+    dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag",
+                               "atmo-data-csv", buf);
+    const dso::TwoPartDate t0(rnx.time_of_first_obs());
+    IntegrationParams.set_atmospheric_data_feed(t0.tai2utc(), buf);
   }
 
   /*
    * Setup the Kalman filter
    * Satellite state vector : # 6
+   * m params including     : Cd, Csrp
    * Δfe/feN per beacon     : # NumBeacons
    */
   const int NumBeacons = beaconCrdVec.size();
-  const int NumParams = 6 + NumBeacons;
+  const int NumParams = 6 + m + NumBeacons;
   double apriori_sigma_freqbias;
   Kalman filter(NumParams);
   { /* a-priori P matrix */
-    double sigma_dfefen, sigma_orbsp3;
+    double sigma_dfefen, sigma_orbsp3,sigma_Cd,sigma_Cr;
     error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                                "deffen-sigma", sigma_dfefen);
     assert(sigma_dfefen > 0e0 && sigma_dfefen < 1e2 && (!error));
     error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                                "orbsp3-sigma", sigma_orbsp3);
     assert(sigma_orbsp3 > 0e0 && sigma_orbsp3 < 1e2 && (!error));
+    error = dso::get_yaml_value_depth2<double>(config, "filtering",
+                                               "cd-sigma", sigma_Cd);
+    assert(sigma_Cd > 0e0 && sigma_Cd < 1e2 && (!error));
+    error = dso::get_yaml_value_depth2<double>(config, "filtering",
+                                               "cr-sigma", sigma_Cr);
+    assert(sigma_Cr > 0e0 && sigma_Cr < 1e2 && (!error));
     /* a-priori sigma for Δfe / feN */
     filter.P *= sigma_dfefen * sigma_dfefen;
+    if (m>=1) {
+      filter.P(6,6) *= sigma_Cd * sigma_Cd;
+      if (m>1) filter.P(7,7) *= sigma_Cr * sigma_Cr;
+    }
     filter.P.block<6, 6>(0, 0) *=
         sigma_orbsp3 * sigma_orbsp3 / (sigma_dfefen * sigma_dfefen);
     /* assign for later use */
     apriori_sigma_freqbias = sigma_dfefen;
+  }
+  { /* a-priori estimates */
+    if (m>=1) {
+      double Cd;
+      dso::get_yaml_value_depth3<double>(config, "force-model", "atmospheric-drag", "cd-apriori", Cd);
+      filter.x(6) = Cd;
+      if (m>1) {
+      /*dso::get_yaml_value_depth3<double>(config, "force-model", "atmospheric-drag", "cd-apriori", Cd);*/
+      filter.x(7) = 1.5e0;
+      }
+    }
   }
 
   // Start RINEX data-block iteration
@@ -910,6 +925,8 @@ int main(int argc, char *argv[]) {
       F.block<6, 6>(0, 0) = svState.stateTransitionMatrix();
       filter.time_update(tobs_tai, F);
       filter.estimates().block<6, 1>(0, 0) = svState.gcrf_state_cm();
+      if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
+      if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
     }
 
     /* iterate through beacons in current block (epoch) */
@@ -919,6 +936,8 @@ int main(int argc, char *argv[]) {
       ++num_obs;
       /* Beacon's 4-char id */
       const char *b4id = rnx.beacon_internal_id2id(beaconIt->id());
+      /* check if beacon is within SSA */
+      if (!site_affected_by_ssa(b4id)) {
       /* check flags */
       if (check_obs_flags(*beaconIt, l1i, l2i, w1i, w2i)) {
         ++flaged_obs;
@@ -933,7 +952,7 @@ int main(int argc, char *argv[]) {
         if (auto vit = findItrfCrd(b4id, beaconCrdVec);
             vit != beaconCrdVec.end()) {
           bcrd = getItrfCrd(vit);
-          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit) + 6;
+          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit) + 6 + m;
         } else {
           fprintf(stderr,
                   "[ERROR] Failed to find coordinates for station %4s\n", b4id);
@@ -1029,15 +1048,24 @@ int main(int argc, char *argv[]) {
                   Eigen::VectorXd H = Eigen::VectorXd::Zero(NumParams);
                   H.block<3, 1>(0, 0) = dObsdr;
                   H.block<3, 1>(3, 0) = dObsdv;
+                  if (m>=1) H(6) = 1e0;
+                  if (m>1) H(7) = 1e0;
                   H(beaconFilterIndex) = d_DfedeN;
                   double var_prediction;
                   double res_prediction = filter.prediction_residual(
                       Vobs, -Vtheo, sigma_obs, H, var_prediction);
                   /* outlier check */
-                  if (res_prediction > 3*std::sqrt(var_prediction)) {
-                    fprintf(stderr, "[WRNNG] Skipping observation at %.4s at %s because of large residual\n", b4id, dtbuf);
+                  if (res_prediction > 3 * std::sqrt(var_prediction)) {
+                    fprintf(stderr,
+                            "[WRNNG] Skipping observation at %.4s at %s "
+                            "because of large residual\n",
+                            b4id, dtbuf);
                   } else {
-                    filter.observation_update(Vobs, -Vtheo, sigma_obs*std::sin(el), H);
+                    filter.observation_update(Vobs, -Vtheo,
+                                              sigma_obs / std::sin(el), H);
+                    /* update drag coefficient value */
+                    if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
+                    if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
                     /* debug print */
                     printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3f "
                            "%.3f %.3e %.6f)\n",
@@ -1059,6 +1087,9 @@ int main(int argc, char *argv[]) {
               b4id, dtbuf);
         }
       } /* end of non-flaged observation processing */
+    } else {
+      fprintf(stderr, "[WRNNG] Site %.4s within SSA; ignornig observation\n", b4id);
+    } /* site affected by SSA */
       ++beaconIt;
     } /* end of beacons in current block */
     

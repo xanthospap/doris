@@ -291,6 +291,13 @@ Eigen::Matrix<double, 3, 1> drag_accel(
     Eigen::Matrix<double, 3, 3> &daccdr, Eigen::Matrix<double, 3, 3> &daccdv,
     Eigen::Matrix<double, 3, 1> &daccdC) noexcept;
 
+Eigen::Matrix<double, 3, 1>
+drag_accel(const Eigen::Matrix<double, 3, 1> &vrel, double AM, double Cd,
+                double atmdens, const Eigen::Matrix<double, 3, 1> &datmdensdr,
+                Eigen::Matrix<double, 3, 3> &daccdr,
+                Eigen::Matrix<double, 3, 3> &daccdv,
+                Eigen::Matrix<double, 3, 1> &daccdC) noexcept;
+
 /// @brief Acceleration due to Solar Radiation Pressure
 /// This is a simplified model, as described in Montenbruck et al, 2000
 Eigen::Matrix<double, 3, 1>

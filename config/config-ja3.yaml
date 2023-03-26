@@ -42,6 +42,7 @@ force-model:
   atmospheric-drag:
     drag-model: nrlmsise00
     atmo-data-csv: data/SW-All.csv
+    cd-apriori: 2e0
 
 attitude:
   mass-cog: data/Jason-3/ja3mass.txt
@@ -51,8 +52,12 @@ filtering:
   ## Units: [m/sec]
   observation-sigma: 5e-2
   ## A-priori sigma for Δfe / feN
-  deffen-sigma: 1e-2
+  deffen-sigma: 1e-3
   ## A-priori sigma for initial state (sp3)
-  orbsp3-sigma: 1e0
+  orbsp3-sigma: 2e0
+  ## A-priori sigma for Cd (aka drag coefficient)
+  cd-sigma: .5e0
+  ## A-priori sigma for Cr (aka srp coefficient)
+  cr-sigma: .5e0
   ## Units: [degrees]
   elevation-cut-off: 10e0 ## in degrees

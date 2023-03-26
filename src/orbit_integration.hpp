@@ -11,8 +11,78 @@
 #include "satellites/jason3_quaternions.hpp"
 #include <cassert>
 #include <datetime/dtcalendar.hpp>
+#include <datetime/dtfund.hpp>
 
 namespace dso {
+
+class SvFrame {
+  /* CoG point in SV-fixed RF */
+  Eigen::Matrix<double, 3, 1> cog_sf;
+  /* Antenna RP point in SV-fixed RF */
+  Eigen::Matrix<double, 3, 1> arp_sf;
+  /* quaternion hunter for attitude */
+  dso::JasonQuaternionHunter qhunt;
+  /* satellite macromodel */
+  dso::MacroModel<SATELLITE::Jason3> mplates;
+  double sat_mass{0e0};
+
+public:
+  SvFrame(Eigen::Matrix<double, 3, 1> vcog, Eigen::Matrix<double, 3, 1> varp,
+          const char *qfn, double mass)
+      : cog_sf(vcog), arp_sf(varp), qhunt(qfn), sat_mass(mass) {}
+
+  double mass() const noexcept {return sat_mass;}
+  const dso::MacroModel<SATELLITE::Jason3> &plates() const noexcept {return mplates;}
+
+  int arp2cog(const dso::TwoPartDate &tai, Eigen::Matrix<double, 3, 1> &dr) {
+    /* r_sat_fixed = Q * r_sat_gcrs */
+    Eigen::Quaternion<double> q;
+    if (qhunt.get_at(tai, q)) {
+      fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
+      return 1;
+    }
+    dr = q.conjugate().normalized() * (cog_sf - arp_sf);
+    return 0;
+  }
+
+  int get_attitude_quaternion(const dso::TwoPartDate &tai, Eigen::Quaternion<double> &q) noexcept {
+    if (qhunt.get_at(tai, q)) {
+      fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
+      return 1;
+    }
+    return 0;
+  }
+
+  /* returns (S / m) where S is the projected area */
+  int projected_area(const dso::TwoPartDate &tai,
+                     const Eigen::Matrix<double, 3, 1> &vrel, double &b) noexcept {
+    /* attitude matrix */
+    Eigen::Quaternion<double> q;
+    if (qhunt.get_at(tai, q)) {
+      fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
+      return 1;
+    }
+    /* normalized relative velocity */
+    const auto v = vrel.normalized();
+    /* iterate through SV plates */
+    double S = 0e0;
+    const int numPlates = mplates.NumPlates;
+    const MacroModelComponent *plate = nullptr;
+    for (int i=0; i<numPlates; i++) {
+      plate = mplates.mmcomponents + i;
+      /* (unit) vector of plate, normal in sv-fixed RF */
+      Eigen::Matrix<double,3,1> n(plate->m_normal);
+      const double cosA = (q.conjugate().normalized()*n).transpose() * v;
+      if (cosA > 0e0) {
+        S += (plate->m_surf * cosA);
+      }
+    }
+    /* compute ballistic coefficient, without the Cd */
+    b = S/sat_mass;
+    return 0;
+  }
+};
+
 
 /// @brief A structure to hold orbit integration parameters; it is a
 ///        collection of data and parameters to be used in the computation
@@ -35,22 +105,21 @@ struct IntegrationParameters {
   dso::OceanTide *octide;
   ///< Earth Tides
   dso::SolidEarthTide *setide;
+  ///< Satellite-specific information
+  SvFrame *svFrame{nullptr};
+  /* atmospheric density model and data feed */
+  dso::Nrlmsise00 nrlmsise00;
+  dso::nrlmsise00::InParams<
+      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *atm_data_feed{
+      nullptr};
+  double Cd = 2e0;
+  double &drag_ceofficient() noexcept {return Cd;}
+  double Cr = 1.5e0;
+  double &srp_ceofficient() noexcept {return Cr;}
   ///< memmory for Lagrange polynomials
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr};
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
-  /*
-  ///< Satellite Macromodel and number of individual flat plates
-  const MacroModelComponent *macromodel{nullptr};
-  int numMacroModelComponents{0};
-  dso::JasonQuaternionHunter *qhunt{nullptr};
-  const double *SatMass{nullptr};
-  /// Drag-related stuff
-  dso::nrlmsise00::InParams<
-      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *AtmDataFeed;
-  dso::Nrlmsise00 *nrlmsise00;
-  const double *drag_coef{nullptr};
-  */
-
+  
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
                         const dso::HarmonicCoeffs &harmonics_,
@@ -65,6 +134,23 @@ struct IntegrationParameters {
     assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon)); // [km^3/ sec^2]
   };
 
+  void set_sv_frame(Eigen::Matrix<double, 3, 1> vcog,
+                    Eigen::Matrix<double, 3, 1> varp, const char *qfn,
+                    double mass) {
+    svFrame = new dso::SvFrame(vcog,varp,qfn,mass);
+  }
+
+  void set_atmospheric_data_feed(const dso::TwoPartDate &utc, const char *fn) {
+    const auto t = utc.normalized();
+    const dso::modified_julian_day mjd(static_cast<long>(t._big));
+    const double secday = t._small * 86400e0;
+    atm_data_feed = new dso::nrlmsise00::InParams<
+        dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>(fn, mjd, secday);
+    atm_data_feed->params_.set_switches_on();
+    atm_data_feed->params_.use_aparray();
+    atm_data_feed->params_.meters_on();
+  }
+
   // TODO
   ~IntegrationParameters() noexcept {
     if (V)
@@ -73,43 +159,6 @@ struct IntegrationParameters {
       delete W;
   }
 }; // Integration Parameters
-
-/*
-#ifdef ABCD
-Eigen::Matrix<double, 3, 3>
-itrs2gcrs(double mjd_tai, const dso::EopLookUpTable &eop_table,
-          Eigen::Matrix<double, 3, 3> &ditrs2gcrs) noexcept;
-#else
-int gcrs2itrs(const dso::TwoPartDate &mjd_tai,
-              const dso::EopLookUpTable &eop_table,
-              Eigen::Matrix<double, 3, 3> &rc2i, double &era,
-              Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
-int gcrs2itrs(const dso::TwoPartDate &mjd_tai,
-              const dso::EopRecord &eop,double X, double Y, double s, double sprime,
-              Eigen::Matrix<double, 3, 3> &rc2i, double &era,
-              Eigen::Matrix<double, 3, 3> &rpom, double &xlod) noexcept;
-#endif
-
-Eigen::Matrix<double, 3, 1>
-rcel2ter(const Eigen::Matrix<double, 3, 1> r,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
-
-Eigen::Matrix<double, 6, 1>
-ycel2ter(const Eigen::Matrix<double, 6, 1> y,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era, double xlod,
-         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
-
-Eigen::Matrix<double, 3, 1>
-rter2cel(const Eigen::Matrix<double, 3, 1> r,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era,
-         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
-
-Eigen::Matrix<double, 6, 1>
-yter2cel(const Eigen::Matrix<double, 6, 1> y,
-         const Eigen::Matrix<double, 3, 3> &rc2i, const double era, double xlod,
-         const Eigen::Matrix<double, 3, 3> &rpom) noexcept;
-*/
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.

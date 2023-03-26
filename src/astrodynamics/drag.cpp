@@ -97,3 +97,37 @@ Eigen::Matrix<double, 3, 1> dso::drag_accel(
 
   return acc;
 }
+
+Eigen::Matrix<double, 3, 1>
+dso::drag_accel(const Eigen::Matrix<double, 3, 1> &vrel, double AM, double Cd,
+                double atmdens, const Eigen::Matrix<double, 3, 1> &datmdensdr,
+                Eigen::Matrix<double, 3, 3> &daccdr,
+                Eigen::Matrix<double, 3, 3> &daccdv,
+                Eigen::Matrix<double, 3, 1> &daccdC) noexcept {
+
+  // vrel unit vector
+  // const Eigen::Matrix<double, 3, 1> erel = vrel.normalized();
+  // vrel norm
+  const double Vrel = vrel.norm();
+  
+  // Acceleration
+  Eigen::Matrix<double, 3, 1> acc = -0.5e0 * Cd * AM * atmdens * Vrel * vrel;
+
+  // partials w.r.t drag coefficient (Montenbruck, 7.80)
+  daccdC = -0.5e0 * AM * atmdens * Vrel * vrel;
+
+  // partials w.r.t velocity (Montenbruck, 7.81)
+  daccdv = -0.5e0 * Cd * AM * atmdens *
+           (Vrel * Eigen::Matrix<double, 3, 3>::Identity() +
+            vrel * vrel.transpose() / Vrel);
+
+  // Partials w.r.t. position vector (Montenbruck, 7.84)
+  const double _data[] = {
+      0e0, iers2010::OmegaEarth, 0e0, -iers2010::OmegaEarth, 0e0, 0e0, 0e0, 0e0,
+      0e0};
+  const Eigen::Matrix<double, 3, 3> XOmega(_data);
+  daccdr =
+      -0.5e0 * Cd * AM * Vrel * vrel * datmdensdr.transpose() - daccdv * XOmega;
+
+  return acc;
+}
