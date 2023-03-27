@@ -27,8 +27,8 @@ ocean-tides:
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
@@ -50,7 +50,7 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: 5e-3
+  observation-sigma: 5e-2
   ## A-priori sigma for Δfe / feN
   deffen-sigma: 1e-3
   ## A-priori sigma for initial state (sp3)

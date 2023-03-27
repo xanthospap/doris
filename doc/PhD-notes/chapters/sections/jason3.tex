@@ -1,0 +1,127 @@
+\section{The Jason-3 Satellite Mission}\label{sec:jason-3}
+
+\gls{jason}-3 is an international cooperative mission between \gls{noaa} 
+\gls{cnes}, \gls{eumetsat}, and \gls{nasa}. The objective of the mission is to 
+provide a continuation of the TOPEX/Poseidon, \gls{jason}-1 and \gls{jason}-2 
+missions and their collection of high accuracy radar altimetry 
+measurements for global ocean circulation and sea surface studies, without any 
+data gaps (\cite{Couderc2015}). \gls{jason}-3 follows a near-circular and frozen orbit 
+that follows an exact repeating ground track every 127 revolutions in a little 
+less that ten days (see \autoref{table:jason-3-characteristics}).
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{c|c}
+        \textbf{Parameter} & \textbf{Value} \\
+        \toprule
+        Semi-major axis ($\alpha$) & \SI{7714431}{\meter} \\
+        Eccentricity ($e$) & \num{9.5e-5} \\
+        Inclination ($i$) & \ang{66.038309} \\
+        Argument of periapsis & \ang{90} \\
+        Reference equatorial altitude & \SI{1336}{\kilo\meter} \\
+        Cycle duration & \SI{9.91564}{\day} \\
+        Number of revolution in a cycle & 127 orbits \\
+        \bottomrule
+    \end{tabular}
+    \caption{Characteristics of \gls{jason}-3 orbit, \cite{Couderc2015}}
+    \label{table:jason-3-characteristics}
+\end{table}
+
+\paragraph{Mass and Center of Gravity:}
+Initial values of mass and center of gravity coordinates in satellite reference 
+frame are given in \autoref{table:jason-3-mass}. Actual values of the satellite 
+mass and center of gravity coordinates are obtained by adding the offsets
+published by the \gls{ids} at the dedicated \emph{mass \& Center of gravity history} 
+file\footnote{Available at \url{ftp://ftp.ids-doris.org/pub/ids/satellites/ja3mass.txt}}.
+Direction of the body-fixed reference frame axis are shown in \autoref{fig:jason1} 
+for \gls{jason}-1; \gls{jason}-3 follows a very similar design (same PROTEUS platform). 
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{cccc}
+        \toprule
+        \textbf{Mass} & \textbf{X} & \textbf{Y} & \textbf{Z} \\
+        \si{\kilo\gram} & \multicolumn{3}{c}{\si{\meter}} \\
+        \hline
+        509.6 & 1.0023 & 0.0000 & -0.0021 \\
+       \bottomrule
+    \end{tabular}
+    \caption{Mass and Center of Gravity coordinates in the SV-fixed reference 
+        frame for \gls{jason}-3, \cite{Cerri2022}}
+    \label{table:jason-3-mass}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.3\textheight,keepaspectratio]{jason1}
+    \caption{Image of \gls{jason}-1 satellite including the body frame, \cite{Cerri2022}.}
+    \label{fig:jason1}
+  \end{figure}
+
+\paragraph{\gls{doris} Receiver Phase Center:}
+The position of the \SI{2}{\giga\hertz} and \SI{400}{\mega\hertz} receiver phase 
+centers in the spacecraft-fixed refernce frame, are given in \autoref{table:jason-3-receiver-arp}.
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{cccc}
+        \toprule
+        \textbf{Frequency} & \textbf{X} & \textbf{Y} & \textbf{Z} \\
+         & \multicolumn{3}{c}{\si{\meter}} \\
+        \hline
+        \SI{2}{\giga\hertz} &   2.4128 & -0.1325 & 0.9235 \\
+        \SI{400}{\mega\hertz} & 2.4128 & -0.1325 & 0.7555 \\
+       \bottomrule
+    \end{tabular}
+    \caption{DORIS receiver phase center coordinates in the SV-fixed reference 
+        frame for \gls{jason}-3, \cite{Cerri2022}}
+    \label{table:jason-3-receiver-arp}
+\end{table}
+
+\paragraph{\gls{jason}-3 MacroModel:}
+Macromodel parameters to be used for computing 
+the solar radiation effect (see \autoref{sssec:solar-radiation-pressure}) are published by the \gls{ids} 
+(\cite{Cerri2022}). Details of the macromodel are shown in \autoref{table:jason-3-nacromodel}.
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{cccccccccc}
+        \toprule
+        \textbf{Surface \si{\meter\tothe{2}}} & 
+            \multicolumn{3}{c}{Normal in satellite RF} &
+            \multicolumn{3}{c}{Optical Properties} &
+            \multicolumn{3}{c}{Infrared Properties} \\
+         & 
+         \textbf{X} & \textbf{Y} & \textbf{Z} &
+         \textbf{spec} & \textbf{diff} & \textbf{abs} &
+         \textbf{spec} & \textbf{diff} & \textbf{abs} \\
+        \hline
+        0.783& -1&   0&  0& 0.3410& 0.6460& 0.0130& 0.0000& 0.9870& 0.0130 \\
+        0.783&  1 &  0&  0& 0.1490& 0.8510& 0.0000& 0.0000& 1.0000& 0.0000 \\
+        2.040&  0 & -1&  0& 0.5730& 0.3840& 0.0430& 0.1040& 0.5690& 0.3280 \\
+        2.040&  0 &  1&  0& 0.5390& 0.4240& 0.0370& 0.0890& 0.6270& 0.2830 \\
+        3.105&  0 &  0& -1& 0.2460& 0.7520& 0.0020& 0.0050& 0.9770& 0.0170 \\
+        3.105&  0 &  0&  1& 0.2130& 0.4530& 0.3340& 0.0370& 0.2870& 0.6760 \\
+        \multicolumn{10}{c}{Solar Array} \\
+        9.800&  1& 0& 0& 0.0600& 0.4070& 0.5330& 0.0970& 0.0980& 0.8030 \\
+        9.800& -1& 0& 0& 0.0040& 0.2980& 0.6970& 0.0350& 0.0350& 0.9310 \\
+       \bottomrule
+    \end{tabular}
+    \caption{Satellite Macromodel for \gls{jason}-3, \cite{Cerri2022}.}
+    \label{table:jason-3-nacromodel}
+\end{table}
+
+\paragraph{\gls{jason}-3 Attitude:}
+The spacecraft's attitude is needed for various steps in the \gls{pod} processing 
+pipeline (including e.g. the computation of atmospheric drag (see 
+\autoref{sssec:atmospheric-drag}) and solar radiation pressure (see 
+\autoref{sssec:solar-radiation-pressure})). The \gls{ids} strongly recommends the 
+use of \emph{measure attitude} if available (\cite{IdsRecommendationItrf2020}). In 
+the case of \gls{jason}-3, measured attitude is published by \gls{cnes} in dedicated 
+data files (\cite{Ferrage2020}), covering a period of 28 hours (2 overlapping hours 
+between two consecutive files). Respective solar panel files are also distributed 
+by \gls{cnes}, containing the angular positions of the solar arrays.
+
+Measured altitude is disseminated via time-tagged \emph{quaternions}. 
+
+% https://www.sciencedirect.com/science/article/pii/S1367578812000387
+Spacecraft attitude determination is to provide the information of the distance 
+between the spacecraft body frame and the desired frame.

@@ -112,6 +112,10 @@
         showstringspaces=false
 }
 
+%% trick for institution as author (natbib), see
+%% https://tex.stackexchange.com/questions/162659/formatting-of-institution-as-author-with-natbib-and-numbered-references
+\newcommand{\xfnm}[1][]{\ifx!#1!\else\unskip,\space#1\fi}
+
 % include the external source file, instead of pasting its contents directly 
 % into the LaTeX documen
 \newcommand{\codelst}[1]{\lstinputlisting[caption=\texttt{\protect\detokenize{#1}}]{#1}\newpage}
@@ -238,6 +242,9 @@
 \newacronym{uso}{USO}{Ultra Stable Oscillator}
 \newacronym{gsfc}{GSFC}{Goddard Space Flight Center}
 \newacronym{nasa}{NASA}{National Aeronautics and Space Administration}
+\newacronym{jason}{JASON}{Joint Altimetry Satellite Oceanography Network}
+\newacronym{noaa}{NOAA}{National Oceanic and Atmospheric Administration}
+\newacronym{eumetsat}{EUMETSAT}{European Organisation for the Exploitation of Meteorological Satellites}
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -274,7 +281,7 @@
 \input{chapters/sections/costg_benchmark_test}
 
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
-%\iffalse
+\iffalse
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
@@ -285,7 +292,8 @@
       \input{chapters/sections/earth_tides_gravity}
       \input{chapters/sections/ocean_tides_gravity}
       \input{chapters/sections/atmospheric_drag}
-      \subsubsection{Solar Radiation Pressure}
+      \input{chapters/sections/solar_radiation_pressure}
+
     \section{The Celestial Reference Frame}\label{ssec:the-celestial-reference-frame}
       \input{chapters/sections/icrf}
       \input{chapters/sections/earth_attitude}
@@ -327,8 +335,10 @@
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
 
+  \fi
 \chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
-  \input{chapters/sections/pod_wdoris_introduction.tex}
+  \input{chapters/sections/pod_wdoris_introduction}
+  \input{chapters/sections/jason3}
 
 \iffalse
   \include{chapters/orbit_intergators}

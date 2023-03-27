@@ -142,6 +142,26 @@ def remove_outliers(dct, col, fac=1e0):
       ysnew.append(entry[1]*fac)
   return xsnew,ysnew
 
+# [SHDW ] Changing shadow status from 0.000 to 0.013 at 59827.871805994
+def shadow_passes(fn):
+    passes = []
+    with open(fn) as fin:
+        cmin = 1e22
+        cmax = 1e-22
+        for line in fin.readlines():
+            if line[0:7] == "[SHDW ]":
+                l = line.split()
+                t = float(l[-1])
+                if cmax != 1e-22 and t > cmax + 0.05:
+                    #passes.append([cmin,cmax])
+                    passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
+                    cmin = 1e22
+                    cmax = 1e-22
+                if t < cmin: cmin = t
+                if t > cmax: cmax = t
+    passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
+    return passes
+
 class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
                   argparse.RawTextHelpFormatter):
     pass
@@ -178,6 +198,15 @@ parser.add_argument(
     default=None,
     required=False,
     help='Save plot as')
+
+parser.add_argument(
+    '-c',
+    '--shadow',
+    metavar='SHADOW_PASSES',
+    dest='shadow_pass_fn',
+    default=None,
+    required=False,
+    help='File to extract shadow passes')
 
 parser.add_argument(
     '-s',
@@ -279,7 +308,7 @@ def plot_site(fn, site):
   fig.suptitle('Site {:}@{:}\n'.format(site, tmin.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
-def plot_state_diffs(fnref, fntest, max_hours, save_as):
+def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
   def whichCol(component, posvel):
       return component + int(posvel==1)*3
   def whichTitle(component, posvel, fac=1e0):
@@ -307,6 +336,11 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as):
   dct2 = parse(fntest, max_hours)
   diffs = make_state_diffs(dct1,dct2)
 
+  if shadow_passes_fn:
+    shd_passes = shadow_passes(shadow_passes_fn)
+  else:
+    shd_passes = []
+
   t0 = datetime.datetime.max
   for t in dct1:
     if t < t0: t0 = t
@@ -333,6 +367,9 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as):
           else:
             axs[component, pv].text(text_x, text_y, 'Mean: {:+.4f} +/- {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
           axs[component, pv].grid(True, 'both', 'x')
+          if shd_passes != []:
+              for intrv in shd_passes:
+                axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
   ## Rotate date labels automatically
   fig.autofmt_xdate()
   fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
@@ -346,7 +383,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.ref_state:
-      plot_state_diffs(args.ref_state, args.input, args.max_hours, args.save_as)
+      plot_state_diffs(args.ref_state, args.input, args.max_hours, args.save_as, args.shadow_pass_fn)
 
     if args.plot_res:
       plot_residuals(args.input)

@@ -88,11 +88,42 @@ int resolve_jason3_body_quaternion_line(
 dso::JasonQuaternionHunter::JasonQuaternionHunter(const char *body_fn)
     : bodyin(body_fn) {
   // read-in the first two quaternions
-  if (bodyin.get_next(bodyq, 2)) {
+  if (bodyin.get_next(bodyq, NumQuaternionsInBuffer)) {
     //throw std::runtime_error(
-    //    "ERROR JasonQuaternionHunter failed to caonstruct\n");
+    //    "ERROR JasonQuaternionHunter failed to construct\n");
     assert(1==2);
   }
+}
+
+int dso::JasonQuaternionHunter::find_interval(
+    const dso::TwoPartDate &tai_mjd) const noexcept {
+  // start searching from the top, aka from last element
+  int qindex = NumQuaternionsInBuffer - 2;
+  for (int i = qindex; i >= 0; --i) {
+    if ((tai_mjd >= bodyq[i].tai_mjd) && (tai_mjd < bodyq[i + 1].tai_mjd)) {
+      return i;
+    }
+  }
+  // tai_mjd is out of bounds, prior to first record in buffer
+  if (tai_mjd < bodyq[0].tai_mjd) {
+    fprintf(stderr,
+            "[WRNNG] First quaternion in buffer is at %.9f, requested epoch "
+            "%.9f (traceback: %s)\n",
+            bodyq[0].tai_mjd.mjd(), tai_mjd.mjd(), __func__);
+    dump_buffered_quaternions(); /* TODO only for debugging */
+    return -1;
+  }
+  // tai_mjd is out of bounds, after the last record in buffer
+  if (tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd)
+    return NumQuaternionsInBuffer + 1;
+  // we should never reach this point
+  fprintf(stderr,
+          "[ERROR] Hit wall while searching for quaternion: requested date: "
+          "%.9f, buffered: %.9f to %.9f (traceback: %s)\n",
+          tai_mjd.mjd(), bodyq[0].tai_mjd.mjd(),
+          bodyq[NumQuaternionsInBuffer - 1].tai_mjd.mjd(), __func__);
+    dump_buffered_quaternions(); /* TODO only for debugging */
+  return -100;
 }
 
 int dso::JasonBodyQuaternionFile::get_next(
@@ -141,8 +172,23 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd,
   // first, check if we are ok, i.e. the time requested is within the buffered
   // interval
   index = this->find_interval(tai_mjd);
-  // printf("Index returned: %d\n", index);
-  assert(index >= 0);
+  if (index<0) {
+    /* Must restart searching from the top! */
+    fprintf(stderr,
+            "[WRNNG] Rewinding quaternion stream to find suitable interval\n");
+    /* rewind stream */
+    bodyin.fin.clear();
+    bodyin.fin.seekg(0, std::ios::beg);
+    /* collect first NumQuaternionsInBuffer quaternions */
+    if (bodyin.get_next(bodyq, NumQuaternionsInBuffer)) {
+      fprintf(stderr,
+              "[ERROR] Failed to collect initial quaternions after rewiding! "
+              "(traceback: %s)\n",
+              __func__);
+      return 99;
+    }
+    return set_at(tai_mjd, index);
+  }
   if (index < NumQuaternionsInBuffer) {
     return 0;
   }

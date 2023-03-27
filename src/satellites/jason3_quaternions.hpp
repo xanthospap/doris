@@ -47,7 +47,7 @@ struct JasonPanelQuaternionFile {
 
 /// @brief Number of JasonBodyQuaternion instances buffered in a
 ///        JasonQuaternionHunter instance
-constexpr const int NumQuaternionsInBuffer = 5;
+constexpr const int NumQuaternionsInBuffer = 20;
 
 struct JasonQuaternionHunter {
   JasonBodyQuaternionFile bodyin;
@@ -55,10 +55,12 @@ struct JasonQuaternionHunter {
 
   // only for debuging
   void dump_buffered_quaternions() const noexcept {
+    fprintf(stderr, "--->\n");
     for (int i = 0; i < NumQuaternionsInBuffer; i++) {
-      printf("\tBuffered Quaternion at: %.2f + %.15f\n", bodyq[i].tai_mjd._big,
-             bodyq[i].tai_mjd._small);
+      fprintf(stderr, "\tBuffered Quaternion at: %.2f + %.15f\n",
+              bodyq[i].tai_mjd._big, bodyq[i].tai_mjd._small);
     }
+    fprintf(stderr, "--->\n");
   }
 
   /// @brief  Constructor
@@ -85,25 +87,7 @@ struct JasonQuaternionHunter {
     return;
   }
 
-  int find_interval(const dso::TwoPartDate &tai_mjd) const noexcept {
-    // printf("Requasting for quaternion at : %.2f = %.15f\n", tai_mjd._big,
-    // tai_mjd._small); dump_buffered_quaternions(); start searching from the
-    // top, aka from last element
-    int qindex = NumQuaternionsInBuffer - 2;
-    for (int i = qindex; i >= 0; --i) {
-      if ((tai_mjd >= bodyq[i].tai_mjd) && (tai_mjd < bodyq[i + 1].tai_mjd)) {
-        return i;
-      }
-    }
-    // tai_mjd is out of bounds, prior to first record in buffer
-    if (tai_mjd < bodyq[0].tai_mjd)
-      return -1;
-    // tai_mjd is out of bounds, after the last record in buffer
-    if (tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd)
-      return NumQuaternionsInBuffer + 1;
-    // we should never reach this point
-    return -100;
-  }
+  int find_interval(const dso::TwoPartDate &tai_mjd) const noexcept;
 
   /// @brief Go through the input file (if needed), to find a suitable,
   ///        consecutive pair of records such that:
