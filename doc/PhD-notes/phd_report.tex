@@ -36,6 +36,8 @@
 \usepackage{geometry}   %% somewhat wider text to allow code
 \usepackage[per-mode=symbol]{siunitx}    %% SI Units
 \usepackage{amsmath,amssymb,amsthm,bm} %% for math ...
+\usepackage{calligra} %% lower-case caligraphic math fonts, see https://tex.stackexchange.com/questions/131656/how-to-typeset-this-symbol-with-mathcal
+% and https://tex.stackexchange.com/questions/384937/how-to-use-fonts-the-ones-listed-in-mathalfa-documentation-in-math-mode
 \usepackage{mathabx}
 \usepackage{mathtools}
 \usepackage[most]{tcolorbox} %% colorboxes for equations
@@ -132,6 +134,8 @@
 \newcommand{\lovel}{l}
 % Imaginary i
 \newcommand{\iim}{{i\mkern1mu}}
+% Quaternion
+\DeclareMathAlphabet{\quaternion}{T1}{calligra}{q}{n}
 
 % dBm unit
 \DeclareSIUnit{\belmilliwatt}{Bm}
@@ -281,7 +285,6 @@
 \input{chapters/sections/costg_benchmark_test}
 
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
-\iffalse
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
@@ -303,10 +306,8 @@
     \section{Time Systems and Scales}\label{ssec:time-systems-and-scales}
       \input{chapters/sections/time_systems}
       \input{chapters/sections/time_scales_implementation}
-%\fi
 
 \chapter{Orbit Integration}\label{ch:orbit-integration}
-%\iffalse
   \input{chapters/sections/integration_introduction}
   \input{chapters/sections/runge_kutta}
   \input{chapters/sections/multistep_methods}
@@ -314,7 +315,6 @@
     \input{chapters/sections/integrator_validation}
 
 \chapter{\gls{pod}}\label{ch:pod}
-%\iffalse
   \input{chapters/sections/pod_introduction}
     \input{chapters/sections/pod_goals}
   \input{chapters/sections/pod_linearization}
@@ -324,7 +324,6 @@
   \input{chapters/sections/pod_extended_kalman_filter}
   \input{chapters/sections/pod_variational_equations}
   \input{chapters/sections/pod_implementation}
-%\fi
 
 \chapter{\gls{doris}}\label{ch:doris}
   \input{chapters/sections/doris_introduction}
@@ -335,7 +334,6 @@
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
 
-  \fi
 \chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
   \input{chapters/sections/pod_wdoris_introduction}
   \input{chapters/sections/jason3}

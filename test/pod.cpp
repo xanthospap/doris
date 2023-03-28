@@ -822,41 +822,47 @@ int main(int argc, char *argv[]) {
    */
   const int NumBeacons = beaconCrdVec.size();
   const int NumParams = 6 + m + NumBeacons;
-  double apriori_sigma_freqbias;
+  double apriori_sigma_freqbias, apriori_sigma_orbsp3, apriori_sigma_Cd,
+      apriori_sigma_Cr;
   Kalman filter(NumParams);
   { /* a-priori P matrix */
-    double sigma_dfefen, sigma_orbsp3,sigma_Cd,sigma_Cr;
-    error = dso::get_yaml_value_depth2<double>(config, "filtering",
-                                               "deffen-sigma", sigma_dfefen);
-    assert(sigma_dfefen > 0e0 && sigma_dfefen < 1e2 && (!error));
-    error = dso::get_yaml_value_depth2<double>(config, "filtering",
-                                               "orbsp3-sigma", sigma_orbsp3);
-    assert(sigma_orbsp3 > 0e0 && sigma_orbsp3 < 1e2 && (!error));
-    error = dso::get_yaml_value_depth2<double>(config, "filtering",
-                                               "cd-sigma", sigma_Cd);
-    assert(sigma_Cd > 0e0 && sigma_Cd < 1e2 && (!error));
-    error = dso::get_yaml_value_depth2<double>(config, "filtering",
-                                               "cr-sigma", sigma_Cr);
-    assert(sigma_Cr > 0e0 && sigma_Cr < 1e2 && (!error));
+    error = dso::get_yaml_value_depth2<double>(
+        config, "filtering", "deffen-sigma", apriori_sigma_freqbias);
+    error = dso::get_yaml_value_depth2<double>(
+        config, "filtering", "orbsp3-sigma", apriori_sigma_orbsp3);
+    error = dso::get_yaml_value_depth2<double>(config, "filtering", "cd-sigma",
+                                               apriori_sigma_Cd);
+    error = dso::get_yaml_value_depth2<double>(config, "filtering", "cr-sigma",
+                                               apriori_sigma_Cr);
+    assert(apriori_sigma_Cd > 0e0 && apriori_sigma_Cd < 1e2 && (!error));
+    assert(apriori_sigma_orbsp3 > 0e0 && apriori_sigma_orbsp3 < 1e2 &&
+           (!error));
+    assert(apriori_sigma_freqbias > 0e0 && apriori_sigma_freqbias < 1e2 &&
+           (!error));
+    assert(apriori_sigma_Cr > 0e0 && apriori_sigma_Cr < 1e2 && (!error));
     /* a-priori sigma for Δfe / feN */
-    filter.P *= sigma_dfefen * sigma_dfefen;
-    if (m>=1) {
-      filter.P(6,6) *= sigma_Cd * sigma_Cd;
-      if (m>1) filter.P(7,7) *= sigma_Cr * sigma_Cr;
+    filter.P *= apriori_sigma_freqbias * apriori_sigma_freqbias;
+    if (m >= 1) {
+      filter.P(6, 6) = apriori_sigma_Cd * apriori_sigma_Cd;
+      if (m > 1)
+        filter.P(7, 7) = apriori_sigma_Cr * apriori_sigma_Cr;
     }
-    filter.P.block<6, 6>(0, 0) *=
-        sigma_orbsp3 * sigma_orbsp3 / (sigma_dfefen * sigma_dfefen);
-    /* assign for later use */
-    apriori_sigma_freqbias = sigma_dfefen;
+    filter.P.block<3, 3>(0, 0) =
+        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3) *
+        Eigen::Matrix<double, 3, 3>::Identity();
+    filter.P.block<3, 3>(3, 3) =
+        (1e-2 * 1e-2) * Eigen::Matrix<double, 3, 3>::Identity();
   }
+  double apriori_Cd, apriori_Cr;
   { /* a-priori estimates */
-    if (m>=1) {
-      double Cd;
-      dso::get_yaml_value_depth3<double>(config, "force-model", "atmospheric-drag", "cd-apriori", Cd);
-      filter.x(6) = Cd;
-      if (m>1) {
-      /*dso::get_yaml_value_depth3<double>(config, "force-model", "atmospheric-drag", "cd-apriori", Cd);*/
-      filter.x(7) = 1.5e0;
+    if (m >= 1) {
+      dso::get_yaml_value_depth3<double>(config, "force-model",
+                                         "atmospheric-drag", "Cd-apriori", apriori_Cd);
+      dso::get_yaml_value_depth3<double>(config, "force-model", "srp",
+                                         "Cr-apriori", apriori_Cr);
+      filter.x(6) = apriori_Cd;
+      if (m > 1) {
+        filter.x(7) = apriori_Cr;
       }
     }
   }
@@ -882,6 +888,11 @@ int main(int argc, char *argv[]) {
   [[maybe_unused]] unsigned num_blocks = 0; // RINEX block count
   // error flag
   error = 0;
+
+  /* initial ITRF latitude of satellite; kept to mark orbit revolutions */
+  double prev_latitude_revolution = 0;
+  double init_latitude_revolution = 0;
+  int ascending_revolution = 0;
 
   /* store last beacon observation */
   std::vector<RcSv> vLastObs;
@@ -944,6 +955,58 @@ int main(int argc, char *argv[]) {
       filter.estimates().block<6, 1>(0, 0) = svState.gcrf_state_cm();
       if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
       if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
+    }
+
+    /* check to see if we have a new orbit revolution */
+    if (1==2)
+    {
+      const auto itrf = svState.itrf_position_cm();
+      const auto lfh = dso::car2ell<dso::ellipsoid::grs80>(itrf);
+      const double latitude = lfh(1);
+      if (prev_latitude_revolution + init_latitude_revolution == 0e0) {
+        /* both uninitialized */
+        prev_latitude_revolution = latitude;
+      } else if (init_latitude_revolution == 0e0 &&
+                 prev_latitude_revolution != 0e0) {
+        /* */
+        init_latitude_revolution = latitude;
+        ascending_revolution =
+            (init_latitude_revolution - prev_latitude_revolution) > 0e0;
+      } else {
+        /* check if we completed a revolution */
+        int new_orbit_cycle = 0;
+        int ascending = (latitude - prev_latitude_revolution) > 0;
+        if (ascending == ascending_revolution) {
+          if (ascending > 0 && latitude > init_latitude_revolution) {
+            new_orbit_cycle = 1;
+          } else if (ascending < 0 && latitude < init_latitude_revolution) {
+            new_orbit_cycle = 1;
+          }
+        }
+        prev_latitude_revolution = latitude;
+        /* update once-per-revolution parameters */
+        if (new_orbit_cycle) {
+          printf("[DEBUG] New SV revolution around the Earth at %s "
+                 "re-initialize Cd/Cr\n",
+                 dtbuf);
+          if (m >= 1) {
+            filter.x(6) = apriori_Cd;
+            filter.P.row(6).setZero();
+            filter.P.col(6).setZero();
+            filter.P(6, 6) = apriori_sigma_Cd * apriori_sigma_Cd;
+            if (m > 1) {
+              filter.P.row(7).setZero();
+              filter.P.col(7).setZero();
+              filter.P(7, 7) = apriori_sigma_Cr * apriori_sigma_Cr;
+              filter.x(7) = apriori_Cr;
+            }
+          }
+          if (m >= 1)
+            IntegrationParams.drag_ceofficient() = filter.x(6);
+          if (m > 1)
+            IntegrationParams.srp_ceofficient() = filter.x(7);
+        }
+      }
     }
 
     /* iterate through beacons in current block (epoch) */

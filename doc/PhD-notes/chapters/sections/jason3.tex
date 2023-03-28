@@ -109,19 +109,54 @@ the solar radiation effect (see \autoref{sssec:solar-radiation-pressure}) are pu
     \label{table:jason-3-nacromodel}
 \end{table}
 
-\paragraph{\gls{jason}-3 Attitude:}
+\subsection{\gls{jason}-3 Attitude}\label{ssec:jason3-attitude}
 The spacecraft's attitude is needed for various steps in the \gls{pod} processing 
 pipeline (including e.g. the computation of atmospheric drag (see 
 \autoref{sssec:atmospheric-drag}) and solar radiation pressure (see 
-\autoref{sssec:solar-radiation-pressure})). The \gls{ids} strongly recommends the 
-use of \emph{measure attitude} if available (\cite{IdsRecommendationItrf2020}). In 
-the case of \gls{jason}-3, measured attitude is published by \gls{cnes} in dedicated 
-data files (\cite{Ferrage2020}), covering a period of 28 hours (2 overlapping hours 
-between two consecutive files). Respective solar panel files are also distributed 
-by \gls{cnes}, containing the angular positions of the solar arrays.
+\autoref{sssec:solar-radiation-pressure})). Satellite attitude refers to the 
+orientation of the satellite body system in a reference frame, specifically, the 
+coordinate transformation matrix between the latter frame and an Earth-fixed 
+or inertial system. The \gls{ids} strongly recommends the use of \emph{measure attitude} 
+if available (\cite{IdsRecommendationItrf2020}). 
 
-Measured altitude is disseminated via time-tagged \emph{quaternions}. 
+To describe the orientation of a satellite in space, a \emph{body-fixed} reference 
+frame $\mathcal{R}_{BF}$ needs to be defined. This frame is permanently tied to the mechanical 
+structure of the satellite and enables the specification of antenna and coordinates 
+relative to the CoM. The body-fixed frame is likewise required to describe the 
+position and alignment of individual surface elements (\cite{Montenbruck2015}).
+For the \gls{jason}-3 satellite, the origin of the body reference system is the center of the launcher interface ring. 
+The $X-$axis points along the satellite's main direction towards the radiometer 
+antenna and the axis $Z-$axis is oriented towards the Earth (nadir pointing). 
+$Y-$axis is parallel to the rotation axis of the solar panels, positively 
+towards the right solar panel (\cite{Zeitlhofler2019}).
 
-% https://www.sciencedirect.com/science/article/pii/S1367578812000387
-Spacecraft attitude determination is to provide the information of the distance 
-between the spacecraft body frame and the desired frame.
+The transformation between the body-fixed reference frame and the \gls{gcrf} is 
+given by the transformation:
+\begin{equation}
+  \bm{r}_{BF} = \mathcal{R} \bm{r}_{GCRS}
+\end{equation}
+The transformation denoted here by $\mathcal{R}$ can be represented in different 
+forms (e.g. \emph{Euler Axis/Angle}), one of which is the 
+\emph{quaternion representation}. This way of transforming between the body-fixed 
+and the \gls{gcrf} frames is adopted and implemented in the software designed for 
+the current Thesis. The quaternion representation expresses the attitude matrix as 
+a homogenous quadratic function of the elements of the quaternion, requiring no 
+trigonometric or other transcendental function evaluations. Quaternions are more 
+efficient for specifying rotations thatn the attitude matrix itself, having only 
+four components (instead of nine) and obeying only one constraint, namely that 
+their norm is equal to unity (\cite{Markley2019}). Discussions on the the use of 
+quaternions for attitude determination and undelrying algebraic concepts can be 
+found in \cite{Yang2012} and \cite{Markley2019}.
+
+In the case of \gls{jason}-3, measured attitude is published by \gls{cnes} in 
+dedicated data files (\cite{Ferrage2020}) by means of quaternions, covering a 
+period of 28 hours (2 overlapping hours between two consecutive files). Data records 
+are retrieved from these files to relate the body-fixed reference frame to the 
+\gls{gcrf}. Since quaternions are provided in distinct epochs, an interpolation 
+lagorithm must be used to estimate the quaternions at the epoch of request. In this 
+Thesis, the \emph{spherical linear interpolation} method (often called \emph{Slerp} in 
+computer graphics) introduced by \cite{Shoemake1985} is used. According to \cite{Dam2000}, 
+Slerp is the optimal interpolation curve between two rotations.
+
+Respective solar panel files are also distributed by \gls{cnes}, containing the 
+angular positions of the solar arrays.
