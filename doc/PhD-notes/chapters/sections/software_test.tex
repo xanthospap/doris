@@ -1,0 +1,44 @@
+\section{Software Tests And Orbit Determination}\label{sec:jason3-pod}
+
+Using the software designed and implemented in the framework of this Thesis, a fundamental 
+orbit determination processing pipeline was setup, to analyze \gls{jason}-3 
+\gls{doris} measurements. The different, individual parts put together to achieve 
+this task have already been discussed in the previous chapters, including both 
+theoretical implications and implementation details. \gls{jason}-3 was chosen 
+to act as the test bed since it is an on-going, modern satellite mission, extensively 
+documented, and its attitude determination can be performed via quaternions 
+(see \autoref{ssec:jason3-attitude}). A drawback however, is its \gls{uso} sucseptibility 
+to \gls{saa}-induced effects (see \autoref{sec:saa}).
+
+%\begin{landscape}
+\begin{table}[h!]
+    \centering
+    \begin{tabularx}{\textwidth}{lXX}
+        \toprule
+        \textbf{Description} & \textbf{Model Used} & \textbf{Model Parameters} \\
+        \hline
+        Gravity Model & CNES/GRGS RL04 \gls{tvg} (\cite{Lemoine2019}) & up to $120^{th}$ degree and order \\
+        Third Body & Sun and Moon & Ephemeris DE421 (\cite{Folkner2009}) \\
+        Solid Earth Tides & IERS2010 (\cite{iers2010}) & step-1 and step-2 corrections \\
+        Ocean Tide & FES2014 (\cite{Lyard2021}) & Only major components included \\
+        Atmospheric Drag & According to \autoref{sssec:atmospheric-drag}, using the NRLMSISE-00 (\cite{nrlmsise00}) model & Flux data from \href{https://celestrak.org/}{CelesTrack} (\cite{Vallado2013}) \\
+        Solar Radiation Pressure & According to \autoref{sssec:solar-radiation-pressure} using the macromodel provided by \cite{Cerri2022} & Occultation due to Earth modelled using the conical model (\cite{Zhang2019}) \\
+
+        Site Positions (Terrestrial RF) & DPOD2020 (\cite{Moreaux2023}) realized by the \gls{ids} Combination Center & version \texttt{dpod2020\_01}; beacon positions and meta-data extracted from SINEX \\
+        Celestial/Inertial RF & \gls{gcrf} (\cite{iers2010} and \autoref{ssec:itrs-to-gcrs}) & \gls{iau} 2000/2006 resolutions, using the \gls{cio}-based transformation with full series for the polar motion (\gls{iau} 2006 precession and \gls{iau} 2000A nutation) \\
+        Earth Orientation Parameters & \gls{iers} 2020 C04 products (see \footnote{\url{https://datacenter.iers.org/data/2/message_471.txt}}) & interpolated as described in \autoref{ssec:eop-interpolation} \\
+        Orbit Integration & Adams-Bashforth-Moulton, variable step variable order integrator (\autoref{ch:orbit-integration}) & Integration performed in \gls{tai}; equations of motions solved for including the system of variational equations (\autoref{sec:pod-variational-equations}) \\
+        Filtering & Extended Kalman Filter algorithm (\autoref{sec:pod-extended-kalman-filter}), no process noise & Parameter set includes: 
+        \begin{itemize}
+          \item state, 
+          \item atmospheric drag coefficient (per revolution),
+          \item solar radiation pressure coefficient (per revolution),
+          \item beacon frequency offest (per beacon pass) as bias,
+          \item per-beacon hydrostatic zenith path delay (per beacon pass)
+        \end{itemize} \\
+       \bottomrule
+    \end{tabularx}
+    \caption{Processing ooptions used for \gls{jason}-3 orbit determination.}
+    \label{table:processing-options}
+\end{table}
+%\end{landscape}
