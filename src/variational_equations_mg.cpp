@@ -542,3 +542,164 @@ void dso::VariationalEquations_ta(
 
   return;
 }
+
+void dso::noVariationalEquations(
+    // seconds from reference epoch (TAI)
+    double tsec,
+    // state and state transition matrix (inertial RF)
+    const Eigen::VectorXd &yP0,
+    // state derivative and state transition matrix derivative (inertial RF)
+    Eigen::Ref<Eigen::VectorXd> yPt,
+    // auxiliary parametrs
+    dso::IntegrationParameters &params) noexcept {
+
+  // current mjd, TAI
+  const dso::TwoPartDate _cmjd(params.mjd_tai +
+                              dso::TwoPartDate(0e0, tsec / 86400e0));
+  const dso::TwoPartDate cmjd = _cmjd.normalized();
+
+  // terrestrial to celestial for epoch
+  dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
+
+  // split position and velocity vectors (inertial)
+  Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
+  Eigen::Matrix<double, 3, 1> v = yP0.block<3, 1>(3, 0);
+
+  // f = y''(t_0,y_0) = a(t_0, y_0) [=(a_x, a_y, a_z)]
+  Eigen::Matrix<double, 3, 1> f  = Eigen::Matrix<double, 3, 1>::Zero();
+  // df = grav(f(t_0,y_0)) = grad(a(t_0, y_0))  
+  //      | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //    = | da_x/dx0 da_y/dy0 da_z/dz0 |
+  //      | da_x/dx0 da_y/dy0 da_z/dz0 |
+  Eigen::Matrix<double, 3, 3> df = Eigen::Matrix<double, 3, 3>::Zero();
+
+  // satellite position at t, in ECEF
+  Eigen::Matrix<double, 3, 1> r_geo = Rot.gcrf2itrf(r);
+  { // compute gravity-induced acceleration (we need the position vector in
+    // ITRF)
+    Eigen::Matrix<double, 3, 3> gpartials;
+    Eigen::Matrix<double, 3, 1> gacc;
+    test::gravacc3(params.harmonics, r_geo, params.degree,
+                   params.harmonics.Re(), params.harmonics.GM(), gacc,
+                   gpartials, params.V, params.W);
+
+    // gravity acceleration in earth-fixed frame; need to have inertial 
+    // acceleration!
+    gacc = Rot.itrf2gcrf(gacc);
+    const auto T = Rot.itrf2gcrf();
+    gpartials = T * gpartials * T.transpose();
+
+    f += gacc;
+    df += gpartials;
+  }
+
+  // position of sun/moon, [m] in celestial RF
+  Eigen::Matrix<double, 3, 1> rsun,rmon; 
+  { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
+    Eigen::Matrix<double, 3, 1> sun_acc;
+    Eigen::Matrix<double, 3, 1> mon_acc;
+    Eigen::Matrix<double, 3, 3> partials;
+    dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
+                 rmon, partials);
+    f += (sun_acc + mon_acc);
+    df += partials;
+  }
+
+  if (params.setide) { // earth tides on geopotential, gravity
+    Eigen::Matrix<double, 3, 1> tacc;
+    Eigen::Matrix<double, 3, 3> taccgrad;
+    // Sun and Moon position in ECEF
+    const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
+    const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
+    if (accountforpoletide) {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(),
+                                  Rot.eop().xp, Rot.eop().yp, r_geo, rm_ecef,
+                                  rs_ecef, tacc, taccgrad);
+    } else {
+      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef,
+                                  rs_ecef, tacc, taccgrad);
+    }
+    f += Rot.itrf2gcrf(tacc);
+    const auto T = Rot.itrf2gcrf();
+    df += T * taccgrad * T.transpose();
+  }
+
+  if (params.octide) 
+  { // oean tides on geopotential, gravity
+    Eigen::Matrix<double, 3, 1> tacc;
+    params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
+    f += Rot.itrf2gcrf(tacc);
+  }
+  
+  Eigen::Matrix<double, 3, 3> dadv;
+  {
+    Eigen::Matrix<double, 3, 1> ta;
+    Eigen::Matrix<double, 3, 3> tdadr;
+    Eigen::Matrix<double, 3, 3> tdadv;
+    Eigen::Matrix<double, 3, 1> tdadp;
+    assert(!solar_radiation_pressure(cmjd, r, rsun, params, params.Cr, ta,
+                                     tdadr, tdadv, tdadp));
+    f += ta;
+    df += tdadr;
+    dadv = tdadv;
+    //printf(" %.9f[srp]", ta.norm());
+  }
+
+  // Differential equation for the state transition matrix Φ(t, t_0) is:
+  //            d/dt[Φ(t,t_0)] = F * Φ(t, t_0)
+  // with initial conditions: Φ(t_0, t_0) = I_(6x6)
+  // where F is the derivative of state transition matrix, aka
+  //     |   0 (3x3)     I (3x3)   |
+  // F = |                         | of size (6x6)
+  //     | da/dr (3x3) da/dv (3x3) | 
+  Eigen::Matrix<double, 6, 6> F; // dfdy
+  {
+    F.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
+    F.block<3, 3>(0, 3) = Eigen::Matrix<double, 3, 3>::Identity();
+    F.block<3, 3>(3, 0) = df;
+    F.block<3, 3>(3, 3) = Eigen::Matrix<double, 3, 3>::Zero();
+  }
+
+  
+  { // Derivative of combined state vector and state transition matrix
+    // ---------------------------------------------------------------
+    //             |   0 (3x3)     I (3x3)   |   | dr/dr0 (3x3) dr/dv0 (3x3) |
+    // F*Φ(t,t0) = |                         | * |                           |
+    //             | da/dr (3x3) da/dv (3x3) |   | dv/dr0 (3x3) dv/dv0 (3x3) |
+    //       
+    // |             dv/dr0                             dv/dv0               |
+    // | (da/dr * dr/dr0 + da/dv * dv/dr0) (da/dr * dr/dv0 + da/dv * dv/dv0) |
+    yPt.block<3, 1>(0, 0) = v;
+    yPt.block<3, 1>(3, 0) = f;
+    yPt.block<18, 1>(6, 0) = yP0.block<18, 1>(24, 0);
+
+    Eigen::Matrix<double, 6, 6> Phi0;
+    Phi0.block<1, 3>(0, 0) = yP0.block<3, 1>(6, 0).transpose();
+    Phi0.block<1, 3>(1, 0) = yP0.block<3, 1>(9, 0).transpose();
+    Phi0.block<1, 3>(2, 0) = yP0.block<3, 1>(12, 0).transpose();
+    Phi0.block<1, 3>(0, 3) = yP0.block<3, 1>(15, 0).transpose();
+    Phi0.block<1, 3>(1, 3) = yP0.block<3, 1>(18, 0).transpose();
+    Phi0.block<1, 3>(2, 3) = yP0.block<3, 1>(21, 0).transpose();
+    Phi0.block<1, 3>(3, 0) = yP0.block<3, 1>(24, 0).transpose();
+    Phi0.block<1, 3>(4, 0) = yP0.block<3, 1>(27, 0).transpose();
+    Phi0.block<1, 3>(5, 0) = yP0.block<3, 1>(30, 0).transpose();
+    Phi0.block<1, 3>(3, 3) = yP0.block<3, 1>(33, 0).transpose();
+    Phi0.block<1, 3>(4, 3) = yP0.block<3, 1>(36, 0).transpose();
+    Phi0.block<1, 3>(5, 3) = yP0.block<3, 1>(39, 0).transpose();
+
+    Eigen::Matrix<double, 3, 3> t1 =
+        (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 0) +
+         F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 0))
+            .transpose();
+    yPt.block<9, 1>(24, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+        t1.data(), t1.cols() * t1.rows());
+    Eigen::Matrix<double, 3, 3> t2 =
+        (F.block<3, 3>(3, 0) * Phi0.block<3, 3>(0, 3) +
+         F.block<3, 3>(3, 3) * Phi0.block<3, 3>(3, 3))
+            .transpose();
+    yPt.block<9, 1>(33, 0) = Eigen::Map<Eigen::Matrix<double, 9, 1>>(
+        t2.data(), t2.cols() * t2.rows());
+  }
+
+  return;
+}

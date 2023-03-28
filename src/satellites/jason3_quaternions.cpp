@@ -110,7 +110,6 @@ int dso::JasonQuaternionHunter::find_interval(
             "[WRNNG] First quaternion in buffer is at %.9f, requested epoch "
             "%.9f (traceback: %s)\n",
             bodyq[0].tai_mjd.mjd(), tai_mjd.mjd(), __func__);
-    dump_buffered_quaternions(); /* TODO only for debugging */
     return -1;
   }
   // tai_mjd is out of bounds, after the last record in buffer
@@ -122,7 +121,6 @@ int dso::JasonQuaternionHunter::find_interval(
           "%.9f, buffered: %.9f to %.9f (traceback: %s)\n",
           tai_mjd.mjd(), bodyq[0].tai_mjd.mjd(),
           bodyq[NumQuaternionsInBuffer - 1].tai_mjd.mjd(), __func__);
-    dump_buffered_quaternions(); /* TODO only for debugging */
   return -100;
 }
 
@@ -175,7 +173,9 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd,
   if (index<0) {
     /* Must restart searching from the top! */
     fprintf(stderr,
-            "[WRNNG] Rewinding quaternion stream to find suitable interval\n");
+            "[WRNNG] Rewinding quaternion stream to find suitable interval "
+            "(traceback: %s)\n",
+            __func__);
     /* rewind stream */
     bodyin.fin.clear();
     bodyin.fin.seekg(0, std::ios::beg);

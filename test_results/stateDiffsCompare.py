@@ -162,6 +162,56 @@ def shadow_passes(fn):
     passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
     return passes
 
+def parse_residuals(fn):
+    saa_passes = []
+    dct = {}
+    with open(fn) as fin:
+        cmin = datetime.datetime(2050,1,1)
+        cmax = datetime.datetime(1950,1,1)
+        for line in fin.readlines():
+            if line[0:5] == "[RES]":
+                l = line.split()
+                line_is_valid = False
+                try:
+                    t = datetime.datetime.strptime(' '.join([l[1],l[2][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                except:
+                    try:
+                        t = datetime.datetime.strptime(' '.join([l[1],l[2]]), '%Y-%m-%d %H:%M:%S.%f')
+                        line_is_valid = True
+                    except:
+                        pass
+                if line_is_valid:
+                    if cmax != datetime.datetime(1950,1,1) and t > cmax + datetime.timedelta(0, 5*60e0):
+                        saa_passes.append([cmin,cmax])
+                        cmin = datetime.datetime(2050,1,1)
+                        cmax = datetime.datetime(1950,1,1)
+                    if t < cmin: cmin = t
+                    if t > cmax: cmax = t
+                dct[t] = {'beacon': l[3], 'res': float(l[4]), 'df': float(l[9]), 'cd': float(l[10]), 'cr': float(l[11][:-1]), 'el': float(l[12])}
+    saa_passes.append([cmin,cmax])
+    return saa_passes, dct
+
+def parse_block(fn):
+    dct = {}
+    with open(fn) as fin:
+        for line in fin.readlines():
+            if line[0:5] == "[BLC]":
+                l = line.split()
+                line_is_valid = False
+                try:
+                    t = datetime.datetime.strptime(' '.join([l[1],l[2][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                except:
+                     try:
+                        t = datetime.datetime.strptime(' '.join([l[1],l[2]]), '%Y-%m-%d %H:%M:%S.%f')
+                        line_is_valid = True
+                     except:
+                        pass
+                if line_is_valid:
+                    dct[t] = {'obs': int(l[4]), 'lowele': int(l[6]), 'saa': int(l[8]), 'oc': int(l[10]), 'filter': int(l[12])}
+    return dct
+
 class myFormatter(argparse.ArgumentDefaultsHelpFormatter,
                   argparse.RawTextHelpFormatter):
     pass
@@ -233,37 +283,35 @@ parser.add_argument(
   dest='plot_res')
 
 def plot_residuals(fn):
-  residuals_index = 11
-  elevation_index = residuals_index + 1
-  dct = parse(fn)
-  t0 = datetime.datetime.max
+  passes, dct = parse_residuals(fn)
+  t0 = datetime.datetime(2050,1,1)
   for t in dct:
     if t < t0: t0 = t
 
   t = [ ti for ti in dct ]
-  fig, ax = plt.subplots(2,2)
+  fig, ax = plt.subplots(2,1)
   fac = 1e0
-  ax[0,0].scatter(t,colAsArray(dct,residuals_index,fac),s=1,color='black')
-  ax[0,0].set_title('Residuals [m]')
-  ax[0,0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-  ax[0,0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
-  ax[0,0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-  ax[0,0].grid(True, 'both', 'x')
-  # get statistics and remove outliers
-  ts,rs=remove_outliers(dct, residuals_index)
-  ax[1,0].scatter(ts,rs,s=1,color='black')
-  ax[1,0].set_title('Residuals [m]')
-  ax[1,0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-  ax[1,0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
-  ax[1,0].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-  ax[1,0].grid(True, 'both', 'x')
+  ax[0].scatter(t,colAsArray(dct,'res',fac),s=1,color='black')
+  ax[0].set_title('Residuals [m]')
+  ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[0].xaxis.set_major_locator(mdates.HourLocator(interval=4))
+  ax[0].xaxis.set_minor_locator(mdates.HourLocator(interval=2))
+  ax[0].grid(True, 'both', 'x')
+  # 
+  dct = parse_block(fn)
+  for t in dct: 
+      if t < t0: t0 = t
+  t = [ ti for ti in dct ]
+  ax[1].plot(t,colAsArray(dct,'obs',fac),color='black')
+  ax[1].plot(t,colAsArray(dct,'oc',fac),color='red')
+  ax[1].plot(t,colAsArray(dct,'filter',fac),color='green')
+  ax[1].set_title('Beacons per Block')
+  ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+  ax[1].xaxis.set_major_locator(mdates.HourLocator(interval=4))
+  ax[1].xaxis.set_minor_locator(mdates.HourLocator(interval=2))
+  ax[1].grid(True, 'both', 'x')
   fig.autofmt_xdate()
   #
-  # counts, bins = np.histogram(colAsArray(dct,residuals_index,fac))
-  n_bins = 20
-  ax[0,1].hist(colAsArray(dct,residuals_index,fac), bins=n_bins)
-  # elevation Vs res
-  ax[1,1].scatter(colAsArray(dct,elevation_index,fac),colAsArray(dct,residuals_index,fac),s=1,color='black')
   #
   fig.suptitle('DORIS residuals @ {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
@@ -338,8 +386,14 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
 
   if shadow_passes_fn:
     shd_passes = shadow_passes(shadow_passes_fn)
+    try:
+        saa_passes,_ = parse_residuals(shadow_passes_fn)
+    except:
+        print('[DEBUG] Tried but failed to extract saa passes from file {:}'.format(fn), file=sys.stderr)
+        saa_passes = []
   else:
     shd_passes = []
+    saa_passes = []
 
   t0 = datetime.datetime.max
   for t in dct1:
@@ -370,6 +424,9 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
           if shd_passes != []:
               for intrv in shd_passes:
                 axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
+          if saa_passes != []:
+              for intrv in saa_passes:
+                axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.1, color='green')
   ## Rotate date labels automatically
   fig.autofmt_xdate()
   fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
@@ -386,7 +443,7 @@ if __name__ == '__main__':
       plot_state_diffs(args.ref_state, args.input, args.max_hours, args.save_as, args.shadow_pass_fn)
 
     if args.plot_res:
-      plot_residuals(args.input)
+      plot_residuals(args.shadow_pass_fn)
 
     if args.sites:
         for s in args.sites:

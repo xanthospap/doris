@@ -6,17 +6,48 @@ https://ids-doris.org/images/documents/report/ids_workshop_2010/IDS10_s1_Stepane
 \fi
 
 % Mapping the South Atlantic Anomaly continuously over 27 years
-The South Atlantic Anomaly (SAA) is a region of reduced magnetic intensity where the inner radiation belt makes its closest approach to the Earth's surface. Satellites in low-Earth orbit pass though the SAA periodically, exposing them to several minutes of strong radiation each time, creating problems for scientific instruments,
-The SAA (Kurnosova et al., 1962) is a region of weakened geomagnetic field centered in southeast South America. Because of the weakened magnetic field, inner radiation belt particles can mirror at lower altitudes increasing the local particle flux. It is thus the region where the inner radiation belt makes its closest approach to the Earth's surface. 
+The \gls{saa} is a region of reduced magnetic intensity, where 
+the inner Van Allen radiation belt\footnote{The \emph{Van Allen} radiation belts 
+are toroidal zones around the Earth where high energy particles coming mostly 
+from the solar wind are trapped. Because the inner belt is not symmetrically 
+centered on the Earth, it comes closer to the Earth surface in a region 
+located above South America (\cite{Jalabert2018}).} makes its closest approach 
+to the Earth's surface. This region is centered in southeast South America. Because 
+of the weakened magnetic 
+field, inner radiation belt particles can mirror at lower altitudes increasing 
+the local particle flux. It is thus the region where the inner radiation belt 
+makes its closest approach to the Earth's surface (\cite{Anderson2018}). 
+Satellites in low-Earth orbit pass though the \gls{saa} periodically, thus being 
+exposed to several minutes of strong radiation each time, creating problems for 
+scientific instruments on-board satellites.
 
-%Jalabert
-The Van Allen radiation belts are toroidal zones around the Earth where high energy particles coming mostly from the solar wind are trapped. Because the inner belt is not symmetrically centered on the Earth, it comes closer to the Earth surface in a region located above South America. This region is known as the South Atlantic Anomaly (SAA) (Fiandrini, 2004). Therefore, the number of energetic particles in the SAA is larger than in other regions of space. Such a high radiation level impacts the behavior of on-board oscillators: a rapid change in the frequency can be observed when the satellites fly across this area.
+\begin{figure}
+    \centering
+    \includegraphics[height=.6\textwidth,keepaspectratio]{saa_aviso}
+    \caption{\gls{jason}-1 exposure to \gls{saa} effects, measured on 200-2004 
+      period using the \gls{doris} ultra-stable oscillator. (Credits \gls{cnes}/\gls{cls}, 
+      source Aviso \url{https://www.aviso.altimetry.fr/en/news/image-of-the-month/2007/oct-2007-south-atlantic-anomaly-as-seen-by-doris.html})}
+    \label{fig:saa-aviso}
+\end{figure}
 
-DORIS measurement processing assumes a stable oscillator frequency over the duration of each pass (i.e. around 500 s at the Sentinel3-A altitude). It also assumes a smooth (i.e. low degree polynomial) evolution of the instrument frequency for both the receiver and the transmitter. The oscillator in the DORIS instrument is an Ultra Stable Oscillator (USO) which is designed to meet these stability requirements.
+\gls{doris} measurement processing assumes a stable oscillator frequency over 
+the duration of each pass. It also assumes a smooth (i.e. low degree polynomial) 
+evolution of the instrument frequency for both the receiver and the transmitter. 
+The oscillator in the on-board \gls{doris} instrument is an \gls{uso} which is 
+designed to meet these stability requirements (\cite{Jalabert2018}).
+The high radiation level dominating \gls{saa} impacts the behavior of on-board 
+oscillators: a rapid change in the frequency can be observed when the satellites 
+fly across this area. This effect causes precision degredation in \gls{pod} and 
+positioning results.
 
-When DORIS receivers embedded on low Earth orbiting satellites fly through the SAA, their USOs can experience rapid frequency variations. DORIS RMS residuals are therefore larger, and the station vertical positioning (for stations in the SAA) gives abnormal results.
-
-%Jalabert
-DORIS measurements rely on the precise knowledge of the embedded oscillator which is called the Ultra Stable Oscillator (DORIS USO). The important radiations in the South Atlantic Anomaly (SAA) perturb the USO behavior by causing rapid frequency variations when the satellite is flying through the SAA. These variations are not taken into account in standard DORIS processing, since the USO is modelled as a third degree polynomial over 7–10 days. Therefore, there are systematic measurements errors when the satellite passes through SAA. In standard GNSS processing, the clock is directly estimated at each epoch.
-
-\gls{jason}-1 \cite{Willis2003}, \gls{jason}-2 \cite{Willis2016}, SPOT-5 \cite{Stepanek2013}
+\gls{saa} effects on satellites carying \gls{doris} payload have been indentified 
+for \gls{jason}-1 \cite{Willis2003}, \gls{jason}-2 \cite{Willis2016b}, SPOT-5 \cite{Stepanek2013} 
+and Sentinel-3A \cite{Jalabert2018}. \cite{Capdeville2016}, show that the \gls{jason}-3 
+satellite is also affected by \gls{saa}, evident both in \gls{pod} and station positioning 
+results. Although corrective models exist for some cases (e.g. for \gls{jason}-1 
+\cite{Lemoine2006} and \cite{Capdeville2016} for SPOT-5), no such model exists 
+in the case of \gls{jason}-3. Other possibilities for mitigating the impact include the 
+improved model of the \gls{uso} frequency to correct the data and the attenuation 
+of the side-effects of the changes in the \gls{uso} by downweighting or eliminating 
+measurements from beacons placed within the region covered \gls{saa}. In this Thesis, 
+the latter method is used.

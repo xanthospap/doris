@@ -56,7 +56,7 @@ for \gls{jason}-1; \gls{jason}-3 follows a very similar design (same PROTEUS pla
     \includegraphics[height=.3\textheight,keepaspectratio]{jason1}
     \caption{Image of \gls{jason}-1 satellite including the body frame, \cite{Cerri2022}.}
     \label{fig:jason1}
-  \end{figure}
+\end{figure}
 
 \paragraph{\gls{doris} Receiver Phase Center:}
 The position of the \SI{2}{\giga\hertz} and \SI{400}{\mega\hertz} receiver phase 
@@ -79,8 +79,9 @@ centers in the spacecraft-fixed refernce frame, are given in \autoref{table:jaso
 
 \paragraph{\gls{jason}-3 MacroModel:}
 Macromodel parameters to be used for computing 
-the solar radiation effect (see \autoref{sssec:solar-radiation-pressure}) are published by the \gls{ids} 
-(\cite{Cerri2022}). Details of the macromodel are shown in \autoref{table:jason-3-nacromodel}.
+the solar radiation effect (see \autoref{sssec:solar-radiation-pressure}) are 
+published by the \gls{ids} (\cite{Cerri2022}). Details of the macromodel are 
+shown in \autoref{table:jason-3-nacromodel}.
 \begin{table}[h!]
     \centering
     \begin{tabular}{cccccccccc}
@@ -120,7 +121,8 @@ or inertial system. The \gls{ids} strongly recommends the use of \emph{measure a
 if available (\cite{IdsRecommendationItrf2020}). 
 
 To describe the orientation of a satellite in space, a \emph{body-fixed} reference 
-frame $\mathcal{R}_{BF}$ needs to be defined. This frame is permanently tied to the mechanical 
+frame $\mathcal{R}_{BF}$ needs to be defined (see \autoref{fig:jason3-view}). 
+This frame is permanently tied to the mechanical 
 structure of the satellite and enables the specification of antenna and coordinates 
 relative to the CoM. The body-fixed frame is likewise required to describe the 
 position and alignment of individual surface elements (\cite{Montenbruck2015}).
@@ -160,3 +162,22 @@ Slerp is the optimal interpolation curve between two rotations.
 
 Respective solar panel files are also distributed by \gls{cnes}, containing the 
 angular positions of the solar arrays.
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[angle=180,width=\textwidth,keepaspectratio]{jason3-scetch}
+      \caption{Body-fixed frame}
+      \label{fig:jason3-scetch}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth,keepaspectratio]{jason3-photo}
+      \caption{Surfaces for $+Z$ and $-Y$}
+      \label{fig:jason3-photo}
+    \end{subfigure}
+    \caption{\gls{jason}-3 images depicting the satellite and the embeded, 
+      body-fixed reference frame (source \cite{Couderc2015})}
+    \label{fig:jason3-view}
+\end{figure}

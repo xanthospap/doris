@@ -16,6 +16,8 @@
 \usepackage{adjustbox}  %% e.g. wrap verbatim larger than linewidth
 \usepackage{fancyvrb}   %% Verbatim and coloring therein
 \usepackage{hyperref}
+\usepackage{lscape} %% for begin{landscape} ...
+%\usepackage{ltablex} %% for tables spanning pages ...
 %\usepackage{imakeidx}   %% for index
 %\makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul}       %% allow wrapping of underlined text, via \ul{...}
@@ -36,7 +38,7 @@
 \usepackage{geometry}   %% somewhat wider text to allow code
 \usepackage[per-mode=symbol]{siunitx}    %% SI Units
 \usepackage{amsmath,amssymb,amsthm,bm} %% for math ...
-\usepackage{calligra} %% lower-case caligraphic math fonts, see https://tex.stackexchange.com/questions/131656/how-to-typeset-this-symbol-with-mathcal
+%\usepackage{calligra} %% lower-case caligraphic math fonts, see https://tex.stackexchange.com/questions/131656/how-to-typeset-this-symbol-with-mathcal
 % and https://tex.stackexchange.com/questions/384937/how-to-use-fonts-the-ones-listed-in-mathalfa-documentation-in-math-mode
 \usepackage{mathabx}
 \usepackage{mathtools}
@@ -235,6 +237,7 @@
 \newacronym{gps}{GPS}{Global Positioning System}
 \newacronym{arp}{ARP}{Antenna Reference Point}
 \newacronym{ign}{IGN}{Institut Géographique National}
+\newacronym{cls}{CLS}{Collecte Localisation Satellites}
 \newacronym{grgs}{GRGS}{Groupe de Recherche en Géodésie Spatiale}
 \newacronym{doris}{DORIS}{Détermination d'Orbite et Radiopositionnement Intégré par Satellite (Doppler Orbitography and Radiopositioning Integrated by Satellite)}
 \newacronym{ggos}{GGOS}{Global Geodetic Observation System}
@@ -249,6 +252,7 @@
 \newacronym{jason}{JASON}{Joint Altimetry Satellite Oceanography Network}
 \newacronym{noaa}{NOAA}{National Oceanic and Atmospheric Administration}
 \newacronym{eumetsat}{EUMETSAT}{European Organisation for the Exploitation of Meteorological Satellites}
+\newacronym{saa}{SAA}{South Atlantic Anomaly}
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -284,6 +288,7 @@
 \input{chapters/sections/the_software}
 \input{chapters/sections/costg_benchmark_test}
 
+\iffalse
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
@@ -333,10 +338,12 @@
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
-
+\fi
 \chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
   \input{chapters/sections/pod_wdoris_introduction}
   \input{chapters/sections/jason3}
+  \input{chapters/sections/saa}
+  \input{chapters/sections/software_test}
 
 \iffalse
   \include{chapters/orbit_intergators}

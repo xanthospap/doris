@@ -55,7 +55,8 @@ struct {
   {"MALC", "MALB"},
   {"ROZC", "ROXC"},
   {"SJVC", "SJUC"},
-  {"REVC", "REUB"}
+  {"REVC", "REUB"},
+  {"SVBC", "SVAC"}
 };
 constexpr const int FallBackVmfNamesSize =
     sizeof(FallBackVmfNames) / sizeof(FallBackVmfNames[0]);
@@ -479,7 +480,7 @@ public:
     // integration solution
     Eigen::VectorXd sol(NumEqn);
 
-    char buf[64];
+    /* char buf[64];
     {
       using ST = dso::nanoseconds::underlying_type;
       const auto T = mjd_tai.normalized();
@@ -493,7 +494,7 @@ public:
           (tout) * dso::nanoseconds::sec_factor<double>())));
       dso::strftime_ymd_hmfs(wt, buf);
       fprintf(stderr, "%s (%.9f sec away)\n", buf, tout);
-    }
+    }*/
 
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
@@ -851,7 +852,7 @@ int main(int argc, char *argv[]) {
         (apriori_sigma_orbsp3 * apriori_sigma_orbsp3) *
         Eigen::Matrix<double, 3, 3>::Identity();
     filter.P.block<3, 3>(3, 3) =
-        (1e-2 * 1e-2) * Eigen::Matrix<double, 3, 3>::Identity();
+        (1e-1 * 1e-1) * Eigen::Matrix<double, 3, 3>::Identity();
   }
   double apriori_Cd, apriori_Cr;
   { /* a-priori estimates */
@@ -886,6 +887,16 @@ int main(int argc, char *argv[]) {
   [[maybe_unused]] unsigned num_obs =
       0; // observation count, regardless if usable or not
   [[maybe_unused]] unsigned num_blocks = 0; // RINEX block count
+  /* number of observations with low elevation (rejected) */
+  [[maybe_unused]] unsigned flagged_low_obs = 0;
+  /* number of observations flagged as outliers */
+  [[maybe_unused]] unsigned flagged_res_obs = 0;
+  /* number of observations flagged for SAA */
+  [[maybe_unused]] unsigned flagged_saa_obs = 0;
+  /* number of observations used for filtering */
+  [[maybe_unused]] unsigned filter_obs = 0;
+  /* currently in SAA */
+  [[maybe_unused]] int inside_saa = 0;
   // error flag
   error = 0;
 
@@ -912,8 +923,9 @@ int main(int argc, char *argv[]) {
     // get current observation epoch in UTC
     [[maybe_unused]] const auto tobs_utc = tobs_tai.tai2utc();
 
+    /* have the current date (TAI) ready to print in dtbuf */
     dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
-    printf("# New observation block (RINEX) at %s\n", dtbuf);
+    // printf("# New observation block (RINEX) at %s\n", dtbuf);
 
     // integrate orbit to here (TAI)
     if (!num_blocks) {
@@ -1009,11 +1021,18 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    /* block-specific counters */
+    int num_cblock_obs = 0, flagged_low_obs_block = 0,
+        flagged_saa_obs_block = 0, flagged_res_obs_block = 0,
+        filter_obs_block = 0;
+    inside_saa = 0;
+
     /* iterate through beacons in current block (epoch) */
     auto beaconIt = it.cblock.begin();
     while (beaconIt != it.cblock.end()) {
-      /* augment obs */
+      /* augment counters */
       ++num_obs;
+      ++num_cblock_obs;
       /* Beacon's 4-char id */
       const char *b4id = rnx.beacon_internal_id2id(beaconIt->id());
       /* check if beacon is within SSA */
@@ -1090,7 +1109,6 @@ int main(int argc, char *argv[]) {
               if (pObs->restart() ||
                   tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
                       pObs->time_of_reception()) > RESTART_AFTER_SEC) {
-                *pObs = cObs;
                 /* restart frequency bias for new pass if needed */
                 if (tobs_tai
                         .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
@@ -1101,6 +1119,8 @@ int main(int argc, char *argv[]) {
                   printf("[DEBUG] Resetting frequency bias for site %.4s, new "
                          "pass at %s\n",
                          b4id, dtbuf);
+                
+                  *pObs = cObs;
                 }
               } else {
                 /* observation equation */
@@ -1131,10 +1151,12 @@ int main(int argc, char *argv[]) {
                       Vobs, -Vtheo, sigma_obs, H, var_prediction);
                   /* outlier check */
                   if (res_prediction > 3 * std::sqrt(var_prediction)) {
-                    fprintf(stderr,
-                            "[WRNNG] Skipping observation at %.4s at %s "
-                            "because of large residual\n",
-                            b4id, dtbuf);
+                    //fprintf(stderr,
+                    //        "[WRNNG] Skipping observation at %.4s at %s "
+                    //        "because of large residual\n",
+                    //        b4id, dtbuf);
+                    ++flagged_res_obs;
+                    ++flagged_res_obs_block;
                   } else {
                     filter.observation_update(Vobs, -Vtheo,
                                               sigma_obs / std::sin(el), H);
@@ -1143,11 +1165,13 @@ int main(int argc, char *argv[]) {
                     if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
                     /* debug print */
                     printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3e "
-                           "%.6f %.6f)\n",
+                           "%.6f %.6f) %.3f\n",
                            dtbuf, b4id, Vobs + Vtheo, res_prediction,
                            std::sqrt(var_prediction), Vobs, Vtheo, DfeFen,
                            IntegrationParams.drag_ceofficient(),
-                           IntegrationParams.srp_ceofficient());
+                           IntegrationParams.srp_ceofficient(), dso::rad2deg(el));
+                    ++filter_obs;
+                    ++filter_obs_block;
                   }
                 }
                 /* push back */
@@ -1155,12 +1179,15 @@ int main(int argc, char *argv[]) {
               }
             } /* tropospheric correction found/applied */
           }   /* end handling current observation, cObs */
-        }     /* end of observation with acceptable elevation */
+        }   /* end of observation with acceptable elevation */ 
         else if (dso::rad2deg(el) < 0) {
           fprintf(
               stderr,
               "[WRNNG] Unexpected elevation angle encountered for %.4s at %s\n",
               b4id, dtbuf);
+        } else {
+          ++flagged_low_obs;
+          ++flagged_low_obs_block;
         }
         } else {
           fprintf(stderr,
@@ -1168,11 +1195,19 @@ int main(int argc, char *argv[]) {
         }
       } /* end of non-flaged observation processing */
     } else {
-      fprintf(stderr, "[WRNNG] Site %.4s within SSA; ignornig observation\n", b4id);
+      // fprintf(stderr, "[WRNNG] Site %.4s within SSA; ignornig observation\n", b4id);
+      ++flagged_saa_obs;
+      ++flagged_saa_obs_block;
+      inside_saa = 1;
     } /* site affected by SSA */
       ++beaconIt;
     } /* end of beacons in current block */
-    
+      /* print block statistics */
+    printf("[BLC] %s #obs: %d #LowEle: %d #SAA %d #HighO-C %d "
+           "#filter %d\n",
+           dtbuf, num_cblock_obs, flagged_low_obs_block, flagged_saa_obs_block,
+           flagged_res_obs_block, filter_obs_block);
+
     { // print state
       printf("[ORB] %s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", dtbuf,
              svState.itrf_state_cm()(0), svState.itrf_state_cm()(1),
