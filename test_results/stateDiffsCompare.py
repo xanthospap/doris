@@ -399,7 +399,7 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
   for t in dct1:
     if t < t0: t0 = t
 
-  fig, axs = plt.subplots(3, 2, figsize=(10, 6), constrained_layout=True)
+  fig, axs = plt.subplots(3, 2, sharey='col', figsize=(10, 6), constrained_layout=True)
   t = [ ti for ti in diffs ]
   ## x-, y-, z-components ...
   for component in range(3):
@@ -424,12 +424,12 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
           if shd_passes != []:
               for intrv in shd_passes:
                 axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
-          if saa_passes != []:
-              for intrv in saa_passes:
-                axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.1, color='green')
+          #if saa_passes != []:
+          #    for intrv in saa_passes:
+          #      axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.1, color='green')
   ## Rotate date labels automatically
   fig.autofmt_xdate()
-  fig.suptitle('Sp3 - Integrator Diffs. at {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  fig.suptitle('State Differences Estimated - Reference\n{:}'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
   if save_as:
       print('Saving figure to {:}'.format(save_as))
       plt.savefig(save_as)
