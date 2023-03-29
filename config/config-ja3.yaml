@@ -27,8 +27,8 @@ ocean-tides:
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
@@ -54,9 +54,9 @@ filtering:
   ## Units: [m/sec]
   observation-sigma: 5e-2
   ## A-priori sigma for Δfe / feN
-  deffen-sigma: 1e-5
+  deffen-sigma: 1e-1
   ## A-priori sigma for initial state (sp3)
-  orbsp3-sigma: 1e0
+  orbsp3-sigma: 2e0
   ## A-priori sigma for Cd (aka drag coefficient)
   cd-sigma: .5e0
   ## A-priori sigma for Cr (aka srp coefficient)

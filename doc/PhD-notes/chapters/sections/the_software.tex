@@ -4,7 +4,7 @@ In the framework of the Thesis, a software package was designed and implemented,
 perform orbit determination using the \gls{doris} satellite system. The software 
 was built from scratch, with minimum (external) dependencies. The purpose of the 
 package is to act as the fundamental building block of a state-of-the-art scientific 
-software toolset, utlizing \gls{doris} observations for a wide range of geodetic 
+software toolset, utilizing \gls{doris} observations for a wide range of geodetic 
 studies, including but not limited to \gls{pod}, reference frame maintenance, 
 earth dynamics and atmospheric studies. A first, imminent step towards this direction, 
 would be for the software to reach \gls{ids} standards, a goal not too far-fetched, 
@@ -18,48 +18,48 @@ since the bulk of the work has already been done.
 \end{figure}
 
 Writing scientific software to meet such high accuracy and efficiency standards 
-is a chalenging task. This is evident by the limited number of packages delivering 
+is a challenging task. This is evident by the limited number of packages delivering 
 such robust products. A deep understanding of the underlying scientific notions is 
-a prerequisit (including e.g. celestial mechanics, spatial/Temporal reference frames, 
+a prerequisite (including e.g. celestial mechanics, spatial/Temporal reference frames, 
 geodesy and estimation theory) coupled with software engineering skills to match the 
 high volume and high calibre of work needed (about 100000 lines of source code were 
 written for this Thesis, \autoref{table:software-components}).
 
 \begin{table}[h!]
-    \centering
-    \begin{tabular}{p{0.20\linewidth} | p{0.2\linewidth} | p{0.20\linewidth} | p{0.25\linewidth}}
-        \toprule
-        \textbf{Library} & \textbf{Language} & \textbf{Lines of Code}\footnote{Counted using \texttt{tokei} (\url{https://github.com/XAMPPRocky/tokei}) excluding blank and comment lines.} & \textbf{Comment}\\
-        \midrule
-        \multirow{2}{*}{\texttt{doris}}  & \texttt{C++} & 18286 & \multirow{2}{4cm}{Including source code for executables}\\
-          & \texttt{Python} & 2068 & \\
-        \hline
-        \multirow{3}{*}{\texttt{iers2010}}  & \texttt{C++} & 50000 & \multirow{3}{4cm}{Python \& Fortran mainly used for unit testing} \\
-          & \texttt{C} & 1801 \\
-          & \texttt{Python \& Fortran} &  17120 \\
-        \hline
-        \texttt{sp3}    & \texttt{C++} & 1287 & \\
-        \hline
-        \texttt{sinex}  & \texttt{C++} & 1392 & \\
-        \hline
-        \multirow{2}{*}{\texttt{datetime}}  & \texttt{C++} & 4432 & \multirow{2}{*}{Mostly header files}\\
-          & \texttt{C}      & 136 \\
-        \hline
-        \multirow{2}{*}{\texttt{geodesy}}  & \texttt{C++} & 3755 & \multirow{2}{*}{}\\
-          & \texttt{Python} & 120 \\
-        \hline
-        Total & & 100397\\
-        \bottomrule
-    \end{tabular}
-    \caption{Software components of the package designed and implemented for the Thesis.}
-    \label{table:software-components}
+  \centering
+  \begin{tabular}{p{0.20\linewidth} | p{0.2\linewidth} | p{0.20\linewidth} | p{0.25\linewidth}}
+    \toprule
+    \textbf{Library} & \textbf{Language} & \textbf{Lines of Code}\footnote{Counted using \texttt{tokei} (\url{https://github.com/XAMPPRocky/tokei}) excluding blank and comment lines.} & \textbf{Comment}\\
+    \midrule
+    \multirow{2}{*}{\texttt{doris}}  & \texttt{C++} & 18286 & \multirow{2}{4cm}{Including source code for executables}\\
+      & \texttt{Python} & 2068 & \\
+    \hline
+    \multirow{3}{*}{\texttt{iers2010}}  & \texttt{C++} & 50000 & \multirow{3}{4cm}{Python \& Fortran mainly used for unit testing} \\
+      & \texttt{C} & 1801 \\
+      & \texttt{Python \& Fortran} &  17120 \\
+    \hline
+    \texttt{sp3}    & \texttt{C++} & 1287 & \\
+    \hline
+    \texttt{sinex}  & \texttt{C++} & 1392 & \\
+    \hline
+    \multirow{2}{*}{\texttt{datetime}}  & \texttt{C++} & 4432 & \multirow{2}{*}{Mostly header files}\\
+      & \texttt{C}      & 136 \\
+    \hline
+    \multirow{2}{*}{\texttt{geodesy}}  & \texttt{C++} & 3755 & \multirow{2}{*}{}\\
+      & \texttt{Python} & 120 \\
+    \hline
+    Total & & 100397\\
+    \bottomrule
+  \end{tabular}
+  \caption{Software components of the package designed and implemented for the Thesis.}
+  \label{table:software-components}
 \end{table}
 
 \subsection{Policy And Software Philosophy}\label{sec:the-software-policy}
 The software is hosted and developed on the public domain, adopting a \emph{free} 
 and \emph{open}-source policy. Any interested party is free to use and/or adapt 
-the source code, fitting indivdual needs. It is a strong belief that adhering to 
-such an open-developement, open-access paradigm, can prove to be highly beneficial 
+the source code, fitting individual needs. It is a strong belief that adhering to 
+such an open-development, open-access paradigm, can prove to be highly beneficial 
 both for the scientific community and for the development team. Already individual 
 modules/libraries built for the Thesis have been ``forked'' from different users.
 
@@ -68,10 +68,10 @@ The general architectural approach followed in designing the software is that of
 \emph{modular software development}, emphasizing on building simple, compact, 
 clear, modular, and extensible code that can be easily maintained and repurposed 
 by developers other than its creators. This approach favors composability, an attribute 
-greatly valued in scientific programming since it accomodates ease of adoption and 
+greatly valued in scientific programming since it accommodates ease of adoption and 
 expansion. Since the aim of the package is to act as a fundamental building block 
 for an analysis tool matching the highest standards, this design pattern is crucial 
-to its developement and further success.
+to its development and further success.
 
 A mixture of the well established \emph{object-oriented design} (OOP) and the 
 newer approach of \emph{data-oriented design} (\cite{Fabian2018}) (DOP) is used 
@@ -83,7 +83,7 @@ matching the challenge was chosen.
 The language of choice for code development is \texttt{C++}, while minor parts 
 are written in \texttt{C} and \texttt{Python} (see \autoref{table:software-components}). 
 \texttt{C++} is a language supporting OOP, renowned for its speed and efficiency. 
-Via its versatility (especially in handling memmory resources) and closseness to 
+Via its versatility (especially in handling memory resources) and closeness to 
 the hardware, this programming language is fit for problems posing constraints on 
 computational resources and speed (such as a \gls{pod} analysis procedure). The source 
 code employs \emph{generic programming} techniques and makes heavy usage of the 
@@ -95,55 +95,55 @@ serves a well established, individual goal (see \autoref{table:software-componen
 This division favors the overall modularity of the package.
 
 \begin{table}[h!]
-    \centering
-    \begin{tabular}{p{0.20\linewidth} | p{0.60\linewidth} | p{0.15\linewidth}}
-        \textbf{Library} & \textbf{Purpose} & \textbf{Repository Name}\footnote{The repository can be found online by adding the name at the static path \url{https://github.com/xanthospap/}} \\
-        \toprule
-        
-        \texttt{libdatetime} & A library to handle datetime instances. Includes data structures, 
-          operators and transformations between different scales, systems and representations. 
-          Facilitates the parsing, formating and writting of instances in different formats.
-          & \texttt{datetime} \\
-        
-        \texttt{libgeodesy} & A library implementing fundamental geodetic concepts and 
-          computations. Includes handling of reference systems, reference ellipsoids, 
-          and associated geometric operations, as well as transformations between 
-          systems and frames. & \texttt{geodesy} \\
+  \centering
+  \begin{tabular}{p{0.20\linewidth} | p{0.60\linewidth} | p{0.15\linewidth}}
+    \textbf{Library} & \textbf{Purpose} & \textbf{Repository Name}\footnote{The repository can be found online by adding the name at the static path \url{https://github.com/xanthospap/}} \\
+    \toprule
+    
+    \texttt{libdatetime} & A library to handle datetime instances. Includes data structures, 
+      operators and transformations between different scales, systems and representations. 
+      Facilitates the parsing, formatting and writing of instances in different formats.
+      & \texttt{datetime} \\
+    
+    \texttt{libgeodesy} & A library implementing fundamental geodetic concepts and 
+      computations. Includes handling of reference systems, reference ellipsoids, 
+      and associated geometric operations, as well as transformations between 
+      systems and frames. & \texttt{geodesy} \\
 
-        \texttt{libsp3} & Faciliatate the parsing and data extraction and manipulation 
-          (e.g. indexing and iterating) of \texttt{sp3} data files (\cite{Hilla2010}). 
-          & \texttt{sp3} \\
-        
-        \texttt{libiers2010} & Implementation of the \gls{iers}-2010 standards, based on  
-          \cite{iers2010}. Additional material is added (where needed) to handle the 
-          convention's updates. To-date model updates are also included, as well as 
-          source code to handle data resources in various formats, often encountered 
-          when implementing the standards.
-          & \texttt{iers2010} \\
-        
-        \texttt{libsinex} & Faciliatate the parsing and data extraction and manipulation 
-          of \texttt{SINEX} files (\cite{Sinex202}) including additional blocks 
-          used by the \gls{ids}, see \cite{Moreaux2023}. Utilities include reference 
-          frame realization, reductions between site and reference points (via eccentricity 
-          vectors) and inspection of time interval validity.
-          & \texttt{sinex} \\
-        
-        \texttt{libdoris} & A library focused on the \gls{doris} satellite system; includes 
-          relevant data handling, implementation of the observation equation model 
-          (\autoref{ch:doris}) and its application in \gls{pod}. Facilitates data 
-          retrieval from a wide range of different formats, for various steps of a
-          \gls{doris} data analysis scheme.
-          & \texttt{libdoris} \\
-        \bottomrule
-    \end{tabular}
-    \caption{Individual libraries (modules) of the package designed and implemented for the Thesis.}
-    \label{table:software-components2}
+    \texttt{libsp3} & Faciliatate the parsing and data extraction and manipulation 
+      (e.g. indexing and iterating) of \texttt{sp3} data files (\cite{Hilla2010}). 
+      & \texttt{sp3} \\
+    
+    \texttt{libiers2010} & Implementation of the \gls{iers}-2010 standards, based on  
+      \cite{iers2010}. Additional material is added (where needed) to handle the 
+      convention's updates. To-date model updates are also included, as well as 
+      source code to handle data resources in various formats, often encountered 
+      when implementing the standards.
+      & \texttt{iers2010} \\
+    
+    \texttt{libsinex} & Facilitate the parsing and data extraction and manipulation 
+      of \texttt{SINEX} files (\cite{Sinex202}) including additional blocks 
+      used by the \gls{ids}, see \cite{Moreaux2023}. Utilities include reference 
+      frame realization, reductions between site and reference points (via eccentricity 
+      vectors) and inspection of time interval validity.
+      & \texttt{sinex} \\
+    
+    \texttt{libdoris} & A library focused on the \gls{doris} satellite system; includes 
+      relevant data handling, implementation of the observation equation model 
+      (\autoref{ch:doris}) and its application in \gls{pod}. Facilitates data 
+      retrieval from a wide range of different formats, for various steps of a
+      \gls{doris} data analysis scheme.
+      & \texttt{libdoris} \\
+      \bottomrule
+  \end{tabular}
+  \caption{Individual libraries (modules) of the package designed and implemented for the Thesis.}
+  \label{table:software-components2}
 \end{table}
 
 \subsection{External Dependencies}\label{sec:the-software-dependencies}
 An effort was made while developing the source code, to strive for minimal external 
 dependencies. As a consequence, only three external components are used to build 
-the whole package, namelly,
+the whole package, namely,
 \begin{description}
   \item[The \texttt{SPICE} Toolkit] (\cite{Acton2018}), release January 3, 2022. 
   This is \gls{nasa}'s 
@@ -162,8 +162,8 @@ the whole package, namelly,
   \url{http://eigen.tuxfamily.org/}.
 
   \item[The \texttt{yaml-cpp} Library], developed by Jesse Beder. This is an open-source 
-  libraru, hosted at \url{https://github.com/jbeder/yaml-cpp}, that enables efficient 
+  library, hosted at \url{https://github.com/jbeder/yaml-cpp}, that enables efficient 
   parsing of \texttt{YAML} (\url{https://yaml.org/}) files. This library is only 
   used by the executables (i.e. not needed for any of the libraries) to parse the 
-  configuation file(s).
+  configuration file(s).
 \end{description}

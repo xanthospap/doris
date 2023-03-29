@@ -30,3 +30,27 @@ noted that such software are only seldom limited to one satellite technique; mos
 often either \gls{slr} and/or \gls{gnss} datasets are included in the analysis, 
 either for validation purposes or for integrated processing.
 
+\subsection{Goals of The Current Chapter}\label{ssec:jason3-pod-goals}
+
+In this chapter a software tool to perform \gls{doris}-data analysis is presented, 
+using the models, methods and algorithms already discussed in the previous sections.
+The program is designed to tackle a ``pure orbit determination'' problem, or more 
+specifically orbit improvement; that is, given an initial, reference state at some 
+initial epoch, process \gls{doris} observations (in an iterative manner) to compute 
+the ``best'' estimate of the satellite state.
+
+The problem is labelled ``pure'' in the sense that it does not consider improvements 
+or estimates for other parameters, as e.g. site coordinates. However, a number of 
+parameters must be included in the filtering process (e.g. drag and radiation 
+coefficients, $C_d$ and $C_r$ respectively, relative frequency offsets for the 
+beacons, $\Delta f_e / f_{e_N}$, and wet zenith tropospheric delay $zd_{wet}$). The 
+theoretical implications and algorithmic design of the \gls{doris} observation equation 
+has already been discussed in \autoref{sec:doris-observation-equation-implementation} 
+and will be used here to analyze the \gls{doris} measurements.
+
+To test the validity of the estimates, the results are checked against \gls{cnes}/SSALTO 
+computed trajectories, given in sp3 files. The latter have been computed using a 
+multi-technique approach, using both \gls{doris} and \gls{gps} measurements. Differences 
+in the force model and various processing options also exist between the two analysis 
+procedures, that introduce further inconsistencies. However, these sp3 files were 
+the only available in the \gls{cddis} archive.

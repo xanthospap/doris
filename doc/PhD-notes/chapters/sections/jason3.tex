@@ -60,7 +60,7 @@ for \gls{jason}-1; \gls{jason}-3 follows a very similar design (same PROTEUS pla
 
 \paragraph{\gls{doris} Receiver Phase Center:}
 The position of the \SI{2}{\giga\hertz} and \SI{400}{\mega\hertz} receiver phase 
-centers in the spacecraft-fixed refernce frame, are given in \autoref{table:jason-3-receiver-arp}.
+centers in the spacecraft-fixed reference frame, are given in \autoref{table:jason-3-receiver-arp}.
 \begin{table}[h!]
     \centering
     \begin{tabular}{cccc}
@@ -72,7 +72,7 @@ centers in the spacecraft-fixed refernce frame, are given in \autoref{table:jaso
         \SI{400}{\mega\hertz} & 2.4128 & -0.1325 & 0.7555 \\
        \bottomrule
     \end{tabular}
-    \caption{DORIS receiver phase center coordinates in the SV-fixed reference 
+    \caption{DORIS receiver phase center coordinates in the body-fixed reference 
         frame for \gls{jason}-3, \cite{Cerri2022}}
     \label{table:jason-3-receiver-arp}
 \end{table}
@@ -83,31 +83,30 @@ the solar radiation effect (see \autoref{sssec:solar-radiation-pressure}) are
 published by the \gls{ids} (\cite{Cerri2022}). Details of the macromodel are 
 shown in \autoref{table:jason-3-nacromodel}.
 \begin{table}[h!]
-    \centering
-    \begin{tabular}{cccccccccc}
-        \toprule
-        \textbf{Surface \si{\meter\tothe{2}}} & 
-            \multicolumn{3}{c}{Normal in satellite RF} &
-            \multicolumn{3}{c}{Optical Properties} &
-            \multicolumn{3}{c}{Infrared Properties} \\
-         & 
-         \textbf{X} & \textbf{Y} & \textbf{Z} &
-         \textbf{spec} & \textbf{diff} & \textbf{abs} &
-         \textbf{spec} & \textbf{diff} & \textbf{abs} \\
-        \hline
-        0.783& -1&   0&  0& 0.3410& 0.6460& 0.0130& 0.0000& 0.9870& 0.0130 \\
-        0.783&  1 &  0&  0& 0.1490& 0.8510& 0.0000& 0.0000& 1.0000& 0.0000 \\
-        2.040&  0 & -1&  0& 0.5730& 0.3840& 0.0430& 0.1040& 0.5690& 0.3280 \\
-        2.040&  0 &  1&  0& 0.5390& 0.4240& 0.0370& 0.0890& 0.6270& 0.2830 \\
-        3.105&  0 &  0& -1& 0.2460& 0.7520& 0.0020& 0.0050& 0.9770& 0.0170 \\
-        3.105&  0 &  0&  1& 0.2130& 0.4530& 0.3340& 0.0370& 0.2870& 0.6760 \\
-        \multicolumn{10}{c}{Solar Array} \\
-        9.800&  1& 0& 0& 0.0600& 0.4070& 0.5330& 0.0970& 0.0980& 0.8030 \\
-        9.800& -1& 0& 0& 0.0040& 0.2980& 0.6970& 0.0350& 0.0350& 0.9310 \\
-       \bottomrule
-    \end{tabular}
-    \caption{Satellite Macromodel for \gls{jason}-3, \cite{Cerri2022}.}
-    \label{table:jason-3-nacromodel}
+  \centering
+  \begin{tabular}{cccccccccc}
+    \toprule
+    \textbf{Surface \si{\meter\tothe{2}}} & 
+        \multicolumn{3}{c}{Normal in body RF} &
+        \multicolumn{3}{c}{Optical Properties} &
+        \multicolumn{3}{c}{Infrared Properties} \\
+     & \textbf{X}  & \textbf{Y}    & \textbf{Z} &
+     \textbf{spec} & \textbf{diff} & \textbf{abs} &
+     \textbf{spec} & \textbf{diff} & \textbf{abs} \\
+    \hline
+    0.783& -1&  0&  0& 0.3410& 0.6460& 0.0130& 0.0000& 0.9870& 0.0130 \\
+    0.783&  1&  0&  0& 0.1490& 0.8510& 0.0000& 0.0000& 1.0000& 0.0000 \\
+    2.040&  0& -1&  0& 0.5730& 0.3840& 0.0430& 0.1040& 0.5690& 0.3280 \\
+    2.040&  0&  1&  0& 0.5390& 0.4240& 0.0370& 0.0890& 0.6270& 0.2830 \\
+    3.105&  0&  0& -1& 0.2460& 0.7520& 0.0020& 0.0050& 0.9770& 0.0170 \\
+    3.105&  0&  0&  1& 0.2130& 0.4530& 0.3340& 0.0370& 0.2870& 0.6760 \\
+    \multicolumn{10}{c}{Solar Array} \\
+    9.800&  1& 0& 0& 0.0600& 0.4070& 0.5330& 0.0970& 0.0980& 0.8030 \\
+    9.800& -1& 0& 0& 0.0040& 0.2980& 0.6970& 0.0350& 0.0350& 0.9310 \\
+   \bottomrule
+  \end{tabular}
+  \caption{Satellite Macromodel for \gls{jason}-3, \cite{Cerri2022}.}
+  \label{table:jason-3-nacromodel}
 \end{table}
 
 \subsection{\gls{jason}-3 Attitude}\label{ssec:jason3-attitude}
@@ -124,7 +123,7 @@ To describe the orientation of a satellite in space, a \emph{body-fixed} referen
 frame $\mathcal{R}_{BF}$ needs to be defined (see \autoref{fig:jason3-view}). 
 This frame is permanently tied to the mechanical 
 structure of the satellite and enables the specification of antenna and coordinates 
-relative to the CoM. The body-fixed frame is likewise required to describe the 
+relative to the Center of Gravity. The body-fixed frame is likewise required to describe the 
 position and alignment of individual surface elements (\cite{Montenbruck2015}).
 For the \gls{jason}-3 satellite, the origin of the body reference system is the center of the launcher interface ring. 
 The $X-$axis points along the satellite's main direction towards the radiometer 
@@ -142,12 +141,12 @@ forms (e.g. \emph{Euler Axis/Angle}), one of which is the
 \emph{quaternion representation}. This way of transforming between the body-fixed 
 and the \gls{gcrf} frames is adopted and implemented in the software designed for 
 the current Thesis. The quaternion representation expresses the attitude matrix as 
-a homogenous quadratic function of the elements of the quaternion, requiring no 
+a homogeneous quadratic function of the elements of the quaternion, requiring no 
 trigonometric or other transcendental function evaluations. Quaternions are more 
-efficient for specifying rotations thatn the attitude matrix itself, having only 
+efficient for specifying rotations than the attitude matrix itself, having only 
 four components (instead of nine) and obeying only one constraint, namely that 
-their norm is equal to unity (\cite{Markley2019}). Discussions on the the use of 
-quaternions for attitude determination and undelrying algebraic concepts can be 
+their norm is equal to unity (\cite{Markley2019}). Discussions on the use of 
+quaternions for attitude determination and underlying algebraic concepts can be 
 found in \cite{Yang2012} and \cite{Markley2019}.
 
 In the case of \gls{jason}-3, measured attitude is published by \gls{cnes} in 
@@ -155,7 +154,7 @@ dedicated data files (\cite{Ferrage2020}) by means of quaternions, covering a
 period of 28 hours (2 overlapping hours between two consecutive files). Data records 
 are retrieved from these files to relate the body-fixed reference frame to the 
 \gls{gcrf}. Since quaternions are provided in distinct epochs, an interpolation 
-lagorithm must be used to estimate the quaternions at the epoch of request. In this 
+algorithm must be used to estimate the quaternions at the epoch of request. In this 
 Thesis, the \emph{spherical linear interpolation} method (often called \emph{Slerp} in 
 computer graphics) introduced by \cite{Shoemake1985} is used. According to \cite{Dam2000}, 
 Slerp is the optimal interpolation curve between two rotations.
@@ -164,20 +163,20 @@ Respective solar panel files are also distributed by \gls{cnes}, containing the
 angular positions of the solar arrays.
 
 \begin{figure}
+  \centering
+  \begin{subfigure}[b]{0.45\textwidth}
     \centering
-    \begin{subfigure}[b]{0.45\textwidth}
-      \centering
-      \includegraphics[angle=180,width=\textwidth,keepaspectratio]{jason3-scetch}
-      \caption{Body-fixed frame}
-      \label{fig:jason3-scetch}
-    \end{subfigure}
-    \begin{subfigure}[b]{0.45\textwidth}
-      \centering
-      \includegraphics[width=\textwidth,keepaspectratio]{jason3-photo}
-      \caption{Surfaces for $+Z$ and $-Y$}
-      \label{fig:jason3-photo}
-    \end{subfigure}
-    \caption{\gls{jason}-3 images depicting the satellite and the embeded, 
-      body-fixed reference frame (source \cite{Couderc2015})}
-    \label{fig:jason3-view}
+    \includegraphics[angle=180,width=\textwidth,keepaspectratio]{jason3-scetch}
+    \caption{Body-fixed frame}
+    \label{fig:jason3-scetch}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{jason3-photo}
+    \caption{Surfaces for $+Z$ and $-Y$}
+    \label{fig:jason3-photo}
+  \end{subfigure}
+  \caption{\gls{jason}-3 images depicting the satellite and the embeded, 
+    body-fixed reference frame (source \cite{Couderc2015})}
+  \label{fig:jason3-view}
 \end{figure}

@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <datetime/dtcalendar.hpp>
 #include <datetime/dtfund.hpp>
 #include <iers2010/eop.hpp>
 
@@ -842,17 +843,16 @@ int main(int argc, char *argv[]) {
            (!error));
     assert(apriori_sigma_Cr > 0e0 && apriori_sigma_Cr < 1e2 && (!error));
     /* a-priori sigma for Δfe / feN */
-    filter.P *= apriori_sigma_freqbias * apriori_sigma_freqbias;
+    filter.P *= (apriori_sigma_freqbias * apriori_sigma_freqbias);
     if (m >= 1) {
-      filter.P(6, 6) = apriori_sigma_Cd * apriori_sigma_Cd;
+      filter.P(6, 6) *= (apriori_sigma_Cd * apriori_sigma_Cd);
       if (m > 1)
-        filter.P(7, 7) = apriori_sigma_Cr * apriori_sigma_Cr;
+        filter.P(7, 7) *= (apriori_sigma_Cr * apriori_sigma_Cr);
     }
-    filter.P.block<3, 3>(0, 0) =
-        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3) *
-        Eigen::Matrix<double, 3, 3>::Identity();
-    filter.P.block<3, 3>(3, 3) =
-        (1e-1 * 1e-1) * Eigen::Matrix<double, 3, 3>::Identity();
+    filter.P.block<3, 3>(0, 0) *=
+        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3) / (apriori_sigma_freqbias * apriori_sigma_freqbias);
+    filter.P.block<3, 3>(3, 3) *=
+        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3)/(apriori_sigma_freqbias * apriori_sigma_freqbias);
   }
   double apriori_Cd, apriori_Cr;
   { /* a-priori estimates */
@@ -904,6 +904,7 @@ int main(int argc, char *argv[]) {
   double prev_latitude_revolution = 0;
   double init_latitude_revolution = 0;
   int ascending_revolution = 0;
+  dso::TwoPartDate last_revolution_at(dso::datetime<dso::nanoseconds>::max());
 
   /* store last beacon observation */
   std::vector<RcSv> vLastObs;
@@ -949,6 +950,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
+      last_revolution_at = tobs_tai;
     } else {
       if (svState.integrate(tobs_tai, Integrator)) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
@@ -970,6 +972,29 @@ int main(int argc, char *argv[]) {
     }
 
     /* check to see if we have a new orbit revolution */
+    if (1==2) {
+    if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(last_revolution_at) > 112.42 * 60e0) {
+      printf("[DEBUG] New SV revolution around the Earth at %s "
+             "re-initialize Cd/Cr\n",
+             dtbuf);
+      if (m >= 1) {
+        filter.x(6) = apriori_Cd;
+        filter.P.row(6).setZero();
+        filter.P.col(6).setZero();
+        filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
+        if (m > 1) {
+          filter.P.row(7).setZero();
+          filter.P.col(7).setZero();
+          filter.P(7, 7) = (apriori_sigma_Cr * apriori_sigma_Cr);
+          filter.x(7) = apriori_Cr;
+        }
+      }
+      if (m >= 1)
+        IntegrationParams.drag_ceofficient() = filter.x(6);
+      if (m > 1)
+        IntegrationParams.srp_ceofficient() = filter.x(7);
+      last_revolution_at = tobs_tai;
+    }}
     if (1==2)
     {
       const auto itrf = svState.itrf_position_cm();

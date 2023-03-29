@@ -1,0 +1,48 @@
+\section{Introduction}\label{sec:astro-introduction}
+
+Orbital motion for Earth orbiting satellites, is dominated by the Earth's attraction on 
+the space vehicle. In the absence of all other forces, and assuming point-like 
+gravitational attraction the trajectory would follow a \emph{Keplerian orbit}. While 
+this approximation is the starting point for orbital mechanics, it does not suffice 
+for modern requirements of \gls{pod}.
+
+The complex force model acting on satellites must be efficiently modeled to derive 
+robust results required for geodetic studies. The growing number of satellite missions, 
+the technological advance coupled with an ever increasing quantity and quality of 
+data sets available, and the quest for understanding complicated 
+dynamics and underlying processes (e.g. density variations in high atmosphere) 
+affecting and describing satellite motion, have resulted in sophisticated, high accuracy 
+models.
+
+Describing (in mathematical terms) and computing trajectories assumes the 
+introduction of spatial and temporal reference systems, ones that are defined and 
+realized in a precision level appropriate to accommodate modern day \gls{pod} 
+analysis. Transforming back and forth between such frames to fit computation and 
+modeling requirements is frequent within a \gls{pod} analysis chain, hence 
+such transformation should be efficient and precise.
+
+In an effective \gls{pod} analysis, such models have to be carefully considered 
+and implemented, a task that raises both analytical and engineering challenges. 
+
+\subsection{Goals of the Chapter}\label{sec:astro-goals}
+
+In this chapter the fundamental concepts of celestial mechanics are presented, in an approach oriented 
+towards \gls{pod} for \gls{leo} satellites. Starting from fundamental Keplerian motion, 
+orbital perturbations are introduced, as well as the underlying perturbing forces. 
+State-of-the-art models for computing induced accelerations are discussed and their 
+design, implementation and validation are given in detail. Through a thorough 
+examination of the perturbing forces, especially those relevant to geodesy (e.g. 
+Earth's gravity field, Earth tides, etc) recent developments in the field are 
+reviewed as well as their weaknesses, limitations and strengths.
+
+The goal of this discussion, is to derive efficient and robust algorithms, for computing 
+perturbing accelerations, using the most recent models, altering, adapting and re-formulating 
+on the way according to application needs and problem constraints.
+
+A presentation of the spatial and temporal reference systems and their realizations follows, 
+based on the most recent, international standards. Since orbital motion has to be 
+expressed in an inertial reference frame, but a number of modeling techniques (e.g. 
+spherical harmonics expansions) usually assume a reference system co-rotating with 
+the Earth, transforming between systems is customary in \gls{pod}. The latest 
+\gls{iau} standards for such transformations are presented, with the aim of deriving 
+algorithmic implementations serving efficiency and robustness.

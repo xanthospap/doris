@@ -1,0 +1,80 @@
+\section{Conclusions}\label{sec:conclusions}
+
+\gls{doris} is one of the fundamental techniques of Satellite Geodesy, steadily contributing 
+since the early 1990s significant results, products and insight in a wide range of geosciences 
+and related fields. It has played a crucial role in expanding the geodetic knowledgebase 
+and our understanding of the Earth's dynamics. Along with \gls{gnss}, \gls{slr} and 
+\gls{vlbi}, it constitutes a fundamental pillar of reference frame maintenance. Yet, 
+its scientific audience is dsiproportionally limited, a fact evident by the small number 
+of dedicated Analysis Centers compared to the other space geodetic techniques. This 
+lack of dedicated, scientific software tools for a prominent space geodetic technique 
+such as \gls{doris} was the target and driving force for this Thesis.
+
+Within the framework of this Thesis, a software package was designed and implemented from scratch, 
+with the aim of acting as a fundamental building block for a state-of-the-art, \gls{ids} 
+level, dedicated analysis tool for processing \gls{doris} observations. The design 
+principle adopted was twofold, based on efficiency on the one hand and on the same time 
+allowing for genericity and modularity. This architectural approach will hopefully 
+attract new users, since it favors reusability, maintenance and repurposing. The software 
+package is free and open-source, a policy adopted to further aid the growth of the 
+user community and in turn boost interest in the technique and thus accommodate further 
+developments.
+
+The software built amounts to $\approx 100000$ lines of source code, divided into 
+different modules/libraries (\autoref{sec:the-software}). Using this design, it is 
+trivial to create a \gls{doris} analysis program to perform orbit determination 
+(\autoref{sec:jason3-pod}), since all required functionality is delivered via the 
+different modules. Adding yet another satellite in the processing chain, would only 
+require the development of a dedicated attitude model (as e.g. done for \gls{jason}-3, \autoref{ssec:jason3-attitude}) 
+and accommodating for the new state parameters in the filter.
+
+Results obtained for the case of orbit determination using the \gls{jason}-3 satellite, 
+show average discrepancies, with respect to the \gls{cnes}/SSALTO (multitechnique) solution, 
+that amount to a few \si{\meter} in position and a few \si{\milli\meter\per\sec} for 
+velocity estimates. Evidently, this cannot be qualified as a \gls{pod} result, but limitations 
+of the current analysis pipeline are well identified and easy to transcend. These are
+\begin{itemize}
+  \item Limitations in the force model, including:
+    \begin{itemize}
+      \item Currently only a few major ocean tidal constituents are considered. More 
+        can be added since the capacity is already there.
+      \item Account for earth pole tides and ocean pole tides (\cite{iers2010}). These 
+        tidal effects are less pronounced than the earth and ocean loading effects and 
+        simpler to model.
+      \item Apply more complex Earth radiation modeling (e.g. include albedo and empirical models)
+      \item Add dealiasing products (some gravity models were determined using this model)
+      \item Account for atmospheric loading effects
+    \end{itemize}
+  \item Adjust tropospheric for more robust tropospheric delay estimation
+  \item Handle displacement of reference points (effects of tides on crustal deformation)
+  \item Implement a more robust treatment of \emph{proper time} (currently estimates extracted from RINEX)
+  \item Discriminate between \emph{zero tide} and \emph{tide free} models and adopt a unified approach
+\end{itemize}
+
+Yet the most important step towards a more precise estimation process, would be the adoption 
+of a more robust filtering design. Currently the \emph{Extended Kalman Filter} algorithm is used 
+as estimator (\autoref{sec:pod-extended-kalman-filter}). The more efficient and 
+rigorous formulation of the Square Root Information Filtering (SRIF) algorithm (\cite{Tapley2004}) could 
+replace the current implementation. More crucially though, the introduction of stochastic 
+properties via \emph{process noise}. Currently, no process noise is introduced in the filter, 
+meaning that the force model is considered ``errorless'', and the estimation is not 
+allowed to deviate and account for mismodeled or even unmodeled effects. Process noise 
+needs to be included in the model also due to modeling approximations and model integration errors.
+In a least squares sense, such effects are treated using stochastic accelerations (\cite{Jaggi2005b}).
+
+It should be noted that the above constitute refinements to the already existing 
+software package. The bulk of the work, to reach a state-of-the-art, scientific 
+software tool has already been performed and via this Thesis is made available to all 
+interested parties. By far the biggest part of such a tool is already in place, 
+extensively documented and thoroughly tested. Considering the fact that the few 
+software packages that do exist for accurate processing of \gls{doris} observations 
+are either non-free and/or not open-sourced, the tools presented here constitute a 
+novel alternative.
+
+\iffalse
+\gls{pod} analysis is a very challenging task, requiring multi-scientific expertise, 
+coupled with efficient engineering. Given the accuracy requirements today (especially 
+for altimetry missions on-board which \gls{doris} receivers are installed), the 
+ever growing number of scientific satellites missions, and the widening of the application 
+range (e.g. climate change studies), it constitutes a field of growing dynamics.
+\fi

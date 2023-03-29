@@ -146,6 +146,7 @@
 \DeclareSIUnit\century{century}
 \DeclareSIUnit\year{yr}
 \DeclareSIUnit\larcsecond{as} %% literal arcsecond
+\DeclareSIUnit\revolution{rev}
 
 % augment the paragraph skip ... a bit more clear text
 \setlength{\parskip}{1em}
@@ -253,6 +254,7 @@
 \newacronym{noaa}{NOAA}{National Oceanic and Atmospheric Administration}
 \newacronym{eumetsat}{EUMETSAT}{European Organisation for the Exploitation of Meteorological Satellites}
 \newacronym{saa}{SAA}{South Atlantic Anomaly}
+\newacronym{cddis}{CDDIS}{Crustal Dynamics Data Information System}
 
 \title{PhD Memo and Notes}
 \author{Xanthos}
@@ -283,13 +285,14 @@
 %% makeindex phd_report.nlo -s nomencl.ist -o phd_report.nls
 \printnomenclature
 
+%\iffalse
 \chapter{Introduction}\label{ch:introduction}
 \input{chapters/sections/introduction}
 \input{chapters/sections/the_software}
 \input{chapters/sections/costg_benchmark_test}
 
-\iffalse
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
+    \input{chapters/sections/astrodynamics_introduction}
   \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
@@ -338,12 +341,17 @@
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
-\fi
-\chapter{\gls{pod} Using \gls{doris}}\label{ch:pod-using-doris}
+%\fi
+\chapter{Orbit Determination Using \gls{doris}}\label{ch:pod-using-doris}
   \input{chapters/sections/pod_wdoris_introduction}
   \input{chapters/sections/jason3}
   \input{chapters/sections/saa}
   \input{chapters/sections/software_test}
+
+\chapter{Conclusions And Recommendations}\label{ch:summary-and-recomend}
+  \input{chapters/sections/conclusions}
+  \input{chapters/sections/reccommendations}
+
 
 \iffalse
   \include{chapters/orbit_intergators}
