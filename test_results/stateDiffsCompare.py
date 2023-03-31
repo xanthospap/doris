@@ -413,6 +413,7 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
           axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+          axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
           dsts = ColStatistics(diffs,index,fac)
           text_x = t[0] #t[-1] - (t[-1] - t[0]) / 10e0
           text_y = dsts.minmax[0] # dsts.minmax[1] - (dsts.minmax[1]-dsts.minmax[0]) / 10e0
@@ -420,7 +421,8 @@ def plot_state_diffs(fnref, fntest, max_hours, save_as, shadow_passes_fn):
             axs[component, pv].text(text_x, text_y, 'Mean: {:+.1f} +/- {:.1f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
           else:
             axs[component, pv].text(text_x, text_y, 'Mean: {:+.4f} +/- {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
-          axs[component, pv].grid(True, 'both', 'x')
+          axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
+          axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
           if shd_passes != []:
               for intrv in shd_passes:
                 axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
