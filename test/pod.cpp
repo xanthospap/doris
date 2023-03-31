@@ -824,35 +824,38 @@ int main(int argc, char *argv[]) {
    */
   const int NumBeacons = beaconCrdVec.size();
   const int NumParams = 6 + m + NumBeacons;
-  double apriori_sigma_freqbias, apriori_sigma_orbsp3, apriori_sigma_Cd,
-      apriori_sigma_Cr;
+  double apriori_sigma_freqbias, apriori_sigma_orbsp3_pos,
+      apriori_sigma_orbsp3_vel, apriori_sigma_Cd, apriori_sigma_Cr;
   Kalman filter(NumParams);
   { /* a-priori P matrix */
     error = dso::get_yaml_value_depth2<double>(
         config, "filtering", "deffen-sigma", apriori_sigma_freqbias);
     error = dso::get_yaml_value_depth2<double>(
-        config, "filtering", "orbsp3-sigma", apriori_sigma_orbsp3);
+        config, "filtering", "orbsp3-sigma-pos", apriori_sigma_orbsp3_pos);
+    error = dso::get_yaml_value_depth2<double>(
+        config, "filtering", "orbsp3-sigma-vel", apriori_sigma_orbsp3_vel);
     error = dso::get_yaml_value_depth2<double>(config, "filtering", "cd-sigma",
                                                apriori_sigma_Cd);
     error = dso::get_yaml_value_depth2<double>(config, "filtering", "cr-sigma",
                                                apriori_sigma_Cr);
-    assert(apriori_sigma_Cd > 0e0 && apriori_sigma_Cd < 1e2 && (!error));
-    assert(apriori_sigma_orbsp3 > 0e0 && apriori_sigma_orbsp3 < 1e2 &&
-           (!error));
-    assert(apriori_sigma_freqbias > 0e0 && apriori_sigma_freqbias < 1e2 &&
-           (!error));
-    assert(apriori_sigma_Cr > 0e0 && apriori_sigma_Cr < 1e2 && (!error));
-    /* a-priori sigma for Δfe / feN */
-    filter.P *= (apriori_sigma_freqbias * apriori_sigma_freqbias);
+    /* Initialize to Unit matrix */
+    filter.P = Eigen::MatrixXd::Identity(NumParams,NumParams);
+    /* Covariance for state/position */
+    filter.P.block<3, 3>(0, 0) *=
+        (apriori_sigma_orbsp3_pos * apriori_sigma_orbsp3_pos);
+    /* Covariance for state/velocity */
+    filter.P.block<3, 3>(3, 3) *=
+        (apriori_sigma_orbsp3_vel * apriori_sigma_orbsp3_vel);
+    /* Covariance for Δfe / feN */
+    filter.P.block(6 + m, 6 + m, NumBeacons, NumBeacons) *=
+        (apriori_sigma_freqbias * apriori_sigma_freqbias);
+    /* drag coefficient */
     if (m >= 1) {
       filter.P(6, 6) *= (apriori_sigma_Cd * apriori_sigma_Cd);
       if (m > 1)
+        /* radiation coefficient */
         filter.P(7, 7) *= (apriori_sigma_Cr * apriori_sigma_Cr);
     }
-    filter.P.block<3, 3>(0, 0) *=
-        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3) / (apriori_sigma_freqbias * apriori_sigma_freqbias);
-    filter.P.block<3, 3>(3, 3) *=
-        (apriori_sigma_orbsp3 * apriori_sigma_orbsp3)/(apriori_sigma_freqbias * apriori_sigma_freqbias);
   }
   double apriori_Cd, apriori_Cr;
   { /* a-priori estimates */
@@ -900,10 +903,7 @@ int main(int argc, char *argv[]) {
   // error flag
   error = 0;
 
-  /* initial ITRF latitude of satellite; kept to mark orbit revolutions */
-  double prev_latitude_revolution = 0;
-  double init_latitude_revolution = 0;
-  int ascending_revolution = 0;
+  /* Epoch when the last revolution was concluded */
   dso::TwoPartDate last_revolution_at(dso::datetime<dso::nanoseconds>::max());
 
   /* store last beacon observation */
@@ -950,6 +950,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR. Failed to integrate orbit!\n");
         return 1;
       }
+      /* assign time of initialization; considered time of first revolution */
       last_revolution_at = tobs_tai;
     } else {
       if (svState.integrate(tobs_tai, Integrator)) {
@@ -972,8 +973,8 @@ int main(int argc, char *argv[]) {
     }
 
     /* check to see if we have a new orbit revolution */
-    if (1==2) {
-    if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(last_revolution_at) > 112.42 * 60e0) {
+    if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+            last_revolution_at) > 112.42 * 60e0) {
       printf("[DEBUG] New SV revolution around the Earth at %s "
              "re-initialize Cd/Cr\n",
              dtbuf);
@@ -994,56 +995,6 @@ int main(int argc, char *argv[]) {
       if (m > 1)
         IntegrationParams.srp_ceofficient() = filter.x(7);
       last_revolution_at = tobs_tai;
-    }}
-    if (1==2)
-    {
-      const auto itrf = svState.itrf_position_cm();
-      const auto lfh = dso::car2ell<dso::ellipsoid::grs80>(itrf);
-      const double latitude = lfh(1);
-      if (prev_latitude_revolution + init_latitude_revolution == 0e0) {
-        /* both uninitialized */
-        prev_latitude_revolution = latitude;
-      } else if (init_latitude_revolution == 0e0 &&
-                 prev_latitude_revolution != 0e0) {
-        /* */
-        init_latitude_revolution = latitude;
-        ascending_revolution =
-            (init_latitude_revolution - prev_latitude_revolution) > 0e0;
-      } else {
-        /* check if we completed a revolution */
-        int new_orbit_cycle = 0;
-        int ascending = (latitude - prev_latitude_revolution) > 0;
-        if (ascending == ascending_revolution) {
-          if (ascending > 0 && latitude > init_latitude_revolution) {
-            new_orbit_cycle = 1;
-          } else if (ascending < 0 && latitude < init_latitude_revolution) {
-            new_orbit_cycle = 1;
-          }
-        }
-        prev_latitude_revolution = latitude;
-        /* update once-per-revolution parameters */
-        if (new_orbit_cycle) {
-          printf("[DEBUG] New SV revolution around the Earth at %s "
-                 "re-initialize Cd/Cr\n",
-                 dtbuf);
-          if (m >= 1) {
-            filter.x(6) = apriori_Cd;
-            filter.P.row(6).setZero();
-            filter.P.col(6).setZero();
-            filter.P(6, 6) = apriori_sigma_Cd * apriori_sigma_Cd;
-            if (m > 1) {
-              filter.P.row(7).setZero();
-              filter.P.col(7).setZero();
-              filter.P(7, 7) = apriori_sigma_Cr * apriori_sigma_Cr;
-              filter.x(7) = apriori_Cr;
-            }
-          }
-          if (m >= 1)
-            IntegrationParams.drag_ceofficient() = filter.x(6);
-          if (m > 1)
-            IntegrationParams.srp_ceofficient() = filter.x(7);
-        }
-      }
     }
 
     /* block-specific counters */
@@ -1176,10 +1127,6 @@ int main(int argc, char *argv[]) {
                       Vobs, -Vtheo, sigma_obs, H, var_prediction);
                   /* outlier check */
                   if (res_prediction > 3 * std::sqrt(var_prediction)) {
-                    //fprintf(stderr,
-                    //        "[WRNNG] Skipping observation at %.4s at %s "
-                    //        "because of large residual\n",
-                    //        b4id, dtbuf);
                     ++flagged_res_obs;
                     ++flagged_res_obs_block;
                   } else {
@@ -1238,12 +1185,15 @@ int main(int argc, char *argv[]) {
              svState.itrf_state_cm()(0), svState.itrf_state_cm()(1),
              svState.itrf_state_cm()(2), svState.itrf_state_cm()(3),
              svState.itrf_state_cm()(4), svState.itrf_state_cm()(5));
+      printf("[ORS] %s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", dtbuf,
+             filter.P(0, 0), filter.P(1, 1), filter.P(2, 2), filter.P(3, 3),
+             filter.P(4, 4), filter.P(5, 5));
     }
 
     ++num_blocks; /* augment data block counter */
 
     if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalDays>(
-            dso::TwoPartDate(rnx.time_of_first_obs())) > MAX_HOURS / 24e0)
+            dso::TwoPartDate(rnx.time_of_first_obs())) > MAX_HOURS / 12e0)
       break;
   } /* data blocks ended, no more data in RINEX */
 

@@ -54,12 +54,14 @@ filtering:
   ## Units: [m/sec]
   observation-sigma: 5e-2
   ## A-priori sigma for Δfe / feN
-  deffen-sigma: 1e-1
-  ## A-priori sigma for initial state (sp3)
-  orbsp3-sigma: 2e0
+  deffen-sigma: 1e0
+  ## A-priori sigma for initial state/position (sp3)
+  orbsp3-sigma-pos: 1e-1
+  ## A-priori sigma for initial state/velocity (sp3)
+  orbsp3-sigma-vel: 1e-2
   ## A-priori sigma for Cd (aka drag coefficient)
-  cd-sigma: .5e0
+  cd-sigma: 1e0
   ## A-priori sigma for Cr (aka srp coefficient)
-  cr-sigma: .5e0
+  cr-sigma: 1e0
   ## Units: [degrees]
   elevation-cut-off: 10e0 ## in degrees
