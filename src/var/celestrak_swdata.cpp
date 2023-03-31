@@ -17,17 +17,11 @@ constexpr const char header[] =
     "AP6,AP7,AP8,AP_AVG,CP,C9,ISN,F10.7_OBS,F10.7_ADJ,F10.7_DATA_TYPE,F10.7_"
     "OBS_CENTER81,F10.7_OBS_LAST81,F10.7_ADJ_CENTER81,F10.7_ADJ_LAST81";
 
-// F10.7_OBS -> 25
-// F10.7_ADJ -> 26
-// F10.7_OBS_CENTER81 -> 28
-// F10.7_OBS_LAST81 -> 29
-// F10.7_ADJ_CENTER81 -> 30
-
 int dso::utils::celestrak::details::resolve_csv_line_records(
     const char *line,
     dso::utils::celestrak::details::CelestTrakSWFlux &flux_data) noexcept {
 
-  // parse date
+  /* parse date UTC */
   if (dso::utils::celestrak::details::resolve_csv_line_date(line,
                                                             flux_data.mjd_)) {
     return 1;
@@ -36,9 +30,9 @@ int dso::utils::celestrak::details::resolve_csv_line_records(
   const auto sz = std::strlen(line);
   const char *c = line;
 
-  // find and skip 12 ',' chars
+  /* find and skip 3 ',' chars i.e. columns [DATE,BSRN,ND,] */
   int commas = 0;
-  while (*c++ && commas < 12) {
+  while (*c++ && commas < 3) {
     if (*c == ',') {
       ++commas;
     }
@@ -47,13 +41,13 @@ int dso::utils::celestrak::details::resolve_csv_line_records(
     return 2;
   }
 
-  // last character in the string, the limit for conversions
+  /* last character in the string, the limit for conversions */
   const char *last = line + sz - 1;
 
-  // resolve the 8 hourly AP's (these are ints)
-  int i = 0;
-  while (i < 8) {
-    auto pec = std::from_chars(c, last, flux_data.ApIndexes[i]);
+  /* get 8 hourly Kp's (nts) i.e. [KP1,KP2,KP3,KP4,KP5,KP6,KP7,KP8,] */
+  int i=0;
+  while (i<8) {
+    auto pec = std::from_chars(c, last, flux_data.KpIndexes[i]);
     c = pec.ptr;
     if (*c++ != ',' || pec.ec != std::errc{}) {
       return 3 + i;
@@ -61,70 +55,84 @@ int dso::utils::celestrak::details::resolve_csv_line_records(
     ++i;
   }
 
-  // now ptr should point to the first char (after comma) of the next column
-  // next column is daily average Ap
-  auto pec = std::from_chars(c, last, flux_data.ApDailyAverage);
-  if (pec.ec != std::errc{} || *pec.ptr++ != ',') {
-    return 11;
-  }
-  c = pec.ptr;
-
-  // we are now at column CP; skip and, and do so also for columns:
-  // C9, ISN
-  // Go three ',' forward
-  commas = 0;
-  while (*c++ && commas < 3) {
-    if (*c == ',') {
-      ++commas;
+  /* get 8 hourly Kp's (nts) i.e. [KPSUM,] */
+    auto pec = std::from_chars(c, last, flux_data.KpSum);
+    c = pec.ptr;
+    if (*c++ != ',' || pec.ec != std::errc{}) {
+      return 9;
     }
-  }
-  if (!*c) {
-    return 12;
+
+  /* get 8 hourly Ap's (nts) i.e. [AP1,AP2,AP3,AP4,AP5,AP6,AP7,AP8,] */
+  while (i < 8) {
+    pec = std::from_chars(c, last, flux_data.ApIndexes[i]);
+    c = pec.ptr;
+    if (*c++ != ',' || pec.ec != std::errc{}) {
+      return 3 + i;
+    }
+    ++i;
   }
 
-  // we are not at the F10.7_OBS column (25)
-  pec = std::from_chars(c, last, flux_data.f107Obs);
-  c = pec.ptr;
-  if (pec.ec != std::errc{} || *c++ != ',') {
-    return 13;
+  /* get Ap daily average [AP_AVG,] */
+    pec = std::from_chars(c, last, flux_data.ApDailyAverage);
+    c = pec.ptr;
+    if (*c++ != ',' || pec.ec != std::errc{}) {
+      return 11;
+    }
+
+  {/* skip columns [CP,C9,ISN,] */
+    commas = 0;
+    while (*c++ && commas < 3) {
+      if (*c == ',') {
+        ++commas;
+      }
+    }
+    if (!*c)
+      return 12;
   }
 
-  // we are not at the F10.7_ADJ
+  /* we are not at the F10.7_OBS column */
+    pec = std::from_chars(c, last, flux_data.f107Obs);
+    c = pec.ptr;
+    if (pec.ec != std::errc{} || *c++ != ',') {
+      return 13;
+    }
+  
+  /* get [F10.7_ADJ,] */
   pec = std::from_chars(c, last, flux_data.f107Adj);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',') {
     return 14;
   }
 
-  // we are now at the F10.7_DATA_TYPE; just copy three chars
+  /* [F10.7_DATA_TYPE] just copy three chars */
   std::memcpy(flux_data.flag, c, 3 * sizeof(char));
   c += 3;
   if (*c++ != ',')
     return 15;
 
-  // column F10.7_OBS_CENTER81
+  /* [F10.7_OBS_CENTER81,] */
   pec = std::from_chars(c, last, flux_data.f107ObsC81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 16;
 
-  // column F10.7_OBS_LAST81
+  /* [F10.7_OBS_LAST81,] */
   pec = std::from_chars(c, last, flux_data.f107ObsL81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 17;
 
-  // column F10.7_ADJ_CENTER81
+  /* [F10.7_ADJ_CENTER81,] */
   pec = std::from_chars(c, last, flux_data.f107AdjC81);
   c = pec.ptr;
   if (pec.ec != std::errc{} || *c++ != ',')
     return 18;
-
-  // column F10.7_ADJ_LAST81
-  // pec = std::from_chars(++c, last, flux_data.f107Adj);
-  // c = pec.ptr;
-  // if (pec.ec != std::errc{} || *c++ != ',')
-  //  return 1;
+  
+  /* [F10.7_ADJ_LAST81] note that this is the last column!*/
+  pec = std::from_chars(c, last, flux_data.f107AdjL81);
+  c = pec.ptr;
+  if (pec.ec != std::errc{})
+    return 18;
 
   return 0;
 }
@@ -188,6 +196,7 @@ int dso::utils::celestrak::details::get_next(
   return 0;
 }
 
+/* TODO obsolete, should be removed */
 int dso::utils::celestrak::details::parse_csv_for_date(
     dso::modified_julian_day mjd, const char *fncsv,
     dso::utils::celestrak::details::CelestTrakSWFlux *flux_data,
@@ -202,8 +211,8 @@ int dso::utils::celestrak::details::parse_csv_for_date(
   // open the csv file
   std::ifstream fin(fncsv);
   if (!fin.is_open()) {
-    fprintf(stderr, "ERROR@%s: Failed opening SW csv file %s\n", __func__,
-            fncsv);
+    fprintf(stderr, "[ERROR]: Failed opening SW csv file %s (traceback: %s)\n",
+            fncsv, __func__);
     return fn_error;
   }
   char line[MAX_SW_CHARS];
@@ -223,8 +232,8 @@ int dso::utils::celestrak::details::parse_csv_for_date(
       // may include whitespace chars ... no std::strcmp
     } else if (std::strncmp(line, header, hsz)) {
       fprintf(stderr,
-              "ERROR@%s: Failed to match header line in SW csv file %s\n",
-              __func__, fncsv);
+              "[ERROR] Failed to match header line in SW csv file %s (traceback: %s)\n",
+              fncsv, __func__);
       return fn_error;
     }
   }
@@ -235,7 +244,7 @@ int dso::utils::celestrak::details::parse_csv_for_date(
   // not included in the file ...
   fin.getline(line, MAX_SW_CHARS);
   if (resolve_csv_line_date(line, cmjd)) {
-    fprintf(stderr, "ERROR@%s: Failed parsing SW csv line %s\n", __func__,
+    fprintf(stderr, "[ERROR]: Failed parsing SW csv line %s (traceback: %s)\n", __func__,
             line);
     return parse_error;
   }

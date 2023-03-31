@@ -13,14 +13,17 @@ constexpr const double MissingSwData = std::numeric_limits<double>::min();
 /// see https://celestrak.org/SpaceData/SpaceWx-format.php
 struct CelestTrakSWFlux {
   dso::modified_julian_day mjd_;
-  double f107Obs{MissingSwData},        ///< F10.7_OBS -> 25
-      f107Adj{MissingSwData},           ///< F10.7_ADJ -> 26
-      f107ObsC81{MissingSwData},        ///< F10.7_OBS_CENTER81 -> 28
-      f107ObsL81{MissingSwData},        ///< F10.7_OBS_LAST81 -> 29
-      f107AdjC81{MissingSwData};        ///< F10.7_ADJ_CENTER81 -> 30
+  double f107Obs{MissingSwData};        ///< F10.7_OBS -> 25
+  double f107Adj{MissingSwData};           ///< F10.7_ADJ -> 26
+  double f107ObsC81{MissingSwData};        ///< F10.7_OBS_CENTER81 -> 28
+  double f107AdjC81{MissingSwData};        ///< F10.7_ADJ_CENTER81 -> 30
+  double f107ObsL81{MissingSwData};        ///< F10.7_OBS_LAST81 -> 29
+  double f107AdjL81{MissingSwData};        ///< F10.7_ADJ_LAST81 -> 31
   double ApDailyAverage{MissingSwData}; ///< Arithmetic average of the 8 Ap
                                         ///< indices for the day. -> 21
   int ApIndexes[8];                     ///< 3-hour Ap indexes -> [13-20]
+  int KpIndexes[8];                     ///< 3-hour Kp indexes -> [3-10]
+  double KpSum{MissingSwData};          ///< Sum of the 8 Kp indices for the day
   char flag[5] = {'\0'};                ///< Flux Qualifier
 };
 
@@ -44,6 +47,7 @@ int resolve_csv_line_records(const char *line,
 int resolve_csv_line_date(const char *line,
                           dso::modified_julian_day &mjd) noexcept;
 
+// TODO the following two functions are obsolete and should be deleted
 /// @brief Parse a SW CSV file and return Flux info for a given number of days,
 ///        centered around given date.
 /// The function will parse a (what is expected to be) SW CSV file and return

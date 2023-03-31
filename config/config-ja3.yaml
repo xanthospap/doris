@@ -27,8 +27,8 @@ ocean-tides:
   
 gravity:
   # model: data/gfc/GOCO02s.gfc
-  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
-  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
+  # model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.linear_mean_pole.zero_slope_extrapolation.gfc2
+  model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc
   degree: 120
   order: 120
 
@@ -40,7 +40,8 @@ troposphere:
 
 force-model:
   atmospheric-drag:
-    drag-model: nrlmsise00
+    # drag-model: nrlmsise00
+    dtm2020-data: data/DTM_2020_F107_Kp.dat
     atmo-data-csv: data/SW-All.csv
     Cd-apriori: 2e0
   srp:

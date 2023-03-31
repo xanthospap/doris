@@ -2,6 +2,7 @@
 #define __ORBIT_INTEGRATION_PARAMETERS_HPP__
 
 #include "atmosphere.hpp"
+#include "atmosphere/dtm2020/dtm2020.hpp"
 #include "egravity.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "iers2010/eop.hpp"
@@ -11,7 +12,6 @@
 #include "satellites/jason3_quaternions.hpp"
 #include <cassert>
 #include <datetime/dtcalendar.hpp>
-#include <datetime/dtfund.hpp>
 
 namespace dso {
 
@@ -108,10 +108,8 @@ struct IntegrationParameters {
   ///< Satellite-specific information
   SvFrame *svFrame{nullptr};
   /* atmospheric density model and data feed */
-  dso::Nrlmsise00 nrlmsise00;
-  dso::nrlmsise00::InParams<
-      dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW> *atm_data_feed{
-      nullptr};
+  dso::Dtm2020 Dtm20;
+  /* setup dynamic parameters */
   double Cd = 2e0;
   double &drag_ceofficient() noexcept {return Cd;}
   double Cr = 1.5e0;
@@ -123,9 +121,9 @@ struct IntegrationParameters {
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
                         const dso::HarmonicCoeffs &harmonics_,
-                        const char *pck_kernel) noexcept
+                        const char *pck_kernel, const char *dtm2020datafile) noexcept
       : eopLUT(eoptable_), harmonics(harmonics_), degree(degree_),
-        order(order_),
+        order(order_), Dtm20(dtm2020datafile),
         V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
             degree_ + 3, degree_ + 3)),
         W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
@@ -138,17 +136,6 @@ struct IntegrationParameters {
                     Eigen::Matrix<double, 3, 1> varp, const char *qfn,
                     double mass) {
     svFrame = new dso::SvFrame(vcog,varp,qfn,mass);
-  }
-
-  void set_atmospheric_data_feed(const dso::TwoPartDate &utc, const char *fn) {
-    const auto t = utc.normalized();
-    const dso::modified_julian_day mjd(static_cast<long>(t._big));
-    const double secday = t._small * 86400e0;
-    atm_data_feed = new dso::nrlmsise00::InParams<
-        dso::nrlmsise00::detail::FluxDataFeedType::ST_CSV_SW>(fn, mjd, secday);
-    atm_data_feed->params_.set_switches_on();
-    atm_data_feed->params_.use_aparray();
-    atm_data_feed->params_.meters_on();
   }
 
   // TODO

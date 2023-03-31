@@ -127,7 +127,7 @@ int solar_radiation_pressure(const dso::TwoPartDate &tai,
   return 0;
 }
 
-int drag(const dso::TwoPartDate &t, const Eigen::Matrix<double, 3, 1> &rgcrf,
+int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
          const Eigen::Matrix<double, 3, 1> &vgcrf,
          const Eigen::Matrix<double, 3, 1> &ritrf,
          const dso::Itrs2Gcrs &Rot,
@@ -135,69 +135,79 @@ int drag(const dso::TwoPartDate &t, const Eigen::Matrix<double, 3, 1> &rgcrf,
          Eigen::Matrix<double, 3, 3> &ddragdr,
          Eigen::Matrix<double, 3, 3> &ddragdv,
          Eigen::Matrix<double, 3, 1> &ddragdC) {
-    // printf("Drag: ");
-    // get B <- A/m , where A is the projected area */
-    double B;
-    Eigen::Matrix<double, 3, 1> vrel;
-    {
-      // Velocity relative to the Earth's atmosphere
-      const Eigen::Matrix<double, 3, 1> omega{0e0, 0e0, Rot.omega_earth()};
-      vrel = vgcrf - omega.cross(rgcrf);
-      // printf(" vel=%.6f rvel=%.6f", vgcrf.norm(), vrel.norm());
-      // Get m / S
-      if (params.svFrame->projected_area(t, vrel, B)) {
-        fprintf(stderr,
-                "[ERROR] Failed computing Satellite's projected area\n");
-        return 1;
-      }
-      // printf(" S=%.9f A=%.3f", B, B*params.svFrame->mass());
+  // get attitude rotation matrix / quaternion
+  Eigen::Quaternion<double> q;
+  assert(!params.svFrame->get_attitude_quaternion(tai, q));
+  //printf("[DRAG]");
+
+  // relative velocity
+  Eigen::Matrix<double, 3, 1> vrel;
+  {
+    // Velocity relative to the Earth's atmosphere
+    const Eigen::Matrix<double, 3, 1> omega{0e0, 0e0, Rot.omega_earth()};
+    vrel = vgcrf - omega.cross(rgcrf);
+  }
+
+  // loop over box-wings
+  double S = 0e0;
+  const int numPlates = params.svFrame->plates().NumPlates;
+  const dso::MacroModelComponent *plate = nullptr;
+  for (int i = 0; i < numPlates; i++) {
+    plate = params.svFrame->plates().mmcomponents + i;
+    /* (unit) vector of plate, normal in sv-fixed RF */
+    Eigen::Matrix<double, 3, 1> n(plate->m_normal);
+    /* inclination of the ith plate to the  vector */
+    const auto ni = q.conjugate().normalized() * n;
+    const double cosA = ni.transpose() * vrel.normalized();
+    if (cosA > 0e0) {
+      S += (plate->m_surf * cosA);
     }
+  }
+  S /= params.svFrame->mass();
+  //printf(" Area/Mass = %.3f", S);
 
     // get atmospheric density, using the UTC date
-    const dso::TwoPartDate utc = t.tai2utc();
-    assert(!params.atm_data_feed->update_params(utc._big, utc._small * 86400e0));
-    params.atm_data_feed->set_spatial_from_cartesian(ritrf);
-    dso::nrlmsise00::OutParams aout;
-    assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-    const double atmdens = aout.d[5];
+    const dso::TwoPartDate utc = tai.tai2utc();
+    const auto lfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf);
+    if (params.Dtm20.set(utc, lfh[0], lfh[1], lfh[2]/1e3)) {
+      return 1;
+    }
+    if (params.Dtm20.dtm3()) return 1;
+    const double rho = params.Dtm20.total_density_kgm3();
+    //printf(" Total Density: %.3e", rho);
     Eigen::Matrix<double, 3, 1> drhodr;
     { // approximate arithmetic derivative w.r.t satellite ECEF position
-      Eigen::Matrix<double, 3, 1> unitv = Eigen::Matrix<double, 3, 1>::Zero();
-      double p1, m1;
+      const double dr = 5e0;
       // w.r.t X component
-      unitv << 1e0, 0e0, 0e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << -1e0, 0e0, 0e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(0) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+      auto dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({1e0,0e0,0e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      double rhop = params.Dtm20.total_density_grcm3();
+      dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({1e0,0e0,0e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      double rhom = params.Dtm20.total_density_grcm3();
+      drhodr(0) = (rhop-rhom) / (2*dr);
       // w.r.t Y component
-      unitv << 0e0, 1e0, 0e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, -1e0, 0e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(1) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+      dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({0e0,1e0,0e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      rhop = params.Dtm20.total_density_grcm3();
+      dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({0e0,1e0,0e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      rhom = params.Dtm20.total_density_grcm3();
+      drhodr(1) = (rhop-rhom) / (2*dr);
       // w.r.t Z component
-      unitv << 0e0, 0e0, 1e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      p1 = aout.d[5];
-      unitv << 0e0, 0e0, 1e0;
-      params.atm_data_feed->set_spatial_from_cartesian(ritrf + unitv);
-      assert(!params.nrlmsise00.gtd7d(&(params.atm_data_feed->params_), &aout));
-      m1 = aout.d[5];
-      drhodr(2) = ((p1 - atmdens) + (atmdens - m1)) / 2e0;
+      dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({0e0,0e0,1e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      rhop = params.Dtm20.total_density_grcm3();
+      dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({0e0,0e0,1e0}));
+      if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      rhom = params.Dtm20.total_density_grcm3();
+      drhodr(2) = (rhop-rhom) / (2*dr);
+      // scale (gram/cm3 to kg/m^3)
+      drhodr *= 1e-7;
     }
-    // printf(" p=%.9e\n", atmdens);
     drag =
-        dso::drag_accel(vrel, B, params.Cd, atmdens, drhodr, ddragdr, ddragdv, ddragdC);
+        dso::drag_accel(vrel, S, params.Cd, rho, drhodr, ddragdr, ddragdv, ddragdC);
+    //printf(" [DRAG]\n");
     //drag =
     //    dso::drag_accel(r, v, ProjArea, *(params.drag_coef), *(params.SatMass),
     //                    atmdens, drhodr, ddragdr, ddragdv, ddragdC);
@@ -482,10 +492,10 @@ void dso::VariationalEquations_ta(
     Eigen::Matrix<double, 3, 1> tdadp;
     if (drag(cmjd.tai2tt(), r, v, r_itrf, Rot, params, ta, tdadr, tdadv, tdadp))
       assert(false);
-    a += ta;
-    dadr += tdadr;
-    dadv += tdadv;
-    dadp.block<3,1>(0,0) = tdadp;
+    a += (ta=Eigen::Matrix<double, 3, 1>::Zero());
+    dadr += (tdadr=Eigen::Matrix<double, 3, 3>::Zero());
+    dadv += (tdadv=Eigen::Matrix<double, 3, 3>::Zero());
+    dadp.block<3,1>(0,0) = (tdadp=Eigen::Matrix<double, 3, 1>::Zero());
     //printf(" %.9f[drag]", Rot.itrf2gcrf(ta).norm());
   }
 

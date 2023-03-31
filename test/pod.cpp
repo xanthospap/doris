@@ -737,12 +737,18 @@ int main(int argc, char *argv[]) {
   // -------------------------------------------------------------------------
   // We will need the pck (SPICE) kernel for gravitational parameters of Sun
   // and Moon
-  if (dso::get_yaml_value_depth2(config, "naif-kernels", "pck", buf)) {
+  char pck_kernel[256];
+  if (dso::get_yaml_value_depth2(config, "naif-kernels", "pck", pck_kernel)) {
     fprintf(stderr, "ERROR Failed locating NAIF pck kernel\n");
     return 1;
   }
+  char dtm2020_data[256];
+  if (dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag", "dtm2020-data", dtm2020_data)) {
+    fprintf(stderr, "ERROR Failed locating dtm2020-data\n");
+    return 1;
+  }
   dso::IntegrationParameters IntegrationParams(degree, order, eop_lut,
-                                               harmonics, buf);
+                                               harmonics, pck_kernel, dtm2020_data);
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -807,13 +813,18 @@ int main(int argc, char *argv[]) {
     svState.set_attitude(IntegrationParams);
   }
   
-  // Data feed for the NRLMSISE00 model
+  // Data feed for the DTM2020 model
   // -------------------------------------------------------------------------
   if (INCLUDE_ATM_DRAG) {
     dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag",
                                "atmo-data-csv", buf);
     const dso::TwoPartDate t0(rnx.time_of_first_obs());
-    IntegrationParams.set_atmospheric_data_feed(t0.tai2utc(), buf);
+    dso::SolarActivityData flux;
+    if (flux.feed(buf, rnx.time_of_first_obs(), 3, 3)) {
+      fprintf(stderr, "[ERROR] Failed to read required solar flux data from file %s\n", buf);
+      return 1;
+    }
+    IntegrationParams.Dtm20.set_flux_data(flux);
   }
 
   /*

@@ -46,11 +46,14 @@ constexpr const int ikpm = 67;
  *                (i.e. Hp==0) the gldtm version is called
  * @return gdel
  */
-double dso::Dtm2020::gldtm(const double *const f, const double *const fbar,
-                           const double *const akp,
-                           const double *__restrict__ a,
+double dso::Dtm2020::gldtm(const double *__restrict__ a,
                            double *__restrict__ da, double ff0,
                            double longitude) noexcept {
+  /* flux data */
+  const double *const f = mf;
+  const double *const fbar = mfbar;
+  const double *const akp = makp;
+
   double fmfb[] = {0e0, 0e0};
   fmfb[0] = f[0] - fbar[0];
   fmfb[1] = f[1] - fbar[1];

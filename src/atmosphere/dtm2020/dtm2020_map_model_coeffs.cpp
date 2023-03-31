@@ -112,10 +112,20 @@ int dso::Dtm2020::map_model_coeffs(const char *fn) noexcept {
   assert(num_lines <= nlatm);
 
   /* so ... keep on reading and resolving ... */
-  double data[10];
+  double data[9];
   for (int i = 0; i < num_lines && (!error); i++) {
     fin.getline(line, MAX_CHARS);
     error = parse_data_line(line, data);
+    /* tt(i),h(i),he(i),o(i),az2(i),o2(i),az(i),t0(i),tp(i) */
+    tt[i] = data[0];
+    h[i] = data[1];
+    he[i] = data[2];
+    o[i] = data[3];
+    az2[i] = data[4];
+    o2[i] = data[5];
+    az[i] = data[6];
+    t0[i] = data[7];
+    tp[i] = data[8];
   }
 
   if (error) {

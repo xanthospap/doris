@@ -1,5 +1,6 @@
 #include "atmosphere/dtm2020/dtm2020.hpp"
 #include <cstring>
+#include "geodesy/units.hpp"
 
 namespace {
 constexpr const double cpmg = .19081;
@@ -56,7 +57,7 @@ const double vma[] = {1.6606e-24,  6.6423e-24,  26.569e-24,
  *      wmm     = mean molecular mass (in gram)
  * ***********************************************************************
  */
-int dso::Dtm2020::dtm3(const double *const f, const double *const fbar, const double *const akp) noexcept {
+int dso::Dtm2020::dtm3() noexcept {
   /* data pool */
   double RawMem[nlatm * 9];
   /* initialize to zero */
@@ -117,13 +118,13 @@ int dso::Dtm2020::dtm3(const double *const f, const double *const fbar, const do
   c3h = c2h*ch - s2h*sh;
   s3h = s2h*ch + c2h*sh;
 
-  const double gdelt = gldtm(f, fbar, akp, tt, dtt, 1., in.longitude());
+  const double gdelt = gldtm(tt, dtt, 1., in.longitude());
   dtt[0] = 1. + gdelt;
   out.exospheric_temperature() = tt[0] * dtt[0]; /* exospheric temperature */
-  const double gdelt0 = gldtm(f, fbar, akp, t0, dt0, 1., in.longitude());
+  const double gdelt0 = gldtm(t0, dt0, 1., in.longitude());
   dt0[0] = 1. + gdelt0;
   const double t120 = t0[0] * dt0[0];
-  const double gdeltp = gldtm(f, fbar, akp, tp, dtp, 1., in.longitude());
+  const double gdeltp = gldtm(tp, dtp, 1., in.longitude());
   dtp[0] = 1. + gdeltp;
   const double tp120 = tp[0] * dtp[0];
 
@@ -137,27 +138,27 @@ int dso::Dtm2020::dtm3(const double *const f, const double *const fbar, const do
   out.temperature() = out.exospheric_temperature() - (out.exospheric_temperature() - t120) * expsz;
 
   double dbase[6];
-  const double gdelh = gldtm(f, fbar, akp, h, dh, 0., in.longitude());
+  const double gdelh = gldtm(h, dh, 0., in.longitude());
   dh[0] = std::exp(gdelh);
   dbase[0] = h[0] * dh[0];
 
-  const double gdelhe = gldtm(f, fbar, akp, he, dhe, 0., in.longitude());
+  const double gdelhe = gldtm(he, dhe, 0., in.longitude());
   dhe[1] = std::exp(gdelhe);
   dbase[1] = he[0] * dhe[0];
 
-  const double gdelo = gldtm(f, fbar, akp, o, dox, 1., in.longitude());
+  const double gdelo = gldtm(o, dox, 1., in.longitude());
   dox[0] = std::exp(gdelo);
   dbase[2] = o[0] * dox[0];
 
-  const double gdelaz2 = gldtm(f, fbar, akp, az2, daz2, 1., in.longitude());
+  const double gdelaz2 = gldtm(az2, daz2, 1., in.longitude());
   daz2[0] = std::exp(gdelaz2);
   dbase[3] = az2[0] * daz2[0];
 
-  const double gdelo2 = gldtm(f, fbar, akp, o2, do2, 1., in.longitude());
+  const double gdelo2 = gldtm(o2, do2, 1., in.longitude());
   do2[0] = std::exp(gdelo2);
   dbase[4] = o2[0] * do2[0];
 
-  const double gdelaz = gldtm(f, fbar, akp, az, daz, 1., in.longitude());
+  const double gdelaz = gldtm(az, daz, 1., in.longitude());
   daz[0] = std::exp(gdelaz);
   dbase[5] = az[0] * daz[0];
 
