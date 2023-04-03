@@ -1,7 +1,5 @@
 #include "orbit_integration.hpp"
 #include "planetpos.hpp"
-//#include <cmath>
-//#include <datetime/dtcalendar.hpp>
 
 void dso::SunMoon(const dso::TwoPartDate &mjd_tai,
                   const Eigen::Matrix<double, 3, 1> &rsat, double GMSun,

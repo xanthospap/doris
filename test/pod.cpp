@@ -756,7 +756,7 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations_ta, (6 + 6 * n), 1e-12, 1e-12,
+  dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12, 1e-12,
                         &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
@@ -880,6 +880,7 @@ int main(int argc, char *argv[]) {
         filter.x(7) = apriori_Cr;
       }
     }
+    for (int i=6+m; i<NumParams; i++) filter.x(i) = 1e-3;
   }
 
   // Start RINEX data-block iteration
@@ -937,7 +938,6 @@ int main(int argc, char *argv[]) {
 
     /* have the current date (TAI) ready to print in dtbuf */
     dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
-    // printf("# New observation block (RINEX) at %s\n", dtbuf);
 
     // integrate orbit to here (TAI)
     if (!num_blocks) {
@@ -986,25 +986,17 @@ int main(int argc, char *argv[]) {
     /* check to see if we have a new orbit revolution */
     if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
             last_revolution_at) > 112.42 * 60e0) {
-      printf("[DEBUG] New SV revolution around the Earth at %s "
-             "re-initialize Cd/Cr\n",
+      printf("[REV] New SV revolution around the Earth at %s "
+             "re-initialize Cd\n",
              dtbuf);
       if (m >= 1) {
-        filter.x(6) = apriori_Cd;
+        // filter.x(6) = apriori_Cd;
         filter.P.row(6).setZero();
         filter.P.col(6).setZero();
         filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
-        if (m > 1) {
-          filter.P.row(7).setZero();
-          filter.P.col(7).setZero();
-          filter.P(7, 7) = (apriori_sigma_Cr * apriori_sigma_Cr);
-          filter.x(7) = apriori_Cr;
-        }
       }
       if (m >= 1)
         IntegrationParams.drag_ceofficient() = filter.x(6);
-      if (m > 1)
-        IntegrationParams.srp_ceofficient() = filter.x(7);
       last_revolution_at = tobs_tai;
     }
 
@@ -1147,12 +1139,16 @@ int main(int argc, char *argv[]) {
                     if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
                     if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
                     /* debug print */
-                    printf("[RES] %s %.4s %+.6f [%+.6f %.6f] (%+.3f %+.3f %.3e "
-                           "%.6f %.6f) %.3f\n",
+                    printf("[RES] %s site:%.4s res:%+.6f res_prediction:%+.6f "
+                           "res_var:%.6f vobs:%+.3f vtheo:%+.3f df:%.3e "
+                           "df_var:%.9e cd:%.6f cd_var:%.9e cr:%.6f "
+                           "cr_var:%.9e el:%.3f\n",
                            dtbuf, b4id, Vobs + Vtheo, res_prediction,
-                           std::sqrt(var_prediction), Vobs, Vtheo, DfeFen,
-                           IntegrationParams.drag_ceofficient(),
-                           IntegrationParams.srp_ceofficient(), dso::rad2deg(el));
+                           var_prediction, Vobs, Vtheo, DfeFen,
+                           filter.P(beaconFilterIndex, beaconFilterIndex),
+                           IntegrationParams.drag_ceofficient(), filter.P(6, 6),
+                           IntegrationParams.srp_ceofficient(), filter.P(7, 7),
+                           dso::rad2deg(el));
                     ++filter_obs;
                     ++filter_obs_block;
                   }
@@ -1186,17 +1182,17 @@ int main(int argc, char *argv[]) {
       ++beaconIt;
     } /* end of beacons in current block */
       /* print block statistics */
-    printf("[BLC] %s #obs: %d #LowEle: %d #SAA %d #HighO-C %d "
-           "#filter %d\n",
-           dtbuf, num_cblock_obs, flagged_low_obs_block, flagged_saa_obs_block,
+    printf("[BLC] %s obs:%d rele:%d rsaa:%d rres:%d ufilter:%d\n", dtbuf,
+           num_cblock_obs, flagged_low_obs_block, flagged_saa_obs_block,
            flagged_res_obs_block, filter_obs_block);
 
     { // print state
-      printf("[ORB] %s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", dtbuf,
-             svState.itrf_state_cm()(0), svState.itrf_state_cm()(1),
+      printf("[ORB] %s x:%+.6f y:%+.6f z:%+.6f vx:%+.9f vy:%+.9f vz:%+.9f "
+             "x_var:%+.6e y_var:%+.6e z_var:%+.6e vx_var:%+.9e vy_var:%+.9e "
+             "vz_var:%+.e\n",
+             dtbuf, svState.itrf_state_cm()(0), svState.itrf_state_cm()(1),
              svState.itrf_state_cm()(2), svState.itrf_state_cm()(3),
-             svState.itrf_state_cm()(4), svState.itrf_state_cm()(5));
-      printf("[ORS] %s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", dtbuf,
+             svState.itrf_state_cm()(4), svState.itrf_state_cm()(5),
              filter.P(0, 0), filter.P(1, 1), filter.P(2, 2), filter.P(3, 3),
              filter.P(4, 4), filter.P(5, 5));
     }

@@ -138,7 +138,6 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
   // get attitude rotation matrix / quaternion
   Eigen::Quaternion<double> q;
   assert(!params.svFrame->get_attitude_quaternion(tai, q));
-  //printf("[DRAG]");
 
   // relative velocity
   Eigen::Matrix<double, 3, 1> vrel;
@@ -164,7 +163,6 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
     }
   }
   S /= params.svFrame->mass();
-  //printf(" Area/Mass = %.3f", S);
 
     // get atmospheric density, using the UTC date
     const dso::TwoPartDate utc = tai.tai2utc();
@@ -181,25 +179,31 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
       // w.r.t X component
       auto dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({1e0,0e0,0e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       double rhop = params.Dtm20.total_density_grcm3();
       dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({1e0,0e0,0e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       double rhom = params.Dtm20.total_density_grcm3();
       drhodr(0) = (rhop-rhom) / (2*dr);
       // w.r.t Y component
       dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({0e0,1e0,0e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       rhop = params.Dtm20.total_density_grcm3();
       dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({0e0,1e0,0e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       rhom = params.Dtm20.total_density_grcm3();
       drhodr(1) = (rhop-rhom) / (2*dr);
       // w.r.t Z component
       dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf+dr*Eigen::Matrix<double,3,1>({0e0,0e0,1e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       rhop = params.Dtm20.total_density_grcm3();
       dlfh = dso::car2ell<dso::ellipsoid::grs80>(ritrf-dr*Eigen::Matrix<double,3,1>({0e0,0e0,1e0}));
       if (params.Dtm20.set(utc, dlfh[0], dlfh[1], dlfh[2]/1e3)) return 1;
+      if (params.Dtm20.dtm3()) return 1;
       rhom = params.Dtm20.total_density_grcm3();
       drhodr(2) = (rhop-rhom) / (2*dr);
       // scale (gram/cm3 to kg/m^3)
@@ -207,10 +211,6 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
     }
     drag =
         dso::drag_accel(vrel, S, params.Cd, rho, drhodr, ddragdr, ddragdv, ddragdC);
-    //printf(" [DRAG]\n");
-    //drag =
-    //    dso::drag_accel(r, v, ProjArea, *(params.drag_coef), *(params.SatMass),
-    //                    atmdens, drhodr, ddragdr, ddragdv, ddragdC);
     return 0;
 }
 
@@ -492,10 +492,14 @@ void dso::VariationalEquations_ta(
     Eigen::Matrix<double, 3, 1> tdadp;
     if (drag(cmjd.tai2tt(), r, v, r_itrf, Rot, params, ta, tdadr, tdadv, tdadp))
       assert(false);
-    a += (ta=Eigen::Matrix<double, 3, 1>::Zero());
-    dadr += (tdadr=Eigen::Matrix<double, 3, 3>::Zero());
-    dadv += (tdadv=Eigen::Matrix<double, 3, 3>::Zero());
-    dadp.block<3,1>(0,0) = (tdadp=Eigen::Matrix<double, 3, 1>::Zero());
+    //a += (ta=Eigen::Matrix<double, 3, 1>::Zero());
+    //dadr += (tdadr=Eigen::Matrix<double, 3, 3>::Zero());
+    //dadv += (tdadv=Eigen::Matrix<double, 3, 3>::Zero());
+    //dadp.block<3,1>(0,0) = (tdadp=Eigen::Matrix<double, 3, 1>::Zero());
+    a += ta;
+    dadr += tdadr;
+    dadv += tdadv;
+    dadp.block<3,1>(0,0) = tdadp;
     //printf(" %.9f[drag]", Rot.itrf2gcrf(ta).norm());
   }
 

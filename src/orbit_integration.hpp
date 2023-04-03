@@ -183,6 +183,9 @@ void VariationalEquations_mg(double tsec_away, const Eigen::VectorXd &yPhi,
 void VariationalEquations_ta(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
+void VariationalEquations_thread(double tsec_away, const Eigen::VectorXd &yPhi,
+                          Eigen::Ref<Eigen::VectorXd> yPhiP,
+                          dso::IntegrationParameters &params) noexcept;
 void noVariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
