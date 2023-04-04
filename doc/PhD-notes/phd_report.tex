@@ -6,8 +6,6 @@
 \usepackage{pgfplots}                %% for ploting in latex
 \usepgfplotslibrary{external}
 \usetikzlibrary{pgfplots.groupplots} %% pgf groupplots
-%\usetikzlibrary{pgfplots.external}
-%\tikzexternalize
 \usepackage{xargs} %% Use more than one optional parameter in a new command
 \usepackage{caption}
 \captionsetup[table]{position=bottom}
@@ -17,9 +15,6 @@
 \usepackage{fancyvrb}   %% Verbatim and coloring therein
 \usepackage{hyperref}
 \usepackage{lscape} %% for begin{landscape} ...
-%\usepackage{ltablex} %% for tables spanning pages ...
-%\usepackage{imakeidx}   %% for index
-%\makeindex[columns=3, title=Alphabetical Index]
 \usepackage{soul}       %% allow wrapping of underlined text, via \ul{...}
 %\usepackage{natbib}     %% for bibliography
 \iftrue
@@ -27,7 +22,11 @@
   % https://www.overleaf.com/learn/latex/Biblatex_bibliography_styles
   \usepackage[
     backend=biber,
-    style=authoryear-icomp
+    firstinits=true,
+    style=authoryear-ibid,
+    maxcitenames=2,
+    maxbibnames=25,
+    uniquelist=false
   ]{biblatex}
   \addbibresource{doris.bib}
 \fi
@@ -256,6 +255,9 @@
 \newacronym{saa}{SAA}{South Atlantic Anomaly}
 \newacronym{cddis}{CDDIS}{Crustal Dynamics Data Information System}
 
+% list package version in log file
+\listfiles
+
 \title{PhD Memo and Notes}
 \author{Xanthos}
 \date{\today}
@@ -273,8 +275,13 @@
 \nomenclature[V]{$\bm{R}_x$, $\bm{R}_y$, $\bm{R}_z$}{Elementary rotation matrix, around the $x-$, $y-$ and $z-$axis respectively}
 
 \begin{titlepage}
-\maketitle
+%\maketitle
+\input{chapters/sections/titlepage}
 \end{titlepage}
+
+%
+\pagenumbering{roman}
+\input{chapters/sections/frontmatter}
 
 %\frontmatter
 \tableofcontents
@@ -284,7 +291,11 @@
 %% for this to work, the following command must be issued:
 %% makeindex phd_report.nlo -s nomencl.ist -o phd_report.nls
 \printnomenclature
+%\glsaddall
+\printglossary[type=\acronymtype,title=Acronyms]
 
+
+\pagenumbering{arabic}
 %\iffalse
 \chapter{Introduction}\label{ch:introduction}
 \input{chapters/sections/introduction}
@@ -380,12 +391,7 @@
 
 %\bibliographystyle{agsm} 
 %\bibliography{doris}
-\iftrue
-  \printbibliography
-\fi
-
-%\glsaddall
-\printglossary[type=\acronymtype,title=Acronyms]
+\printbibliography
 
 %\printindex
 

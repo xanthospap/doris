@@ -49,8 +49,10 @@ algorithm (\autoref{fig:sp3-vs-integration-1min}).
 $\bm{y} = \begin{pmatrix}\bm{r} & \bm{v}\end{pmatrix}^T$ between the reference values 
 obtained by the \texttt{sp3} file and the ones computed using the integrator with 
 an extrapolation interval of \SI{1}{\minute}. Differences in the position range 
-between \qtyrange{-2}{2}{\milli\metre} while for the velocity components the 
-differences are within \qtyrange{-1e-5}{1e-5}{\meter\per\second}. A diurnal 
+%between \qtyrange{-2}{2}{\milli\metre} while for the velocity components the 
+between \numrange{-2}{2} \si{\milli\metre} while for the velocity components the 
+%differences are within \qtyrange{-1e-5}{1e-5}{\metre\per\second}. A diurnal 
+differences are within \numrange{-1e-5}{1e-5} \si{\metre\per\second}. A diurnal 
 signal seems to be present in the latter case, which could be due to unmodeled 
 effects of \begin{itemize}
   \item (remaining) ocean tidal constituents, 
@@ -69,8 +71,10 @@ effects of \begin{itemize}
 
 \autoref{fig:sp3-vs-integration-3min} depicts the differences in the state vector 
 when the integration interval is expanded to \SI{3}{\minute}. Differences in 
-position range between \qtyrange{-5}{5}{\milli\metre} while for the velocity 
-components the differences are within \qtyrange{-2e-5}{2e-5}{\meter\per\second}. As in the 
+%position range between \qtyrange{-5}{5}{\milli\metre} while for the velocity 
+position range between \numrange{-5}{5} \si{\milli\metre} while for the velocity 
+%components the differences are within \qtyrange{-2e-5}{2e-5}{\meter\per\second}. As in the 
+components the differences are within \numrange{-2e-5}{2e-5} \si{\meter\per\second}. As in the 
 case of \SI{1}{\minute} extrapolation (see \autoref{fig:sp3-vs-integration-1min}), 
 velocity differences are dominated by a harmonic, diurnal signal and the same can 
 be told for the position discrepancies.
@@ -85,8 +89,10 @@ be told for the position discrepancies.
 
 Differences when extrapolating for an interval of \SI{15}{\minute} are depicted 
 in \autoref{fig:sp3-vs-integration-15min}. In this case, differences in position 
-range between \qtyrange{-5}{5}{\centi\metre} while for the velocity components 
-the range is \qtyrange{-.1}{.1}{\milli\meter\per\second}
+%range between \qtyrange{-5}{5}{\centi\metre} while for the velocity components 
+range between \numrange{-5}{5} \si{\centi\metre} while for the velocity components 
+%the range is \qtyrange{-.1}{.1}{\milli\meter\per\second}
+the range is \numrange{-.1}{.1} \si{\milli\meter\per\second}
 \begin{figure}
   \centering
   \includegraphics[height=.4\textheight,keepaspectratio]{intrp.ja3.15min}

@@ -1,6 +1,6 @@
 \section{Implementation of the \gls{doris} Observation Equation}\label{sec:doris-observation-equation-implementation}
 The observation equation formed to process the \gls{doris} data, is based on 
-\autoref{eq:lem17}. Consequently, two parts are computed, $v_{measured}$ which 
+\autoref{eq:lem17a} and \autoref{eq:lem17b}. Consequently, two parts are computed, $v_{measured}$ which 
 represents the ``observed'' or ``measured'' relative velocity between the receiver 
 and the transmitter, and $v_{theo}$ which is the ``computed'' or ``theoretical'' 
 counterpart. In this way, during the processing phase, all quantities that do not 
@@ -21,21 +21,21 @@ RINEX), then the coordinate time of the event in \gls{tai} is computed as
 \end{equation}
 According to \cite{Lemoine2016} however, there is no need to make a time conversion 
 for the time interval of the Doppler count, i.e. the term $\Delta \tau _r$ in 
-\autoref{eq:lem17}, due to the time-tagging method used in \gls{doris} RINEX.
+\autoref{eq:lem17a} and \autoref{eq:lem17b}, due to the time-tagging method used in \gls{doris} RINEX.
 
 \subsection{Receiver Emitter Geometric Distance}
 The geometric distances between the emitter and the receiver, $\rho _1$ and $\rho _2$, 
 when computed, are corrected for the aberration effect, i.e. the slight displacement of 
 the emitter due to Earth's rotation between signal emission and signal reception at
 the receiver. The algorithm for this correction is described in \autoref{sssec:doris-aberration}.
-Note that checks performed have validated that more than one iterations are practically 
-redundant.
+It is worth noting that the checks performed have confirmed that multiple iterations 
+are practically redundant.
 
 \subsection{Relativistic Correction}\label{ssec:relativistic-correction}
-\autoref{eq:lem17} contains a relativistic correction term, $\Delta u_{REL}$. This 
+\autoref{eq:lem17a} contains a relativistic correction term, $\Delta u_{REL}$. This 
 correction is split into two parts, $\Delta u_{REL_c}$ the part containing the 
 clock correction and $\Delta u_{REL_r}$, containing the effect of the travel 
-path (see \autoref{eq:lem14}). In the implementation followed for this Thesis, 
+path (see \autoref{eq:lem14a} and \autoref{eq:lem14b}). In the implementation followed for this Thesis, 
 only the $\Delta u_{REL_c}$ part is considered (\autoref{eq:lem14a}).
 
 For the receiver part (with subscripts $r$), the respective quantities in 
@@ -62,7 +62,7 @@ the potential is computed as
 \end{equation}
 where $\bm{r}_{ecef}$ is the position vector of the beacon in \gls{itrf}.
 
-In \autoref{eq:lem17}, relativistic corrections must be ``differentiated'' between 
+In \autoref{eq:lem17a}, relativistic corrections must be ``differentiated'' between 
 two consecutive epochs (used for the Doppler count)
 \begin{equation}\label{eq:drel-diff}
   \begin{aligned}
@@ -82,17 +82,17 @@ In the implementation, ``smoothed'' values of RINEX-provided $\Delta f_r / f_{r_
 are used to compute the receiver's proper frequency, given by \autoref{eq:frt-rinex}.
 In a first RINEX pass, $F_{t_i}$ are used to estimate a linear model spanning the 
 whole RINEX time span. These smoothed values are then used to compute relative 
-frequency offsets at the observation epochs (see discussion in \autoref{sssec:true-proprtfrequency-of-the-receiver}). 
+frequency offsets at the observation epochs (see discussion in \autoref{par:receiver-true-proper-frequency}). 
 
 \subsection{Ionospheric Correction}\label{ssec:iono-correction}
 For each observation in the RINEX file, the ionospheric correction is computed 
 and applied to the \SI{2}{\GHz} measurement (as described in \autoref{ssec:iono-correction}), 
 thus transforming it to an ``iono-free'' measurement.
 
-When applied to \autoref{eq:lem17}, ``differenciation'' of the ionospheric 
+When applied to \autoref{eq:lem17a}, ``differenciation'' of the ionospheric 
 delays computed from \ref{eq:iono-delay-cycles} must be performed, affecting two 
 observations (the same ones used to derive the Doppler count). Hence, the term 
-$\Delta v_{IONO}$ appearing in \autoref{eq:lem17} is
+$\Delta v_{IONO}$ appearing in \autoref{eq:lem17a} is
 \begin{equation}
   \Delta v_{IONO} [\si{\m \per \s}] = 
     %\tikz[baseline]{
@@ -105,7 +105,7 @@ $\Delta v_{IONO}$ appearing in \autoref{eq:lem17} is
   \label{eq:dion-diff}
 \end{equation}
 
-\subsubsection{2GHz and Iono-Free Phase Center}\label{sssec:2ghz-ionofree-pco}
+\subsubsection{2GHz and Iono-Free Phase Center}\label{ssec:iono-correction}
 When using the transformed, ``iono-free'' phase measurement, a geometric correction 
 has to be applied to get to the respective beacon (and satellite antenna) phase 
 center. This offset is computed as
@@ -138,11 +138,11 @@ and the ``iono-free'' phase center
 \end{equation}
 where the superscript $satf$ denotes the \emph{satellite-fixed} body/reference 
 frame. On-board satellite antenna phase center offset values can be found in 
-\cite{DorisSatModels}.
+\cite{Cerri2022}.
 
 \subsection{Tropospheric Correction}\label{ssec-tropospheric-correction}
 The GPT3/VMF3 (\cite{Landskron2018}) model is used to handle tropospheric refraction. 
-The hydrostatic zenith delay $zd_{hydrostatic}$, is computing via the ``refined'' 
+The hydrostatic zenith delay $zd_{hydrostatic}$, is computed via the ``refined'' 
 \emph{Saastamoinen} model (\cite{Davis1985} and \cite{Saastamoinen1972}). 
 The corresponding value for the wet delay, $zd_{wet}$ is estimated during the 
 analysis, \emph{per beacon and per pass}, using an initial value provided by 
@@ -154,7 +154,7 @@ delay for an observation at $t=t_i$ is given by
   \delta _{TRO} [\si{\m}] = zd_{hydrostatic} \cdot mf_{hydrostatic} + zd_{wet}\at{t=t_i} \cdot mf_{wet}
 \end{equation}
 
-The tropospheric correction term in \autoref{eq:lem17}, is actually the ``time-differenced'' 
+The tropospheric correction term in \autoref{eq:lem17b}, is actually the ``time-differenced'' 
 tropospheric delay between two measurements (the same ones used to derive the 
 Doppler count), given in \si{\m \per \s}. That is:
 \begin{equation}\label{eq:dtrop-diff}

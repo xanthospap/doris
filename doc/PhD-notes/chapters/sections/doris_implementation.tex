@@ -4,8 +4,10 @@ In the framework of the current Thesis, a software package was designed to analy
 equation model is already discussed in \autoref{sec:doris-observation-equation-implementation}. 
 In this section, general issues of the algorithmic design are presented.
 
-The first issue raised when wanting to process \gls{doris} data, is the parsing of 
-input files. For the software created, the decision was made to stick to the new 
+The first issue that arises when attempting to process \gls{doris} data is the 
+parsing of input files. The decision was made for the software to adhere to 
+the new RINEX format (\autoref{sec:doris-rinex}), as suggested by the \gls{ids}.
+For the software created, the decision was made to stick to the new 
 RINEX format (\autoref{sec:doris-rinex}), as suggested by the \gls{ids}. This decision 
 provides for a wider range of analysis options (compared to the older data format), 
 regarding both the data types available and the subsequent processing options and 
@@ -46,7 +48,7 @@ criteria:
   \item[Observation flags]: every observation in a RINEX file is followed by 
     a list of flags, denoting the instrumentation status (see \cite{DORISRNX3}). Users 
     can define selection criteria based on these flags.
-  \item[Minimum Elevation]: it is well known that measurements performed on low 
+  \item[Minimum Elevation]: measurements performed on low 
     elevation angles include an increased error budget. Users can define an 
     elevation cut-off angle, under which observations are removed for analysis.
   \item[Time Offset]: to compute the Doppler count between two consecutive observations, 
@@ -60,6 +62,6 @@ criteria:
 
 The whole analysis can be performed in two ``passes'' of the RINEX file: the first is 
 performed to model the receiver's proper frequency $f_{r_T}$ (see 
-\autoref{sssec:true-proprtfrequency-of-the-receiver} and \autoref{ssec:receiver-true-proper-frequency}). 
+\autoref{ssec:receiver-true-proper-frequency}). 
 In a second pass, the ``core'' part of the analysis is performed, including 
-parameter estimation.
+parameter estimation. Details on the latter are given in \autoref{ch:pod-using-doris}.

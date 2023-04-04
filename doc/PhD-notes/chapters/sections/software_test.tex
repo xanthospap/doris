@@ -93,6 +93,13 @@ force-model:
 \label{tab:config-example}
 \end{adjustbox}
 
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{state}
+    \caption{Satellite state (in \gls{ecef} RF) estimated for one day of \gls{jason}-3 orbit}
+    \label{fig:state}
+\end{figure}
+
 To validate and check the results obtained for the satellite state estimates, 
 \gls{jason}-3 sp3 files were retrieved from \gls{cddis} (\cite{Noll2010}), recording 
 state (in cartesian components) for the day of interest, with a sampling rate of 
@@ -117,10 +124,63 @@ reference solutions (state estimates) included the following steps:
     until a reference state is computed for all $t$
 \end{enumerate}
 
-Results of the comparison are depicted in \autoref{presentme}.
+Results of the comparison are depicted in \autoref{fig:statediffs}.
 \begin{figure}
     \centering
-    \includegraphics[height=.4\textheight,keepaspectratio]{presentme}
-    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit}
-    \label{fig:presentme}
+    \includegraphics[height=.5\textheight,keepaspectratio]{statediffs}
+    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow.}
+    \label{fig:statediffs}
+\end{figure}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabularx}{\textwidth}{cccccc}
+        \toprule
+        \textbf{Component} & \textbf{Mean} & \textbf{Std. deviation} & \textbf{Max Value} & \textbf{Min Value} & \textbf{Units}\\
+        \hline
+        $x$   &  +0.17 & $\pm$ 0.64 & 2.09 & -1.59 & \si{\metre}\\
+        $y$   &  +0.00 & $\pm$ 0.57 & 1.33 & -2.01 & \si{\metre}\\
+        $z$   &  +0.86 & $\pm$ 0.72 & 3.52 & -0.17 & \si{\metre}\\
+        $v_x$ &  -0.03 & $\pm$ 0.58 & 2.19 & -1.48 & \si{\milli\metre\per\second}\\
+        $v_y$ &  +0.01 & $\pm$ 0.44 & 1.11 & -1.09 & \si{\milli\metre\per\second}\\
+        $v_z$ &  +0.03 & $\pm$ 0.65 & 2.29 & -2.22 & \si{\milli\metre\per\second}\\
+       \bottomrule
+    \end{tabularx}
+    \caption{Details of discrepancies between estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit, depicted in \autoref{fig:statediffs}.}
+    \label{table:statediffs}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.25\textheight,keepaspectratio]{t4-resVsTimeRaw}
+    \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
+    \label{fig:ResVsTimeRaw}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsTime}
+    \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
+    \label{fig:ResVsTime}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsEle}
+    \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
+    \label{fig:ResVsEle}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{t4-obsbeacons}
+    \caption{Number of measurements performed by the on-board \gls{jason}-3 \gls{doris} receiver per ground beacon.}
+    \label{fig:obsPerBeacon}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{t4-dynamicparams}
+    \caption{Estimated dynamic orbit parameters (drag and solar radiation pressure corfficients, $C_d$ and $C_r$), for one day of \gls{jason}-3 orbit determination.}
+    \label{fig:EstimDynamicParams}
 \end{figure}

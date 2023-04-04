@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import argparse
 import requests
+import copy
 from scipy.interpolate import interp1d
 from scipy import stats
 from matplotlib.backends.backend_pdf import PdfPages
@@ -58,6 +59,38 @@ def trim_excess_epochs(dct, max_hours):
         if t - t0 <= datetime.timedelta(hours=max_hours):
             new_dct[t] = vals
     return new_dct
+
+def remove_outliers(x,y,max_remove_percent):
+  s = stats.describe(y)
+  std = math.sqrt(s.variance)
+  fac = 3e0; it = 0; minworks=1e25; rem_indexes = [];
+  keepon = True
+  while (keepon):
+    print('[DEBUG] Outlier detection with factor: {:.1f}'.format(fac))
+    ouliers = 0
+    new_indexes = []
+    for i in range(len(y)):
+      if abs(y[i] - s.mean) > fac * std:
+        new_indexes.append(i)
+    percent = len(new_indexes) * 100e0 / len(y)
+    if percent < max_remove_percent/2e0:
+      print('[DEBUG] Factor {:.1f} only removes about {:.2f}% as outliers; trying for smaller factor'.format(fac, percent))
+      fac -= .2
+      rem_indexes = copy.deepcopy(new_indexes)
+    elif percent < max_remove_percent:
+      print('[DEBUG] Removing about {:.2f}% as outliers; factor = {:.1f}'.format(percent, fac))
+      rem_indexes = copy.deepcopy(new_indexes)
+      break
+    else:
+      if rem_indexes != []:
+          break
+      fac = fac + .1
+      print('[DEBUG] Factor {:.1f} only removes about {:.2f}% as outliers; trying for larger factor'.format(fac, percent))
+    it += 1
+    assert( it < 100 )
+  xn = [ x[i] for i in range(len(x)) if i not in rem_indexes ] 
+  yn = [ y[i] for i in range(len(y)) if i not in rem_indexes ] 
+  return xn,yn
 
 ## Assuming
 ## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz
@@ -133,16 +166,16 @@ def parse_reference(fn):
               dct[t] = [dict(zip(labels, values))]
     return dct
 
-def colAsArray(dct,col,fac=1e0,site=None):
+def colAsArray(dct,coly,fac=1e0,colx='t',te=None):
     x=[];y=[];sy=[];
     ## if the requested column has a variance entry, it should be col_var
-    varcol = col + '_var'
+    varcol = coly + '_var'
     for epoch,entries in dct.items():
       ## note that entries is a list of dictionaries ...
       for entry in entries:
-        if col in entry:
-          x.append(epoch)
-          y.append(entry[col])
+        if coly in entry:
+          x.append(epoch if colx=='t' else entry[colx])
+          y.append(entry[coly])
           if varcol in entry:
             sy.append(math.sqrt(entry[varcol]))
     return x,y,sy
@@ -368,12 +401,34 @@ parser.add_argument(
 
 def plot_residuals(fn, saveas=None):
   passes, revs, dct = parse_residuals(fn)
+  
+  """
+  print("Plotting residuals Vs elevation ...", end='')
+  fig, ax = plt.subplots()
+  fac = 1e0
+  t,y,_ = colAsArray(dct,'res',fac)
+  el,y,_ = colAsArray(dct,'res',fac,'el')
+  # t,y = remove_outliers(t,y,5)
+  ax.set_ylim([-.20, .20])
+  ax.set_xlim([0, 90])
+  ax.scatter(el,y,s=1,color='black')
+  ax.grid(True, 'both', 'x')
+  ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]', title='Residuals')
+  fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+    fig.savefig(saveas + "-resVsEle.png")
+  plt.show()
+  print(" done")
+  """
 
   ## Residuals Vs Time
+  """
   print("Plotting residuals Vs time ...", end='')
   fig, ax = plt.subplots()
   fac = 1e0
   t,y,_ = colAsArray(dct,'res',fac)
+  t,y = remove_outliers(t,y,5)
+  # ax.set_ylim([-.20, .20])
   ax.scatter(t,y,s=1,color='black')
   if revs != []:
     for r in revs:
@@ -383,14 +438,15 @@ def plot_residuals(fn, saveas=None):
   ax.xaxis.set_minor_locator(mdates.HourLocator(interval=2))
   ax.grid(True, 'both', 'x')
   ax.set(xlabel='Time', ylabel='Residual [m/s]', title='Residuals')
-  fig.suptitle('DORIS residuals @ {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   fig.autofmt_xdate()
   stats = ColStatistics(None,y,fac=1e0)
-  ax.text(min(t), stats.minmax[0], r'#obs {:}, mean {:+.1f} $\pm$ {:.1f}'.format(stats.nobs, stats.mean, math.sqrt(stats.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.2, 'pad': 10})
+  #ax.text(min(t), stats.minmax[0], r'#obs {:}, mean {:+.1f} $\pm$ {:.1f}'.format(stats.nobs, stats.mean, math.sqrt(stats.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.2, 'pad': 10})
   if saveas:
-    fig.savefig(saveas + "-res.png")
+    fig.savefig(saveas + "-resVsTime.png")
   plt.show()
   print(" done")
+  """
   
   # Beacons per Block
   print("Plotting beacons per block ...", end='')
@@ -416,7 +472,7 @@ def plot_residuals(fn, saveas=None):
   plt.show()
   print("done")
 
-def obs_per_site(fn):
+def obs_per_site(fn, saveas=None):
   _, _, dct = parse_residuals(fn)
   sites = []; nobs = []; mres = [];
   for ti,lofd in dct.items():
@@ -435,9 +491,13 @@ def obs_per_site(fn):
   fig, ax = plt.subplots()
   ax.bar(range(len(sites)), nobs)
   ax.set_xticklabels(sites)
+  plt.xticks(range(len(mres)))
+  plt.xticks(rotation=90, ha='right')
   ax.grid(True, 'both', 'y')
-  #ax.set(xlabel='Time', ylabel='Residual [m/s]', title='Residuals')
+  ax.set(xlabel='Beacon/Site', ylabel='Num. Obs', title='Observations per Beacon')
   #fig.suptitle('DORIS residuals @ {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+    plt.savefig(saveas + "-obsbeacons.png")
   plt.show()
 
 def plot_site(fn, site):
@@ -447,12 +507,13 @@ def plot_site(fn, site):
   fac = 1e0
 
   t,y,err = colAsArray(dct,'res',fac)
-  t1,ypred,_= colAsArray(dct,'prediction',fac)
+  t1,ypred,_= colAsArray(dct,'res_prediction',fac)
+  for i in range(len(t1)):
+      print("{:} {:.3f} {:.3f} {:.3f} {:.3f}".format(t[i], y[i],ypred[i],y[i]-ypred[i], err[i]))
   if revs != []:
     for r in revs:
       ax[0].axvline(x=r,color='green',label='Rev')
-  print('{:} vs {:} vs {:}'.format(len(t), len(y), len(err)))
-  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1)
+  #ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1)
   ax[0].scatter(t,y,s=1,color='black')
   ax[0].scatter(t1,ypred,s=1,color='blue')
   ax[0].set_title('Residuals [m/s]')
@@ -526,7 +587,7 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   fac = 1e0
   
   t,y,err = colAsArray(dct,'cd',fac)
-  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1)
+  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1, capsize=.3)
   ax[0].scatter(t,y,s=2,color='black')
   ax[0].set_title(r'Drag Coefficient $C_d$')
   if revs != []:
@@ -552,9 +613,11 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   fig.autofmt_xdate()
   t0 = min(t)
   fig.suptitle('Dynamic Parameters {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+    plt.savefig(saveas + "-dynamicparams.png")
   plt.show()
 
-def plot_state_diffs(fnref, fntest, save_as):
+def plot_state_diffs(fnref, fntest, saveas):
   def whichCol(component, posvel):
       labels = ['x','y','z','vx','vy','vz']
       return labels[component + int(posvel==1)*3]
@@ -586,7 +649,7 @@ def plot_state_diffs(fnref, fntest, save_as):
   diffs = make_state_diffs(dct1,dct2)
   shd_passes = shadow_passes(fntest)
 
-  fig, axs = plt.subplots(3, 2, sharey='col', figsize=(10, 6), constrained_layout=True)
+  fig, axs = plt.subplots(3, 2, sharey='col', figsize=(10, 6))
   ## x-, y-, z-components ...
   for component in range(3):
       ## first position, then velocity ...
@@ -603,12 +666,19 @@ def plot_state_diffs(fnref, fntest, save_as):
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
           axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-          axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
+          if pv == 0: 
+              axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
+              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
+              axs[component, pv].set_ylim(-3.6,3.6)
+          else: 
+              axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
+              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
           dsts = ColStatistics(None,y,fac)
-          if pv == 0:
-            axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.1f} $\pm$ {:.1f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
-          else:
-            axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.4f} $\pm$ {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          #if pv == 0:
+          #  axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.1f} $\pm$ {:.1f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          #else:
+          #  axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.4f} $\pm$ {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, pv, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
           axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
           axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
           if shd_passes != []:
@@ -620,9 +690,10 @@ def plot_state_diffs(fnref, fntest, save_as):
   ## Rotate date labels automatically
   fig.autofmt_xdate()
   fig.suptitle('State Differences Estimated - Reference\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
-  if save_as:
-      print('Saving figure to {:}'.format(save_as))
-      plt.savefig(save_as)
+  if saveas:
+      full_name = saveas + 'statediffs.png'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, bbox_inches='tight')
   plt.show()
 
 if __name__ == '__main__':
@@ -633,13 +704,14 @@ if __name__ == '__main__':
       plot_state_diffs(args.ref_state, args.input, args.save_as)
 
     if args.plot_res:
-      plot_residuals(args.input)
+      plot_residuals(args.input, args.save_as)
 
     if args.plot_dynamic_params:
-      plot_dynamic_params(args.input)
+      plot_dynamic_params(args.input, args.save_as)
 
     if args.sites:
         for s in args.sites:
             plot_site(args.input, s)
 
-    obs_per_site(args.input)
+    if 1==2:
+        obs_per_site(args.input, args.save_as)

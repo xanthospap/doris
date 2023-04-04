@@ -44,7 +44,7 @@ force-model:
     dtm2020-data: data/DTM_2020_F107_Kp.dat
     atmo-data-csv: data/SW-All.csv
     ## working value is 2e0
-    Cd-apriori: 1.5e0
+    Cd-apriori: 1e0
   srp:
     Cr-apriori: 1e0
 
@@ -63,9 +63,9 @@ filtering:
   orbsp3-sigma-vel: 1e0
   ## A-priori sigma for Cd (aka drag coefficient)
   #cd-sigma: .5e0
-  cd-sigma: .5e0
+  cd-sigma: 1e0
   ## A-priori sigma for Cr (aka srp coefficient)
   #cr-sigma: .1e0 also  note the chane in pod.cpp 1param/day
-  cr-sigma: 1e-2
+  cr-sigma: 1e-1
   ## Units: [degrees]
   elevation-cut-off: 10e0 ## in degrees

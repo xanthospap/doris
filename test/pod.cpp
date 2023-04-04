@@ -105,6 +105,15 @@ struct Kalman {
     var = R + H.dot(P * H);
     return (z - g) - H.transpose() * (K * (z - g));
   }
+  
+  auto observation_no_update(double z, double g, double sigma,
+                          const Eigen::VectorXd &H) noexcept {
+    double inv_w = sigma * sigma;
+    // kalman gain
+    K = P * H / (inv_w + H.dot(P * H));
+    // state update (note that y is a scalar y <- z - g = Y(k) - G(X,t)
+    return x + K * (z - g);
+  }
 
   void observation_update(double z, double g, double sigma,
                           const Eigen::VectorXd &H) noexcept {
@@ -148,7 +157,7 @@ public:
     return (svGcrf - R*bcItrf).norm();
   }
 
-  void mark_restart() noexcept { _restart = 0; }
+  void mark_restart(int onoff=1) noexcept { _restart = onoff; }
 
   dso::TwoPartDate time_of_reception() const noexcept {return tai;}
   dso::TwoPartDate proper_time() const noexcept {return tprop;}
@@ -756,8 +765,8 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12, 1e-12,
-                        &IntegrationParams);
+  dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
+                        1e-12, &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
   double sigma_obs;
@@ -1083,9 +1092,10 @@ int main(int argc, char *argv[]) {
                   return !(std::strncmp(b4id, v.bc_name(), 4));
                 });
             if (pObs == vLastObs.end()) {
+              // cObs.mark_restart();
               vLastObs.emplace_back(cObs);
             } else {
-              if (pObs->restart() ||
+              if (/*pObs->restart() ||*/
                   tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
                       pObs->time_of_reception()) > RESTART_AFTER_SEC) {
                 /* restart frequency bias for new pass if needed */
@@ -1093,12 +1103,14 @@ int main(int argc, char *argv[]) {
                         .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
                             pObs->time_of_reception()) >
                     NEW_PASS_AFTER_MIN * 60e0) {
-                  filter.reset_frequency_bias(beaconFilterIndex, 0e0,
-                                              apriori_sigma_freqbias);
+                  filter.reset_frequency_bias(
+                      beaconFilterIndex, filter.estimates()(beaconFilterIndex),
+                      apriori_sigma_freqbias);
                   printf("[DEBUG] Resetting frequency bias for site %.4s, new "
                          "pass at %s\n",
                          b4id, dtbuf);
                 
+                  cObs.mark_restart();
                   *pObs = cObs;
                 }
               } else {
@@ -1129,9 +1141,12 @@ int main(int argc, char *argv[]) {
                   double res_prediction = filter.prediction_residual(
                       Vobs, -Vtheo, sigma_obs, H, var_prediction);
                   /* outlier check */
-                  if (res_prediction > 3 * std::sqrt(var_prediction)) {
+                  if (std::abs(res_prediction) > 3 * std::sqrt(var_prediction)) {
                     ++flagged_res_obs;
                     ++flagged_res_obs_block;
+                  } else if (cObs.restart()) {
+                    cObs.mark_restart(0);
+                    filter.observation_no_update(Vobs, -Vtheo, sigma_obs / std::sin(el) / std::sin(el), H);
                   } else {
                     filter.observation_update(Vobs, -Vtheo,
                                               sigma_obs / std::sin(el), H);

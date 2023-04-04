@@ -81,6 +81,7 @@ public:
     b = S/sat_mass;
     return 0;
   }
+
 };
 
 
