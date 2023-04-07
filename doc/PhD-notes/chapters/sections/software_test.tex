@@ -103,6 +103,22 @@ frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
     \label{fig:state}
 \end{figure}
 
+\autoref{fig:accelerations} depicts the computed acceleartion components for the 
+force model considered. Atmospheric drag forces are below the order of \SI{1e-18}{\meter\per\second\squared} 
+and are not included, as they are well beyond the targeted precision. For the altitude 
+of \gls{jason}-3, solar radiation pressure is several orders of magnitude larger than 
+atmospheric drag, a fact usually inversed for \gls{leo} satellites if lower 
+altitude. Identification of dominant accelerations and thereby forces, is crucial 
+for further enhancements of the software since it enables prioritization of further 
+development.
+
+\begin{figure}
+    \centering
+    \includegraphics{t8ndaccelerations}
+    \caption{Computed accelerations for one day of \gls{jason}-3 orbit; $y-$axis in logarithmic scale.}
+    \label{fig:accelerations}
+\end{figure}
+
 To validate and check the results obtained for the satellite state estimates, 
 \gls{jason}-3 sp3 files were retrieved from \gls{cddis} (\cite{Noll2010}), recording 
 state (in cartesian components) for the day of interest, with a sampling rate of 
@@ -132,6 +148,7 @@ Results of the comparison are depicted in \autoref{fig:statediffs} using an \gls
 reference frame, and in \autoref{fig:statediffseci} using the celestial \gls{gcrf} 
 frame. For the latter case, the retrieved sp3 state records were first transformed to 
 the \gls{gcrf} frame, and then compared to the estimated state.
+
 \begin{figure}[h]
     \centering
     \includegraphics{t5statediffs}
@@ -166,7 +183,7 @@ a trend is also evident, correlating the ``worsening'' of results with time.
     \label{table:statediffs}
 \end{table}
 
-Velocity differences range between \numrange{-2.2}{2.3} \si{\milli\metre\pre\sec} and, as is the 
+Velocity differences range between \numrange{-2.2}{2.3} \si{\milli\metre\per\sec} and, as is the 
 case for position estimates, are worse in the $z$ component direction (see 
 \autoref{table:statediffs}).
 
@@ -200,6 +217,7 @@ and \autoref{fig:lsperiodeci} for the \gls{gcrf} reference frame respectively.
     \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{ecef}.}
     \label{fig:lsperiodecef}
 \end{figure}
+
 \begin{figure}[h]
     \centering
     \includegraphics{t9periodogramEci}
@@ -250,13 +268,7 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
     \label{table:statediffsrtn}
 \end{table}
 
-\begin{figure}
-    \centering
-    \includegraphics{t8ndaccelerations}
-    \caption{Computed accelerations for one day of \gls{jason}-3 orbit; $y-$axis in logarithmic scale.}
-    \label{fig:accelerations}
-\end{figure}
-
+% tODO comment on this
 \begin{figure}
     \centering
     \includegraphics{t5dstatediffs}
@@ -264,21 +276,29 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
     \label{fig:statediffs-details}
 \end{figure}
 
-\begin{figure}
+\autoref{fig:ResVsTimeRaw} depicts the residuals of the analysis, i.e. the \emph{Observed} 
+- \emph{Computed} values. Residuals are higher at the begining of the analysis interval, but 
+quickly converge to smaller values. This effect is due to the unknown a-priori values mainly of 
+the beacon relative frequency offsets (see \autoref{ssec:doris-computational-aspects}). 
+\begin{figure}[h]
     \centering
     \includegraphics[height=.25\textheight,keepaspectratio]{t4-resVsTimeRaw}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTimeRaw}
 \end{figure}
 
-\begin{figure}
+A more enlightning view of the residuals can be obtained in \autoref{fig:ResVsTime} and 
+\autoref{t5resVsEle}, where the large starting values are filtered out. The first 
+plot depicts the computed residuals with respect to time, while the latter with respect to 
+elevation angle.
+\begin{figure}[h]
     \centering
     \includegraphics{t5resVsTime}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTime}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics{t5resVsEle}
     \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}

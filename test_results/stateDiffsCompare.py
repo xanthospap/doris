@@ -1110,8 +1110,8 @@ def plot_accelerations(fn, saveas=None):
     ci = 0
     ctlist = []
     
-    #for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp', 'drag']:
-    for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp']:
+    for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp', 'drag']:
+    #for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp']:
         dtsec = 60. if key != 'srp' else 1.
         t,y1,_ = colAsArray(dct,key,1e0)
         print('Original data size {:}'.format(len(y1)), end='')
@@ -1131,7 +1131,7 @@ def plot_accelerations(fn, saveas=None):
             ctlist.append(colors[ci])
         ci += 1
 
-    ax.set_ylim([1e-14,1e2])
+    #ax.set_ylim([1e-14,1e2])
     
     fig.autofmt_xdate()
     ax.tick_params(axis="x",direction="in", pad=-15)
