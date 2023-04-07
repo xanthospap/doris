@@ -75,8 +75,8 @@ int solar_radiation_pressure(const dso::TwoPartDate &tai,
   if (oc_factor != ShadowFactor) {
     fprintf(stderr, "[WRNNG] Changing shadow status from %.3f to %.3f\n",
             oc_factor, ShadowFactor);
-    printf("[SHDW ] Changing shadow status from %.3f to %.3f at %.9f\n",
-            oc_factor, ShadowFactor, tai.mjd());
+    /*printf("[SHDW ] Changing shadow status from %.3f to %.3f at %.9f\n",
+            oc_factor, ShadowFactor, tai.mjd());*/
     oc_factor = ShadowFactor;
   }
 
@@ -231,6 +231,8 @@ void dso::VariationalEquations_mg(
                               dso::TwoPartDate(0e0, tsec / 86400e0));
   const dso::TwoPartDate cmjd = _cmjd.normalized();
 
+  printf("[ACC] %.9e", cmjd.mjd());
+
   // split input vector to y, [Φ S]
   Eigen::Matrix<double,6,1> y;
   Eigen::Matrix<double,6,n> FS;
@@ -271,7 +273,11 @@ void dso::VariationalEquations_mg(
 
     a += gacc;
     dadr += gpartials;
-    //printf("Acceleration: %.9f[gravity]", gacc.norm());
+    printf(" grav:%.9e", gacc.norm());
+    test::gravacc3(params.harmonics, r_itrf, 1,
+                   params.harmonics.Re(), params.harmonics.GM(), gacc,
+                   gpartials, params.V, params.W);
+    printf(" gm:%.9e", Rot.itrf2gcrf(gacc).norm());
   }
 
   // position of sun/moon, [m] in celestial RF
@@ -283,7 +289,7 @@ void dso::VariationalEquations_mg(
     dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
                  rmon, partials);
     a += (sun_acc + mon_acc);
-    //printf(" %.9f[moon] %.9f[sun]", mon_acc.norm(), sun_acc.norm());
+    printf(" moon:%.9e sun:%.9e", mon_acc.norm(), sun_acc.norm());
     dadr += partials;
   }
 
@@ -302,7 +308,7 @@ void dso::VariationalEquations_mg(
                                   rs_ecef, tacc, taccgrad);
     }
     a += Rot.itrf2gcrf(tacc);
-    //printf(" %.9f[setide]", Rot.itrf2gcrf(tacc).norm());
+    printf(" setide:%.9e", Rot.itrf2gcrf(tacc).norm());
     const auto T = Rot.itrf2gcrf();
     dadr += T * taccgrad * T.transpose();
   }
@@ -312,7 +318,7 @@ void dso::VariationalEquations_mg(
     Eigen::Matrix<double, 3, 1> tacc;
     params.octide->acceleration(cmjd.tai2tt(), r_itrf, tacc);
     a += Rot.itrf2gcrf(tacc);
-    //printf(" %.9f[octide]", Rot.itrf2gcrf(tacc).norm());
+    printf(" octide:%.9e", Rot.itrf2gcrf(tacc).norm());
   }
 
   // drag
@@ -327,7 +333,7 @@ void dso::VariationalEquations_mg(
     dadr += tdadr;
     dadv += tdadv;
     dadp.block<3,1>(0,0) = tdadp;
-    //printf(" %.9f[drag]", Rot.itrf2gcrf(ta).norm());
+    printf(" drag:%.9e", ta.norm());
   }
 
   {
@@ -341,7 +347,7 @@ void dso::VariationalEquations_mg(
     dadr += tdadr;
     dadv += tdadv;
     dadp.block<3,1>(0,1) = tdadp;
-    //printf(" %.9f[srp]", ta.norm());
+    printf(" srp:%.9e", ta.norm());
   }
 
   Eigen::Matrix<double, 6, 6> F1; // dfdy

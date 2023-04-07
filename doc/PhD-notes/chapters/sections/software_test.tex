@@ -7,6 +7,10 @@ this task have already been discussed in the previous chapters, including both
 theoretical implications and implementation details. \autoref{table:processing-options} 
 lists the models and parameters used for the test suite.
 
+Tacking advantage of the modular design of the software package, made up of different 
+libraries, it is trivial to implement a program targeting a \emph{pure} orbit determination 
+problem using \gls{doris} observables, fitting specific user needs. 
+ 
 \gls{jason}-3 was chosen 
 to act as the test bed since it is an on-going, modern satellite mission, extensively 
 documented, and its attitude determination can be performed via quaternions 
@@ -65,22 +69,17 @@ a file is depicted in \autoref{tab:config-example}.
 data:
   doris-rinex: data/Jason-3/ja3rx22248.001
   sp3: data/Jason-3/ssaja320.b22238.e22258.DG_.sp3.001
-
 reference-frame:
   station-coordinates: data/dpod2020_01.snx
-
 eop-info:
   eop-file: data/eopc0420.1962-now
-
 gravity:
   model: data/gfc/EIGEN-GRGS.RL04.MEAN-FIELD.gfc2
   degree: 120
   order: 120
-
 troposphere:
   vmf3:
     grid: data/2022248.v3gr_d
-
 force-model:
   atmospheric-drag:
     density-model: nrlmsise00
@@ -93,9 +92,13 @@ force-model:
 \label{tab:config-example}
 \end{adjustbox}
 
-\begin{figure}
+Results of orbit determination are depicted in \autoref{fig:state}, where the state 
+is given in the \texttt{dpod2020\_01} (\cite{Moreaux2023}) \gls{ecef} reference 
+frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
+
+\begin{figure}[h]
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{state}
+    \includegraphics{t5state}
     \caption{Satellite state (in \gls{ecef} RF) estimated for one day of \gls{jason}-3 orbit}
     \label{fig:state}
 \end{figure}
@@ -110,7 +113,8 @@ for the data analysis procedure and the models used therein, is available at
 \url{ftp://ftp.ids-doris.org/pub/ids/data/POD_configuration_POEF.pdf}. Note that 
 according to the \gls{pod} specifications used by SSALTO, a large number of models 
 and options are different from the ones used in the test-suite program listed in 
-\autoref{table:processing-options}.
+\autoref{table:processing-options}. These sp3 files record satellite state of the 
+spacecraft's center of gravity, in \gls{itrf}.
 
 Despite the fact that inclusion of \gls{gps} data may introduce inconsistencies 
 when compared to a \gls{doris}-only solution, the high sampling rate of these 
@@ -124,13 +128,25 @@ reference solutions (state estimates) included the following steps:
     until a reference state is computed for all $t$
 \end{enumerate}
 
-Results of the comparison are depicted in \autoref{fig:statediffs}.
-\begin{figure}
+Results of the comparison are depicted in \autoref{fig:statediffs} using an \gls{ecef} 
+reference frame, and in \autoref{fig:statediffseci} using the celestial \gls{gcrf} 
+frame. For the latter case, the retrieved sp3 state records were first transformed to 
+the \gls{gcrf} frame, and then compared to the estimated state.
+\begin{figure}[h]
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{statediffs}
-    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow.}
+    \includegraphics{t5statediffs}
+    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF).}
     \label{fig:statediffs}
 \end{figure}
+
+A description of the differences in the \gls{ecef} frame is recorded in 
+\autoref{table:statediffs}. For the position estimates, it is evident that the $x$ 
+and $y$ components are in better 
+agreement with the reference results, with max discrepancies in the order of 
+\SI{2}{\metre} (in absolute value). For the $z$ component, max difference reaches 
+a value of \SI{3.5}{\metre} (in absolute value). All three component differences 
+seem to be dominated by periodic signal(s), while for the $z$ component case, 
+a trend is also evident, correlating the ``worsening'' of results with time.
 
 \begin{table}[h!]
     \centering
@@ -150,6 +166,104 @@ Results of the comparison are depicted in \autoref{fig:statediffs}.
     \label{table:statediffs}
 \end{table}
 
+Velocity differences range between \numrange{-2.2}{2.3} \si{\milli\metre\pre\sec} and, as is the 
+case for position estimates, are worse in the $z$ component direction (see 
+\autoref{table:statediffs}).
+
+Transforming the state estimates and respective reference results to the \gls{gcrf} 
+reference frame, absolute values of differences remain the same, though a trend in 
+the $y$ and $z$ directions is more evident, with values of \SI{-0.91}{\metre\per\day} 
+and \SI{+1.66}{\metre\per\day} respectively. A degradation of velocity estimates with 
+time is also clear in this case (see \autoref{fig:statediffseci}).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics{t9stateDiffsEci}
+    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{gcrf}).}
+    \label{fig:statediffseci}
+\end{figure}
+
+Since both the \gls{gcrf} and \gls{ecef} state differences seem to include 
+harmonic signals, an analysis of the underlying dominant frequencies was performed to 
+identify the spectral densities of the signal. For this purpose, the 
+\emph{Lomb–Scargle periodogram} (\cite{Scargle1982}) was used; this method enables 
+the efficient computation of periodograms for unevenly spaced samples. Since the 
+state differences cover a time span of one day with a sampling rate of $\approx \SI{1}{\sec}$, 
+the spectral range was chosen to span the periods \numrange{0.1}{6} \si{\hour}, 
+avoiding aliasing effects (see e.g. \cite{VanderPlas2018}). Results are depicted in 
+\autoref{fig:lsperiodecef} for differences computed in the \gls{ecef} reference frame 
+and \autoref{fig:lsperiodeci} for the \gls{gcrf} reference frame respectively.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics{t9periodogramEcef}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{ecef}.}
+    \label{fig:lsperiodecef}
+\end{figure}
+\begin{figure}[h]
+    \centering
+    \includegraphics{t9periodogramEci}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{gcrf}.}
+    \label{fig:lsperiodeci}
+\end{figure}
+
+The estimated periodograms show a clear prevelance of two harmonics with periods of 
+$\approx \SI{1}{\hour}$ and $\approx \SI{2}{\hour}$. Position estimates are dominated by 
+the second frequency, while velocity estimates by the first. Note that \gls{jason}-3 
+completes a revolution around the Earth in \SI{112.4}{\minute} or $\approx \SI{1.9}{\hour}$. 
+This frequency coincides with the findings of the periodogram for the case of position 
+estimates.
+
+To gain a clearer view on the satellite position differences, discrepancies are often 
+transformed to an ``orbital frame'', defined by the radial and velocity vectors. 
+The $x-$axis of this frame is the \emph{radial} axis, directed from the unit vector of 
+satellite position. The $y-$axis, labelled \emph{in-track} axis, is in the direction 
+of motion, while the $z-$axis called \emph{cross-track} is directed from the unit 
+vector of normal orbit (\cite{Eunhyouek2019}). Position differences between estimates and 
+reference results are depicted in \autoref{fig:statediffsrtn}, transformed to the radial, 
+across-track and in-track frame. The in-track component is very smooth, and in good 
+agreement with the reference solution; the maximum difference in this case is 
+$\approx \SI{0.17}{\meter}$. The radial component is dominated by a periodic harmonic of 
+$\approx \SI{2}{\hour}$, with a growing amplitude. Max discrepancies in this case are 
+$\approx \SI{1.5}{\meter}$, at the end of the day. The cross-track component presents the 
+largest fluctuations, and apart from the identified harmonic of $\approx \SI{2}{\hour}$ 
+seems to follow a parabolic pattern. Details are given in \autoref{table:statediffsrtn}.
+\begin{figure}[h]
+    \centering
+    \includegraphics{t9stateDiffsRtn}
+    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in radial, across-track and in-track RF).}
+    \label{fig:statediffsrtn}
+\end{figure}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabularx}{\textwidth}{cccccc}
+        \toprule
+        \textbf{Component} & \textbf{Mean} & \textbf{Std. deviation} & \textbf{Max Value} & \textbf{Min Value} & \textbf{Units}\\
+        \hline
+        radial &  -0.03 & $\pm$ 0.57 & 1.26 & -1.46 & \si{\metre}\\
+        in track &  +0.00 & $\pm$ 0.06 & 0.17 & -0.15 & \si{\metre}\\
+        cross track &  -0.19 & $\pm$ 1.29 & 3.99 & -2.11 & \si{\metre}\\
+       \bottomrule
+    \end{tabularx}
+    \caption{Details of discrepancies between estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit, depicted in \autoref{fig:statediffsrtn}.}
+    \label{table:statediffsrtn}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics{t8ndaccelerations}
+    \caption{Computed accelerations for one day of \gls{jason}-3 orbit; $y-$axis in logarithmic scale.}
+    \label{fig:accelerations}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics{t5dstatediffs}
+    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow, while green lines mark orbital revolutions.}
+    \label{fig:statediffs-details}
+\end{figure}
+
 \begin{figure}
     \centering
     \includegraphics[height=.25\textheight,keepaspectratio]{t4-resVsTimeRaw}
@@ -159,28 +273,67 @@ Results of the comparison are depicted in \autoref{fig:statediffs}.
 
 \begin{figure}
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsTime}
+    \includegraphics{t5resVsTime}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTime}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsEle}
+    \includegraphics{t5resVsEle}
     \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsEle}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{t4-obsbeacons}
+    \includegraphics{t5obsBeacons}
     \caption{Number of measurements performed by the on-board \gls{jason}-3 \gls{doris} receiver per ground beacon.}
     \label{fig:obsPerBeacon}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{t4-dynamicparams}
+    \includegraphics{t5dynamicParams}
     \caption{Estimated dynamic orbit parameters (drag and solar radiation pressure corfficients, $C_d$ and $C_r$), for one day of \gls{jason}-3 orbit determination.}
     \label{fig:EstimDynamicParams}
 \end{figure}
+
+\iffalse
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p00-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $x$.}
+    \label{fig:lsperiodx}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p10-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $y$.}
+    \label{fig:lsperiody}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p20-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $z$.}
+    \label{fig:lsperiodz}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p01-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $v_x$.}
+    \label{fig:lsperiodvx}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p11-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $v_y$.}
+    \label{fig:lsperiodvy}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[height=.5\textheight,keepaspectratio]{p21-lombscargle}
+    \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for component $v_z$.}
+    \label{fig:lsperiodvz}
+\end{figure}
+\fi

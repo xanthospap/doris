@@ -34,7 +34,7 @@ constexpr const int INCLUDE_OCEAN_TIDES = true;
 int integrate(const dso::Sp3DataBlock &sp3block,
               const dso::TwoPartDate &t_target, dso::SGOde &integrator,
               dso::IntegrationParameters &params,
-              Eigen::Matrix<double, 6, 1> &state) {
+              Eigen::Matrix<double, 6, 1> &state, Eigen::Matrix<double, 6, 1> &state_eci) {
   // reference state from sp3 block (terrestrial to celestial)
   Eigen::Matrix<double, 6, 1> y;
   y << sp3block.state[0] * 1e3, sp3block.state[1] * 1e3,
@@ -78,6 +78,7 @@ int integrate(const dso::Sp3DataBlock &sp3block,
   dso::TwoPartDate tres(params.mjd_tai);
   tres._small += (tout / 86400e0);
   tres.normalize();
+  state_eci = state;
 
   // check results
   /*{
@@ -200,7 +201,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed locating NAIF pck kernel\n");
     return 1;
   }
-  dso::IntegrationParameters Params(degree, order, eop_lut, harmonics, buf);
+  dso::IntegrationParameters Params(degree, order, eop_lut, harmonics, buf, "data/DTM_2020_F107_Kp.dat");
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -264,14 +265,17 @@ int main(int argc, char *argv[]) {
     // reference time
     const dso::TwoPartDate t0(sp3block.t);
     // integrate
-    Eigen::Matrix<double, 6, 1> state;
-    if (integrate(sp3block, dso::TwoPartDate(*t), Integrator, Params, state)) {
+    Eigen::Matrix<double, 6, 1> state, state_eci;
+    if (integrate(sp3block, dso::TwoPartDate(*t), Integrator, Params, state, state_eci)) {
       return 2;
     }
     // print results in terrestrial RF
     dso::strftime_ymd_hmfs<dso::nanoseconds>(*t, buf);
     printf("%s %+.6f %+.6f %+.6f %+.9f %+.9f %+.9f\n", buf, state(0),
            state(1), state(2), state(3), state(4), state(5));
+    printf("[ECI] %s %+.9f %+.9f %+.9f %+.12e %+.12e %+.12e\n", buf, state_eci(0),
+           state_eci(1), state_eci(2), state_eci(3), state_eci(4),
+           state_eci(5));
     const dso::TwoPartDate t1(*t);
     printf("#[CMT] Integration interval: %.3f[sec]\n",
            t1.diff<dso::DateTimeDifferenceType::FractionalSeconds>(t0));

@@ -767,6 +767,8 @@ int main(int argc, char *argv[]) {
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
   dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
                         1e-12, &IntegrationParams);
+  //dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12,
+  //                      1e-12, &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
   double sigma_obs;
@@ -998,14 +1000,14 @@ int main(int argc, char *argv[]) {
       printf("[REV] New SV revolution around the Earth at %s "
              "re-initialize Cd\n",
              dtbuf);
-      if (m >= 1) {
-        // filter.x(6) = apriori_Cd;
-        filter.P.row(6).setZero();
-        filter.P.col(6).setZero();
-        filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
-      }
-      if (m >= 1)
-        IntegrationParams.drag_ceofficient() = filter.x(6);
+      //if (m >= 1) {
+      //  // filter.x(6) = apriori_Cd;
+      //  filter.P.row(6).setZero();
+      //  filter.P.col(6).setZero();
+      //  filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
+      //}
+      //if (m >= 1)
+      //  IntegrationParams.drag_ceofficient() = filter.x(6);
       last_revolution_at = tobs_tai;
     }
 
@@ -1210,6 +1212,10 @@ int main(int argc, char *argv[]) {
              svState.itrf_state_cm()(4), svState.itrf_state_cm()(5),
              filter.P(0, 0), filter.P(1, 1), filter.P(2, 2), filter.P(3, 3),
              filter.P(4, 4), filter.P(5, 5));
+      printf("[ECI] %s x:%+.9f y:%+.9f z:%+.9f vx:%+.12e vy:%+.12e vz:%+.12e\n",
+             dtbuf, svState.gcrf_state_cm()(0), svState.gcrf_state_cm()(1),
+             svState.gcrf_state_cm()(2), svState.gcrf_state_cm()(3),
+             svState.gcrf_state_cm()(4), svState.gcrf_state_cm()(5));
     }
 
     ++num_blocks; /* augment data block counter */

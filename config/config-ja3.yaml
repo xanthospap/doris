@@ -54,7 +54,7 @@ attitude:
 
 filtering:
   ## Units: [m/sec]
-  observation-sigma: 5e-2
+  observation-sigma: 5e-3
   ## A-priori sigma for Δfe / feN
   deffen-sigma: 1e-1
   ## A-priori sigma for initial state/position (sp3)

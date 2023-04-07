@@ -14,7 +14,69 @@ from scipy import stats
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import MultipleLocator
 from matplotlib.ticker import PercentFormatter
+import scipy.signal as signal
 import julian
+
+width_pt = 418.25368
+
+# Using seaborn's style
+plt.style.use('seaborn')
+
+tex_fonts = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 10,
+    "font.size": 10,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 8,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8
+}
+tex_fonts_small = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 8,
+    "font.size": 6,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 11,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6
+}
+
+plt.rcParams.update(tex_fonts)
+def set_size(width, fraction=1, subplots=(1, 1)):
+    """Set figure dimensions to avoid scaling in LaTeX.
+       see https://jwalton.info/Embed-Publication-Matplotlib-Latex/
+
+    Parameters
+    ----------
+    width: float or string
+            Document width in points, or string of predined document type
+    fraction: float, optional
+            Fraction of the width which you wish the figure to occupy
+    subplots: array-like, optional
+            The number of rows and columns of subplots.
+    Returns
+    -------
+    fig_dim: tuple
+            Dimensions of figure in inches
+    """
+    # Width of figure (in pts)
+    fig_width_pt = width_pt * fraction
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+    # Golden ratio to set aesthetic figure height
+    # https://disq.us/p/2940ij3
+    golden_ratio = (5**.5 - 1) / 2
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * golden_ratio * (subplots[0] / subplots[1])
+    return (fig_width_in, fig_height_in)
 
 ## VMF3 DORIS-site-grid URI
 VMF3_DG = "https://vmf.geo.tuwien.ac.at/trop_products/DORIS/V3GR/V3GR_OP/daily/"
@@ -142,6 +204,41 @@ def parse_orbit(fn):
                         pass
     return revolutions, dct
 
+def parse_orbit_eci(fn):
+    def strdct2dct(line):
+      dct = {}
+      for l in line.split():
+        if ':' not in l:
+          dct['site'] = l.strip()
+        else:
+          try:
+            dct[l.split(':')[0]] = float(l.split(':')[1])
+          except:
+            dct[l.split(':')[0]] = l.split(':')[1]
+      return dct
+    
+    dct = {}
+    with open(fn, 'r') as fin:
+        for line in fin.readlines():
+            if line[0:5] == '[ECI]': 
+              l = line.split()
+              line_is_valid = False
+              try:
+                  t = datetime.datetime.strptime(' '.join([l[1],l[2][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+                  line_is_valid = True
+              except:
+                  try:
+                    t = datetime.datetime.strptime(' '.join([l[1],l[2]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                  except:
+                    pass
+              if line_is_valid:
+                if t in dct:
+                  dct[t].append(strdct2dct(' '.join(l[3:])))
+                else:
+                  dct[t] = [strdct2dct(' '.join(l[3:]))]
+    return dct
+
 ## Assuming
 ## %Y-%m-%d %H:%M:%S.%f x y z Vx Vy Vz
 ## 0        1           2     5       
@@ -149,21 +246,44 @@ def parse_reference(fn):
     dct = {}
     with open(fn, 'r') as fin:
         for line in fin.readlines():
-            l = line.split()
-            line_is_valid = False
-            try:
-                t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
-                line_is_valid = True
-            except:
-                try:
-                  t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+            if line[0] != '#' and line[0:5] != '[ECI]':
+              l = line.split()
+              line_is_valid = False
+              try:
+                  t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
                   line_is_valid = True
-                except:
-                    pass
-            if line_is_valid:
-              labels=['x','y','z','vx','vy','vz']
-              values=[float(k) for k in l[2:]]
-              dct[t] = [dict(zip(labels, values))]
+              except:
+                  try:
+                    t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                  except:
+                      pass
+              if line_is_valid:
+                labels=['x','y','z','vx','vy','vz']
+                values=[float(k) for k in l[2:]]
+                dct[t] = [dict(zip(labels, values))]
+    return dct
+
+def parse_reference_eci(fn):
+    dct = {}
+    with open(fn, 'r') as fin:
+        for line in fin.readlines():
+            if line[0:5] == '[ECI]':
+              l = line[5:].split()
+              line_is_valid = False
+              try:
+                  t = datetime.datetime.strptime(' '.join([l[0],l[1][0:-3]]), '%Y-%m-%d %H:%M:%S.%f')
+                  line_is_valid = True
+              except:
+                  try:
+                    t = datetime.datetime.strptime(' '.join([l[0],l[1]]), '%Y-%m-%d %H:%M:%S.%f')
+                    line_is_valid = True
+                  except:
+                      pass
+              if line_is_valid:
+                labels=['x','y','z','vx','vy','vz']
+                values=[float(k) for k in l[2:]]
+                dct[t] = [dict(zip(labels, values))]
     return dct
 
 def colAsArray(dct,coly,fac=1e0,colx='t',te=None):
@@ -215,14 +335,44 @@ def shadow_passes(fn):
                 l = line.split()
                 t = float(l[-1])
                 if cmax != 1e-22 and t > cmax + 0.05:
-                    #passes.append([cmin,cmax])
                     passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
                     cmin = 1e22
                     cmax = 1e-22
                 if t < cmin: cmin = t
                 if t > cmax: cmax = t
-    passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
+    if cmax != 1e-22: passes.append([julian.from_jd(cmin, fmt='mjd'), julian.from_jd(cmax, fmt='mjd')])
     return passes
+
+def parse_acceleration(fn):
+    def strdct2dct(line):
+      dct = {}
+      for l in line.split():
+        if ':' not in l:
+          dct['site'] = l.strip()
+        else:
+          try:
+            dct[l.split(':')[0]] = float(l.split(':')[1])
+          except:
+            dct[l.split(':')[0]] = l.split(':')[1]
+      return dct
+    dct = {}
+    with open(fn) as fin:
+        for line in fin.readlines():
+            if line[0:5] == "[ACC]":
+                l = line.split()
+                line_is_valid = False
+                try:
+                    t = julian.from_jd(float(l[1]), fmt='mjd')
+                    line_is_valid = True
+                except:
+                    pass
+                if line_is_valid:
+                    if t in dct:
+                      dct[t].append(strdct2dct(' '.join(l[2:])))
+                    else:
+                      dct[t] = [strdct2dct(' '.join(l[2:]))]
+              
+    return dct
 
 def parse_residuals(fn):
     def strdct2dct(line):
@@ -395,40 +545,67 @@ parser.add_argument(
   dest='plot_res')
 
 parser.add_argument(
+  '--plot-acceleration',
+  action='store_true',
+  dest='plot_acc')
+
+parser.add_argument(
+  '--plot-periodogram',
+  action='store_true',
+  dest='plot_per')
+
+parser.add_argument(
+  '--use-eci',
+  action='store_true',
+  dest='use_eci')
+
+parser.add_argument(
   '--plot-dynamics',
   action='store_true',
   dest='plot_dynamic_params')
 
-def plot_residuals(fn, saveas=None):
+def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20), regression_range=(-.25,.25)):
   passes, revs, dct = parse_residuals(fn)
+  Regression = plot_regression
+
+  def reducexy(x,y,miny,maxy):
+    xx = []; yy = []
+    for i in range(len(y)):
+      if y[i] >= miny and y[i] <= maxy:
+        xx.append(x[i])
+        yy.append(y[i])
+    return np.array(xx),np.array(yy)
   
-  """
   print("Plotting residuals Vs elevation ...", end='')
-  fig, ax = plt.subplots()
+  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt/3))
   fac = 1e0
   t,y,_ = colAsArray(dct,'res',fac)
   el,y,_ = colAsArray(dct,'res',fac,'el')
-  # t,y = remove_outliers(t,y,5)
-  ax.set_ylim([-.20, .20])
+  ax.set_ylim([plot_range[0], plot_range[1]])
   ax.set_xlim([0, 90])
   ax.scatter(el,y,s=1,color='black')
   ax.grid(True, 'both', 'x')
+  if Regression:
+    xx, yy = reducexy(el, y, regression_range[0], regression_range[1])
+    b = np.average(yy)
+    ax.axhline(b, color='r', linestyle='--', linewidth=1)
+    ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
   ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]', title='Residuals')
   fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
-    fig.savefig(saveas + "-resVsEle.png")
+      full_name = saveas + 'resVsEle.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
   plt.show()
   print(" done")
-  """
-
+  
   ## Residuals Vs Time
-  """
   print("Plotting residuals Vs time ...", end='')
-  fig, ax = plt.subplots()
+  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt/3))
   fac = 1e0
   t,y,_ = colAsArray(dct,'res',fac)
-  t,y = remove_outliers(t,y,5)
-  # ax.set_ylim([-.20, .20])
+  #t,y = remove_outliers(t,y,5)
+  ax.set_ylim([plot_range[0], plot_range[1]])
   ax.scatter(t,y,s=1,color='black')
   if revs != []:
     for r in revs:
@@ -439,14 +616,24 @@ def plot_residuals(fn, saveas=None):
   ax.grid(True, 'both', 'x')
   ax.set(xlabel='Time', ylabel='Residual [m/s]', title='Residuals')
   fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  if Regression:
+    # obtain m (slope) and b(intercept) of linear regression line
+    xx, yy = reducexy(t,y,regression_range[0], regression_range[1])
+    #x = mdates.date2num(xx)
+    #m, b = np.polyfit(x, yy, 1)
+    #print(m,b)
+    # add linear regression line to scatterplot
+    #ax.plot(xx, m*x+b, color='red', linewidth=1)
+    b = np.average(yy)
+    ax.axhline(b, color='r', linestyle='--', linewidth=1)
+    ax.text(t[0],b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
   fig.autofmt_xdate()
-  stats = ColStatistics(None,y,fac=1e0)
-  #ax.text(min(t), stats.minmax[0], r'#obs {:}, mean {:+.1f} $\pm$ {:.1f}'.format(stats.nobs, stats.mean, math.sqrt(stats.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.2, 'pad': 10})
   if saveas:
-    fig.savefig(saveas + "-resVsTime.png")
+      full_name = saveas + 'resVsTime.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
   plt.show()
   print(" done")
-  """
   
   # Beacons per Block
   print("Plotting beacons per block ...", end='')
@@ -488,7 +675,7 @@ def obs_per_site(fn, saveas=None):
         mres[index] += d['res']
   for i in range(len(mres)):
     mres[i] = mres[i] / nobs[i]
-  fig, ax = plt.subplots()
+  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt/3))
   ax.bar(range(len(sites)), nobs)
   ax.set_xticklabels(sites)
   plt.xticks(range(len(mres)))
@@ -497,7 +684,9 @@ def obs_per_site(fn, saveas=None):
   ax.set(xlabel='Beacon/Site', ylabel='Num. Obs', title='Observations per Beacon')
   #fig.suptitle('DORIS residuals @ {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
-    plt.savefig(saveas + "-obsbeacons.png")
+      full_name = saveas + 'obsBeacons.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
   plt.show()
 
 def plot_site(fn, site):
@@ -583,11 +772,11 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   else:
     shd_passes = []
 
-  fig, ax = plt.subplots(2,1)
+  fig, ax = plt.subplots(2, 1, sharey='col', figsize=set_size(width_pt, subplots=(2,1)))
   fac = 1e0
   
   t,y,err = colAsArray(dct,'cd',fac)
-  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1, capsize=.3)
+  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1, capsize=.6)
   ax[0].scatter(t,y,s=2,color='black')
   ax[0].set_title(r'Drag Coefficient $C_d$')
   if revs != []:
@@ -614,10 +803,11 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   t0 = min(t)
   fig.suptitle('Dynamic Parameters {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
-    plt.savefig(saveas + "-dynamicparams.png")
+      full_name = saveas + 'dynamicParams.pdf'
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
   plt.show()
 
-def plot_state_diffs(fnref, fntest, saveas):
+def plot_state_diffs(fnref, fntest, plot_regression=False, plot_details=False, saveas=None):
   def whichCol(component, posvel):
       labels = ['x','y','z','vx','vy','vz']
       return labels[component + int(posvel==1)*3]
@@ -649,19 +839,20 @@ def plot_state_diffs(fnref, fntest, saveas):
   diffs = make_state_diffs(dct1,dct2)
   shd_passes = shadow_passes(fntest)
 
-  fig, axs = plt.subplots(3, 2, sharey='col', figsize=(10, 6))
+  Regression = plot_regression
+  Details = plot_details
+
+  fig, axs = plt.subplots(3, 2, sharey='col', figsize=set_size(width_pt, subplots=(3,2)))
   ## x-, y-, z-components ...
   for component in range(3):
       ## first position, then velocity ...
       for pv in range(2):
           fac = 1e0
           key = whichCol(component, pv)
-          if revs != []:
-            for r in revs:
-              axs[component, pv].axvline(x=r,color='green',label='Rev')
+          if Details and revs != []:
+              for r in revs: axs[component, pv].axvline(x=r,color='green',label='Rev')
           t,y,err = colAsArray(diffs,key,fac)
-          #if (component+pv==0): axs[component, pv].errorbar(t,y,yerr=err, fmt='none', ecolor='red', elinewidth=.1, alpha=.1)
-          axs[component, pv].scatter(t,y,s=1,color='black')
+          axs[component, pv].scatter(t,y,s=.3,color='black')
           axs[component, pv].set_title(whichTitle(component, pv, fac))
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
@@ -673,38 +864,400 @@ def plot_state_diffs(fnref, fntest, saveas):
           else: 
               axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
               axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
+          if Regression:
+            # obtain m (slope) and b(intercept) of linear regression line
+            x = mdates.date2num(t)
+            m, b = np.polyfit(x, y, 1)
+            # add linear regression line to scatterplot
+            axs[component, pv].plot(t, m*x+b)
           dsts = ColStatistics(None,y,fac)
-          #if pv == 0:
-          #  axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.1f} $\pm$ {:.1f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
-          #else:
-          #  axs[component, pv].text(t[0], dsts.minmax[0], r'Mean: {:+.4f} $\pm$ {:.4f}'.format(dsts.mean, math.sqrt(dsts.variance)), style='italic', bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})
+          if not Details:
+              axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
+              axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
+          if Details and shd_passes != []:
+              for intrv in shd_passes: axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
           print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, pv, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
-          axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
-          axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
-          if shd_passes != []:
-              for intrv in shd_passes:
-                axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
-          #if saa_passes != []:
-          #    for intrv in saa_passes:
-          #      axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.1, color='green')
   ## Rotate date labels automatically
   fig.autofmt_xdate()
   fig.suptitle('State Differences Estimated - Reference\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
-      full_name = saveas + 'statediffs.png'
+      full_name = saveas + 'statediffs.pdf'
       print('Saving figure to {:}'.format(full_name))
-      plt.savefig(full_name, bbox_inches='tight')
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
+  plt.show()
+
+def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=False, saveas=None):
+  def whichCol(component, posvel):
+      labels = ['x','y','z','vx','vy','vz']
+      return labels[component + int(posvel==1)*3]
+  def whichTitle(component, posvel, fac=1e0):
+      labels = [r'$x$',r'$y$',r'$z$',r'$v_x$',r'$v_y$',r'$v_z$']
+      title = r'{:} [m]'.format(labels[component])
+      if posvel!=0:title = r'{:} [m]'.format(labels[component+3])
+      return title
+  def whichTitleRTN(component, posvel, fac=1e0):
+      title = ' [{:}m]'.format('k' if fac==1e-3 else '')
+      if posvel == 1:
+          title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
+      return ['Radial','In-Track','Cross-track'][component] + title
+  def make_state_diffs(ref_dct, dct):
+      resdct = {}
+      for t,d1 in ref_dct.items():
+          if t not in dct:
+              print('## Warning! failed to find record for date: {:}'.format(t))
+          else:
+              if len(dct[t]) != 1:
+                print('## Warning! more than one estimates found for block')
+              d1 = d1[0]
+              d2 = dct[t][-1]
+              resdct[t] = [{}]
+              for key,val2 in d2.items():
+                if key in d1:
+                  resdct[t][0][key] = val2 - d1[key]
+                else:
+                  resdct[t][0][key] = val2
+      return resdct
+  def rotMatrix(pos,vel):
+    p = np.array(pos)
+    v = np.array(vel) 
+    T = np.identity(3) 
+    r1 = p / np.sqrt(np.sum(p**2))
+    T[0] = r1 ## first row
+    r2 = np.cross(p,v)
+    T[1] = r2 / np.sqrt(np.sum(r2**2))
+    r3 = np.cross(T[1], T[0])
+    T[2] = r3 / np.sqrt(np.sum(r3**2))
+    np.set_printoptions(precision=3)
+    # print(T)
+    return T
+  def dcar2drac(dct1,dct2):
+    resdct = {}
+    for t,d1 in dct1.items():
+      if t not in dct2:
+          print('## Warning! failed to find record for date: {:}'.format(t))
+      else:
+          if len(dct2[t]) != 1:
+            print('## Warning! more than one estimates found for block')
+          d1 = d1[0]
+          d2 = dct2[t][-1]
+          refpos = np.array([d1['x'], d1['y'], d1['z']])
+          refvel = np.array([d1['vx'], d1['vy'], d1['vz']])
+          pos2 = np.array([d2['x'], d2['y'], d2['z']])
+          rtn = rotMatrix(refpos,refvel).dot(refpos-pos2)
+          resdct[t] = [{'x':rtn[0], 'y':rtn[1], 'z':rtn[2]}]
+    return resdct
+
+  dct1 = parse_reference_eci(fnref)
+  dct2 = parse_orbit_eci(fntest)
+  diffs = make_state_diffs(dct1,dct2)
+  shd_passes = shadow_passes(fntest)
+
+  Regression = plot_regression
+  Details = plot_details
+
+  fig, axs = plt.subplots(3, 2, sharey='col', figsize=set_size(width_pt, subplots=(3,2)))
+  ## x-, y-, z-components ...
+  for component in range(3):
+      ## first position, then velocity ...
+      for pv in range(2):
+          fac = 1e0
+          key = whichCol(component, pv)
+          t,y,err = colAsArray(diffs,key,fac)
+          axs[component, pv].scatter(t,y,s=.3,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv, fac))
+          axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+          axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+          axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+          if pv == 0: 
+              axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
+              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
+              axs[component, pv].set_ylim(-3.6,3.6)
+          else: 
+              axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
+              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
+          if Regression:
+            # obtain m (slope) and b(intercept) of linear regression line
+            x = mdates.date2num(t)
+            m, b = np.polyfit(x, y, 1)
+            # add linear regression line to scatterplot
+            if (abs(m)>.5):
+                axs[component, pv].plot(t, m*x+b, color='red', linewidth=1)
+                axs[component, pv].text(t[0], -3, 'slope: {:+.2f}'.format(m), color='red')
+          dsts = ColStatistics(None,y,fac)
+          if not Details:
+              axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
+              axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
+          if Details and shd_passes != []:
+              for intrv in shd_passes: axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
+          print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, pv, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
+  ## Rotate date labels automatically
+  fig.autofmt_xdate()
+  fig.suptitle('State Differences Estimated - Reference (ECI)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+      full_name = saveas + 'stateDiffsEci.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
+  plt.show()
+  
+  diffs = dcar2drac(dct1,dct2)
+  fig, axs = plt.subplots(3, 1, sharey='col', figsize=set_size(width_pt-width_pt/3, subplots=(3,1)))
+  ## x-, y-, z-components ...
+  for component in range(3):
+      fac = 1e0
+      key = whichCol(component, 0)
+      t,y,_= colAsArray(diffs,key,fac)
+      axs[component].scatter(t,y,s=.3,color='black')
+      axs[component].set_title(whichTitleRTN(component, 0, fac))
+      axs[component].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+      axs[component].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+      axs[component].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+      axs[component].yaxis.set_major_locator(MultipleLocator(1))
+      axs[component].yaxis.set_minor_locator(MultipleLocator(1))
+      axs[component].set_ylim(-4,4)
+      #if Regression:
+      #  # obtain m (slope) and b(intercept) of linear regression line
+      #  x = mdates.date2num(t)
+      #  m, b = np.polyfit(x, y, 1)
+      #  # add linear regression line to scatterplot
+      #  axs[component].plot(t, m*x+b, color='red', linewidth=1)
+      #  if (abs(m)>.5):
+      #      axs[component].text(t[0], -3, 'slope: {:+.2f}'.format(m), color='red')
+      dsts = ColStatistics(None,y,fac)
+      print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, 0, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
+  fig.autofmt_xdate()
+  fig.suptitle('State Differences Estimated - Reference (RTN)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+      full_name = saveas + 'stateDiffsRtn.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
+  plt.show()
+
+def plot_state(fntest, plot_regression=False, plot_details=False, saveas=None):
+  def whichCol(component, posvel):
+      labels = ['x','y','z','vx','vy','vz']
+      return labels[component + int(posvel==1)*3]
+  def whichTitle(component, posvel, fac=1e0):
+      title = ' [{:}m]'.format('k' if fac==1e-3 else '')
+      if posvel == 1:
+          title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
+      return ['X','Y','Z'][component] + title
+
+  revs, dct2 = parse_orbit(fntest)
+  diffs = dct2
+  shd_passes = shadow_passes(fntest)
+
+  Regression = plot_regression
+  Details = plot_details
+
+  fig, axs = plt.subplots(3, 2, sharey='col', figsize=set_size(width_pt, subplots=(3,2)))
+  ## x-, y-, z-components ...
+  for component in range(3):
+      ## first position, then velocity ...
+      for pv in range(2):
+          fac = 1e0
+          key = whichCol(component, pv)
+          if Details and revs != []:
+              for r in revs: axs[component, pv].axvline(x=r,color='green',label='Rev')
+          t,y,err = colAsArray(diffs,key,fac)
+          axs[component, pv].scatter(t,y,s=.3,color='black')
+          axs[component, pv].set_title(whichTitle(component, pv, fac))
+          axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+          axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+          axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+          if Regression:
+            # obtain m (slope) and b(intercept) of linear regression line
+            x = mdates.date2num(t)
+            m, b = np.polyfit(x, y, 1)
+            # add linear regression line to scatterplot
+            axs[component, pv].plot(t, m*x+b)
+          dsts = ColStatistics(None,y,fac)
+          if not Details:
+              axs[component, pv].grid(True, 'both', 'x', color='grey', linewidth=.1)
+              axs[component, pv].grid(True, 'both', 'y', color='green', linewidth=.2)
+          if Details and shd_passes != []:
+              for intrv in shd_passes: axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
+  ## Rotate date labels automatically
+  fig.autofmt_xdate()
+  fig.suptitle('Estimated ECEF state at {:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  if saveas:
+      full_name = saveas + 'state.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
+  plt.show()
+
+def plot_accelerations(fn, saveas=None):
+    def filterbyt(t,y,mindt):
+        tt = [t[0]]
+        yy = [y[0]]
+        for i in range(len(t)):
+            if (t[i] - tt[-1]).total_seconds() < mindt:
+                yy[-1] = (yy[-1] + y[i])/2.
+            else:
+                tt.append(t[i])
+                yy.append(y[i])
+        return tt,yy
+
+    tstart = datetime.datetime(2050,1,1)
+    dct = parse_acceleration(fn)
+    fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt))
+    ax.set_yscale('log')
+    ax.set_ylabel(r'Accelerations [$m/s^2$]')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    ax.xaxis.set_major_locator(mdates.HourLocator(interval=3))
+    ax.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+    labels = [r'gravity $n>1$', 'Moon', 'Sun', 'earth tide', 'ocean tides', 'srp', 'drag']
+    ci = 0
+    ctlist = []
+    
+    #for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp', 'drag']:
+    for key in ['gm', 'moon', 'sun', 'setide', 'octide', 'srp']:
+        dtsec = 60. if key != 'srp' else 1.
+        t,y1,_ = colAsArray(dct,key,1e0)
+        print('Original data size {:}'.format(len(y1)), end='')
+        t1,y1 = filterbyt(t,y1,dtsec)
+        print('reduced to {:}'.format(len(y1)))
+        if key == 'gm':
+            t,y,_ = colAsArray(dct,'grav',1e0)
+            t,y = filterbyt(t,y,dtsec)
+            y2 = [ abs(y[0] - yy[1]) for yy in zip(y,y1) ]
+            ax.scatter(t,y2,s=1,color=colors[ci], label=labels[ci])
+            ctlist.append(colors[ci])
+            ax.scatter(t,y1,s=1,color='black',label=r'gravity $n=0$')
+            ctlist.append('black')
+            if t[0] < tstart: tstart = t[0]
+        else:
+            ax.scatter(t1,y1,s=1,color=colors[ci],label=labels[ci])
+            ctlist.append(colors[ci])
+        ci += 1
+
+    ax.set_ylim([1e-14,1e2])
+    
+    fig.autofmt_xdate()
+    ax.tick_params(axis="x",direction="in", pad=-15)
+    for tick in ax.xaxis.get_majorticklabels(): tick.set_horizontalalignment("left")
+    # Shrink current axis's height by 10% on the bottom
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                 box.width, box.height * 0.9])
+    # Put a legend below current axis
+    leg = ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.005), fancybox=True, shadow=True, ncol=4)
+    for h, t in zip(leg.legendHandles, leg.get_texts()): t.set_color(h.get_facecolor()[0])
+    for h in leg.legendHandles: h._sizes = [30]
+        
+    fig.suptitle('Computed accelerations at {:}'.format(tstart.strftime('%Y-%m-%d')), fontsize=16)
+    if saveas:
+        full_name = saveas + 'accelerations.pdf'
+        print('Saving figure to {:}'.format(full_name))
+        plt.savefig(full_name, format='pdf', bbox_inches='tight')
+    plt.show()
+
+def plot_state_diff_periodograms(fnref, fntest, use_eci=False, saveas=None):
+  def omega2period(w): return 2. * math.pi / w
+  def period2omega(T): return 2. * math.pi / T
+  def whichCol(component, posvel):
+      labels = ['x','y','z','vx','vy','vz']
+      return labels[component + int(posvel==1)*3]
+  def whichTitle(component, posvel, fac=1e0):
+    r = [r'$x$', r'$y$', r'$z$']
+    v = [r'$v_x$', r'$v_y$', r'$v_z$']
+    return r'Component {:}'.format(r[component] if posvel==0 else v[component])
+  def make_state_diffs(ref_dct, dct):
+      resdct = {}
+      for t,d1 in ref_dct.items():
+          if t not in dct:
+              print('## Warning! failed to find record for date: {:}'.format(t))
+          else:
+              if len(dct[t]) != 1:
+                print('## Warning! more than one estimates found for block')
+              d1 = d1[0]
+              d2 = dct[t][-1]
+              resdct[t] = [{}]
+              for key,val2 in d2.items():
+                if key in d1:
+                  resdct[t][0][key] = val2 - d1[key]
+                else:
+                  resdct[t][0][key] = val2
+      return resdct
+  def filter_peaks(peaks, w, pgram):
+    wvals = [ w[i] for i in peaks ]
+    pvals = [ pgram[i] for i in peaks ]
+    pi = [ x for x,_ in reversed(sorted(zip(peaks,pvals), key=lambda pair: pair[1])) ]
+    return pi[0:3] if len(pi)>=3 else pi
+  def remove_trend(t,y):
+    x = mdates.date2num(t)
+    m, b = np.polyfit(x, y, 1)
+    yy = []
+    for i in range(len(y)):
+        yy.append(y[i]-(m*x[i]+b))
+    return yy
+
+  if use_eci:
+      dct1 = parse_reference_eci(fnref)
+      dct2 = parse_orbit_eci(fntest)
+  else:
+      dct1 = parse_reference(fnref)
+      revs, dct2 = parse_orbit(fntest)
+  diffs = make_state_diffs(dct1,dct2)
+  
+  nout = 50000
+  Tmin =  6. * 3600    # 6 hours [sec]
+  Tmax =  .5 * 3600    # .1 of hour [sec]
+  Wmax = period2omega(Tmax)
+  Wmin = period2omega(Tmin)
+  assert(Wmin < Wmax)
+  w = np.linspace(Wmin, Wmax, nout)
+  
+  fig, axs = plt.subplots(3, 2, sharex=True, sharey=True, figsize=set_size(width_pt, subplots=(3,2)))
+  ## x-, y-, z-components ...
+  for component in range(3):
+      ## first position, then velocity ...
+      for pv in range(2):
+          fac = 1e0
+          key = whichCol(component, pv)
+          t,y,_ = colAsArray(diffs,key,fac)
+          y = remove_trend(t,y)
+          sec = []
+          t0 = t[0]
+          for i in range(len(t)): sec.append((t[i]-t0).total_seconds())
+          pgram = signal.lombscargle(sec, y, w, normalize=True)
+          axs[component, pv].plot(w, pgram)
+          if component == 2: axs[component, pv].set_xlabel('Angular frequency [rad/s]')
+          if component == 1: axs[component, pv].set_ylabel('Normalized amplitude')
+          peaks = signal.find_peaks(pgram, height=.005)[0] ## peak indexes
+          peaks = filter_peaks(peaks, w, pgram)
+          marks = [ w[i] for i in peaks ]
+          axs[component, pv].vlines(x=marks, ymin=0, ymax=1, color = 'r', linestyle='--', linewidth=1)
+          textystart = .4
+          for i, x in enumerate(marks):
+            axs[component, pv].text(x, textystart, "{:.1f}[hr]".format(omega2period(x)/3600), rotation=0, verticalalignment='center', fontsize=10)
+            textystart += .2
+          axs[component, pv].set_title(whichTitle(component, pv))
+  fig.suptitle('Estimated - Reference at {:}\nLomb-Scargle Periodogram'.format(t[0].strftime('%Y-%m-%d')), fontsize=12)
+  if saveas:
+      full_name = saveas + 'periodogram.pdf'
+      print('Saving figure to {:}'.format(full_name))
+      plt.savefig(full_name, format='pdf', bbox_inches='tight')
   plt.show()
 
 if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.plot_acc:
+        plot_accelerations(args.input, args.save_as)
+
     if args.ref_state:
-      plot_state_diffs(args.ref_state, args.input, args.save_as)
+      if args.use_eci:
+        plot_state_diffs_eci(args.ref_state, args.input, True, False, args.save_as)
+      else:
+        plot_state_diffs(args.ref_state, args.input, False, True, args.save_as)
+      #plot_state(args.input, False, False, args.save_as)
+      if args.plot_per:
+        plot_state_diff_periodograms(args.ref_state, args.input, args.use_eci, args.save_as)
 
     if args.plot_res:
-      plot_residuals(args.input, args.save_as)
+      plot_residuals(args.input, True, args.save_as)
 
     if args.plot_dynamic_params:
       plot_dynamic_params(args.input, args.save_as)
