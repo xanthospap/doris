@@ -122,6 +122,32 @@ def trim_excess_epochs(dct, max_hours):
             new_dct[t] = vals
     return new_dct
 
+def get_beacon_type(snxfn, t):
+    def secday2hms(sdstr):
+        return str(datetime.timedelta(seconds=float(sdstr)))
+    dct = {}
+    with open(snxfn, 'r') as fin:
+        line = fin.readline()
+        # %=SNX 2.02 IDS 22:329:00000 IDS 93:003:00000 22:002:00000 D 01872 2 X V
+        l = line.split()
+        snxend = datetime.datetime.strptime(':'.join([l[6][0:6], secday2hms(l[6][7:])]), '%y:%j:%H:%M:%S')
+        while line and line.strip() != '+SITE/ANTENNA':
+            line = fin.readline()
+        line = fin.readline()
+        assert (line.strip() == '*Code PT SOLN T Data_start__ Data_end____ Description_________ S/N__')
+        line = fin.readline()
+        while line and line.strip() != '-SITE/ANTENNA':
+            # ADEA  A    1 D 93:003:00000 98:084:11545              ALCATEL -----
+            l = line.split()
+            beacon = l[0]
+            start = datetime.datetime.strptime(':'.join([l[4][0:6], secday2hms(l[4][7:])]), '%y:%j:%H:%M:%S')
+            stop  = datetime.datetime.strptime(':'.join([l[5][0:6], secday2hms(l[5][7:])]), '%y:%j:%H:%M:%S')
+            if (snxend-stop).total_seconds() < 3600: stop = datetime.datetime.now()
+            if t >= start and t < stop:
+                dct[beacon] = l[6]
+            line = fin.readline()
+    return dct
+
 def remove_outliers(x,y,max_remove_percent):
   s = stats.describe(y)
   std = math.sqrt(s.variance)
@@ -286,7 +312,7 @@ def parse_reference_eci(fn):
                 dct[t] = [dict(zip(labels, values))]
     return dct
 
-def colAsArray(dct,coly,fac=1e0,colx='t',te=None):
+def colAsArray(dct,coly,fac=1e0,colx='t',site_list=[]):
     x=[];y=[];sy=[];
     ## if the requested column has a variance entry, it should be col_var
     varcol = coly + '_var'
@@ -294,10 +320,11 @@ def colAsArray(dct,coly,fac=1e0,colx='t',te=None):
       ## note that entries is a list of dictionaries ...
       for entry in entries:
         if coly in entry:
-          x.append(epoch if colx=='t' else entry[colx])
-          y.append(entry[coly])
-          if varcol in entry:
-            sy.append(math.sqrt(entry[varcol]))
+          if site_list==[] or entry['site'] in site_list:
+              x.append(epoch if colx=='t' else entry[colx])
+              y.append(entry[coly])
+              if varcol in entry:
+                sy.append(math.sqrt(entry[varcol]))
     return x,y,sy
 
 def filter_dict_site(dct, site):
@@ -512,6 +539,15 @@ parser.add_argument(
     help='Save plot as')
 
 parser.add_argument(
+    '-x',
+    '--snx',
+    metavar='SINEX_DPOD',
+    dest='snx',
+    default=None,
+    required=False,
+    help='Sinex file to read antenna types from')
+
+parser.add_argument(
     '-c',
     '--shadow',
     metavar='SHADOW_PASSES',
@@ -564,7 +600,7 @@ parser.add_argument(
   action='store_true',
   dest='plot_dynamic_params')
 
-def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20), regression_range=(-.25,.25)):
+def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=(-.20,.20), regression_range=(-.25,.25)):
   passes, revs, dct = parse_residuals(fn)
   Regression = plot_regression
 
@@ -577,7 +613,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20)
     return np.array(xx),np.array(yy)
   
   print("Plotting residuals Vs elevation ...", end='')
-  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt/3))
+  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt - width_pt/3))
   fac = 1e0
   t,y,_ = colAsArray(dct,'res',fac)
   el,y,_ = colAsArray(dct,'res',fac,'el')
@@ -590,7 +626,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20)
     b = np.average(yy)
     ax.axhline(b, color='r', linestyle='--', linewidth=1)
     ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
-  ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]', title='Residuals')
+  ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]')
   fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'resVsEle.pdf'
@@ -599,9 +635,41 @@ def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20)
   plt.show()
   print(" done")
   
+  if snx:
+      fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt - width_pt/3))
+      fac = 1e0
+      t,y,_ = colAsArray(dct,'res',fac)
+      antennae = get_beacon_type(snx, t[0])
+      print('Number of beacons matched in snx: {:}'.format(len(antennae)))
+      ## unique antenna types
+      antenna_types = list(dict.fromkeys([ v for _,v in antennae.items() ]))
+      colors = ['blue', 'red', 'green', 'black']
+      ci = 0
+      for at in antenna_types:
+        print('plotting residuals for antenna type: [{:}] color={:}'.format(at,colors[ci]))
+        el,y,_ = colAsArray(dct,'res',fac,'el',[b for b,t in antennae.items() if t==at])
+        ax.scatter(el,y,s=2,facecolor=colors[ci], label=at, lw=0,alpha=.5)
+        ci += 1
+      ax.set_ylim([plot_range[0], plot_range[1]])
+      ax.set_xlim([0, 90])
+      ax.grid(True, 'both', 'x')
+      ax.legend()
+      #if Regression:
+      #  xx, yy = reducexy(el, y, regression_range[0], regression_range[1])
+      #  b = np.average(yy)
+      #  ax.axhline(b, color='r', linestyle='--', linewidth=1)
+      #  ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
+      ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]')
+      fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+      if saveas:
+          full_name = saveas + 'resVsEleVsAntenna.pdf'
+          print('Saving figure to {:}'.format(full_name))
+          plt.savefig(full_name, format='pdf', bbox_inches='tight')
+      plt.show()
+  
   ## Residuals Vs Time
   print("Plotting residuals Vs time ...", end='')
-  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt/3))
+  fig, ax = plt.subplots(1, 1, figsize=set_size(width_pt - width_pt/3))
   fac = 1e0
   t,y,_ = colAsArray(dct,'res',fac)
   #t,y = remove_outliers(t,y,5)
@@ -614,7 +682,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, plot_range=(-.20,.20)
   ax.xaxis.set_major_locator(mdates.HourLocator(interval=4))
   ax.xaxis.set_minor_locator(mdates.HourLocator(interval=2))
   ax.grid(True, 'both', 'x')
-  ax.set(xlabel='Time', ylabel='Residual [m/s]', title='Residuals')
+  ax.set(xlabel='Time', ylabel='Residual [m/s]')
   fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if Regression:
     # obtain m (slope) and b(intercept) of linear regression line
@@ -776,7 +844,7 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   fac = 1e0
   
   t,y,err = colAsArray(dct,'cd',fac)
-  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.1, capsize=.6)
+  ax[0].errorbar(t,y,yerr=err,fmt='none', ecolor='red', elinewidth=.1, alpha=.2, capsize=1)
   ax[0].scatter(t,y,s=2,color='black')
   ax[0].set_title(r'Drag Coefficient $C_d$')
   if revs != []:
@@ -1257,7 +1325,7 @@ if __name__ == '__main__':
         plot_state_diff_periodograms(args.ref_state, args.input, args.use_eci, args.save_as)
 
     if args.plot_res:
-      plot_residuals(args.input, True, args.save_as)
+      plot_residuals(args.input, True, args.save_as, args.snx)
 
     if args.plot_dynamic_params:
       plot_dynamic_params(args.input, args.save_as)

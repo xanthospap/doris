@@ -96,18 +96,36 @@ Results of orbit determination are depicted in \autoref{fig:state}, where the st
 is given in the \texttt{dpod2020\_01} (\cite{Moreaux2023}) \gls{ecef} reference 
 frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t5state}
     \caption{Satellite state (in \gls{ecef} RF) estimated for one day of \gls{jason}-3 orbit}
     \label{fig:state}
 \end{figure}
 
-\autoref{fig:accelerations} depicts the computed acceleartion components for the 
+The total number of observations per beacon are depicted in \autoref{t5obsBeacons}. 
+It is worth noting that:
+\begin{description}
+  \item observations to beacons \texttt{ARFB} (AREQUIPA, located at Peru) and 
+    \texttt{CADB} (CACHOEIRA PAULISTA, located at Brazil) were not used, 
+    since the corresponding measurements were found to be largely affected by 
+    \gls{saa} (see \autoref{sec:saa}), giving large residual values
+  \item observations to beacon \texttt{HOFC} (HOFN, installed in Iceland) were not used; this site was installed in 
+    September 2020, and no available data based on operational Numerical Weather Model (NWM) 
+    were found at the VMF Data Server (\cite{vmf3DataServer})
+\end{description}
+\begin{figure}
+    \centering
+    \includegraphics{t5obsBeacons}
+    \caption{Number of measurements performed by the on-board \gls{jason}-3 \gls{doris} receiver per ground beacon.}
+    \label{fig:obsPerBeacon}
+\end{figure}
+
+\autoref{fig:accelerations} depicts the computed acceleration components for the 
 force model considered. Atmospheric drag forces are below the order of \SI{1e-18}{\meter\per\second\squared} 
 and are not included, as they are well beyond the targeted precision. For the altitude 
 of \gls{jason}-3, solar radiation pressure is several orders of magnitude larger than 
-atmospheric drag, a fact usually inversed for \gls{leo} satellites if lower 
+atmospheric drag, a fact usually inverted for \gls{leo} satellites if lower 
 altitude. Identification of dominant accelerations and thereby forces, is crucial 
 for further enhancements of the software since it enables prioritization of further 
 development.
@@ -149,7 +167,7 @@ reference frame, and in \autoref{fig:statediffseci} using the celestial \gls{gcr
 frame. For the latter case, the retrieved sp3 state records were first transformed to 
 the \gls{gcrf} frame, and then compared to the estimated state.
 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t5statediffs}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF).}
@@ -193,7 +211,7 @@ the $y$ and $z$ directions is more evident, with values of \SI{-0.91}{\metre\per
 and \SI{+1.66}{\metre\per\day} respectively. A degradation of velocity estimates with 
 time is also clear in this case (see \autoref{fig:statediffseci}).
 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t9stateDiffsEci}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{gcrf}).}
@@ -211,21 +229,21 @@ avoiding aliasing effects (see e.g. \cite{VanderPlas2018}). Results are depicted
 \autoref{fig:lsperiodecef} for differences computed in the \gls{ecef} reference frame 
 and \autoref{fig:lsperiodeci} for the \gls{gcrf} reference frame respectively.
 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t9periodogramEcef}
     \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{ecef}.}
     \label{fig:lsperiodecef}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t9periodogramEci}
     \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{gcrf}.}
     \label{fig:lsperiodeci}
 \end{figure}
 
-The estimated periodograms show a clear prevelance of two harmonics with periods of 
+The estimated periodograms show a clear prevalence of two harmonics with periods of 
 $\approx \SI{1}{\hour}$ and $\approx \SI{2}{\hour}$. Position estimates are dominated by 
 the second frequency, while velocity estimates by the first. Note that \gls{jason}-3 
 completes a revolution around the Earth in \SI{112.4}{\minute} or $\approx \SI{1.9}{\hour}$. 
@@ -246,7 +264,7 @@ $\approx \SI{2}{\hour}$, with a growing amplitude. Max discrepancies in this cas
 $\approx \SI{1.5}{\meter}$, at the end of the day. The cross-track component presents the 
 largest fluctuations, and apart from the identified harmonic of $\approx \SI{2}{\hour}$ 
 seems to follow a parabolic pattern. Details are given in \autoref{table:statediffsrtn}.
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics{t9stateDiffsRtn}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in radial, across-track and in-track RF).}
@@ -277,28 +295,42 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
 \end{figure}
 
 \autoref{fig:ResVsTimeRaw} depicts the residuals of the analysis, i.e. the \emph{Observed} 
-- \emph{Computed} values. Residuals are higher at the begining of the analysis interval, but 
+- \emph{Computed} values. Residuals are higher at the beginning of the analysis interval, but 
 quickly converge to smaller values. This effect is due to the unknown a-priori values mainly of 
 the beacon relative frequency offsets (see \autoref{ssec:doris-computational-aspects}). 
-\begin{figure}[h]
+\begin{figure}
     \centering
     \includegraphics[height=.25\textheight,keepaspectratio]{t4-resVsTimeRaw}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTimeRaw}
 \end{figure}
 
-A more enlightning view of the residuals can be obtained in \autoref{fig:ResVsTime} and 
-\autoref{t5resVsEle}, where the large starting values are filtered out. The first 
+A more enlightening view of the residuals can be obtained in \autoref{fig:ResVsTime} and 
+\autoref{fig:ResVsEle}, where the large starting values are filtered out. The first 
 plot depicts the computed residuals with respect to time, while the latter with respect to 
-elevation angle.
-\begin{figure}[h]
+elevation angle. 
+\begin{figure}
     \centering
     \includegraphics{t5resVsTime}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTime}
 \end{figure}
 
-\begin{figure}[h]
+From \autoref{fig:ResVsEle} it can be seen that observations at elevation angles that 
+approach the cut-off angle of \ang{10}, have larger residual values, a fact to be expected. 
+There also seems to be a systematic offset of $\approx \SI{8}{\milli\meter\per\second}$ 
+between the computed and the observed values. To check weather this offset has to do 
+with a specific (ground) antenna type, residual values with respect to antenna type 
+are depicted in \autoref{fig:ResVsEleVsAntenna}. For the epoch under study, \gls{doris} 
+beacons were equipped with two different antennae, namely STAREC-B and STAREC-C, which 
+share geometric characteristics (see \autoref{sec:doris-ground-segment}). No evident 
+dependence of residual values on antenna type though could be found. Hence, the 
+systematic offset can be attributed to either
+\begin{itemize}
+  \item mismodeling of the geometric characteristics of ground antennae (e.g. antenna reference point(s), \gls{pco})
+  \item mismodeling or non-mitigated errors in the observation equation model
+\end{itemize}
+\begin{figure}
     \centering
     \includegraphics{t5resVsEle}
     \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
@@ -307,15 +339,28 @@ elevation angle.
 
 \begin{figure}
     \centering
-    \includegraphics{t5obsBeacons}
-    \caption{Number of measurements performed by the on-board \gls{jason}-3 \gls{doris} receiver per ground beacon.}
-    \label{fig:obsPerBeacon}
+    \includegraphics{t5resVsEleVsAntenna}
+    \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
+    \label{fig:ResVsEleVsAntenna}
 \end{figure}
 
+Apart from satellite state and beacon-specific parameters, the orbit determination process 
+involves estimation of a number of \emph{dynamic} orbit parameters. For the setup used here, 
+these are the solar radiation pressure coefficient, $C_r$ and the atmospheric drag 
+coefficient $C_d$. Estimated values for these parameters are depicted in 
+\autoref{fig:EstimDynamicParams}. While solar radiation pressure coefficient, $C_r$ 
+is stable throughout the time interval analyzed, the atmospheric drag coefficient 
+shows larger discrepancies. This can be attributed to
+\begin{itemize}
+  \item an erroneous a-priori value, and
+  \item an ``absorption'' of mismodeled or remaining errors of the analysis
+\end{itemize}
+Since the $C_r$ term is estimated once per revolution, while $C_d$ is estimated for the 
+whole time interval, it is easier for the first to ``absorb'' remaining errors.
 \begin{figure}
     \centering
     \includegraphics{t5dynamicParams}
-    \caption{Estimated dynamic orbit parameters (drag and solar radiation pressure corfficients, $C_d$ and $C_r$), for one day of \gls{jason}-3 orbit determination.}
+    \caption{Estimated dynamic orbit parameters (drag and solar radiation pressure coefficients, $C_d$ and $C_r$), for one day of \gls{jason}-3 orbit determination.}
     \label{fig:EstimDynamicParams}
 \end{figure}
 
