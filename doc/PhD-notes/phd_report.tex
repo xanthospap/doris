@@ -274,18 +274,33 @@
 \nomenclature[P]{$M_{\Earth}$}{Earth's mass}
 \nomenclature[P]{$R_{\Earth}$}{Earth's equatorial radius}
 \nomenclature[P]{$\mu _{\Earth}$}{Gravitational constant times Earth's mass}
-\nomenclature[V]{$\bm{x}$}{Bold leters denote vectors}
-\nomenclature[V]{$\bm{X}$}{Bold, capital leters denote matrices}
-\nomenclature[V]{$\bm{R}_x$, $\bm{R}_y$, $\bm{R}_z$}{Elementary rotation matrix, around the $x-$, $y-$ and $z-$axis respectively}
-
+\nomenclature[P]{$M_{\Sun}$}{Sun's mass}
+\nomenclature[P]{$R_{\Sun}$}{Sun's radius}
+\nomenclature[P]{$\mu _{\Sun}$}{Gravitational constant times Sun's mass}
+\nomenclature[P]{$M_{\Moon}$}{Moon's mass}
+\nomenclature[P]{$R_{\Moon}$}{Moon's radius}
+\nomenclature[P]{$\mu _{\Moon}$}{Gravitational constant times Moon's mass}
+%\nomenclature[V]{$\bm{x}$}{Bold leters denote vectors}
+%\nomenclature[V]{$\bm{X}$}{Bold, capital leters denote matrices}
+%\nomenclature[V]{$\bm{R}_x$, $\bm{R}_y$, $\bm{R}_z$}{Elementary rotation matrix, around the $x-$, $y-$ and $z-$axis respectively}
+%
 \begin{titlepage}
 %\maketitle
 \input{chapters/sections/titlepage}
 \end{titlepage}
 
-%
+% front matter, abstract & aknowledgments
 \pagenumbering{roman}
 \input{chapters/sections/frontmatter}
+\clearpage
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+\input{chapters/sections/acknowledgments}
+\clearpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\input{chapters/sections/abstract}
+\clearpage
 
 %\frontmatter
 \tableofcontents
@@ -335,7 +350,7 @@
   \input{chapters/sections/integrator_implementation}
     \input{chapters/sections/integrator_validation}
 
-\chapter{\gls{pod}}\label{ch:pod}
+\chapter{Precise Orbit Determination}\label{ch:pod}
   \input{chapters/sections/pod_introduction}
     \input{chapters/sections/pod_goals}
   \input{chapters/sections/pod_linearization}
@@ -346,16 +361,16 @@
   \input{chapters/sections/pod_variational_equations}
   \input{chapters/sections/pod_implementation}
 
-\chapter{\gls{doris}}\label{ch:doris}
+\chapter{DORIS}\label{ch:doris}
   \input{chapters/sections/doris_introduction}
-    \input{chapters/sections/doris_fundamentals}
+  \input{chapters/sections/doris_fundamentals}
   \input{chapters/sections/doris_ground_segment}
   \input{chapters/sections/doris_rinex}
   \input{chapters/sections/doris_theory}
   \input{chapters/sections/doris_equation_implementation}
   \input{chapters/sections/doris_implementation}
 %\fi
-\chapter{Orbit Determination Using \gls{doris}}\label{ch:pod-using-doris}
+\chapter{Orbit Determination Using DORIS}\label{ch:pod-using-doris}
   \input{chapters/sections/pod_wdoris_introduction}
   \input{chapters/sections/the_software}
   \input{chapters/sections/costg_benchmark_test}

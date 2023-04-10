@@ -1,16 +1,18 @@
-\section{Introduction}\label{sec:introduction}
-
 Satellite Geodesy comprises the observational and computational techniques which allow
 the solution of geodetic problems by the use of precise measurements to, from, or between
 artificial, mostly near-Earth, satellites (\cite{Seeber2003}). Satellite geodesy began
 shortly after the launch of the first artificial satellite, SPUTNIK-1, on October 4, 1957.
 Observations of Explorer 1 and Sputnik 2 in 1958 allowed for an accurate determination of
-Earth's flattening. Latter missions led to the accurate determination of the leading
+Earth's flattening, one of the first results of the emerging Satellite Geodesy field. 
+Latter missions led to the accurate determination of the leading
 spherical harmonic coefficients of the geopotential, the general shape of the geoid,
 and linked the world's geodetic datums (e.g. \cite{KingHele1958} and \cite{Merson1958}).
-Historical notes on the advancement of Satellite Geodesy can be found in \cite{Seeber2003}
-and \cite{Barlier2001}.
+Further historical notes on the advancement of Satellite Geodesy can be found in literature 
+(e.g. \cite{Seeber2003} and \cite{Barlier2001}).
 
+A slight detour is in place here, in memory of the late pioneer in Satellite Geodesy, George Veis (1929-2022), 
+Professor at the School of Rural, Surveying and Geoinformatics Engineering, of the National Technical 
+University of Athens (NTUA). 
 Professor Veis was one of the framers of the early Satellite Geodesy Program at the
 Smithsonian Astrophysical Observatory (SAO), which itself was a fundamental element of
 the early \gls{nasa} Space Geodesy Activity. He was awarded with his PhD in 1958,
@@ -26,14 +28,15 @@ and was used for many years all over the world\footnote{"\textit{The passing of 
 31/01/2022, \gls{nasa} Space Geodesy Project, \url{https://space-geodesy.nasa.gov/news/news.html}}.
 
 Since the launch of the first artificial satellites, satellite geodesy has developed into a
-self-contained field in geodetic teaching and research, with close relations and interactions
-with adjacent fields. By virtue of the ever increasing accuracy achieved by satellite geodesy,
+self-contained field in geodetic teaching and research, with close relations and interactions 
+with adjacent fields. 
+Developments in space science and technology have spurred new interest
+in the subject of the Earth's rotation, and geophysical knowledge of the Earth's interior has
+undergone a very considerable revision leading to an improved understanding of the
+geophysical excitation functions that perturb the Earth's rotation (\cite{Lambeck1980}).
+By virtue of the ever increasing accuracy achieved by satellite geodesy,
 its results and methods are used by or are connected to a wide range of disciplines, spanning
 basic sciences, geosciences and engineering.
-Developments in space science and technology have spurred new interest
-in the subject of the Earth's rotation,  and geophysical knowledge of the Earth's interior has
-undergone a very considerable revision since 1960 leading to an improved understanding of the
-geophysical excitation functions that perturb the Earth's rotation (\cite{Lambeck1980}).
 
 The use of artificial satellites in geodesy, has
 some prerequisites though; these are basically a comprehensive knowledge of the satellite
@@ -83,16 +86,74 @@ In the framework of the current Thesis, this scarcity of dedicated \gls{doris}
 analysis tools for orbit determination is targeted, with the aim of creating
 a high quality, scientific software solution. Designing for extensibility, reusability
 and adaptability, and adhering to a free and open source policy, an as large as possible
-impact and contribution is sought for in the scientific community. Coupled with recent
+impact is sought for in the scientific community. Coupled with recent
 advancements in the technique (e.g. adoption of the RINEX format, dissemination of
 non-preprocessed data including carrier phase observables, introduction of next generation
-receivers and beacons), we hope to spur further, renewed interest in this fundamental
-area of satellite geodesy.
+receivers and beacons) all of which are incorporated in the software built, 
+we hope to spur further, renewed interest in this fundamental area of satellite geodesy.
 
 To accomplish this task, the software is built in a modular fashion. The various components
 are organized in different, independent, moderate-sized libraries, targeting well defined
-problems. State-of-the-art models, algorithms and design patterns are used as building
-blocks.
+problems. This scheme allows for extensive and thorough testing and validation  of the different 
+parts of the package, a vital part of modern software design (e.g. \cite{Oberkampf2010}, \cite{Meyer2008}).
+Additionally, it enables customization according to user needs and accommodates  
+extensibility and maintainability. The latter attributes are of major importance when 
+aiming at an analysis tool reaching \gls{ids} accuracy demands, since such software packages 
+are in an ever-lasting cycle of adopting the latest, most up-to-date scientific advancements.
 
+State-of-the-art models and methodologies are used, adhering to the latest 
+standards and recommendations (e.g. \cite{IdsRecommendationItrf2020}, \cite{iers2010}). 
+Extensions and modifications are derived and applied where needed. Various different 
+implementations are put to the test and robust algorithmic approaches are constructed 
+based on criteria of accuracy and efficiency (computing speed and resources).
+
+Implementation of such sophisticated and complex models is a challenging task. One that requires a 
+rigorous understanding of the theoretical implications on the one hand, and robust 
+engineering on the other. The path taken here, is to follow modern software design 
+patterns, including principles of \emph{data-oriented} design (\cite{Fabian2018}), coupled with 
+the well established \emph{object-oriented} pattern, while also taking advantage of 
+modern features such as generic programming via \emph{template metaprogramming} 
+(e.g. \cite{Gawlik2018}). Given that most scientific software packages were built 
+a few decades back, this design constitutes a novel approach in software tools for 
+the given problem set.
+
+The layout of the Thesis, includes seven chapters. In the second chapter 
+(\autoref{ch:fundamental-astrodynamics}), required concepts of 
+fundamental astrodynamics are introduced. Perturbed satellite motion is discussed and 
+state-of-the-art approaches for modeling perturbation forces acting on Earth orbiting 
+satellites are presented along with implementation details. Spatial and temporal reference 
+frames are then introduced, to efficiently describe orbital motion.
+
+The next chapter (\autoref{ch:orbit-integration}) reviews orbit integration, focusing on 
+numerical integration of orbital motion using the \emph{special perturbations} 
+approach. An efficient yet robust integrator is derived, to be used in a \gls{pod} 
+analysis scheme.
+
+In Chapter four (\autoref{ch:pod}), an overview of \gls{pod} concepts is given, 
+with special attention on the \emph{Extended Kalman Filter} and the linearization 
+of the (non-linear) perturbed orbital trajectory model. Consequently, efficient 
+representation and formulation of the \emph{variational equation} system is discussed, 
+a fundamental yet complex problem for high accuracy orbit determination.
+
+The \gls{doris} technique is introduced in Chapter five (\autoref{ch:doris}). 
+The technique's principle is presented, along with the instrumentation used and 
+details on the ground segment, including the tracking network. Derivation of the 
+observation equation model, theoretical implications, error sources and mitigation are 
+also discussed. Implementation details and considerations conclude this 
+chapter.
+
+Chapter six (\autoref{ch:pod-using-doris}) begins with a description of the 
+software built for this Thesis. It then goes on to test and validate the tools built, 
+using a real-world scenario with one day of \gls{doris} data acquired from the 
+\gls{jason}-3 satellite mission. Results obtained are checked against high-quality 
+reference results. Differences with respect to the reference solution are thoroughly 
+examined and reasoned about.
+
+The last Chapter (\autoref{ch:summary-and-recomend}) of the Thesis discusses 
+conclusions drawn from the work performed and recommendations for further research 
+activities and refinements of the software tools built.
+
+\iffalse
 Earth observation via artificial satellites and its numerous
 missions and applications is heavily relied upon orbit determination;
+\fi
