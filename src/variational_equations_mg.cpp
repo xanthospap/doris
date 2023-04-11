@@ -86,10 +86,6 @@ int solar_radiation_pressure(const dso::TwoPartDate &tai,
   // unit vector directed from spacecrafe to Sun (GCRF)
   const Eigen::Matrix<double, 3, 1> svsun = (sun_gcrf - rgcrf).normalized();
 
-  // get attitude rotation matrix / quaternion
-  Eigen::Quaternion<double> q;
-  assert(!params.svFrame->get_attitude_quaternion(tai, q));
-
   // loop over box-wings
   const int numPlates = params.svFrame->plates().NumPlates;
   const dso::MacroModelComponent *plate = nullptr;
@@ -135,10 +131,6 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
          Eigen::Matrix<double, 3, 3> &ddragdr,
          Eigen::Matrix<double, 3, 3> &ddragdv,
          Eigen::Matrix<double, 3, 1> &ddragdC) {
-  // get attitude rotation matrix / quaternion
-  Eigen::Quaternion<double> q;
-  assert(!params.svFrame->get_attitude_quaternion(tai, q));
-
   // relative velocity
   Eigen::Matrix<double, 3, 1> vrel;
   {
@@ -149,20 +141,21 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
 
   // loop over box-wings
   double S = 0e0;
-  const int numPlates = params.svFrame->plates().NumPlates;
-  const dso::MacroModelComponent *plate = nullptr;
-  for (int i = 0; i < numPlates; i++) {
-    plate = params.svFrame->plates().mmcomponents + i;
-    /* (unit) vector of plate, normal in sv-fixed RF */
-    Eigen::Matrix<double, 3, 1> n(plate->m_normal);
-    /* inclination of the ith plate to the  vector */
-    const auto ni = q.conjugate().normalized() * n;
-    const double cosA = ni.transpose() * vrel.normalized();
-    if (cosA > 0e0) {
-      S += (plate->m_surf * cosA);
-    }
-  }
-  S /= params.svFrame->mass();
+  //const int numPlates = params.svFrame->plates().NumPlates;
+  //const dso::MacroModelComponent *plate = nullptr;
+  //for (int i = 0; i < numPlates; i++) {
+  //  plate = params.svFrame->plates().mmcomponents + i;
+  //  /* (unit) vector of plate, normal in sv-fixed RF */
+  //  Eigen::Matrix<double, 3, 1> n(plate->m_normal);
+  //  /* inclination of the ith plate to the  vector */
+  //  const auto ni = q.conjugate().normalized() * n;
+  //  const double cosA = ni.transpose() * vrel.normalized();
+  //  if (cosA > 0e0) {
+  //    S += (plate->m_surf * cosA);
+  //  }
+  //}
+  //S /= params.svFrame->mass();
+  if ( svFrame->projected_area(vrel.normalized(), S) ) return 1;
 
     // get atmospheric density, using the UTC date
     const dso::TwoPartDate utc = tai.tai2utc();

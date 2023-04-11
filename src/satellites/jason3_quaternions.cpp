@@ -15,6 +15,43 @@ const char *skip_ws(const char *str) noexcept {
   return str;
 }
 
+int resolve_jason3_solar_array_angles_line(
+    const char *line, dso::JasonSolarArrayAngles &record) noexcept {
+  // read in date (UTC) and transform to TAI
+  try {
+    auto utc = dso::utc_strptime_ymd_hms(line);
+    record.tai_mjd = utc.utc2tai();
+  } catch (std::exception &e) {
+    fprintf(stderr,
+            "[ERROR] Failed resolving date in solar array file, line \'%s\' "
+            "(traceback: %s)\n",
+            line, __func__);
+    return 1;
+  }
+
+  const char *last = line + std::strlen(line);
+  // skip field UT1 and space/tab character
+  const char *c = line + 23 + 1;
+  // UT1 -- 10 chars, unused value
+  c += 10 + 1;
+
+  double qdata[4]; // temporary buffer
+  int error = 0;
+  for (int i = 0; i < 4; i++) {
+    auto pec = std::from_chars(skip_ws(c), last, qdata[i]);
+    c = pec.ptr;
+    if (!std::isspace(*c) || pec.ec != std::errc{}) {
+      fprintf(stderr, "[ERROR] Failed parsing part %d of solar array file!\n",
+              i);
+      ++error;
+    }
+  }
+
+  record.left = qdata[1];
+  record.right = qdata[3];
+  return error;
+}
+
 int resolve_jason3_body_quaternion_line(
     const char *line, dso::JasonBodyQuaternion &record) noexcept {
   // read in date (UTC) and transform to TAI
@@ -94,6 +131,15 @@ dso::JasonQuaternionHunter::JasonQuaternionHunter(const char *body_fn)
     assert(1==2);
   }
 }
+dso::JasonSolarArrayHunter::JasonSolarArrayHunter(const char *body_fn)
+    : bodyin(body_fn) {
+  // read-in the first two quaternions
+  if (bodyin.get_next(angles, NumQuaternionsInBuffer)) {
+    //throw std::runtime_error(
+    //    "ERROR JasonQuaternionHunter failed to construct\n");
+    assert(1==2);
+  }
+}
 
 int dso::JasonQuaternionHunter::find_interval(
     const dso::TwoPartDate &tai_mjd) const noexcept {
@@ -124,6 +170,35 @@ int dso::JasonQuaternionHunter::find_interval(
   return -100;
 }
 
+int dso::JasonSolarArrayHunter::find_interval(
+    const dso::TwoPartDate &tai_mjd) const noexcept {
+  // start searching from the top, aka from last element
+  int qindex = NumQuaternionsInBuffer - 2;
+  for (int i = qindex; i >= 0; --i) {
+    if ((tai_mjd >= angles[i].tai_mjd) && (tai_mjd < angles[i + 1].tai_mjd)) {
+      return i;
+    }
+  }
+  // tai_mjd is out of bounds, prior to first record in buffer
+  if (tai_mjd < angles[0].tai_mjd) {
+    fprintf(stderr,
+            "[WRNNG] First quaternion in buffer is at %.9f, requested epoch "
+            "%.9f (traceback: %s)\n",
+            angles[0].tai_mjd.mjd(), tai_mjd.mjd(), __func__);
+    return -1;
+  }
+  // tai_mjd is out of bounds, after the last record in buffer
+  if (tai_mjd >= angles[NumQuaternionsInBuffer - 1].tai_mjd)
+    return NumQuaternionsInBuffer + 1;
+  // we should never reach this point
+  fprintf(stderr,
+          "[ERROR] Hit wall while searching for quaternion: requested date: "
+          "%.9f, buffered: %.9f to %.9f (traceback: %s)\n",
+          tai_mjd.mjd(), angles[0].tai_mjd.mjd(),
+          angles[NumQuaternionsInBuffer - 1].tai_mjd.mjd(), __func__);
+  return -100;
+}
+
 int dso::JasonBodyQuaternionFile::get_next(
     dso::JasonBodyQuaternion &record) noexcept {
   char line[LINE_SZ];
@@ -140,6 +215,24 @@ int dso::JasonBodyQuaternionFile::get_next(
     fin.getline(line, LINE_SZ);
 
   return resolve_jason3_body_quaternion_line(line, record);
+}
+
+int dso::JasonSolarArrayAnglesFile::get_next(
+    dso::JasonSolarArrayAngles &record) noexcept {
+  char line[LINE_SZ];
+  if (!fin.getline(line, LINE_SZ)) {
+    fprintf(
+        stderr,
+        "[ERROR] Failed to read line from solar array file! (traceback: %s)\n",
+        __func__);
+    return 2;
+  }
+
+  // skip commanet lines, if any
+  while (line[0] == '#' && fin.good())
+    fin.getline(line, LINE_SZ);
+
+  return resolve_jason3_solar_array_angles_line(line, record);
 }
 
 int dso::JasonBodyQuaternionFile::get_next(dso::JasonBodyQuaternion *records,
@@ -159,6 +252,29 @@ int dso::JasonBodyQuaternionFile::get_next(dso::JasonBodyQuaternion *records,
       fin.getline(line, LINE_SZ);
 
     if (resolve_jason3_body_quaternion_line(line, records[i]))
+      return i * 10 + 1;
+  }
+
+  return 0;
+}
+
+int dso::JasonSolarArrayAnglesFile::get_next(dso::JasonSolarArrayAngles *records,
+                                           int num_records) noexcept {
+  char line[LINE_SZ];
+  for (int i = 0; i < num_records; i++) {
+    if (!fin.getline(line, LINE_SZ)) {
+      fprintf(
+          stderr,
+          "[ERROR] Failed to read line from solar array file! (traceback: %s)\n",
+          __func__);
+      return 2;
+    }
+
+    // skip comment lines, if any
+    while (line[0] == '#' && fin.good())
+      fin.getline(line, LINE_SZ);
+
+    if (resolve_jason3_solar_array_angles_line(line, records[i]))
       return i * 10 + 1;
   }
 
@@ -257,6 +373,98 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd,
   }
 }
 
+int dso::JasonSolarArrayHunter::set_at(const dso::TwoPartDate &tai_mjd,
+                                       int &index) noexcept {
+  // first, check if we are ok, i.e. the time requested is within the buffered
+  // interval
+  index = this->find_interval(tai_mjd);
+  if (index<0) {
+    /* Must restart searching from the top! */
+    fprintf(stderr,
+            "[WRNNG] Rewinding solar array stream to find suitable interval "
+            "(traceback: %s)\n",
+            __func__);
+    /* rewind stream */
+    bodyin.fin.clear();
+    bodyin.fin.seekg(0, std::ios::beg);
+    /* collect first NumQuaternionsInBuffer quaternions */
+    if (bodyin.get_next(angles, NumQuaternionsInBuffer)) {
+      fprintf(stderr,
+              "[ERROR] Failed to collect initial solar array after rewiding! "
+              "(traceback: %s)\n",
+              __func__);
+      return 99;
+    }
+    return set_at(tai_mjd, index);
+  }
+  if (index < NumQuaternionsInBuffer) {
+    return 0;
+  }
+
+  // get next quaternion, hopefully we are ok now ...
+  // new quternion temporarilly stored in tmp
+  dso::JasonSolarArrayAngles tmp;
+  if (bodyin.get_next(tmp)) {
+    fprintf(
+        stderr,
+        "[ERROR] Failed to get solar array for requested date (traceback: %s)\n",
+        __func__);
+    return 1;
+  }
+#ifdef DEBUG
+  assert(tmp.tai_mjd > bodyq[NumQuaternionsInBuffer - 1].tai_mjd);
+#endif
+
+  // check if we are ok with this pair ...
+  if ((tai_mjd >= angles[NumQuaternionsInBuffer - 1].tai_mjd) &&
+      (tai_mjd < tmp.tai_mjd)) {
+    //  left shift quaternions and add the new in the last index
+    left_shift();
+    angles[NumQuaternionsInBuffer - 1] = tmp;
+    index = NumQuaternionsInBuffer - 2;
+
+    return 0;
+  } else {
+    if (tai_mjd < angles[0].tai_mjd) {
+      fprintf(stderr,
+              "ERROR Requested solar array for an epoch prior to current "
+              "interval, t=%.15f\n",
+              tai_mjd.mjd());
+      fprintf(stderr, "      Current interval spans: %.15f to %.15f\n",
+              angles[0].tai_mjd.mjd(), angles[1].tai_mjd.mjd());
+      return 1;
+    }
+    // printf("Hunting failed, next quaternions was at: %.1f + %.15f\n",
+    // tmp.tai_mjd._big, tmp.tai_mjd._small); printf("Rejected beacuse: %1d
+    // %1d\n",(tai_mjd >= bodyq[NumQuaternionsInBuffer - 1].tai_mjd), (tai_mjd <
+    // tmp.tai_mjd)); printf("Again, that is: %.1f + %.15f < %.1f + %.15f\n",
+    // tai_mjd._big, tai_mjd._small, tmp.tai_mjd._big, tmp.tai_mjd._small);
+    //  else, find a suitable interval ....
+    int error = 0;
+    left_shift();
+    angles[NumQuaternionsInBuffer - 1] = tmp;
+
+    do {
+      error = bodyin.get_next(tmp);
+      left_shift();
+      angles[NumQuaternionsInBuffer - 1] = tmp;
+      // printf("\tnext quaternions is at: %.1f + %.15f\n", tmp.tai_mjd._big,
+      // tmp.tai_mjd._small); bodyq[0] = tmp; bodyq[1] = tmp2; tmp = tmp2;
+    } while (!error &&
+             !((tai_mjd >= angles[NumQuaternionsInBuffer - 2].tai_mjd) &&
+               (tai_mjd < angles[NumQuaternionsInBuffer - 1].tai_mjd)));
+    if (error) {
+      fprintf(stderr,
+              "[ERROR] Failed hunting solar array for epoch: %.15f. Last found "
+              "was for %.15f. error=%d (traceback: %s)\n",
+              tai_mjd.mjd(), angles[NumQuaternionsInBuffer - 1].tai_mjd.mjd(),
+              error, __func__);
+    }
+
+    return (error) ? (error) : ((index = NumQuaternionsInBuffer - 2) == -1);
+  }
+}
+
 int dso::JasonQuaternionHunter::get_at(const dso::TwoPartDate &tai_mjd,
                                        Eigen::Quaterniond &q) noexcept {
   constexpr const dso::DateTimeDifferenceType FD =
@@ -283,5 +491,27 @@ int dso::JasonQuaternionHunter::get_at(const dso::TwoPartDate &tai_mjd,
   q = bodyq[i0].quaternion.slerp(dt, bodyq[i1].quaternion);
   q.normalize();
   // q = slerp(bodyq[0].quaternion, bodyq[1].quaternion, dt);
+  return 0;
+}
+
+int dso::JasonSolarArrayHunter::get_at(const dso::TwoPartDate &tai_mjd, double &left, double &right) noexcept {
+  constexpr const dso::DateTimeDifferenceType FD =
+      dso::DateTimeDifferenceType::FractionalDays;
+  int index;
+  if (set_at(tai_mjd, index))
+    return 99;
+
+#ifdef DEBUG
+  assert(index >= 0 && index < NumQuaternionsInBuffer - 1);
+  assert(tai_mjd >= bodyq[index].tai_mjd && tai_mjd < bodyq[index + 1].tai_mjd);
+#endif
+
+  const int i0 = index;
+  const int i1 = index + 1;
+  /* linear interpolation */
+  const double x1x0 = angles[i1].tai_mjd.diff<FD>(angles[i0].tai_mjd);
+  const double xx0 = tai_mjd.diff<FD>(angles[i0].tai_mjd);
+  left = angles[i0].left  + xx0 * (angles[i1].left - angles[i0].left) / x1x0;
+  right = angles[i0].right  + xx0 * (angles[i1].right - angles[i0].right) / x1x0;
   return 0;
 }

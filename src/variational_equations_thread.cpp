@@ -381,9 +381,7 @@ void dso::VariationalEquations_thread(
   /* Get the attitude matrix so that we don't try to get it within the threads 
    * and mess with the stream
    */
-  Eigen::Quaternion<double> q;
-  assert( !(params.svFrame->get_attitude_quaternion(cmjd, q)) );
-
+  
   /* gravity acceleration and gradients */
   Eigen::Matrix<double, 3, 1> gravity_a;
   Eigen::Matrix<double, 3, 3> gravity_dadr;

@@ -16,6 +16,24 @@ struct JasonBodyQuaternion {
   Eigen::Quaternion<double> quaternion;
 }; // JasonBodyQuaternion
 
+struct JasonSolarArrayAngles {
+  ///< TAI MJD
+  dso::TwoPartDate tai_mjd;
+  ///< Left and Right panel agles
+  /* See description in file: 
+   * https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf
+   * Left Solar Array:
+   *  Rotation axis = -Y; Angle=0 when solar array's normal direction is oriented
+   * along -X satellite's axis. Angle is counted positive for
+   * counter clockwise rotation (right hand rule)
+   * Right Solar Array:
+   *  Rotation axis = +Y; Angle=0 when solar array's normal direction is oriented
+   * along -X satellite's axis. Angle is counted positive for
+   * counter clockwise rotation (right hand rule)
+   */
+  double left,right;
+};// JasonSolarArrayAngles
+
 /// @ref
 /// https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf
 struct JasonBodyQuaternionFile {
@@ -40,14 +58,38 @@ struct JasonBodyQuaternionFile {
 
 /// @ref
 /// https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf
-struct JasonPanelQuaternionFile {
+struct JasonSolarArrayAnglesFile {
   std::ifstream fin;
-  JasonPanelQuaternionFile(const char *fn) noexcept : fin(fn) {}
+  JasonSolarArrayAnglesFile(const char *fn) noexcept : fin(fn) {}
+  int get_next(JasonSolarArrayAngles *records, int num_records) noexcept;
+  int get_next(JasonSolarArrayAngles &record) noexcept;
 };
 
 /// @brief Number of JasonBodyQuaternion instances buffered in a
 ///        JasonQuaternionHunter instance
 constexpr const int NumQuaternionsInBuffer = 20;
+
+struct JasonSolarArrayHunter {
+  JasonSolarArrayAnglesFile bodyin;
+  JasonSolarArrayAngles angles[NumQuaternionsInBuffer];
+  
+  /// @brief  Constructor
+  /// @param array_fn Name of the solar array file, parsed into the instance's
+  JasonSolarArrayHunter(const char *body_fn);
+  int find_interval(const dso::TwoPartDate &tai_mjd) const noexcept;
+  void left_shift() noexcept {
+    // fuck it, consume memory, no loops
+    JasonBodyQuaternion newq[NumQuaternionsInBuffer - 1];
+    std::memcpy(newq, angles + 1,
+                sizeof(JasonSolarArrayAngles) * (NumQuaternionsInBuffer - 1));
+    std::memcpy(angles, newq,
+                sizeof(JasonSolarArrayAngles) * (NumQuaternionsInBuffer - 1));
+    return;
+  }
+  int set_at(const dso::TwoPartDate &mjd_tai, int &index) noexcept;
+  int get_at(const dso::TwoPartDate &mjd_tai,
+             double &lefty, double &righty) noexcept;
+};// JasonSolarArrayHunter
 
 struct JasonQuaternionHunter {
   JasonBodyQuaternionFile bodyin;
@@ -106,6 +148,25 @@ struct JasonQuaternionHunter {
   int get_at(const dso::TwoPartDate &mjd_tai,
              Eigen::Quaternion<double> &q) noexcept;
 }; // JasonQuaternionHunter
+
+struct JasonAttitude {
+  JasonQuaternionHunter q;
+  JasonSolarArrayHunter s;
+  
+  JasonAttitude(const char *fnbody, const char *fnarray) noexcept
+      : q(fnbody), s(fnarray){};
+  
+  int get_at(const dso::TwoPartDate &mjd_tai, Eigen::Quaternion<double> &qtrn,
+             double &left, double &right) noexcept {
+    int error = q.get_at(mjd_tai, qtrn);
+    error += s.get_at(mjd_tai, left, right);
+    return error;
+  }
+  int get_at(const dso::TwoPartDate &mjd_tai, Eigen::Quaternion<double> &qtrn) noexcept {
+    int error = q.get_at(mjd_tai, qtrn);
+    return error;
+  }
+};// JasonAttitude
 
 } // namespace dso
 

@@ -21,15 +21,16 @@ class SvFrame {
   /* Antenna RP point in SV-fixed RF */
   Eigen::Matrix<double, 3, 1> arp_sf;
   /* quaternion hunter for attitude */
-  dso::JasonQuaternionHunter qhunt;
+  // dso::JasonQuaternionHunter qhunt;
+  dso::JasonAttitude jatt;
   /* satellite macromodel */
   dso::MacroModel<SATELLITE::Jason3> mplates;
   double sat_mass{0e0};
 
 public:
   SvFrame(Eigen::Matrix<double, 3, 1> vcog, Eigen::Matrix<double, 3, 1> varp,
-          const char *qfn, double mass)
-      : cog_sf(vcog), arp_sf(varp), qhunt(qfn), sat_mass(mass) {}
+          const char *qfn, const char *bfn, double mass)
+      : cog_sf(vcog), arp_sf(varp), jatt(qfn,bfn), sat_mass(mass) {}
 
   double mass() const noexcept {return sat_mass;}
   const dso::MacroModel<SATELLITE::Jason3> &plates() const noexcept {return mplates;}
@@ -37,7 +38,7 @@ public:
   int arp2cog(const dso::TwoPartDate &tai, Eigen::Matrix<double, 3, 1> &dr) {
     /* r_sat_fixed = Q * r_sat_gcrs */
     Eigen::Quaternion<double> q;
-    if (qhunt.get_at(tai, q)) {
+    if (jatt.get_at(tai, q)) {
       fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
       return 1;
     }
@@ -45,6 +46,7 @@ public:
     return 0;
   }
 
+  /*
   int get_attitude_quaternion(const dso::TwoPartDate &tai, Eigen::Quaternion<double> &q) noexcept {
     if (qhunt.get_at(tai, q)) {
       fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
@@ -52,23 +54,27 @@ public:
     }
     return 0;
   }
+  */
 
   /* returns (S / m) where S is the projected area */
   int projected_area(const dso::TwoPartDate &tai,
                      const Eigen::Matrix<double, 3, 1> &vrel, double &b) noexcept {
+    double left, right;
     /* attitude matrix */
     Eigen::Quaternion<double> q;
-    if (qhunt.get_at(tai, q)) {
+    if (jatt.get_at(tai, q, left, right)) {
       fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
       return 1;
     }
+    
     /* normalized relative velocity */
     const auto v = vrel.normalized();
-    /* iterate through SV plates */
+    
+    /* iterate through SV plates, no solar array yet */
     double S = 0e0;
     const int numPlates = mplates.NumPlates;
     const MacroModelComponent *plate = nullptr;
-    for (int i=0; i<numPlates; i++) {
+    for (int i=0; i<numPlates-2; i++) {
       plate = mplates.mmcomponents + i;
       /* (unit) vector of plate, normal in sv-fixed RF */
       Eigen::Matrix<double,3,1> n(plate->m_normal);
@@ -77,6 +83,36 @@ public:
         S += (plate->m_surf * cosA);
       }
     }
+
+    int i;
+    /* left panel */
+    {
+    i = numPlates - 2;
+    plate = mplates.mmcomponents + i;
+    /* (unit) vector of plate, normal in sv-fixed RF */
+    const Eigen::Matrix<double,3,3> R = Eigen::AngleAxis<double>(left, -Eigen::Vector3d::UnitY()).toRotationMatrix().transpose();
+    Eigen::Matrix<double, 3, 1> n(R * Eigen::Matrix<double,3,1>{plate->m_normal});
+    const double cosA = (q.conjugate().normalized() * n).transpose() * v;
+    if (cosA > 0e0) {
+      S += (plate->m_surf * cosA);
+    }
+    }
+
+    {
+    ++i;
+    plate = mplates.mmcomponents + i;
+    /* (unit) vector of plate, normal in sv-fixed RF */
+    const auto R = Eigen::AngleAxis<double>(right, Eigen::Matrix<double, 3, 1>{0e0, 1e0, 0e0});
+    Eigen::Matrix<double, 3, 1> n(
+            R.toRotationMatrix()
+            .transpose() *
+        Eigen::Matrix<double,3,1>{plate->m_normal});
+    const double cosA = (q.conjugate().normalized() * n).transpose() * v;
+    if (cosA > 0e0) {
+      S += (plate->m_surf * cosA);
+    }
+    }
+
     /* compute ballistic coefficient, without the Cd */
     b = S/sat_mass;
     return 0;
@@ -135,8 +171,8 @@ struct IntegrationParameters {
 
   void set_sv_frame(Eigen::Matrix<double, 3, 1> vcog,
                     Eigen::Matrix<double, 3, 1> varp, const char *qfn,
-                    double mass) {
-    svFrame = new dso::SvFrame(vcog,varp,qfn,mass);
+                    const char *bfn, double mass) {
+    svFrame = new dso::SvFrame(vcog, varp, qfn, bfn, mass);
   }
 
   // TODO
