@@ -2,6 +2,7 @@
 #define __DSO_DORIS_SATELLITES_HPP__
 
 #include "datetime/dtcalendar.hpp"
+#include "eigen3/Eigen/Eigen"
 
 namespace dso {
 
@@ -32,6 +33,11 @@ struct MacroModelComponent {
   double m_normal[3]; ///< Normal in satellite fixed ref. frame [x,y,z]
   double m_optical_properties[3];  ///< spec, diff, abs
   double m_infrared_properties[3]; ///< spec, diff, abs
+
+  Eigen::Matrix<double,3,1> normal() const noexcept {
+    return Eigen::Matrix<double,3,1>{m_normal};
+  }
+  double surface_area() const noexcept {return m_surf;}
 };
 
 enum class SATELLITE : char { Jason3, Cryosat2 }; // SATELLITE

@@ -21,7 +21,6 @@ class SvFrame {
   /* Antenna RP point in SV-fixed RF */
   Eigen::Matrix<double, 3, 1> arp_sf;
   /* quaternion hunter for attitude */
-  // dso::JasonQuaternionHunter qhunt;
   dso::JasonAttitude jatt;
   /* satellite macromodel */
   dso::MacroModel<SATELLITE::Jason3> mplates;
@@ -46,19 +45,18 @@ public:
     return 0;
   }
 
-  /*
-  int get_attitude_quaternion(const dso::TwoPartDate &tai, Eigen::Quaternion<double> &q) noexcept {
-    if (qhunt.get_at(tai, q)) {
+  int get_attitude(const dso::TwoPartDate &tai, Eigen::Quaternion<double> &q,
+                   double &left, double &right) noexcept {
+    if (jatt.get_at(tai, q, left, right)) {
       fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
       return 1;
     }
     return 0;
   }
-  */
 
   /* returns (S / m) where S is the projected area */
   int projected_area(const dso::TwoPartDate &tai,
-                     const Eigen::Matrix<double, 3, 1> &vrel, double &b) noexcept {
+                     const Eigen::Matrix<double, 3, 1> &e, double &b) noexcept {
     double left, right;
     /* attitude matrix */
     Eigen::Quaternion<double> q;
@@ -68,7 +66,7 @@ public:
     }
     
     /* normalized relative velocity */
-    const auto v = vrel.normalized();
+    const auto v = e.normalized();
     
     /* iterate through SV plates, no solar array yet */
     double S = 0e0;
@@ -77,40 +75,42 @@ public:
     for (int i=0; i<numPlates-2; i++) {
       plate = mplates.mmcomponents + i;
       /* (unit) vector of plate, normal in sv-fixed RF */
-      Eigen::Matrix<double,3,1> n(plate->m_normal);
+      const auto n(plate->normal());
       const double cosA = (q.conjugate().normalized()*n).transpose() * v;
       if (cosA > 0e0) {
-        S += (plate->m_surf * cosA);
+        S += (plate->surface_area() * cosA);
       }
     }
 
     int i;
     /* left panel */
     {
-    i = numPlates - 2;
-    plate = mplates.mmcomponents + i;
-    /* (unit) vector of plate, normal in sv-fixed RF */
-    const Eigen::Matrix<double,3,3> R = Eigen::AngleAxis<double>(left, -Eigen::Vector3d::UnitY()).toRotationMatrix().transpose();
-    Eigen::Matrix<double, 3, 1> n(R * Eigen::Matrix<double,3,1>{plate->m_normal});
-    const double cosA = (q.conjugate().normalized() * n).transpose() * v;
-    if (cosA > 0e0) {
-      S += (plate->m_surf * cosA);
-    }
+      i = numPlates - 2;
+      plate = mplates.mmcomponents + i;
+      /* (unit) vector of plate, normal in sv-fixed RF */
+      const Eigen::Matrix<double, 3, 3> R =
+          Eigen::AngleAxis<double>(left, -Eigen::Vector3d::UnitY())
+              .toRotationMatrix()
+              .transpose();
+      Eigen::Matrix<double, 3, 1> n = R * plate->normal();
+      const double cosA = (q.conjugate().normalized() * n).transpose() * v;
+      if (cosA > 0e0) {
+        S += (plate->surface_area() * cosA);
+      }
     }
 
     {
-    ++i;
-    plate = mplates.mmcomponents + i;
-    /* (unit) vector of plate, normal in sv-fixed RF */
-    const auto R = Eigen::AngleAxis<double>(right, Eigen::Matrix<double, 3, 1>{0e0, 1e0, 0e0});
-    Eigen::Matrix<double, 3, 1> n(
-            R.toRotationMatrix()
-            .transpose() *
-        Eigen::Matrix<double,3,1>{plate->m_normal});
-    const double cosA = (q.conjugate().normalized() * n).transpose() * v;
-    if (cosA > 0e0) {
-      S += (plate->m_surf * cosA);
-    }
+      ++i;
+      plate = mplates.mmcomponents + i;
+      /* (unit) vector of plate, normal in sv-fixed RF */
+      const auto R = Eigen::AngleAxis<double>(
+          right, Eigen::Matrix<double, 3, 1>{0e0, 1e0, 0e0});
+      Eigen::Matrix<double, 3, 1> n =
+          R.toRotationMatrix().transpose() * plate->normal();
+      const double cosA = (q.conjugate().normalized() * n).transpose() * v;
+      if (cosA > 0e0) {
+        S += (plate->m_surf * cosA);
+      }
     }
 
     /* compute ballistic coefficient, without the Cd */

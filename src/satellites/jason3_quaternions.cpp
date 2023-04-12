@@ -137,6 +137,7 @@ dso::JasonSolarArrayHunter::JasonSolarArrayHunter(const char *body_fn)
   if (bodyin.get_next(angles, NumQuaternionsInBuffer)) {
     //throw std::runtime_error(
     //    "ERROR JasonQuaternionHunter failed to construct\n");
+    fprintf(stderr, "[ERROR] Failed constructing JasonSolarArrayHunter from file %s\n", body_fn);
     assert(1==2);
   }
 }
@@ -220,6 +221,10 @@ int dso::JasonBodyQuaternionFile::get_next(
 int dso::JasonSolarArrayAnglesFile::get_next(
     dso::JasonSolarArrayAngles &record) noexcept {
   char line[LINE_SZ];
+  if (!fin.is_open()) {
+    fprintf(stderr, "[ERROR] File seems closed, cannot red from!\n");
+    return 1;
+  }
   if (!fin.getline(line, LINE_SZ)) {
     fprintf(
         stderr,

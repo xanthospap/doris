@@ -765,10 +765,10 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
-                        1e-12, &IntegrationParams);
-  //dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12,
+  //dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
   //                      1e-12, &IntegrationParams);
+  dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12,
+                        1e-12, &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
   double sigma_obs;
@@ -818,9 +818,13 @@ int main(int argc, char *argv[]) {
            "in SV-frame\n",
            l3_pco(0), l3_pco(1), l3_pco(2));
     // Attitude Information
+    char bfn[256], pfn[256];
     dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
+    std::strcpy(bfn, buf);
+    dso::get_yaml_value_depth2(config, "attitude", "solar-array", buf);
+    std::strcpy(pfn, buf);
     /* set attitude in Integration parametrs and */
-    IntegrationParams.set_sv_frame(sat_cog, l3_pco, buf, sat_mass);
+    IntegrationParams.set_sv_frame(sat_cog, l3_pco, bfn, pfn, sat_mass);
     svState.set_attitude(IntegrationParams);
   }
   

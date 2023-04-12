@@ -51,6 +51,7 @@ force-model:
 attitude:
   mass-cog: data/Jason-3/ja3mass.txt
   body-quaternion: data/Jason-3/ja3qbody20220904220000_20220906020000.001
+  solar-array: data/Jason-3/ja3solararray.
 
 filtering:
   ## Units: [m/sec]

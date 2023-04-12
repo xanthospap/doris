@@ -7,6 +7,8 @@
 #include <exception>
 #include <thread>
 
+#ifdef KOKO
+
 constexpr const int accountforpoletide = true;
 constexpr const int m = 2;
 constexpr const int n = 6 + m;
@@ -502,3 +504,5 @@ void dso::VariationalEquations_thread(
 
     return;
 }
+
+#endif

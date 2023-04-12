@@ -80,34 +80,83 @@ int solar_radiation_pressure(const dso::TwoPartDate &tai,
     oc_factor = ShadowFactor;
   }
 
-  // sun solar radiation pressure, Montenbruck, Sec 3.4
-  constexpr const double Ps = 4.56e-6; // Nm^(-2)
+  /* in shadow */
+  if (ShadowFactor == 0e0) {
+    acc = Eigen::Matrix<double, 3, 1>::Zero();
+    dadr = Eigen::Matrix<double, 3, 3>::Zero();
+    dadv = Eigen::Matrix<double, 3, 3>::Zero();
+    dadC = Eigen::Matrix<double, 3, 1>::Zero();
+    return 0;
+  }
 
-  // unit vector directed from spacecrafe to Sun (GCRF)
-  const Eigen::Matrix<double, 3, 1> svsun = (sun_gcrf - rgcrf).normalized();
+  // sun solar radiation pressure, Montenbruck, Sec 3.4
+  // constexpr const double Ps = 4.56e-6; // Nm^(-2)
+
+  /* attitude matrix */
+  double left, right;
+  Eigen::Quaternion<double> q;
+  if (params.svFrame->get_attitude(tai, q, left, right)) {
+    fprintf(stderr, "[ERROR] Failed to find quaternion for datetime\n");
+    return 1;
+  }
+
+  // unit vector directed from spacecraft to Sun (GCRF), i.e.
+  // direction of the incident flux, positive from source to satellite
+  const Eigen::Matrix<double, 3, 1> u = (sun_gcrf - rgcrf).normalized();
 
   // loop over box-wings
   const int numPlates = params.svFrame->plates().NumPlates;
-  const dso::MacroModelComponent *plate = nullptr;
+  const dso::MacroModelComponent *plate = params.svFrame->plates().mmcomponents;
   Eigen::Matrix<double, 3, 1> S = Eigen::Matrix<double, 3, 1>::Zero();
-  for (int i = 0; i < numPlates; i++) {
-    plate = params.svFrame->plates().mmcomponents + i;
+  
+  /* body frame */  
+  for (int i = 0; i < numPlates-2; i++) {
+    plate += 0;
     /* (unit) vector of plate, normal in sv-fixed RF */
-    Eigen::Matrix<double, 3, 1> n(plate->m_normal);
+    Eigen::Matrix<double, 3, 1> n(plate->normal());
     /* inclination of the ith plate to the SV-to-Sun vector */
-    const auto ni = q.conjugate().normalized() * n;
-    const double cosA = ni.transpose() * svsun;
-    if (cosA > 0e0) {
-      const double *R = plate->m_optical_properties;
-      S += (plate->m_surf * cosA) *
-           (2e0 * (R[1] / 3e0 + R[0] * cosA) * ni + (1e0 - R[0]) * svsun);
-    }
+    const auto h = q.conjugate().normalized() * n;
+    const double A = plate->surface_area();
+    const double *K = plate->m_optical_properties;
+    S += A * u.dot(h) * (2e0*K[0]*u.dot(h)*h + K[1]*(u-(2e0/3e0)*h)+K[2]*u);
+  }
+
+  /* left panel, rotation along -Y */
+  {
+    plate += 1;
+    /* (unit) vector of plate, normal in sv-fixed RF */
+    const auto Ry = Eigen::AngleAxis<double>(
+                        left, Eigen::Matrix<double, 3, 1>{0e0, -1e0, 0e0})
+                        .toRotationMatrix()
+                        .transpose();
+    Eigen::Matrix<double, 3, 1> n(Ry * plate->normal());
+    /* inclination of the ith plate to the SV-to-Sun vector */
+    const auto h = q.conjugate().normalized() * n;
+    const double A = plate->surface_area();
+    const double *K = plate->m_optical_properties;
+    S += A * u.dot(h) * (2e0*K[0]*u.dot(h)*h + K[1]*(u-(2e0/3e0)*h)+K[2]*u);
+  }
+  
+  /* right panel, along +Y */
+  {
+    plate += 1;
+    /* (unit) vector of plate, normal in sv-fixed RF */
+    const auto Ry = Eigen::AngleAxis<double>(
+                        right, Eigen::Matrix<double, 3, 1>{0e0, 1e0, 0e0})
+                        .toRotationMatrix()
+                        .transpose();
+    Eigen::Matrix<double, 3, 1> n(Ry * plate->normal());
+    /* inclination of the ith plate to the SV-to-Sun vector */
+    const auto h = q.conjugate().normalized() * n;
+    const double A = plate->surface_area();
+    const double *K = plate->m_optical_properties;
+    S += A * u.dot(h) * (2e0*K[0]*u.dot(h)*h + K[1]*(u-(2e0/3e0)*h)+K[2]*u);
   }
 
   // scale
+  constexpr const double S0 = 1367e0;
   const double rss = (sun_gcrf - rgcrf).norm();
-  const double fac = -Cr * ShadowFactor * Ps *
-                     std::pow(iers2010::AU / rss, 2e0) / params.svFrame->mass();
+  const double fac = Cr * ShadowFactor * S0 / iers2010::C / params.svFrame->mass();
 
   // acceleration
   acc = fac * S;
@@ -155,7 +204,7 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
   //  }
   //}
   //S /= params.svFrame->mass();
-  if ( svFrame->projected_area(vrel.normalized(), S) ) return 1;
+  if ( params.svFrame->projected_area(tai, vrel.normalized(), S) ) return 1;
 
     // get atmospheric density, using the UTC date
     const dso::TwoPartDate utc = tai.tai2utc();
