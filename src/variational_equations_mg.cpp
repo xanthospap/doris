@@ -350,6 +350,14 @@ void dso::VariationalEquations_mg(
     printf(" srp:%.9e", ta.norm());
   }
 
+  // relativity
+  {
+    Eigen::Matrix<double, 3, 1> ta;
+    ta = iers2010::relativistic_correction(r,v);
+    a += ta;
+    printf(" rel:%.9e", ta.norm());
+  }
+
   Eigen::Matrix<double, 6, 6> F1; // dfdy
   {
     F1.block<3, 3>(0, 0) = Eigen::Matrix<double, 3, 3>::Zero();
@@ -521,6 +529,14 @@ void dso::VariationalEquations_ta(
     dadv += tdadv;
     dadp.block<3,1>(0,1) = tdadp;
     //printf(" %.9f[srp]", ta.norm());
+  }
+  
+  // relativity
+  {
+    Eigen::Matrix<double, 3, 1> ta;
+    ta = iers2010::relativistic_correction(r,v);
+    a += ta;
+    // printf(" rel:%.9e", ta.norm());
   }
   
   Eigen::Matrix<double,n,n> f123;

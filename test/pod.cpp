@@ -36,7 +36,7 @@ constexpr const int n = 6 + m;
 /* only compute Doppler count if two observation are within this time interval
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
-constexpr const double MAX_HOURS = 24;
+constexpr const double MAX_HOURS = 6;
 /* signal a new satellite pass over a beacon */
 constexpr const double NEW_PASS_AFTER_MIN = 30e0;
 
@@ -765,10 +765,10 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
-                        1e-12, &IntegrationParams);
-  //dso::SGOde Integrator(dso::VariationalEquations_mg, (6 + 6 * n), 1e-12,
+  //dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
   //                      1e-12, &IntegrationParams);
+  dso::SGOde Integrator(dso::VariationalEquations_ta, (6 + 6 * n), 1e-12,
+                        1e-12, &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
   double sigma_obs;
@@ -1221,7 +1221,7 @@ int main(int argc, char *argv[]) {
     ++num_blocks; /* augment data block counter */
 
     if (tobs_tai.diff<dso::DateTimeDifferenceType::FractionalDays>(
-            dso::TwoPartDate(rnx.time_of_first_obs())) > MAX_HOURS / 12e0)
+            dso::TwoPartDate(rnx.time_of_first_obs())) > MAX_HOURS / 24e0)
       break;
   } /* data blocks ended, no more data in RINEX */
 

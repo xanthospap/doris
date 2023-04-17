@@ -26,7 +26,7 @@ grouped in a twofold role:
     position (or state) is a prerequisite for most applications and in general 
     dictates the quality of the application's outcome. It should be noted that 
     despite the extended demand for accurate satellite coordinates in recent 
-    years (mainly due to GNSS), the product list is by no means exhausted here; 
+    years (mainly due to \gls{gnss}), the product list is by no means exhausted here; 
     several other estimates constitute orbit determination products, as are e.g. 
     earth orientation parameters, crucial for reference frame studies.
     \item[] As a field of study, it enables the testing, validation and improvement 
@@ -90,7 +90,7 @@ decades of continuous development. Important issues though come into play:
 \begin{itemize}
   \item These packages are either not free and/or not open souce; hence it is not 
     easy, if possible at all, for the scientific community to use them.
-  \item They are not easily adapatable and/or extensible to meet user needs (e.g. due 
+  \item They are not easily adaptable and/or extensible to meet user needs (e.g. due 
     to not being open source, or due to their sheer codebase size).
   \item They do not comply with modern programming patterns and paradigms. Maturity 
     often comes at a price, and in this case this is having to comply with legacy 
@@ -123,7 +123,7 @@ unneeded constraints on the software, so that later enhancements can easily
 broaden the application range to other trajectories.
 
 Furthermore, the software should be designed in a manner that could easily 
-accomodate a near-real-time processing scheme, since it is currently possible to 
+accommodate a near-real-time processing scheme, since it is currently possible to 
 to acquire \gls{doris} data with a latency of a few hours\footnote{\gls{ids} Working Group ``NRT DORIS data'' \url{https://ids-doris.org/organization/working-group-nrt-doris-data.html}} (see e.g. \cite{Wang2022}).
 Hence, algorithmic design and implementation, as well as efficiency and resource 
 awareness are all topics to be considered.
@@ -142,9 +142,9 @@ via \gls{doris}. In this thesis we try to comply with this set of recommendation
 needed to check and validate alternate or novel processing approaches.
 \fi
 
-\subsection{Methodology of the Study}\label{ssec:methodology}
+\subsection{Methodology and Implementation}\label{ssec:methodology}
 
-To accomplish the Thesis obejcetives, a brand new software toolset was designed and 
+To accomplish the Thesis objectives, a brand new software toolset was designed and 
 implemented from scratch. The software is built in a modular fashion. The various components
 are organized in different, independent, moderate-sized libraries, targeting well defined
 problems. This scheme allows for extensive and thorough testing and validation  of the different 
@@ -187,8 +187,66 @@ Multi-threading and parallel processing techniques are used, taking advantage of
 ``standard libraries'', hence no external tool is needed, minimizing dependencies, 
 third-party limitations and compliance constraints.
 
+Near-real-time processing capabilities are embedded into the software through 
+meticulous design. To accommodate such possibility, care is taken during the 
+design and implementation phases to proceed in an iterative fashion, and not 
+consume any resources further than the ones needed at the current step. Data 
+pre-processing requirements are limited down to minimum. Data files, which pose a 
+serious challenge due to their size, are incrementally mapped to memory (resembling 
+in essence a streaming process) so that only the information relating to the 
+current time interval is needed at each step.
 
 \subsection{Significance and Novelties}\label{ssec:significance-and-novelty}
+This Thesis touches upon a fundamental problem of satellite geodesy, one that sits 
+in the core of using Earth orbiting satellites to study the Earth system, introducing 
+on the way novel approaches, and validating state-of-the-art methodologies.
+Since, accurate knowledge of satellite position is an essential and imperative need 
+for space based application, orbit determination is a problem of utmost significance. 
+
+Building a software tool for a fundamental yet not too popular amongst the 
+scientific community technique such as \gls{doris}, the aim is to create a brand new, 
+modern toolset, to spur further interest and explore further the system's 
+capabilities and limitations. The prominence of the technique is evident by its 
+involvement in some of the most ambitious space geodesy missions to come (e.g. 
+SWOT and GENESIS), thus dedicated analysis packages will play a major role in 
+years to come.
+
+Adopting a free and open-source policy, can create a new, extended, high-expertise 
+user base, which in turn will push for further technique enhancements.
+
+Focal points addressed and novelties introduced in this thesis, are the following:
+\begin{itemize}
+  \item Processing of the newly established \gls{doris} RINEX data. This new 
+   format replaces the older doris.v2.2 file format, enabling the dissemination 
+   of new observation types and products. Effort has been made to accommodate 
+   the complete parsing of all available observation types. Additionally, linear
+  combinations and corresponding antenna reference point eccentricities are 
+  (optionally) constructed and used for the formulation of observation equations. 
+  This generic design (in which no certain linear combination and reference point 
+  is hard-coded within the software) enables user flexibility and accommodates 
+  novel processing approaches.
+  \item Capability of processing carrier phase measurements (instead of the current 
+  practice in which only Doppler counts are used). Currently, this constitutes an 
+  experimental approach within the \gls{doris} technique (e.g. \cite{Mercier2010}).
+  \item A modern view on software design and software engineering principles applied. 
+  This includes the emerging, so called data-oriented design paradigm, usage of 
+  generic template metaprogramming techniques, and adoption of well established 
+  programming tools in the scientific community, including the \texttt{C++} and 
+  \texttt{Python3} programming languages (e.g. also adopted for the development 
+  of GipsyX/RTGx, see \cite{Bertiger2020}).
+  \item Capacity to process \gls{doris} data in a near-real-time fashion. To the 
+  author's best knowledge, no Analysis Center is currently performing near-real-time 
+  analysis (except for the operational on-board receiver systems).
+  \item Implementation of home-grown approaches to complex problems and methodologies. 
+  Two examples are orbit integration (\autoref{sec:integrator-implementation}), 
+  where state-of-the-art methods were adapted and rigorously implemented to fit 
+  current needs and computation of Earth's gravity acceleration 
+  (\autoref{sssec:gravity-acceleration}), where numeric and analytic derivations were 
+  performed to implement an efficient yet accurate computation algorithm.
+  \item Adoption of a free and open-source policy, developing source code in the 
+  public domain and making it instantly and unambiguously available to any interested 
+  party.
+\end{itemize}
 
 \subsection{Organization of the Thesis}\label{ssec:organization}
 The layout of the Thesis, includes seven chapters. In the second chapter
@@ -226,7 +284,3 @@ examined and reasoned about.
 The last Chapter (\autoref{ch:summary-and-recomend}) of the Thesis discusses
 conclusions drawn from the work performed and recommendations for further research
 activities and refinements of the software tools built.
-
-\iffalse
-
-\fi

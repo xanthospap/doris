@@ -627,7 +627,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=
     ax.axhline(b, color='r', linestyle='--', linewidth=1)
     ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
   ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]')
-  fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'resVsEle.pdf'
       print('Saving figure to {:}'.format(full_name))
@@ -660,7 +660,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=
       #  ax.axhline(b, color='r', linestyle='--', linewidth=1)
       #  ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
       ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]')
-      fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+      # fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
       if saveas:
           full_name = saveas + 'resVsEleVsAntenna.pdf'
           print('Saving figure to {:}'.format(full_name))
@@ -683,7 +683,7 @@ def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=
   ax.xaxis.set_minor_locator(mdates.HourLocator(interval=2))
   ax.grid(True, 'both', 'x')
   ax.set(xlabel='Time', ylabel='Residual [m/s]')
-  fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
   if Regression:
     # obtain m (slope) and b(intercept) of linear regression line
     xx, yy = reducexy(t,y,regression_range[0], regression_range[1])
@@ -712,7 +712,8 @@ def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=
   t,y2,_ = colAsArray(dct,'ufilter',fac)
   a0.plot(t, y1, 'o-', color='blue', linewidth=1, markersize=2.5, label="beacons per block")
   a0.plot(t, y2, 'x-', color='black', linewidth=1, markersize=2.5, label="beacons used")
-  a0.set(title='Beacons per Block', ylabel="Num Beacons", xlabel="Time")
+  # a0.set(title='Beacons per Block', ylabel="Num Beacons", xlabel="Time")
+  a0.set(ylabel="Num Beacons", xlabel="Time")
   a0.legend()
   a0.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
   a0.xaxis.set_major_locator(mdates.HourLocator(interval=4))
@@ -791,7 +792,7 @@ def plot_site(fn, site):
   ax[1].grid(True, 'both', 'x')
   
   fig.autofmt_xdate()
-  fig.suptitle('Site {:}@{:}\n'.format(site, t[0].strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('Site {:}@{:}\n'.format(site, t[0].strftime('%Y-%m-%d')), fontsize=16)
   plt.show()
 
   """
@@ -869,7 +870,7 @@ def plot_dynamic_params(fn, saveas=None, shadow_passes_fn=None):
   
   fig.autofmt_xdate()
   t0 = min(t)
-  fig.suptitle('Dynamic Parameters {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('Dynamic Parameters {:}\n'.format(t0.strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'dynamicParams.pdf'
       plt.savefig(full_name, format='pdf', bbox_inches='tight')
@@ -947,7 +948,7 @@ def plot_state_diffs(fnref, fntest, plot_regression=False, plot_details=False, s
           print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, pv, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
   ## Rotate date labels automatically
   fig.autofmt_xdate()
-  fig.suptitle('State Differences Estimated - Reference\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('State Differences Estimated - Reference\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'statediffs.pdf'
       print('Saving figure to {:}'.format(full_name))
@@ -967,7 +968,9 @@ def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=Fals
       title = ' [{:}m]'.format('k' if fac==1e-3 else '')
       if posvel == 1:
           title = ' Velocity [{:}m/sec]'.format('k' if fac == 1e-3 else '')
-      return ['Radial','In-Track','Cross-track'][component] + title
+      # return ['Radial','In-Track','Cross-track'][component] + title
+      # Valado implementation
+      return [r'$N$ (cross-track)',r'$T$ (in-track)',r'$R$ (radial)'][component] + title
   def make_state_diffs(ref_dct, dct):
       resdct = {}
       for t,d1 in ref_dct.items():
@@ -988,14 +991,23 @@ def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=Fals
   def rotMatrix(pos,vel):
     p = np.array(pos)
     v = np.array(vel) 
-    T = np.identity(3) 
+    T = np.identity(3)
+    """
     r1 = p / np.sqrt(np.sum(p**2))
     T[0] = r1 ## first row
     r2 = np.cross(p,v)
     T[1] = r2 / np.sqrt(np.sum(r2**2))
     r3 = np.cross(T[1], T[0])
     T[2] = r3 / np.sqrt(np.sum(r3**2))
-    np.set_printoptions(precision=3)
+    """
+    tc = v / np.linalg.norm(v)
+    wc = np.cross(p,v) / np.linalg.norm(np.cross(p,v))
+    nc = np.cross(tc, wc) / np.linalg.norm(np.cross(tc,wc))
+    T[:,0] = nc
+    T[:,1] = tc
+    T[:,2] = wc
+    return T.transpose()
+    # np.set_printoptions(precision=3)
     # print(T)
     return T
   def dcar2drac(dct1,dct2):
@@ -1060,7 +1072,7 @@ def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=Fals
           print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, pv, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
   ## Rotate date labels automatically
   fig.autofmt_xdate()
-  fig.suptitle('State Differences Estimated - Reference (ECI)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('State Differences Estimated - Reference (ECI)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'stateDiffsEci.pdf'
       print('Saving figure to {:}'.format(full_name))
@@ -1093,7 +1105,7 @@ def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=Fals
       dsts = ColStatistics(None,y,fac)
       print('Component {:}/{:}: mean {:+.6f} +/- {:.9f} Max: {:.6f} Min: {:.6f}'.format(component, 0, dsts.mean, math.sqrt(dsts.variance), dsts.minmax[1], dsts.minmax[0]))
   fig.autofmt_xdate()
-  fig.suptitle('State Differences Estimated - Reference (RTN)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('State Differences Estimated - Reference (RTN)\n{:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'stateDiffsRtn.pdf'
       print('Saving figure to {:}'.format(full_name))
@@ -1146,7 +1158,7 @@ def plot_state(fntest, plot_regression=False, plot_details=False, saveas=None):
               for intrv in shd_passes: axs[component, pv].axvspan(intrv[0], intrv[1], alpha=0.2, color='red')
   ## Rotate date labels automatically
   fig.autofmt_xdate()
-  fig.suptitle('Estimated ECEF state at {:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
+  # fig.suptitle('Estimated ECEF state at {:}'.format(t[0].strftime('%Y-%m-%d')), fontsize=16)
   if saveas:
       full_name = saveas + 'state.pdf'
       print('Saving figure to {:}'.format(full_name))
@@ -1213,7 +1225,7 @@ def plot_accelerations(fn, saveas=None):
     for h, t in zip(leg.legendHandles, leg.get_texts()): t.set_color(h.get_facecolor()[0])
     for h in leg.legendHandles: h._sizes = [30]
         
-    fig.suptitle('Computed accelerations at {:}'.format(tstart.strftime('%Y-%m-%d')), fontsize=16)
+    # fig.suptitle('Computed accelerations at {:}'.format(tstart.strftime('%Y-%m-%d')), fontsize=16)
     if saveas:
         full_name = saveas + 'accelerations.pdf'
         print('Saving figure to {:}'.format(full_name))
@@ -1301,7 +1313,7 @@ def plot_state_diff_periodograms(fnref, fntest, use_eci=False, saveas=None):
             axs[component, pv].text(x, textystart, "{:.1f}[hr]".format(omega2period(x)/3600), rotation=0, verticalalignment='center', fontsize=10)
             textystart += .2
           axs[component, pv].set_title(whichTitle(component, pv))
-  fig.suptitle('Estimated - Reference at {:}\nLomb-Scargle Periodogram'.format(t[0].strftime('%Y-%m-%d')), fontsize=12)
+  # fig.suptitle('Estimated - Reference at {:}\nLomb-Scargle Periodogram'.format(t[0].strftime('%Y-%m-%d')), fontsize=12)
   if saveas:
       full_name = saveas + 'periodogram.pdf'
       print('Saving figure to {:}'.format(full_name))
