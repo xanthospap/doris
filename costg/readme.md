@@ -26,7 +26,31 @@ $>costg/check-01eop.out \
 ## Accelerations
 
 ### 02gravityfield_itrf
-![alt text](figures/02gravityfield_itrf.png)
+```
+$> costg/check-gravity-field.out \
+    costG/models/EIGEN6-C4.gfc \
+    costG/satellite/02gravityfield_itrf.txt \
+    costG/satellite/00orbit_itrf.txt \
+    | costg/plot_costg_02gravityfield_itrf.py
+```
+![alt text](figures/02gravityfield_itrf.pdf)
+Note that $GM$ and $Re$ constants (for Earth) are extracted from the `EIGEN6-C4.gfc` 
+data file (header).
+
+### 03directTide[Sun|Moon]_icrf
+```
+$> costg/check-third-body.out \
+    costG/satellite/03directTideMoon_icrf.txt \
+    costG/satellite/03directTideSun_icrf.txt \
+    costG/satellite/00orbit_icrf.txt \
+    data/jpl/de421.bsp data/jpl/naif0012.tls \
+    | costg/plot_costg_03directTides.py
+```
+![alt text](figures/03directTideMoon_icrf.pdf)
+![alt text](figures/03directTideSun_icrf.pdf)
+Note that $GM$ for Sun and Moon are extracted from the benchmark documentation, i.e. 
+`00README_simulation.txt`. Postion are extracted using 
+[c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html)
 
 ## Other Tests
 

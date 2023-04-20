@@ -15,7 +15,7 @@ import fileinput
 from scipy import stats
 
 # scale for x, y and z acclerations (m/s2)
-scale = 1e12
+scale = 1e15
 def unitsstr(): return r'$[m/s^2]\times{:.1e}$'.format(1e0/scale) if scale != 1e0 else r'$[m/s^2]$'
 use_hours_of_day = True
 

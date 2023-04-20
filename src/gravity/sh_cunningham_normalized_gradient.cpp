@@ -107,7 +107,8 @@ int gravity_acceleration_impl(
 
   { /* (kinda) Associated Legendre Polynomials M and W
      * note that since we are going to compute derivatives (of the gravity
-     * potential, we will compute M and W up to degree n+2,m+2
+     * potential, we will compute M and W up to degree n+2, i.e.
+     * M(0,0) to M(lp_degree, lp_degree)
      */
     const Eigen::Matrix<double, 3, 1> r = p / Re;
     const double rr = std::pow(1e0 / r.norm(), 2);
@@ -145,7 +146,7 @@ int gravity_acceleration_impl(
       }
     }
 
-    { /* well, we've left the lst term uncomputed */
+    { /* well, we've left the last term uncomputed */
       const int m = lp_degree;
       M(m, m) = F.f1(m, m) * (x * M(m - 1, m - 1) - y * W(m - 1, m - 1));
       W(m, m) = F.f1(m, m) * (y * M(m - 1, m - 1) + x * W(m - 1, m - 1));
@@ -171,11 +172,11 @@ int gravity_acceleration_impl(
     for (int n = degree; n >= m; --n) {
       { // acceleration
         const double wm1 =
-            std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2));
+            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2)));
         const double wm0 =
-            std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+            std::sqrt(static_cast<double>((n - m + 1) * (n + m + 1)));
         const double wp1 =
-            std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+            std::sqrt(static_cast<double>((n + m + 1) * (n + m + 2)));
 
         const double Cm1 = wm1 * M(n + 1, m - 1);
         const double Sm1 = wm1 * W(n + 1, m - 1);
@@ -197,17 +198,18 @@ int gravity_acceleration_impl(
                std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
       }
       { /* derivative of acceleration */
-        const double wm2 = std::sqrt(static_cast<double>(n - m + 1) *
-                                     (n - m + 2) * (n - m + 3) * (n - m + 4)) *
-                           ((m == 2) ? std::sqrt(2.0) : 1.0);
-        const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                     (n - m + 2) * (n - m + 3) * (n + m + 1));
-        const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
-                                     (n - m + 2) * (n + m + 1) * (n + m + 2));
-        const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                     (n + m + 1) * (n + m + 2) * (n + m + 3));
-        const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
-                                     (n + m + 2) * (n + m + 3) * (n + m + 4));
+        const double wm2 =
+            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
+                                          (n - m + 3) * (n - m + 4))) *
+            ((m == 2) ? std::sqrt(2.0) : 1.0);
+        const double wm1 = std::sqrt(static_cast<double>(
+            (n - m + 1) * (n - m + 2) * (n - m + 3) * (n + m + 1)));
+        const double wm0 = std::sqrt(static_cast<double>(
+            (n - m + 1) * (n - m + 2) * (n + m + 1) * (n + m + 2)));
+        const double wp1 = std::sqrt(static_cast<double>(
+            (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3)));
+        const double wp2 = std::sqrt(static_cast<double>(
+            (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4)));
 
         const double Cm2 = wm2 * M(n + 2, m - 2);
         const double Sm2 = wm2 * W(n + 2, m - 2);
@@ -250,12 +252,12 @@ int gravity_acceleration_impl(
        * is in wm1
        */
       const double wm1 =
-          std::sqrt(static_cast<double>(n - m + 1) * (n - m + 2)) *
+          std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2))) *
           std::sqrt(2e0);
       const double wm0 =
-          std::sqrt(static_cast<double>(n - m + 1) * (n + m + 1));
+          std::sqrt(static_cast<double>((n - m + 1) * (n + m + 1)));
       const double wp1 =
-          std::sqrt(static_cast<double>(n + m + 1) * (n + m + 2));
+          std::sqrt(static_cast<double>((n + m + 1) * (n + m + 2)));
 
       const double Cm1 = wm1 * M(n + 1, m - 1);
       const double Sm1 = wm1 * W(n + 1, m - 1);
@@ -277,15 +279,16 @@ int gravity_acceleration_impl(
              std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
     }
     { /* derivative of acceleration */
-      const double wm1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n - m + 3) * (n + m + 1)) *
-                         std::sqrt(2e0);
-      const double wm0 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n - m + 2) * (n + m + 1) * (n + m + 2));
-      const double wp1 = std::sqrt(static_cast<double>(n - m + 1) *
-                                   (n + m + 1) * (n + m + 2) * (n + m + 3));
-      const double wp2 = std::sqrt(static_cast<double>(n + m + 1) *
-                                   (n + m + 2) * (n + m + 3) * (n + m + 4));
+      const double wm1 =
+          std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
+                                        (n - m + 3) * (n + m + 1))) *
+          std::sqrt(2e0);
+      const double wm0 = std::sqrt(static_cast<double>(
+          (n - m + 1) * (n - m + 2) * (n + m + 1) * (n + m + 2)));
+      const double wp1 = std::sqrt(static_cast<double>(
+          (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3)));
+      const double wp2 = std::sqrt(static_cast<double>(
+          (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4)));
 
       const double Cm1 = wm1 * M(n + 2, m - 1);
       const double Sm1 = wm1 * W(n + 2, m - 1);
@@ -342,13 +345,13 @@ int gravity_acceleration_impl(
     }
     { /* derivative of acceleration */
       const double wm0 =
-          std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 1) * (n + 2));
-      const double wp1 =
-          std::sqrt(static_cast<double>(n + 1) * (n + 1) * (n + 2) * (n + 3)) /
-          std::sqrt(2e0);
-      const double wp2 =
-          std::sqrt(static_cast<double>(n + 1) * (n + 2) * (n + 3) * (n + 4)) /
-          std::sqrt(2e0);
+          std::sqrt(static_cast<double>((n + 1) * (n + 2) * (n + 1) * (n + 2)));
+      const double wp1 = std::sqrt(static_cast<double>((n + 1) * (n + 1) *
+                                                       (n + 2) * (n + 3))) /
+                         std::sqrt(2e0);
+      const double wp2 = std::sqrt(static_cast<double>((n + 1) * (n + 2) *
+                                                       (n + 3) * (n + 4))) /
+                         std::sqrt(2e0);
 
       const double Cm0 = wm0 * M(n + 2, 0);
       const double Cp1 = wp1 * M(n + 2, 1);

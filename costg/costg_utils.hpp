@@ -39,6 +39,7 @@ struct CostgExtState {
 
 int parse_gravity_field(const char *fn, std::vector<CostgAcc> &acc);
 int parse_satellite_state(const char *fn, std::vector<CostgExtState> &acc);
+
 inline dso::TwoPartDate gps2tai(const dso::TwoPartDate &gps) {
   return dso::TwoPartDate(gps._big, gps._small + 19e0 / 86400e0).normalized();
 }
