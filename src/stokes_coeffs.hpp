@@ -1,19 +1,7 @@
-#ifndef __HARMONIC_POTENTIAL_COEFFICIENTS_HPP__
-#define __HARMONIC_POTENTIAL_COEFFICIENTS_HPP__
+#ifndef __STOKES_HARMONIC_POTENTIAL_COEFFICIENTS_HPP__
+#define __STOKES_HARMONIC_POTENTIAL_COEFFICIENTS_HPP__
 
-/// Define a data structure to hold Harmonics coefficients. This structure
-/// stores a two-dimensional data matrix, where each row corresponds to the
-/// S and C coefficients of a certain degree. To save space, the data matrix
-/// is in compact form, as follows (degree=n, order=m):
-/// C_00 S_n1 S_n2     S_n3     ... S_nm
-/// C_10 C_11 S_(n-1)1 S_(n-1)2 ... S_(n-1)m
-/// ...
-/// C_(n-1)0 C_(n-1)1 C_(n-1)2 .... C_(n-1)m S_11
-/// C_n0     C_n1     C_n2     .... C_n(m-1) C_nm
-/// If degree > order, empty space is left between the S and C coefficients.
-
-
-#ifdef DEBUG
+#ifdef DORIS_EXTRA_CHECKS
 #include <cassert>
 #include <cstdio>
 #endif
@@ -22,13 +10,6 @@
 
 namespace dso {
 
-/// TODO storage type should be transformed to COLUMN-WISE
-/// @brief Storage and access of Harmonic Coefficients.
-/// We are allocating and using a 2-d array of size (degree+1) * (degree+1)
-/// (hence not actually using the order of the Coefficients). This make take
-/// up more space than actually needed but is a bit faster.
-/// The struct is 'agnostic' concerning the order of the coefficients. It is
-/// the user's responsibility to use consistent values for order.
 /// As mentioned, internaly the sctructure holds coefficients spanning S/C
 /// from [0-n] and [0-m] for degree and order respectively. Hence, the
 /// following is perfectly legal and what **should** be done:
@@ -51,48 +32,45 @@ namespace dso {
 ///       HarmonicCoeffs hc(...);
 ///       ....
 ///       hc.S(1,0); // Error!!
-class HarmonicCoeffs {
-public:
-  double _GM{0e0}; ///< gravitational constant times mass of the earth
-  double _Re{0e0}; ///< reference radius of the spherical harmonic development
-  bool _cnormalized{true}; ///< coefficients are normaliized (?)
-  int m_degree{0};         ///< maximum degree
-  int m_order{0};          ///< maximum order
-  double *m_data{nullptr}; ///< the actual data/coefficients
+class StokesCoeffs {
+private:
+  double _GM{0e0}; /* gravitational constant times mass [kg^3/m^2] */
+  double _Re{0e0}; /* reference radius of the spherical harmonics [m] */
+  bool _cnormalized{true}; /* coefficients are normaliized (?) */
+  int m_degree{0};         /* maximum degree */
+  int m_order{0};          /* maximum order */
+  double *m_data{nullptr}; /* the actual data/coefficients */
 
-  /// @brief allocate memory to hold the data.
+  /* @brief allocate memory to hold the data */
   double *allocate(int degree, int order) noexcept;
 
-  /// @brief free memmory used by the structure.
+  /* @brief free memmory used by the structure */
   void deallocate() noexcept;
 
 public:
-  HarmonicCoeffs()
+  StokesCoeffs() noexcept
       : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(0), m_order(0),
         m_data(nullptr){};
 
-  HarmonicCoeffs(int n, int m, double GM, double Re)
+  StokesCoeffs(int n, int m, double GM, double Re)
       : _GM(GM), _Re(Re), _cnormalized(true), m_degree(n), m_order(m) {
     allocate(n, m);
   }
 
-  HarmonicCoeffs(int n)
+  StokesCoeffs(int n)
       : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n), m_order(n) {
     allocate(n, n);
   }
 
-  HarmonicCoeffs(const HarmonicCoeffs &h) = delete;
+  StokesCoeffs(const StokesCoeffs &h) = delete;
+  StokesCoeffs &operator=(const StokesCoeffs &h) = delete;
+  StokesCoeffs(StokesCoeffs &&h) noexcept;
+  StokesCoeffs &operator=(StokesCoeffs &&h) noexcept;
+  ~StokesCoeffs() noexcept { deallocate(); }
 
-  HarmonicCoeffs &operator=(const HarmonicCoeffs &h) = delete;
-
-  HarmonicCoeffs(HarmonicCoeffs &&h) noexcept;
-
-  HarmonicCoeffs &operator=(HarmonicCoeffs &&h) noexcept;
-
-  ~HarmonicCoeffs() noexcept { deallocate(); }
-
-  /// @brief Resize; check current capacity and only re-allocated data if
-  ///        needed. m_degree set to new value.
+  /* @brief Resize; check current capacity and only re-allocated data if
+   *      needed. m_degree set to new value.
+   */
   void resize(int degree, int order) noexcept;
 
   int max_degree() const noexcept { return m_degree; }
@@ -121,48 +99,43 @@ public:
   /// AssociatedLegendreFunctions::normalize
   int denormalize(int order = -1) noexcept;
 
+  /// @brief Get a pointer to the C coefficients of order 'order'.
+  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point
+  /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
+  /// coefficient (that is degree=5 and order=5).
+  double *C_col(int order) noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(order <= m_order);
+#endif
+    return m_data + (m_degree+1)*order; /* C(order,order) to C(degree,order) */
+  }
+
   /// @brief Get a pointer to the C coefficients of degree 'degree'.
   /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point
   /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
   /// coefficient (that is degree=5 and order=5).
-  double *C_row(int degree) noexcept {
-#ifdef DEBUG
-    assert(degree <= m_degree);
+  const double *C_col(int order) const noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(order <= m_order);
 #endif
-    return m_data +
-           (degree * (m_degree + 1)); // C(degree,0)-> C(degree, degree)
-  }
-
-  /// @brief Get a pointer to the C coefficients of degree 'degree'.
-  /// E.g. C_row[5] will hold the C(5,0) coefficient, C_row[5] + 1 will point
-  /// to the C(5,1) coefficient and C_row[5] + 5 will point to the C(5,5)
-  /// coefficient (that is degree=5 and order=5).
-  const double *C_row(int degree) const noexcept {
-#ifdef DEBUG
-    assert(degree <= m_degree);
-#endif
-    // C(degree,0)-> C(degree, degree)
-    return m_data + (degree * (m_degree + 1));
+    /* C(order,order) to C(degree,order) */
+    return m_data + (m_degree+1)*order;
   }
 
   /// @brief Get the C coefficient of degree i and order j
-  double &C(int i, int j) noexcept {
-#ifdef DEBUG
-    assert(i <= m_degree && j <= i);
+  double &C(int n, int m) noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(n <= m_degree && m <= n);
 #endif
-    // if (i==1)
-    // printf(">>request for C(%d,%d)\n", i,j);
-    return C_row(i)[j];
+    return C_col(m)[n-m];
   }
 
   /// @brief Get the C coefficient of degree i and order j
-  const double &C(int i, int j) const noexcept {
-#ifdef DEBUG
-    assert(i <= m_degree && j <= i);
+  const double &C(int n, int m) const noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(n <= m_degree && m <= n);
 #endif
-    // if (i==1)
-    // printf(">>request for C(%d,%d) --const--\n", i,j);
-    return C_row(i)[j];
+    return C_col(m)[n-m];
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
@@ -173,12 +146,12 @@ public:
   /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point
   /// to the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).
-  double *S_row(int degree) noexcept {
-#ifdef DEBUG
-    assert(degree <= m_degree && degree != 0);
+  double *S_col(int order) noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(order <= m_order && order != 0);
 #endif
-    // S(degree,1)-> S(degree, degree)
-    return m_data + (m_degree - degree) * (m_degree + 2) + 1;
+    /* S(order,order) to S(n,order), for order>1 */
+    return m_data + (m_degree+1)*(m_degree+1)-order*m_degree;
   }
 
   /// @brief Get a pointer to the S coefficients of degree 'degree'.
@@ -189,35 +162,35 @@ public:
   /// E.g. S_row[5] will hold the S(5,1) coefficient, C_row[5] + 1 will point to
   /// the C(5,2) coefficient and S_row[5] + 5 will point to the S(5,5)
   /// coefficient (that is degree=5 and order=5).
-  const double *S_row(int degree) const noexcept {
-#ifdef DEBUG
-    assert(degree <= m_degree && degree != 0);
+  const double *S_col(int order) const noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(order <= m_order && order != 0);
 #endif
-    // S(degree,1)-> S(degree, degree)
-    return m_data + (m_degree - degree) * (m_degree + 2) + 1;
+    /* S(order,order) to S(n,order), for order>1 */
+    return m_data + (m_degree+1)*(m_degree+1)-order*m_degree;
   }
 
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  double &S(int i, int j) noexcept {
-#ifdef DEBUG
-    assert(i <= m_degree && j <= i && i != 0);
+  double &S(int n, int m) noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(n <= m_degree && m <= n && m != 0);
 #endif
-    return S_row(i)[j - 1];
+    return S_col(m)[n-m];
   }
 
   /// @brief Get the S coefficient of degree i and order j
   /// @warning never ask for a coefficient with order (aka j) = 0. All S_nm for
   ///          m=0 are equal to 0e0
-  const double &S(int i, int j) const noexcept {
-#ifdef DEBUG
-    assert(i <= m_degree && j <= i && i != 0);
+  const double &S(int n, int m) const noexcept {
+#ifdef DORIS_EXTRA_CHECKS
+    assert(n <= m_degree && m <= n && m != 0);
 #endif
-    return S_row(i)[j - 1];
+    return S_col(m)[n-m];
   }
 
-}; // HarmonicCoeffs
+}; // StokesCoeffs
 
 } // namespace dso
 

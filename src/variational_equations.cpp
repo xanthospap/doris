@@ -71,7 +71,7 @@ void dso::VariationalEquations(
     // ITRF)
     Eigen::Matrix<double, 3, 3> gpartials;
     Eigen::Matrix<double, 3, 1> gacc;
-    test::gravacc3(params.harmonics, r_geo, params.degree,
+    dso::gravity_acceleration(params.harmonics, r_geo, params.degree,
                    params.harmonics.Re(), params.harmonics.GM(), gacc,
                    gpartials, params.V, params.W);
 
@@ -271,7 +271,7 @@ void dso::VariationalEquations2(
   { // compute gravity-induced acceleration
     Eigen::Matrix<double, 3, 3> gradient;
     Eigen::Matrix<double, 3, 1> acc;
-    test::gravacc3(params.harmonics, r_itrf, params.degree,
+    dso::gravity_acceleration(params.harmonics, r_itrf, params.degree,
                    params.harmonics.Re(), params.harmonics.GM(), acc,
                    gradient, params.V, params.W);
 

@@ -1,6 +1,6 @@
 #include "egravity.hpp"
 #include "geodesy/geodesy.hpp"
-#include "harmonic_coeffs.hpp"
+#include "stokes_coeffs.hpp"
 #include "iers2010/iau.hpp"
 #include "iers2010/iersc.hpp"
 #include "tides.hpp"
@@ -17,7 +17,7 @@ namespace {
 ///                 0,  1   2 3   4   5   6 7   8   9
 int array2harmonics(const std::array<double, 12> &dC,
                     const std::array<double, 12> &dS,
-                    dso::HarmonicCoeffs &cs) noexcept {
+                    dso::StokesCoeffs &cs) noexcept {
   cs.clear();
   cs.C(2, 0) = dC[0];
   cs.C(3, 0) = dC[3];
@@ -97,7 +97,7 @@ int dso::SolidEarthTide::acceleration(
   array2harmonics(dC, dS, cs);
 
   // compute acceleration at satellite position (ITRF, cartesian)
-  test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, acc_gradient, &V, &W);
+  dso::gravity_acceleration(cs, rsat, degree, cs.Re(), cs.GM(), a, acc_gradient, &V, &W);
 
   acc = a;
 
@@ -133,7 +133,7 @@ int dso::SolidEarthTide::acceleration(
   array2harmonics(dC, dS, cs);
 
   // compute acceleration at satellite position (ITRF, cartesian)
-  test::gravacc3(cs, rsat, degree, cs._Re, cs._GM, a, acc_gradient, &V, &W);
+  dso::gravity_acceleration(cs, rsat, degree, cs.Re(), cs.GM(), a, acc_gradient, &V, &W);
 
   acc = a;
 

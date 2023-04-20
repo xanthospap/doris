@@ -165,7 +165,7 @@ for tsource in test_sources:
 
 ## Unit Tests (only build if user selected)
 if ARGUMENTS.get('make-check', 0):
-    print('Note: Building Unit Tests ...')
+    print('>> Note: Building Unit Tests ...')
     tests_sources = glob.glob(r"unit_test/*.cpp")
     if 'RPATH' not in env or root_dir not in env['RPATH']:
       env.Append(RPATH=root_dir)
@@ -176,12 +176,15 @@ if ARGUMENTS.get('make-check', 0):
         env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl'], LIBPATH='.')
 
 if GetOption('costg'):
-    print("Building cost-G test programs ...")
-    tests_sources = glob.glob(r"costg/*.cpp")
+    print(">> Building cost-G test programs ...")
+    tests_sources = [r"costg/costg_parsers.cpp"]
+    tests_targets = glob.glob(r"costg/*.cpp")
+    tests_targets = [ t for t in tests_targets if t not in tests_sources ]
     if 'RPATH' not in env or root_dir not in env['RPATH']:
       env.Append(RPATH=root_dir)
-    for tsource in tests_sources:
-        pth = os.path.dirname(tsource)
-        bsn = os.path.basename(tsource)
+    for prog in tests_targets:
+        pth = os.path.dirname(prog)
+        bsn = os.path.basename(prog)
+        print('>> Building source {:}'.format(prog))
         ttarget = os.path.join(pth, bsn.replace('_', '-').replace('.cpp', '.out'))
-        env.Program(target=ttarget, source=tsource, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')
+        env.Program(target=ttarget, source=[prog]+tests_sources, CPPPATH='src/', LIBS=vlib+['sp3', 'sinex', 'iers2010', 'geodesy', 'datetime', 'yaml-cpp', 'cspice.a', 'csupport', 'curl', 'sofa_c'], LIBPATH='.')

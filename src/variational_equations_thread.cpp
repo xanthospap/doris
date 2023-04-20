@@ -25,7 +25,7 @@ void gravity(const Eigen::Matrix<double, 3, 1> &ritrf,
   /* acceleration and gradient in ITRF */
   Eigen::Matrix<double, 3, 1> a;
   Eigen::Matrix<double, 3, 3> gradient;
-  test::gravacc3(params.harmonics, ritrf, params.degree, params.harmonics.Re(),
+  dso::gravity_acceleration(params.harmonics, ritrf, params.degree, params.harmonics.Re(),
                  params.harmonics.GM(), a, gradient, params.V, params.W);
 
   /* transform acceleration and gradient to GCRF */

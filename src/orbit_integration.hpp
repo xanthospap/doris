@@ -97,7 +97,7 @@ struct IntegrationParameters {
   const dso::EopLookUpTable &eopLUT;
   const dso::EopLookUpTable &eop_lookup_table() const noexcept { return eopLUT; }
   ///< gravity harmonics
-  const dso::HarmonicCoeffs &harmonics;
+  const dso::StokesCoeffs &harmonics;
   ///< degree and order of geopotential harmonics
   int degree, order;
   ///< Sun/Moon gravitational parameters, in [km^3/ sec^2]
@@ -121,7 +121,7 @@ struct IntegrationParameters {
   
   IntegrationParameters(int degree_, int order_,
                         const dso::EopLookUpTable &eoptable_,
-                        const dso::HarmonicCoeffs &harmonics_,
+                        const dso::StokesCoeffs &harmonics_,
                         const char *pck_kernel, const char *dtm2020datafile) noexcept
       : eopLUT(eoptable_), harmonics(harmonics_), degree(degree_),
         order(order_), Dtm20(dtm2020datafile),

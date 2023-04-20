@@ -11,7 +11,7 @@
 /// http:// doi.org/10.5194/essd-11-647-2019.
 
 #include "datetime/dtcalendar.hpp"
-#include "harmonic_coeffs.hpp"
+#include "stokes_coeffs.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -75,8 +75,8 @@ public:
   ///            S/C harmonic coefficients are to be stored. Note that this
   ///            instance should have been allocated with enough space.
   /// @see http://icgem.gfz-potsdam.de/ICGEM-Format-2011.pdf
-  int parse_data(int l, int k, const dso::datetime<dso::nanoseconds> &t,
-                 HarmonicCoeffs *coeffs) noexcept;
+  int parse_data(int l, int k, const dso::TwoPartDate &t,
+                 StokesCoeffs *coeffs) noexcept;
 }; // Icgem
 
 } // namespace dso

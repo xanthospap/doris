@@ -15,7 +15,7 @@ int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
 
   // compute acceleration at satellite position (ITRF, cartesian)
   Eigen::Matrix<double, 3, 3> partials;
-  test::gravacc3(dCS, rsat, max_degree, dCS._Re, dCS._GM, acc, partials, &V,
+  dso::gravity_acceleration(dCS, rsat, max_degree, dCS.Re(), dCS.GM(), acc, partials, &V,
                  &W);
 
   return 0;

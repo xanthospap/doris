@@ -8,7 +8,7 @@
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
 #include "geodesy/units.hpp"
-#include "harmonic_coeffs.hpp"
+#include "stokes_coeffs.hpp"
 #include <array>
 #include <cstring>
 
@@ -87,7 +87,7 @@ int memmap_octide_coefficients(
 class OceanTide {
 private:
   std::vector<DoodsonOceanTideConstituent> doodsonFreqs;
-  dso::HarmonicCoeffs dCS;
+  dso::StokesCoeffs dCS;
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
 public:
@@ -141,7 +141,7 @@ class SolidEarthTide {
 
 private:
   const double GM_moon, GM_sun;
-  dso::HarmonicCoeffs cs;
+  dso::StokesCoeffs cs;
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
   // AssociatedLegendreFunctions PM, PS;

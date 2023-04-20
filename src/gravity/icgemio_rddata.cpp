@@ -39,7 +39,6 @@ int count_columns(const char *line) noexcept {
 }
 
 const char *goto_column(const char *line, int colnr) noexcept {
-  // printf("going to column #%d, of string [%s]\n", colnr, line);
   const char *c = line;
   int cols = 0;
   while (*c) {
@@ -60,10 +59,9 @@ const char *goto_column(const char *line, int colnr) noexcept {
   return nullptr;
 }
 
+/* yyyymmdd.xxxx */
 int resolve_date(const char *date_str,
-                 dso::datetime<dso::nanoseconds> &t) noexcept {
-  // expected format: t0[yyyymmdd.xxxx]
-  using SecIntType = dso::nanoseconds::underlying_type;
+                 dso::TwoPartDate &t) noexcept {
   int year, month, dom, error = 0;
   double fraction, dummy;
   auto rc = std::from_chars(date_str, date_str + 4, year);
@@ -74,20 +72,23 @@ int resolve_date(const char *date_str,
   error += (rc.ec != std::errc{});
   rc = std::from_chars(date_str, date_str + 14, fraction);
   fraction = std::modf(fraction, &dummy);
-  const double fnanosec = dso::nanoseconds::sec_factor<double>();
-  if (error)
-    return error;
-  try {
-    t = dso::datetime<dso::nanoseconds>(
-        dso::year(year), dso::month(month), dso::day_of_month(dom),
-        dso::nanoseconds(static_cast<SecIntType>(fnanosec)));
-  } catch (std::exception &) {
+  
+  /* floating point resolution error(s) */
+  if (error) {
     fprintf(stderr,
             "[ERROR] Failed to resolve datetime field from string: \"%s\" "
             "(traceback: %s)\n",
             date_str, __func__);
     return 1;
   }
+
+  /* year, month day of month to MJD */
+  dso::modified_julian_day imjd{dso::year(year), dso::month(month),
+                                dso::day_of_month(dom)};
+
+
+  /* setup the date */
+  t = dso::TwoPartDate((double)imjd.as_underlying_type(), fraction);
   return 0;
 }
 } // unnamed namespace
@@ -95,17 +96,18 @@ int resolve_date(const char *date_str,
 /// @warning coeffs should have already been initialized and allocated with
 ///          enough memmory to hold the (to-be-) parsed coefficients.
 int dso::Icgem::parse_data(int l, int m,
-                           const dso::datetime<dso::nanoseconds> &t,
-                           dso::HarmonicCoeffs *coeffs) noexcept {
+                           const dso::TwoPartDate &t,
+                           dso::StokesCoeffs *coeffs) noexcept {
 
-  // clear out coeffs
+  /* clear out coeffs */
   coeffs->clear();
 
-  // t in fractional years (needed for TVG terms)
+  /* t in fractional years (needed for TVG terms) */
   const double tyears = t.as_fractional_years();
 
-  // pre-compute angular periods for harmonic coefficients (if any are indeed
-  // found while parsing)
+  /* pre-compute angular periods for harmonic coefficients (if any are indeed
+   * found while parsing)
+   */
   double angular_year, sannual, cannual, ssemiannual, csemiannual;
   {
     double iyear, fyear;
@@ -164,10 +166,11 @@ int dso::Icgem::parse_data(int l, int m,
 
     const auto sz = std::strlen(line);
 
-    // gfc lines are for static-gravity field (if L=0=M, no effect ...)
+    /* gfc lines are for static-gravity field (if L=0=M, no effect ...) */
     if (starts_with("gfc ", line)) {
-      // expecting columns: degree, order, Clm, Slm, [...]; note that it
-      // (seldom) happens that the doubles are written in fortran format ...
+      /* expecting columns: degree, order, Clm, Slm, [...]; note that it
+       * (seldom) happens that the doubles are written in fortran format ...
+       */
       start = line + 4;
       auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
       if (ccres.ec != std::errc{}) {
@@ -187,8 +190,9 @@ int dso::Icgem::parse_data(int l, int m,
         ++error;
       }
 
-      // only interested in the coefficients, if degree and order are less than
-      // max
+      /* only interested in the coefficients, if degree and order are less 
+       * than max
+       */
       if (ll <= l && mm <= m) {
 
         ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
@@ -209,11 +213,7 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
         }
 
-        // assign to harmonic coefficients matrix
-#ifdef DEBUG
-        if (ll == 2 && mm == 1)
-          printf("Reading coefficient C(2,1)=%.15e\n", Clm);
-#endif
+        /* assign to harmonic coefficients matrix */
         coeffs->C(ll, mm) += Clm;
         if (mm == 0) {
           assert(Slm == 0e0);
@@ -222,9 +222,9 @@ int dso::Icgem::parse_data(int l, int m,
         }
       }
 
-      // gfct lines are for tvg field (if L=0=M, no effect ...)
+      /* gfct lines are for tvg field (if L=0=M, no effect ...) */
     } else if (starts_with("gfct", line)) {
-      // expecting columns: degree, order, Clm, Slm, [...] and time!
+      /* expecting columns: degree, order, Clm, Slm, [...] and time! */
       start = line + 4;
       auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
       if (ccres.ec != std::errc{}) {
@@ -244,8 +244,9 @@ int dso::Icgem::parse_data(int l, int m,
         ++error;
       }
 
-      // only interested in the coefficients, if degree and order are less than
-      // max
+      /* only interested in the coefficients, if degree and order are less 
+       * than max
+       */
       if (ll <= l && mm <= m) {
 
         ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
@@ -266,12 +267,13 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
         }
 
-        // do not know exactly at which columns we'll find time, count them
+        /* do not know exactly at which columns we'll find time, count them */
         int cols = count_columns(line);
 
-        // tstart - tstop is found in the last two columns, format is:
-        // [yyyymmdd.xxxx]
-        dso::datetime<dso::nanoseconds> tstart, tend;
+        /* tstart - tstop is found in the last two columns, format is:
+         * [yyyymmdd.xxxx]
+         */
+        dso::TwoPartDate tstart, tend;
         start = goto_column(line, cols - 2);
         if (resolve_date(start, tstart))
           ++error;
@@ -283,7 +285,7 @@ int dso::Icgem::parse_data(int l, int m,
           if (ll == 2 && mm == 1)
             printf("Reading coefficient C(2,1)=%.15e\n", Clm);
 #endif
-          // add drift to harmonic coefficients matrix
+          /* add drift to harmonic coefficients matrix */
           coeffs->C(ll, mm) += Clm;
           if (mm == 0) {
             assert(Slm == 0e0);
@@ -293,7 +295,7 @@ int dso::Icgem::parse_data(int l, int m,
         }
       }
 
-      // trnd lines are for trend/drift (if L=0=M, no effect ...)
+      /* trnd lines are for trend/drift (if L=0=M, no effect ...) */
     } else if (starts_with("trnd", line)) {
       start = line + 4;
       auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
@@ -327,8 +329,9 @@ int dso::Icgem::parse_data(int l, int m,
       //  return 1;
       //}
 
-      // only interested in the coefficients, if degree and order are less than
-      // max
+      /* only interested in the coefficients, if degree and order are less 
+       * than max
+       */
       if (ll <= l && mm <= m) {
 
         ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
@@ -349,12 +352,13 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
         }
 
-        // do not know exactly at which columns we'll find time, count them
+        /* do not know exactly at which columns we'll find time, count them */
         int cols = count_columns(line);
 
-        // tstart - tstop is found in the last two columns, format is:
-        // [yyyymmdd.xxxx]
-        dso::datetime<dso::nanoseconds> tstart, tend;
+        /* tstart - tstop is found in the last two columns, format is:
+         * [yyyymmdd.xxxx]
+         */
+        dso::TwoPartDate tstart, tend;
         start = goto_column(line, cols - 2);
         if (resolve_date(start, tstart))
           ++error;
@@ -373,7 +377,7 @@ int dso::Icgem::parse_data(int l, int m,
         }
       }
 
-      // asin/acos lines are for harmonics (if L=0=M, no effect ...)
+      /* asin/acos lines are for harmonics (if L=0=M, no effect ...) */
     } else if (starts_with("asin", line) || starts_with("acos", line)) {
       start = line + 4;
       auto ccres = std::from_chars(skip_ws(start), line + sz, ll);
@@ -407,8 +411,9 @@ int dso::Icgem::parse_data(int l, int m,
       //  return 1;
       //}
 
-      // only interested in the coefficients, if degree and order are less than
-      // max
+      /* only interested in the coefficients, if degree and order are less 
+       * than max
+       */
       if (ll <= l && mm <= m) {
 
         ccres = std::from_chars(skip_ws(ccres.ptr), line + sz, Clm);
@@ -429,18 +434,19 @@ int dso::Icgem::parse_data(int l, int m,
           ++error;
         }
 
-        // do not know exactly at which columns we'll find time, count them
+        /* do not know exactly at which columns we'll find time, count them */
         int cols = count_columns(line);
 
-        // tstart - tstop is found in the last two columns, format is:
-        // [yyyymmdd.xxxx]
-        dso::datetime<dso::nanoseconds> tstart, tend;
+        /* tstart - tstop is found in the last two columns, format is:
+         * [yyyymmdd.xxxx]
+         */
+        dso::TwoPartDate tstart, tend;
         start = goto_column(line, cols - 3);
         if (resolve_date(start, tstart))
           ++error;
         if (resolve_date(start + 14, tend))
           ++error;
-        // find the yearly period, aka annual, semi-annual, etc ...
+        /* find the yearly period, aka annual, semi-annual, etc ... */
         double yper;
         ccres = std::from_chars(goto_column(line, cols - 1), line + sz, yper);
         if (ccres.ec != std::errc{})
@@ -478,11 +484,11 @@ int dso::Icgem::parse_data(int l, int m,
       printf("Skipping line [%s], don't know what to do with it!\n", line);
     }
 
-    // end resolving line
+    /* end resolving line */
 
-  } // end reading lines
+  } /* end reading lines */
 
-  // check the status
+  /* check the status */
   if (!fin.good() && fin.eof()) {
     fin.clear();
     return error;

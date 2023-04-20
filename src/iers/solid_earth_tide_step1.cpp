@@ -130,9 +130,10 @@ int dso::SolidEarthTide::solid_earth_tide_step1(
   std::fill(dS.begin(), dS.end(), 0e0);
 
   // start with Sun geopotential corrections
-  iers2010_solid_earth_tide_anelastic_tb(cs._Re, cs._GM, rSun, GM_sun, dC, dS);
+  iers2010_solid_earth_tide_anelastic_tb(cs.Re(), cs.GM(), rSun, GM_sun, dC,
+                                         dS);
   // add Moon
-  iers2010_solid_earth_tide_anelastic_tb(cs._Re, cs._GM, rMoon, GM_moon, dC,
+  iers2010_solid_earth_tide_anelastic_tb(cs.Re(), cs.GM(), rMoon, GM_moon, dC,
                                          dS);
   // all done for step 1
   return 0;
