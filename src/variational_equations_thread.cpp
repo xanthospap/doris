@@ -397,19 +397,10 @@ void dso::VariationalEquations_thread(
   /* position of Sun and Moon in GCRF at this instance */
   Eigen::Matrix<double, 3, 1> rSun,rMon;
   {
-    const auto mjd_tt = cmjd.tai2tt();
-    const double jd = (mjd_tt._big + dso::mjd0_jd) + mjd_tt._small;
-    double rsun[3], rmon[3];
-
-    /* position vector of sun/moon, in J2000, [km] */
-    dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 10, 399, rsun);
-    dso::cspice::j2planet_pos_from(dso::cspice::jd2et(jd), 301, 399, rmon);
-
-    rSun = Eigen::Matrix<double, 3, 1>(rsun); /* [m] */
-    rMon = Eigen::Matrix<double, 3, 1>(rmon); /* [m] */
-
-    rSun *= 1e3; /* [m] */
-    rMon *= 1e3; /* [m] */
+    int error = 0;
+    if (dso::planet_pos(dso::Planet::MOON, cmjd.tai2tt(), rMon)) ++error;
+    if (dso::planet_pos(dso::Planet::SUN, cmjd.tai2tt(), rSun)) ++error;
+    if (error) return;
   }
 
   /* tides and third body acceleration and gradients */

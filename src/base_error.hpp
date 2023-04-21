@@ -6,6 +6,7 @@ struct [[nodiscard]] iStatus {
   int status;
   constexpr iStatus(int i) noexcept : status(i){};
   explicit constexpr operator int() const noexcept { return status; }
+  explicit constexpr operator bool() const noexcept { return status; }
   static constexpr iStatus ok() noexcept { return iStatus(0); }
   constexpr bool operator==(const iStatus &other) const noexcept {
     return status == other.status;
