@@ -20,7 +20,7 @@ int dso::SolarActivityData::feed(const char *fncsv, const dso::TwoPartDate &t,
   vdata.reserve(days_before + days_after + 1);
 
   /* get central date's mjd */
-  dso::modified_julian_day mjd(t.normalized()._big);
+  dso::modified_julian_day mjd(t.big());
 
   /* open the csv file */
   std::ifstream fin(fncsv);

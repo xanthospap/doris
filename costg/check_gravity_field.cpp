@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     gacc -= sphericalacc;
 
     /* print results */
-    printf("%.12e %.20e %.20e %.20e %.20e %.20e %.20e\n", rgrav->gpst.mjd(),
+    printf("%.12e %.20e %.20e %.20e %.20e %.20e %.20e\n", rgrav->gpst.as_mjd(),
            rgrav->ax, rgrav->ay, rgrav->az, gacc(0), gacc(1), gacc(2));
 
     /* augment state to next */

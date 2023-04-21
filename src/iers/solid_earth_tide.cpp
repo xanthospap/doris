@@ -104,6 +104,7 @@ int dso::SolidEarthTide::acceleration(
   return 0;
 }
 
+/*
 int dso::SolidEarthTide::acceleration(
     const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
     double xp_sec, double yp_sec,
@@ -120,14 +121,9 @@ int dso::SolidEarthTide::acceleration(
   this->operator()(mjdtt, mjdut1, rmoon, rsun, dC, dS);
 
   // compute Pole Tide
-  auto [dc21,ds21] = SolidEarthPoleTide().poleTide(mjdtt, xp_sec, yp_sec);
-  dC[1] += dc21;
-  dS[1] += ds21;
-
-  // permanent tide
-  //const double k20 = 0.30190e0;
-  //const double dC20_pt = 4.4228e-8 * (-0.31460e0) * k20;
-  //dC[0] -= dC20_pt;
+  //auto [dc21,ds21] = SolidEarthPoleTide().poleTide(mjdtt, xp_sec, yp_sec);
+  //dC[1] += dc21;
+  //dS[1] += ds21;
 
   // transform array to harmonics
   array2harmonics(dC, dS, cs);
@@ -139,3 +135,4 @@ int dso::SolidEarthTide::acceleration(
 
   return 0;
 }
+*/

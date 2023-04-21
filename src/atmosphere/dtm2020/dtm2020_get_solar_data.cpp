@@ -17,13 +17,13 @@ int dso::Dtm2020::get_solar_data(const dso::TwoPartDate &tutcin,
   }
   
   /* t - 24hours */
-  const dso::TwoPartDate t24(tutc._big - 1, tutc._small);
+  const dso::TwoPartDate t24(tutc.big() - 1, tutc.small());
 
   /* instantaneous flux at (t - 24hr); interpolate between two days */
   double flux24 = MissingSwData;
   {
-    const dso::TwoPartDate t1mjd(t24._big, 0);
-    const dso::TwoPartDate t2mjd(t24._big + 1, 0);
+    const dso::TwoPartDate t1mjd(t24.big(), 0);
+    const dso::TwoPartDate t2mjd(t24.big() + 1, 0);
     /* indexes in array */
     auto it = flux_data.at(t1mjd);
     if ((it == flux_data.data_end()) || (it + 1 == flux_data.data_end())) {
@@ -65,7 +65,7 @@ int dso::Dtm2020::get_solar_data(const dso::TwoPartDate &tutcin,
   double akp1;
   {
     const dso::TwoPartDate t3h(
-        dso::TwoPartDate(tutc._big, tutc._small - (3e0 / 24)).normalized());
+        dso::TwoPartDate(tutc.big(), tutc.small() - (3e0 / 24)).normalized());
     auto it = flux_data.at(t3h);
     if (it == flux_data.data_end()) {
       fprintf(stderr,
@@ -74,7 +74,7 @@ int dso::Dtm2020::get_solar_data(const dso::TwoPartDate &tutcin,
               __func__);
       return 1;
     }
-    akp1 = it->KpIndexes[static_cast<int>((t3h._small * 24) / 3)];
+    akp1 = it->KpIndexes[static_cast<int>((t3h.small() * 24) / 3)];
   }
 
   /* akp(3)=mean of last 24 hours */
@@ -89,7 +89,7 @@ int dso::Dtm2020::get_solar_data(const dso::TwoPartDate &tutcin,
       return 1;
     }
     int error = 0;
-    int start_index = static_cast<int>((t24._small * 24) / 3);
+    int start_index = static_cast<int>((t24.small() * 24) / 3);
     for (int indexes_read = 0; indexes_read < 8; indexes_read++) {
       error += (it->KpIndexes[start_index] == MissingSwData);
       akp24 += it->KpIndexes[start_index++];

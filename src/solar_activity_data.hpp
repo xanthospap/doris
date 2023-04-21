@@ -32,7 +32,7 @@ public:
 
   auto at(const TwoPartDate &tutc) const noexcept {
     const TwoPartDate t(tutc.normalized());
-    const dso::modified_julian_day cmjd(t._big);
+    const dso::modified_julian_day cmjd(t.big());
     return std::find_if(
         vdata.begin(), vdata.end(),
         [=](const CelestTrakSWFlux &flux) { return flux.mjd_ == cmjd; });

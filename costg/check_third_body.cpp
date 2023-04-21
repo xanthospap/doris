@@ -87,11 +87,11 @@ int main(int argc, char *argv[]) {
 
     /* print results */
     printf("[MOON] %.12e %.20e %.20e %.20e %.20e %.20e %.20e\n",
-           amoon->gpst.mjd(), amoon->ax, amoon->ay, amoon->az, moon_acc(0),
+           amoon->gpst.as_mjd(), amoon->ax, amoon->ay, amoon->az, moon_acc(0),
            moon_acc(1), moon_acc(2));
 
     printf("[SUN] %.12e %.20e %.20e %.20e %.20e %.20e %.20e\n",
-           asun->gpst.mjd(), asun->ax, asun->ay, asun->az, sun_acc(0),
+           asun->gpst.as_mjd(), asun->ax, asun->ay, asun->az, sun_acc(0),
            sun_acc(1), sun_acc(2));
 
     /* augment state to next */

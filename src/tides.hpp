@@ -107,8 +107,19 @@ public:
                    int max_order = -1) noexcept;
 }; // OceanTide
 
-class SolidEarthPoleTide {
-  double m1,m2; // arcsec
+class PoleTides {
+  /* wobble variables in [asec] */
+  double m1,m2;
+
+/* @brief Compute "wobble" variables m1 and m2 using Eqs. 24 and 25 from
+ *        IERS2010, Sec7.2.4
+ * The computed m1 and m2 values will be set in the instance's private 
+ * variables.
+ *
+ * @param[in] mjdtt Date of request in MJD, [TT]
+ * @param[in] xp_sec Polar motion in [as] for the date of request
+ * @param[in] yp_sec Polar motion in [as] for the date of request
+ */
  int operator()(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
    // secular pole (IERS2010, Sec7.2.4 Eq. 21)
    const double fyrs = mjdtt.as_fractional_years();
@@ -119,8 +130,18 @@ class SolidEarthPoleTide {
    m2 = -(yp_sec - ys*1e-3); // [as]
    return 0;
  }
+
 public:
- auto poleTide(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
+ /* @brief Compute geopotential coefficient correction ΔC_21 and ΔS_21 due to
+  *        Solid Earth pole tide, as descibed in IERS2010, Sec. 6.4
+ * @param[in] mjdtt Date of request in MJD, [TT]
+ * @param[in] xp_sec Polar motion in [as] for the date of request
+ * @param[in] yp_sec Polar motion in [as] for the date of request
+ * @return Effect of solid earth pole tide as correction in the normalized 
+ *         Stoke's coefficients C21 and S21. I.e. a pair is returned, as:
+ *         [ΔC_21, ΔS_21]
+ */
+ auto delta_stokes_21(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
    struct dCS21 { double dc21,ds21; };
    // compute "wobble" variables of date
    this->operator()(mjdtt,xp_sec,yp_sec);
@@ -128,10 +149,6 @@ public:
    // compute solid earth pole tide
    dC21 = -1.3331e-9*(m1+0.0115*m2);
    dS21 = -1.3331e-9*(m2-0.0115*m1);
-   // ocean pole tide
-   dC21 += -2.1778e-10*(m1-0.01724*m2);
-   dS21 += -1.7232e-10*(m2-0.03365*m1);
-
    return dCS21{dC21,dS21};
  }
 }; // SolidEarthPoleTide
@@ -190,14 +207,14 @@ public:
                    Eigen::Matrix<double, 3, 1> &acc,
                    Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
   
-  int acceleration(const dso::TwoPartDate &mjdtt,
+  /*int acceleration(const dso::TwoPartDate &mjdtt,
                    const dso::TwoPartDate &mjdut1,
                    double xp_sec, double yp_sec,
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    const Eigen::Matrix<double, 3, 1> &rmoon,
                    const Eigen::Matrix<double, 3, 1> &rsun,
                    Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
+                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;*/
 }; // SolidEarthTide
 
 } // namespace dso

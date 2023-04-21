@@ -4,7 +4,6 @@
 #include "orbit_integration.hpp"
 #include "iers2010/cel2ter.hpp"
 
-constexpr const int accountforpoletide = true;
 constexpr const int m = 0;
 constexpr const int n = 6 + m;
 /*
@@ -103,14 +102,8 @@ void dso::VariationalEquations(
     // Sun and Moon position in ECEF
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
-    if (accountforpoletide) {
-      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(),
-                                  Rot.eop().xp, Rot.eop().yp, r_geo, rm_ecef,
-                                  rs_ecef, tacc, taccgrad);
-    } else {
       params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, rm_ecef,
                                   rs_ecef, tacc, taccgrad);
-    }
     f += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();
@@ -303,14 +296,8 @@ void dso::VariationalEquations2(
     // Sun and Moon position in ECEF
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
-    if (accountforpoletide) {
-      params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(),
-                                  Rot.eop().xp, Rot.eop().yp, r_itrf, rm_ecef,
-                                  rs_ecef, acc, gradient);
-    } else {
       params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, rm_ecef,
                                   rs_ecef, acc, gradient);
-    }
     // acceleration and gradient to GCRF
     f += Rot.itrf2gcrf(acc);
     const auto T = Rot.itrf2gcrf();

@@ -7,6 +7,7 @@
 
 using costg::CostgAcc;
 using costg::CostgExtState;
+using costg::CostgQuat;
 
 namespace {
   const char *skip_ws(const char *c) {
@@ -53,6 +54,21 @@ namespace {
     acc.az = d[9];
     return 0;
   }
+  int quaternion_line(const char *line, CostgQuat &acc) {
+    double d[5];
+    const char *start = line;
+    const char *end = line + std::strlen(line);
+    for (int i=0; i<5; i++) {
+      auto res = std::from_chars(skip_ws(start), end, d[i]);
+      start = res.ptr;
+      if (res.ec != std::errc{}) return 1;
+    }
+    double ip, fp;
+    fp = std::modf(d[0], &ip);
+    acc.gpst = dso::TwoPartDate(ip, fp);
+    acc.q = Eigen::Quaternion<double>(d[1],d[2],d[3],d[4]);
+    return 0;
+  }
 }
 
 int costg::parse_satellite_state(const char *fn, std::vector<CostgExtState> &acc) {
@@ -95,3 +111,22 @@ int costg::parse_gravity_field(const char *fn, std::vector<CostgAcc> &acc) {
   return 0;
 }
 
+int costg::parse_rotation_quaternions(const char *fn, std::vector<CostgQuat> &acc) {
+  acc.clear();
+
+  std::ifstream fin(fn);
+  if (!fin.is_open()) {
+    fprintf(stderr, "ERROR. Failed to find input file %s\n", fn);
+    return 1;
+  }
+
+  constexpr const int MC = 512;
+  char line[MC];
+
+  while (fin.getline(line, MC)) {
+    CostgQuat t;
+    if (!quaternion_line(line, t)) acc.emplace_back(t);
+  }
+
+  return 0;
+}

@@ -3,6 +3,7 @@
 
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
+#include "eigen3/Eigen/Geometry"
 #include <vector>
 
 namespace costg {
@@ -35,13 +36,21 @@ struct CostgExtState {
   Eigen::Matrix<double, 3, 1> a() {
     return Eigen::Matrix<double, 3, 1>({ax, ay, az});
   }
-}; /* CostgAcc */
+}; /* CostgExtState */
+
+struct CostgQuat {
+  /* gps time */
+  dso::TwoPartDate gpst;
+  /* position components in [m] */
+  Eigen::Quaternion<double> q;
+};
 
 int parse_gravity_field(const char *fn, std::vector<CostgAcc> &acc);
 int parse_satellite_state(const char *fn, std::vector<CostgExtState> &acc);
+int parse_rotation_quaternions(const char *fn, std::vector<CostgQuat> &quats);
 
 inline dso::TwoPartDate gps2tai(const dso::TwoPartDate &gps) {
-  return dso::TwoPartDate(gps._big, gps._small + 19e0 / 86400e0).normalized();
+  return dso::TwoPartDate(gps.big(), gps.small() + 19e0 / dso::sec_per_day);
 }
 
 } /* namespace costg */

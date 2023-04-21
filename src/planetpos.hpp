@@ -65,7 +65,6 @@ int load_if_unloaded_pck(const char *pck_kernel) noexcept;
  */
 inline double mjdtt2et(const dso::TwoPartDate &tt) noexcept {
   /* get ephemeris (ET) time from TT; assumes an LSK kernel is loaded ... */
-  /* return unitim_c(tt.jd(), "JDTDT", "ET"); */
   return unitim_c(tt.jd(), "JDTDT", "ET");
 }
 

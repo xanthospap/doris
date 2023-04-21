@@ -16,11 +16,25 @@ from scipy import stats
 
 # scale for x, y and z acclerations (m/s2)
 scale = 1e15
+def unitsstr(): return r'$[m/s^2]\times{:.1e}$'.format(1e0/scale) if scale != 1e0 else r'$[m/s^2]$'
+use_hours_of_day = True
 
 ## use TeX to render Matplotlib text
-plt.rcParams['text.usetex'] = True
+plt.style.use('seaborn-v0_8-pastel')
+tex_fonts = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 10,
+    "font.size": 10,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 7,
+    "xtick.labelsize": 9,
+    "ytick.labelsize": 9
+}
+plt.rcParams.update(tex_fonts)
 
-use_hours_of_day = True
 if use_hours_of_day:
   try:
     import julian
@@ -29,51 +43,66 @@ if use_hours_of_day:
     print('Either install it, or set the \"use_hours_of_day\" option to false', file=sys.stderr)
     sys.exit(1)
 
-def component(key, lofd, fac=None): 
-  return [ dct[key] for dct in lofd ] if not fac else [ dct[key]*fac for dct in lofd ]
-def units(_): 
-  return r"$m/s^2$"
 def handle_date(mjd): return julian.from_jd(mjd, fmt='mjd') if use_hours_of_day else mjd
-def tex_ytitle(cmp):
-  if cmp[0] == 'x': return r"$\ddot{x}$ [" + units(cmp) + r"] $\times 10^{-15}$"
-  elif cmp[0] == 'y': return r"$\ddot{y}$ [" + units(cmp) + r"] $\times 10^{-15}$"
-  else: return r"$\ddot{z}$ [" + units(cmp) + r"] $\times 10^{-15}$"
+def get_diffs(dct, component):
+    t = []; y= [];
+    k1,k2 = list(zip(['rax','ray','raz'],['ax','ay','az']))[component]
+    for entry in dct:
+        t.append(entry['mjd'])
+        y.append(entry[k1] - entry[k2])
+    return t,y
+def get_diffs_norm(dct):
+    t = []; y= [];
+    for entry in dct:
+        t.append(entry['mjd'])
+        n = 0e0
+        for component in range(3):
+            k1,k2 = list(zip(['rax','ray','raz'],['ax','ay','az']))[component]
+            n += (entry[k1] - entry[k2])*(entry[k1] - entry[k2])
+        y.append(math.sqrt(n))
+    return t,y
 
-##
-## Read file from STDIN, expect 
-## Mjd xacc yacc zacc [m/sec^2]
-##
 dct = []
 for line in fileinput.input():
     ## parse file/input
     if line[0] != '#':
         l = line.split()
         try:
-            dct.append({'mjd': handle_date(float(l[0])), 'xacc':float(l[1]), 'yacc':float(l[2]), 
-                'zacc':float(l[3])})
+            dct.append({'mjd': handle_date(float(l[0])), 'rax':float(l[1]), 'ray':float(l[2]), 
+                'raz':float(l[3]), 'ax':float(l[4]), 'ay':float(l[5]), 'az':float(l[6])})
         except:
             print("Failed to parse line: [{:}]; skipped!".format(line.strip()), 
                 file=sys.stderr)
 
 ## plot data/diffs
-i = 0; j = 0
-fig, axs = plt.subplots(3, 1, figsize=(10, 6), sharex=True, sharey=True, constrained_layout=True)
-t = component('mjd', dct)
-for y in ['xacc', 'yacc', 'zacc']:
-    r,c = i%3, j
-    i+=1
-    x = component(y, dct, scale)
-    sts = stats.describe(x)
-    print('Component: {:} #pts {:} | Min {:+.2e} Max {:+.2e} Mean {:.2e} Std. Deviation {:.2e}'.format(y[0],sts.nobs, sts.minmax[0], sts.minmax[1], sts.mean, math.sqrt(sts.variance)))
-    axs[r].grid(axis='y', color='0.85')
-    axs[r].scatter(t,x,s=1,color='black')
-    axs[r].set_ylabel(tex_ytitle(y), fontsize=14)
-    # use formatters to specify major and minor ticks
-    axs[r].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-    axs[r].xaxis.set_minor_locator(mdates.HourLocator())
+fig, axs = plt.subplots(4, 1, figsize=(10, 6), sharex=True, sharey=True, constrained_layout=True)
+for i in range(3):
+    t,y = get_diffs(dct, i)
+    y = [yy * scale for yy in y]
+    sts = stats.describe(y)
+    axs[i].scatter(t,y,s=1,color='black')
+    axs[i].axhline(sts.mean, color='r', linestyle='--', linewidth=1)
+    axs[i].text(t[0],sts.minmax[0],r'{:+.1e} $\pm$ {:+.3e}'.format(sts.mean, math.sqrt(sts.variance)),color='red')
+    axs[i].text(t[0],sts.minmax[1],r'min:{:+.1e} max:{:+.1e}'.format(sts.minmax[0], sts.minmax[1]),color='red')
+    axs[i].set_ylabel([r'$\delta\ddot{x}$', r'$\delta\ddot{y}$', r'$\delta\ddot{z}$'][i]+unitsstr())
+    axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    axs[i].xaxis.set_minor_locator(mdates.HourLocator())
+
+# plot norms
+t,y = get_diffs_norm(dct)
+y = [yy * scale for yy in y]
+sts = stats.describe(y)
+axs[3].scatter(t,y,s=1,color='black')
+axs[3].axhline(sts.mean, color='r', linestyle='--', linewidth=1)
+axs[3].text(t[0],-sts.minmax[1],r'{:+.1e} $\pm$ {:+.3e}'.format(sts.mean, math.sqrt(sts.variance)),color='red')
+axs[3].text(t[0],sts.minmax[1],r'min:{:+.1e} max:{:+.1e}'.format(sts.minmax[0], sts.minmax[1]),color='red')
+axs[3].set_ylabel(r'$\delta\ddot{a}$'+unitsstr())
+axs[3].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+axs[3].xaxis.set_minor_locator(mdates.HourLocator())
+
 axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")), fontsize=12)
 
 ## Rotate date labels automatically
-fig.suptitle('COST-G Benchmark Diffs\nEarth Tide Acceleration Comparisson', fontsize=16)
-plt.savefig('04solidEarthTide_icrfVsCostg.png')
+fig.suptitle('COST-G Benchmark Diffs\nSolid EarthTide Acceleration Comparisson', fontsize=16)
+plt.savefig('04solidEarthTide_icrf.pdf')
 plt.show()

@@ -58,7 +58,7 @@ struct JasonQuaternionHunter {
     fprintf(stderr, "--->\n");
     for (int i = 0; i < NumQuaternionsInBuffer; i++) {
       fprintf(stderr, "\tBuffered Quaternion at: %.2f + %.15f\n",
-              bodyq[i].tai_mjd._big, bodyq[i].tai_mjd._small);
+              bodyq[i].tai_mjd.big(), bodyq[i].tai_mjd.small());
     }
     fprintf(stderr, "--->\n");
   }

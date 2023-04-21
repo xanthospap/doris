@@ -5,9 +5,9 @@
 
 double dso::details::DIN__day_of_year(const dso::TwoPartDate &t) noexcept {
   const auto ydoy =
-      (dso::modified_julian_day{(long)t.normalized()._big}).to_ydoy();
+      (dso::modified_julian_day{(long)t.normalized().big()}).to_ydoy();
   double doy = (double)(ydoy.__doy.as_underlying_type());
-  return doy + t.normalized()._small;
+  return doy + t.normalized().small();
 }
 
 /* TODO is this correct ? */
@@ -17,9 +17,9 @@ double dso::details::DIN__local_hours_radians(const dso::TwoPartDate &t,
   constexpr const double _SecInHour = 60 * 60e0;
   /* difference from UTC at Greenwich in fractional hours */
   const double dhours =
-      lon * _1RadHours + std::copysign(t.normalized()._small * _SecInHour, lon);
+      lon * _1RadHours + std::copysign(t.normalized().small() * _SecInHour, lon);
   /* add difference in Grewnwich time if lon > 0 subtract the delta hours  */
-  return (t.normalized()._small * _SecInHour) +
+  return (t.normalized().small() * _SecInHour) +
          (std::copysign(dhours, lon) * (-1e0));
 }
 

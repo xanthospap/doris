@@ -7,7 +7,6 @@
 #include <exception>
 #include <thread>
 
-constexpr const int accountforpoletide = true;
 constexpr const int m = 2;
 constexpr const int n = 6 + m;
 
@@ -96,7 +95,7 @@ int solar_radiation_pressure(const dso::TwoPartDate &tai,
     fprintf(stderr, "[WRNNG] Changing shadow status from %.3f to %.3f\n",
             oc_factor, ShadowFactor);
     printf("[SHDW ] Changing shadow status from %.3f to %.3f at %.9f\n",
-            oc_factor, ShadowFactor, tai.mjd());
+            oc_factor, ShadowFactor, tai.as_mjd());
     oc_factor = ShadowFactor;
   }
 
@@ -180,16 +179,10 @@ void tides_n_tba(const dso::TwoPartDate &tai,
     /* Sun and Moon position in ITRF */
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(moongcrf);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(sungcrf);
-    if (accountforpoletide) {
-      params.setide->acceleration(tai.tai2tt(), Rot.ut1(), Rot.eop().xp,
-                                  Rot.eop().yp, ritrf, rm_ecef, rs_ecef, tacc,
-                                  tgradient);
-    } else {
       Eigen::Matrix<double, 3, 1> pacc;
       Eigen::Matrix<double, 3, 3> pgradient;
       params.setide->acceleration(tai.tai2tt(), Rot.ut1(), ritrf, rm_ecef,
                                   rs_ecef, tacc, tgradient);
-    }
     // acceleration and gradient to GCRF
     acc += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();

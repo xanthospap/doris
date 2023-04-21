@@ -182,6 +182,7 @@ if GetOption('costg'):
     tests_targets = [ t for t in tests_targets if t not in tests_sources ]
     if 'RPATH' not in env or root_dir not in env['RPATH']:
       env.Append(RPATH=root_dir)
+    # env['CXXFLAGS'] = ' '.join([env['CXXFLAGS'], '-DUSE_OWN_ROTATION_COSTG'])
     for prog in tests_targets:
         pth = os.path.dirname(prog)
         bsn = os.path.basename(prog)

@@ -109,7 +109,7 @@ int dso::JasonQuaternionHunter::find_interval(
     fprintf(stderr,
             "[WRNNG] First quaternion in buffer is at %.9f, requested epoch "
             "%.9f (traceback: %s)\n",
-            bodyq[0].tai_mjd.mjd(), tai_mjd.mjd(), __func__);
+            bodyq[0].tai_mjd.as_mjd(), tai_mjd.as_mjd(), __func__);
     return -1;
   }
   // tai_mjd is out of bounds, after the last record in buffer
@@ -119,8 +119,8 @@ int dso::JasonQuaternionHunter::find_interval(
   fprintf(stderr,
           "[ERROR] Hit wall while searching for quaternion: requested date: "
           "%.9f, buffered: %.9f to %.9f (traceback: %s)\n",
-          tai_mjd.mjd(), bodyq[0].tai_mjd.mjd(),
-          bodyq[NumQuaternionsInBuffer - 1].tai_mjd.mjd(), __func__);
+          tai_mjd.as_mjd(), bodyq[0].tai_mjd.as_mjd(),
+          bodyq[NumQuaternionsInBuffer - 1].tai_mjd.as_mjd(), __func__);
   return -100;
 }
 
@@ -221,9 +221,9 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd,
       fprintf(stderr,
               "ERROR Requested quaternion for an epoch prior to current "
               "interval, t=%.15f\n",
-              tai_mjd.mjd());
+              tai_mjd.as_mjd());
       fprintf(stderr, "      Current interval spans: %.15f to %.15f\n",
-              bodyq[0].tai_mjd.mjd(), bodyq[1].tai_mjd.mjd());
+              bodyq[0].tai_mjd.as_mjd(), bodyq[1].tai_mjd.as_mjd());
       return 1;
     }
     // printf("Hunting failed, next quaternions was at: %.1f + %.15f\n",
@@ -249,7 +249,7 @@ int dso::JasonQuaternionHunter::set_at(const dso::TwoPartDate &tai_mjd,
       fprintf(stderr,
               "[ERROR] Failed hunting quaternion for epoch: %.15f. Last found "
               "was for %.15f. error=%d (traceback: %s)\n",
-              tai_mjd.mjd(), bodyq[NumQuaternionsInBuffer - 1].tai_mjd.mjd(),
+              tai_mjd.as_mjd(), bodyq[NumQuaternionsInBuffer - 1].tai_mjd.as_mjd(),
               error, __func__);
     }
 
