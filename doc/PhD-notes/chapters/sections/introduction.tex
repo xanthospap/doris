@@ -6,7 +6,8 @@ providing results for a wide range of geodesy-related fields, including but not
 limited to positioning, reference frames, altimetry and gravity field determination. 
 Nowadays, space geodetic techniques, provide a unique opportunity to monitor and, 
 therefore, understand the processes and feedback mechanisms of the Earth 
-system with high resolution and precision (\cite{Jin2013}).
+system with unparalleled precision and resolution.
+\iffalse (\cite{Jin2013}). \fi
 
 The use of artificial satellites in geosciences has some prerequisites though; 
 these are basically a comprehensive knowledge of the satellite motion under 
@@ -21,7 +22,7 @@ motion relative to the center of mass of the Earth in a specified coordinate
 system can be obtained (\cite{Tapley2004}). Its contribution can be broadly
 grouped in a twofold role:
 \begin{description}
-    \item[] As a product (i.e. tabulated satellite coordinates and/or velocity) 
+    \item[As a product] (i.e. tabulated satellite coordinates and/or velocity) 
     it is needed for most spaced-based applications. Knowledge of satellite 
     position (or state) is a prerequisite for most applications and in general 
     dictates the quality of the application's outcome. It should be noted that 
@@ -29,9 +30,9 @@ grouped in a twofold role:
     years (mainly due to \gls{gnss}), the product list is by no means exhausted here; 
     several other estimates constitute orbit determination products, as are e.g. 
     earth orientation parameters, crucial for reference frame studies.
-    \item[] As a field of study, it enables the testing, validation and improvement 
+    \item[As a field of study], it enables the testing, validation and improvement 
     of models and theoretical aspects for various scientific disciplines, 
-    geodesy being the first and foremost beneficiary
+    geodesy being the first and foremost beneficiary.
 \end{description}
 
 Orbit determination is by no means a homogeneous, non-deviating pattern; satellite 
@@ -50,10 +51,22 @@ techniques constitute the fundamental pillars of modern satellite geodesy.
 \gls{doris} is a technique whereby satellites receive the broadcasted signal 
 transmitted by ground beacons. Using the measured Doppler shift, \gls{doris} 
 can accurately determine the orbit of the satellite, Earth rotation and 
-station coordinates that can be used in different geodetic applications.
+station coordinates that can be used in different geodetic applications (e.g. \cite{Lemoine2016}, \cite{Gambis2006} and \cite{Kur2022}).
 State-of-the-art \gls{pod} analysis, can deliver accuracies in the 
 centimeter level in the radial direction (\cite{Rudenko2023}).
 
+\gls{doris} has played a crucial role in expanding geodetic knowledge and enhancing
+our understanding of the Earth's dynamics since its introduction in the late 1980s.
+The technique is anticipated to continue to enhance its significant role in the field
+of satellite geodesy through endeavors such as the Surface Water and Ocean Topography
+(SWOT) and GENERIS missions. The SWOT mission, launched in December 2022, aims to carry
+out the
+first-ever global survey of Earth's surface water (\cite{Biancamaria2016}). Additionally,
+the GENESIS platform, employing "space-ties," is expected to solve inconsistencies and
+biases between different geodetic techniques, ultimately improving TRF accuracy and
+stability (\cite{Delva2023}).
+
+\iffalse
 Since its introduction in the late 1980s, \gls{doris} has played a crucial role 
 in expanding geodetic knowledge and enhancing our understanding of the Earth’s 
 dynamics. The technique is expected to further enhance its key role within the 
@@ -67,6 +80,7 @@ between the different geodetic techniques, thus improving TRF accuracy and stabi
 By virtue of the ever increasing accuracy achieved by geodesy and related fields, 
 the growing number of satellite missions and the constant widening of application 
 range and user community, \gls{pod} 
+\fi
 
 \subsection{Problem Statement and Objective}\label{ssec:statement-and-objective}
 
@@ -76,16 +90,19 @@ the other two techniques. For the most recent realization of \gls{itrf}, the
 \gls{ilrs} contributed data from 7 Analysis Centers (\cite{Pavlis2023}), \gls{igs} 
 from 10 (\cite{Rebischung2021}), while at the same time the \gls{ids}'s contribution 
 was derived from only 4 Analysis Centers (\cite{Moreaux2022}). This shortage of 
-dedicated \gls{ids} analysis centers, also reflects the scarcity in dedicated 
+dedicated \gls{ids} analysis centers,
+\iffalse
+also reflects the scarcity in dedicated
 software tools to process \gls{doris} data, first and foremost for orbit 
-determination.
+determination. \fi
+is indicative of the limited availability of dedicated software solutions designed to handle DORIS data, particularly for the purpose of orbit determination.
 
 \gls{pod} is a very challenging task, requiring multi-scientific expertise,
 coupled with efficient engineering. Building a software tool to perform \gls{pod} 
 matching the highest accuracy levels assumes expertise, a dedicated scientific 
 group and years of development. Most, if not all, of the currently available 
 software packages to perform \gls{pod} using \gls{doris} data (e.g. GEODYN (\cite{Geodyn2015}, 
-GINS (\cite{Gins2013}) and Bernese (\cite{Stepanek2010})) have matured through 
+GINS (\cite{Gins2013}) and Bernese (\cite{Stepanek2010})) have evolved over
 decades of continuous development. Important issues though come into play:
 \begin{itemize}
   \item These packages are either not free and/or not open souce; hence it is not 
@@ -108,6 +125,7 @@ introduction of next generation receivers and beacons) all of which are
 incorporated in the software built, we hope to spur further, renewed interest 
 in this fundamental area of satellite geodesy.
 
+\iffalse
 Due to the complexity of the problem and the limitations inherent in a Thesis 
 (both in time and resources), the objective of the current study is not to match 
 the highest possible accuracy, currently delivered by the \gls{ids} Analysis 
@@ -115,6 +133,14 @@ Centers. However, the aim is to built a brand new toolset, from scratch, to act 
 a building block towards this end. A toolset that augmented with some fine 
 refinements can be the backbone of a state-of-the-art, \gls{doris} \gls{pod} 
 analysis pipeline.
+\fi
+Given the complexity of the problem and the inherent limitations of a thesis, both in
+terms of time and resources, the objective of the current study is not to attain the
+highest possible accuracy achievable by the \gls{ids} Analysis Centers. Instead, the
+focus is on developing a brand-new toolset from scratch, which can serve as a
+foundational component towards achieving that goal. The envisioned toolset, with
+some additional fine refinements, has the potential to form the backbone of a
+state-of-the-art, \gls{doris} \gls{pod} analysis pipeline.
 
 Since \gls{doris} receivers are on-board \gls{leo} satellites (e.g. altimetry 
 oriented missions), focus is placed in implementing models and methodologies 
@@ -150,13 +176,26 @@ are organized in different, independent, moderate-sized libraries, targeting wel
 problems. This scheme allows for extensive and thorough testing and validation  of the different 
 parts of the package, a vital part of modern software design (e.g. \cite{Oberkampf2010}, \cite{Meyer2008}).
 Additionally, it enables customization according to user needs and accommodates  
-extensibility and maintainability. The latter attributes are of major importance when 
+extensibility and maintainability.
+\iffalse
+The latter attributes are of major importance when
 aiming at an analysis tool reaching \gls{ids} accuracy demands, since such software packages 
 are in an ever-lasting cycle of adopting the latest, most up-to-date scientific advancements.
+\fi
+The aforementioned attributes are crucial when targeting an analysis tool that meets the
+demanding accuracy requirements of \gls{ids}, as such software packages are constantly
+evolving to incorporate the most recent and cutting-edge scientific advancements.
 
-Practically, this design enables the creation of simple, customizable, easy to 
+\iffalse
+Practically, this design enables the creation of simple, customizable, easy to
 reason about, application-targeted source code to handle the problem at hand, without 
-having to be aware of the full codebase complexity. For example, the source code 
+having to be aware of the full codebase complexity.
+\fi
+In practical terms, this design approach facilitates the development of straightforward,
+customizable, and easy to reason about source code, tailored to the specific application
+requirements, without necessitating a comprehensive understanding of the entire
+codebase's intricacies.
+For example, the source code
 for orbit determination using daily RINEX files for \gls{jason}-3 presented in 
 \autoref{sec:jason3-pod}, is only a few hundreds of lines long. Adapting the scheme 
 to process data from a different \gls{leo} satellite would only consist in adding 
@@ -173,9 +212,13 @@ Extensions and modifications are derived and applied where needed. Various diffe
 implementations are put to the test and robust algorithmic approaches are constructed 
 based on criteria of accuracy and efficiency (computing speed and resources).
 
-Implementation of such sophisticated and complex models is a challenging task. One that requires a 
-rigorous understanding of the theoretical implications on the one hand, and robust 
-engineering on the other. The path taken here, is to follow modern software design 
+%Implementation of such sophisticated and complex models is a challenging task. One that requires a
+%rigorous understanding of the theoretical implications on the one hand, and robust
+%engineering on the other.
+Implementing sophisticated and complex models poses a significant challenge, requiring a
+rigorous comprehension of the theoretical implications on one hand, and robust
+engineering practices on the other.
+The path taken here, is to follow modern software design
 patterns, including principles of \emph{data-oriented} design (\cite{Fabian2018}), coupled with 
 the well established \emph{object-oriented} pattern, while also taking advantage of 
 modern features such as generic programming via \emph{template metaprogramming} 
@@ -197,11 +240,18 @@ in essence a streaming process) so that only the information relating to the
 current time interval is needed at each step.
 
 \subsection{Significance and Novelties}\label{ssec:significance-and-novelty}
+\iffalse
 This Thesis touches upon a fundamental problem of satellite geodesy, one that sits 
 in the core of using Earth orbiting satellites to study the Earth system, introducing 
 on the way novel approaches, and validating state-of-the-art methodologies.
 Since, accurate knowledge of satellite position is an essential and imperative need 
 for space based application, orbit determination is a problem of utmost significance. 
+\fi
+This Thesis addresses a fundamental problem in satellite geodesy that is crucial
+for utilizing Earth-orbiting satellites to study the Earth system. In doing so, it
+introduces novel approaches and validates state-of-the-art methodologies. Accurate
+knowledge of satellite position is critical for space-based applications, making
+orbit determination a problem of utmost significance.
 
 Building a software tool for a fundamental yet not too popular amongst the 
 scientific community technique such as \gls{doris}, the aim is to create a brand new, 
@@ -214,7 +264,7 @@ years to come.
 Adopting a free and open-source policy, can create a new, extended, high-expertise 
 user base, which in turn will push for further technique enhancements.
 
-Focal points addressed and novelties introduced in this thesis, are the following:
+Focal points addressed and novelties introduced in this Thesis, are the following:
 \begin{itemize}
   \item Processing of the newly established \gls{doris} RINEX data. This new 
    format replaces the older doris.v2.2 file format, enabling the dissemination 
@@ -237,7 +287,8 @@ Focal points addressed and novelties introduced in this thesis, are the followin
   \item Capacity to process \gls{doris} data in a near-real-time fashion. To the 
   author's best knowledge, no Analysis Center is currently performing near-real-time 
   analysis (except for the operational on-board receiver systems).
-  \item Implementation of home-grown approaches to complex problems and methodologies. 
+  %\item Implementation of home-grown approaches to complex problems and methodologies.
+  \item Implementation of in-house strategies and techniques to tackle intricate issues and methodologies.
   Two examples are orbit integration (\autoref{sec:integrator-implementation}), 
   where state-of-the-art methods were adapted and rigorously implemented to fit 
   current needs and computation of Earth's gravity acceleration 
@@ -249,14 +300,20 @@ Focal points addressed and novelties introduced in this thesis, are the followin
 \end{itemize}
 
 \subsection{Organization of the Thesis}\label{ssec:organization}
-The layout of the Thesis, includes seven chapters. In the second chapter
-(\autoref{ch:fundamental-astrodynamics}), required concepts of
-fundamental astrodynamics are introduced. Perturbed satellite motion is discussed and
+The layout of the Thesis, includes seven chapters.
+%In the second chapter (\autoref{ch:fundamental-astrodynamics}), required concepts of
+%fundamental astrodynamics are introduced.
+The second chapter (\autoref{ch:fundamental-astrodynamics}) serves to introduce
+fundamental concepts in astrodynamics that are necessary for understanding the subject
+matter.
+Perturbed satellite motion is discussed and
 state-of-the-art approaches for modeling perturbation forces acting on Earth orbiting
 satellites are presented along with implementation details. Spatial and temporal reference
 frames are then introduced, to efficiently describe orbital motion.
 
-The next chapter (\autoref{ch:orbit-integration}) reviews orbit integration, focusing on
+Chapter three (\autoref{ch:orbit-integration}), provides a comprehensive review on orbit integration
+%The next chapter (\autoref{ch:orbit-integration}) reviews orbit integration
+, focusing on
 numerical integration of orbital motion using the \emph{special perturbations}
 approach. An efficient yet robust integrator is derived, to be used in a \gls{pod}
 analysis scheme.
@@ -274,10 +331,15 @@ observation equation model, theoretical implications, error sources and mitigati
 also discussed. Implementation details and considerations conclude this
 chapter.
 
-Chapter six (\autoref{ch:pod-using-doris}) begins with a description of the
-software built for this Thesis. It then goes on to test and validate the tools built,
-using a real-world scenario with one day of \gls{doris} data acquired from the
-\gls{jason}-3 satellite mission. Results obtained are checked against high-quality
+Chapter six (\autoref{ch:pod-using-doris}) commences by outlining the software developed
+specifically for this Thesis. The subsequent sections of the chapter detail the rigorous
+testing and validation process undertaken for the tools constructed, utilizing actual \gls{doris}
+ data collected during the \gls{jason}-3 satellite mission over a duration of one day.
+%Chapter six (\autoref{ch:pod-using-doris}) begins with a description of the
+%software built for this Thesis. It then goes on to test and validate the tools built,
+%using a real-world scenario with one day of \gls{doris} data acquired from the
+%\gls{jason}-3 satellite mission.
+Results obtained are checked against high-quality
 reference results. Differences with respect to the reference solution are thoroughly
 examined and reasoned about.
 

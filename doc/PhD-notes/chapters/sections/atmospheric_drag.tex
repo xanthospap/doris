@@ -72,7 +72,7 @@ In \autoref{eq:mont784}, the $\frac{\partial \rho}{\partial \bm{r}}$ term descri
 the dependence of atmospheric density on satellite position. Analytical derivation 
 of this term is nearly impossible, due to the complexity of the atmospheric model 
 used. Therefore, a numerical approach is followed to derive the density gradient, 
-using the \emph{Difference Quotient Approximation}. We thus use the formula
+using the \emph{Difference Quotient Approximation}. Thus use the formula
 \begin{equation}
   \begin{aligned}
   \frac{\partial \rho}{\partial \bm{r}}(\bm{r},t) 
@@ -85,14 +85,14 @@ using the \emph{Difference Quotient Approximation}. We thus use the formula
     \end{pmatrix}^T
   \end{aligned}
 \end{equation}
-where $\delta \bm{r}_x$, $\delta \bm{r}_y$ and $\delta \bm{r}_z$ are vectors along 
+is used, where $\delta \bm{r}_x$, $\delta \bm{r}_y$ and $\delta \bm{r}_z$ are vectors along 
 the $x$, $y$ and $z$ axis respectively, and $\bm{r}$ is the satellite's position 
 vector at instant $t$. The values of the vector components along the three axis, 
 should be small enough to approximate the derivative (or more precisely the gradient) 
 at the given point. Using unit vectors (of length \SI{1}{\meter} per component, i.e 
-$\delta \bm{r}_x = \hat{\bm{x}}$), should yield realistic results; this the 
-default value used in our implementation. It should be noted that we are here 
-implicitly assuming that the density function $\rho$ is differentiable within the 
+$\delta \bm{r}_x = \hat{\bm{x}}$), should yield realistic results; this is the 
+default value used in our implementation. It should be noted that here it is 
+implicitly assumed that the density function $\rho$ is differentiable within the 
 given interval. In reality this means that no ``abrupt'' changes should occur within 
 the spatial/temporal span considered.
 
@@ -110,7 +110,7 @@ geomagnetic activity index ($A_p$).
 Different (upper) atmospheric models are available (for comparison and overview, 
 see e.g. \cite{Doornbos2009}, \cite{Yang2022} and \cite{Vallado2014}) varying in 
 methodology, data, application criteria and demands, complexity and efficiency. 
-In this Thesis, we are using the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model 
+In this Thesis, the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model is used  
 to compute atmospheric density, which is an empirical atmospheric model that 
 extends from the ground to the exobase and describes the average observed behavior 
 of temperature, various species densities, and mass density via a parametric 

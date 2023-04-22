@@ -13,6 +13,12 @@
 #include <cstring>
 
 namespace dso {
+dso::iStatus parse_desai_ocean_pole_tide_coeffs(
+    const char *fn, int max_degree, int max_order,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Areal,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Aimag,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Breal,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Bimag) noexcept;
 
 /// @brief Compute Pole Tides according to IERS 2010, Sec. 7.1.4
 Eigen::Matrix<double, 3, 1>
@@ -107,14 +113,54 @@ public:
                    int max_order = -1) noexcept;
 }; // OceanTide
 
-class PoleTides {
+class OceanPoleTide {
+private:
+  int max_degree{0};
+  int max_order{0};
+  /* Anm real part */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Ar;
+  /* Anm imaginary part */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Ai;
+  /* Bnm real part */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Br;
+  /* Bnm imaginary part */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Bi;
+  /* stokes coefficients (to be computed) */
+  dso::StokesCoeffs dCS;
+  /* workspace */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
+public:
+  OceanPoleTide(double GMearth, double Rearth, int maxdegree, int maxorder, const char *fn)
+      max_degree(maxdegree),
+      max_order(maxorder), Ar(maxdegree, maxorder), Ai(maxdegree, maxorder),
+      Br(maxdegree, maxorder), Bi(maxdegree, maxorder),
+      dCS(maxdegree, maxorder, GMearth, Rearth),
+      V(maxdegree + 3, maxdegree + 3), W(maxdegree + 3, maxdegree + 3) {
+    if (parse_desai_ocean_pole_tide_coeffs(fn, maxdegree, maxorder, Ar, Ai, Br,
+                                           Bi)) {
+      throw std::runtime_error("Failed constructing OceanPoleTide instance!\n");
+    }
+  }
+
+
+};/* OceanPoleTide */
+
+class SolidEarthPoleTide {
   /* wobble variables in [asec] */
   double m1,m2;
+
+  double years_since_2000(const dso::TwoPartDate& mjdtt) const noexcept {
+    /* 01/01/2000 in MJD is: */
+    const dso::TwoPartDate d2000(51544e0, 0e0);
+    const auto dt_days = mjdtt - d2000;
+    return dt_days.big()/365.25e0 + dt_days.small()/365.25e0;
+  }
 
 /* @brief Compute "wobble" variables m1 and m2 using Eqs. 24 and 25 from
  *        IERS2010, Sec7.2.4
  * The computed m1 and m2 values will be set in the instance's private 
- * variables.
+ * variables. Computed m1 and m2 are in [arcsec].
  *
  * @param[in] mjdtt Date of request in MJD, [TT]
  * @param[in] xp_sec Polar motion in [as] for the date of request
@@ -122,9 +168,9 @@ class PoleTides {
  */
  int operator()(const dso::TwoPartDate& mjdtt, double xp_sec, double yp_sec) noexcept {
    // secular pole (IERS2010, Sec7.2.4 Eq. 21)
-   const double fyrs = mjdtt.as_fractional_years();
-   const double xs = 55e0 + 1.677e0*(fyrs-2e3);    // [mas]
-   const double ys = 320.5e0 + 3.460e0*(fyrs-2e3); // [mas]
+   const double dt = years_since_2000(mjdtt);
+   const double xs = 55e0 + 1.677e0*dt;    // [mas]
+   const double ys = 320.5e0 + 3.460e0*dt; // [mas]
    // "wobble" variables (IERS2010, Sec7.2.4 Eq. 25)
    m1 = xp_sec - xs*1e-3;    // [as]
    m2 = -(yp_sec - ys*1e-3); // [as]

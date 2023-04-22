@@ -96,7 +96,7 @@ Results of orbit determination are depicted in \autoref{fig:state}, where the st
 is given in the \texttt{dpod2020\_01} (\cite{Moreaux2023}) \gls{ecef} reference 
 frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5state}
     \caption{Satellite state (in \gls{ecef} RF) estimated for one day of \gls{jason}-3 orbit}
@@ -114,9 +114,9 @@ It is worth noting that:
     September 2020, and no available data based on operational Numerical Weather Model (NWM) 
     were found at the VMF Data Server (\cite{vmf3DataServer})
 \end{description}
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics{t5obsBeacons}
+    \includegraphics[scale=1.0]{t5obsBeacons}
     \caption{Number of measurements performed by the on-board \gls{jason}-3 \gls{doris} receiver per ground beacon.}
     \label{fig:obsPerBeacon}
 \end{figure}
@@ -130,7 +130,7 @@ altitude. Identification of dominant accelerations and thereby forces, is crucia
 for further enhancements of the software since it enables prioritization of further 
 development.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t8ndaccelerations}
     \caption{Computed accelerations for one day of \gls{jason}-3 orbit; $y-$axis in logarithmic scale.}
@@ -167,7 +167,7 @@ reference frame, and in \autoref{fig:statediffseci} using the celestial \gls{gcr
 frame. For the latter case, the retrieved sp3 state records were first transformed to 
 the \gls{gcrf} frame, and then compared to the estimated state.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5statediffs}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF).}
@@ -211,7 +211,7 @@ the $y$ and $z$ directions is more evident, with values of \SI{-0.91}{\metre\per
 and \SI{+1.66}{\metre\per\day} respectively. A degradation of velocity estimates with 
 time is also clear in this case (see \autoref{fig:statediffseci}).
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t9stateDiffsEci}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{gcrf}).}
@@ -229,14 +229,14 @@ avoiding aliasing effects (see e.g. \cite{VanderPlas2018}). Results are depicted
 \autoref{fig:lsperiodecef} for differences computed in the \gls{ecef} reference frame 
 and \autoref{fig:lsperiodeci} for the \gls{gcrf} reference frame respectively.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t9periodogramEcef}
     \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{ecef}.}
     \label{fig:lsperiodecef}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t9periodogramEci}
     \caption{Lomb-Scargle periodogram for the differences between estimated and reference results for satellite state in \gls{gcrf}.}
@@ -264,9 +264,9 @@ $\approx \SI{2}{\hour}$, with a growing amplitude. Max discrepancies in this cas
 $\approx \SI{1.5}{\meter}$, at the end of the day. The cross-track component presents the 
 largest fluctuations, and apart from the identified harmonic of $\approx \SI{2}{\hour}$ 
 seems to follow a parabolic pattern. Details are given in \autoref{table:statediffsrtn}.
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics{t9stateDiffsRtn}
+    \includegraphics[scale=.9]{t9stateDiffsRtn}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in radial, across-track and in-track RF).}
     \label{fig:statediffsrtn}
 \end{figure}
@@ -287,7 +287,7 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
 \end{table}
 
 % tODO comment on this
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5dstatediffs}
     \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow, while green lines mark orbital revolutions.}
@@ -298,9 +298,9 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
 - \emph{Computed} values. Residuals are higher at the beginning of the analysis interval, but 
 quickly converge to smaller values. This effect is due to the unknown a-priori values mainly of 
 the beacon relative frequency offsets (see \autoref{ssec:doris-computational-aspects}). 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics[height=.25\textheight,keepaspectratio]{t4-resVsTimeRaw}
+    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsTimeRaw}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTimeRaw}
 \end{figure}
@@ -309,7 +309,7 @@ A more enlightening view of the residuals can be obtained in \autoref{fig:ResVsT
 \autoref{fig:ResVsEle}, where the large starting values are filtered out. The first 
 plot depicts the computed residuals with respect to time, while the latter with respect to 
 elevation angle. 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5resVsTime}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
@@ -330,14 +330,14 @@ systematic offset can be attributed to either
   \item mismodeling of the geometric characteristics of ground antennae (e.g. antenna reference point(s), \gls{pco})
   \item mismodeling or non-mitigated errors in the observation equation model
 \end{itemize}
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5resVsEle}
     \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsEle}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5resVsEleVsAntenna}
     \caption{\gls{doris} residuals w.r.t. elevation angle computed from one day of \gls{jason}-3 orbit determination.}
@@ -357,7 +357,7 @@ shows larger discrepancies. This can be attributed to
 \end{itemize}
 Since the $C_r$ term is estimated once per revolution, while $C_d$ is estimated for the 
 whole time interval, it is easier for the first to ``absorb'' remaining errors.
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \includegraphics{t5dynamicParams}
     \caption{Estimated dynamic orbit parameters (drag and solar radiation pressure coefficients, $C_d$ and $C_r$), for one day of \gls{jason}-3 orbit determination.}

@@ -18,7 +18,7 @@ Cartesian components, which is singularity-free. The method was introduced by
 and results described therein use the un-normalized form; an equivalent, normalized 
 form was derived and implemented, taking into account \cite{Atallah2022}. In the 
 following, the algorithmic approach adopted in the design of the software built 
-for the current Teshesis is derived.
+for the current Thesis is derived.
 
 Defining
 \begin{equation}
@@ -38,8 +38,8 @@ using normalized coefficients, so that the acceleration is given by
     \left( \bar{C}_{nm} - i \bar{S}_{nm} \right) \nabla \bar{V}_{nm} \right)
 \end{equation}
 
-Omitting intermediate results (see e.g. \cite{Atallah2022}), we end up in the 
-recurrence relations:
+Omitting intermediate results (see e.g. \cite{Atallah2022}), the recurrence relations 
+can be written as:
 \begin{equation}
   \begin{aligned}
     \bar{V}_{nm} = B_{nm} \frac{z}{r} \frac{R_{\Earth}}{r} \bar{V}_{n-1,m} 
@@ -156,7 +156,7 @@ in \cite{Cunningham1970} and \cite{Montenbruck2000}. The partials
 $\frac{\partial \ddot{x}_{nm}}{\partial x}$, 
 $\frac{\partial \ddot{x}_{nm}}{\partial y}$, $\frac{\partial \ddot{x}_{nm}}{\partial z}$, 
 $\frac{\partial \ddot{y}_{nm}}{\partial z}$ and $\frac{\partial \ddot{z}_{nm}}{\partial z}$ 
-are needed to to compute $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$, taking 
+are needed to compute $\frac{\partial \bm{\ddot{r}}}{\partial \bm{r}}$, taking 
 into account the symmetric nature and zero trace of the matrix.
 
 \paragraph{Earth Rotation}\label{sssec:gravity-acceleration-earth-rotation}

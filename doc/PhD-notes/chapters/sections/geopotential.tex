@@ -51,8 +51,7 @@ The Earth's gravity potential can now be written as:
       \left( \frac{R_{\Earth}}{r} \right) ^n P_{nm} (\sin \phi )
       \left( C_{nm} \cos {m\lambda} + S_{nm} \sin{m\lambda} \right)
 \end{equation}
-with coefficients\footnote{The coefficients $C_{nm}$ and $S_{nm}$ are often called 
-\emph{Stokes' coefficients}, e.g. \cite{Barthelmes2018}.}:
+with coefficients:
 \begin{equation}
   \begin{aligned}
     C_{nm} = \frac{2 - \delta _{0m}}{M_{\Earth}} \frac{(n-m)!}{(n+m)!} 
@@ -70,6 +69,8 @@ ${\bar{S}}_{nm}$, are most often used, and defined as
   \begin{Bmatrix} C_{nm} \\ S_{nm} \end{Bmatrix}
 \end{equation}
 which are much more uniform in magnitude, thus helping reduce round-off errors.
+Note that the coefficients $C_{nm}$ and $S_{nm}$ are often called 
+\emph{Stokes' coefficients}, e.g. \cite{Barthelmes2018}.
 
 The acceleration due to the Earth's gravity potential can now be written as  
 (\cite{Montenbruck2000})
@@ -90,19 +91,19 @@ up to a given degree $n$ and order $m$ (with $m \le n$) and the parameters $GM_{
 and $R_{\Earth}$ via which one can compute the geopotential or the induced acceleration 
 on an orbiting satellite, given its position vector $\bm{r}$. Gravity models are derived from:
 \begin{description}
-  \item \emph{Satellite data}, making use of the fact that the Earth's gravity field 
+  \item[Satellite data], making use of the fact that the Earth's gravity field 
     can produce perturbations ``seen'' in satellite orbits via \gls{pod}. It is worth 
     noting that since \gls{grace} (\cite{Tapley2004b}) was launched in March 2002, satellite 
     gravimetry has brought a new era of studying global mass variation and redistribution 
     through measuring the time-variable gravity field with unprecedented accuracy 
     (see e.g. \cite{Chen2022} and \cite{Jaggi2023}). This progress was further enhanced 
     with the launch of \gls{goce} (\cite{Johannessen2003}) in 2009.
-  \item \emph{Terrestrial observations} (surface gravimetry), providing precise local 
+  \item[Terrestrial observations] (surface gravimetry), providing precise local 
     and regional (short-wavelength) information on the gravity field. Due to their 
     inhomogeneous distribution though, deriving a global gravity model is quite challenging.
-  \item \emph{Altimeter data}, which provide detailed information about the form of the 
+  \item[Altimeter data], which provide detailed information about the form of the 
     geoid, which may in turn be used to derive geopotential coefficients.
-  \item \emph{Combinations} of the above methods/data.
+  \item[Combinations] of the above methods/data.
 \end{description}
 
 Recent advantages in gravity models and estimation, have enabled temporal modeling 
@@ -182,11 +183,11 @@ are:
     in one step.
   \item Algorithmic design to account for efficiency, yet with as close as possible 
     minimal loss of precision due to truncation errors (e.g. employ a 
-    \emph{Kahan summation} algorithm \cite{Klein2006}).
+    \emph{Kahan summation} algorithm, \cite{Klein2006}).
 \end{itemize}
 
 In the current Thesis, two gravity models are used, namely \emph{EIGEN-6C4} 
-\cite{Forste2014} and \emph{CNES/GRGS RL04}. The former is mainly used for validation 
+(\cite{Forste2014}) and \emph{CNES/GRGS RL04}. The former is mainly used for validation 
 purposes (see \autoref{sssec:gravity-acceleration}). The latter is the most 
 recent recommendation of the \gls{ids} (see \cite{Lemoine2019b}, \cite{Stepanek2022a}) 
 used in the latest processing campaign for ITRF2020. Note though, that the software 

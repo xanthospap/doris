@@ -8,8 +8,8 @@ or \emph{solid earth tides}, which lead to periodic variations in the Earth's gr
 field. These tidal perturbations have to be addressed in the case of \gls{pod}. 
 Note that his section is centered on the effect of solid Earth tides on the geopotential; 
 tidal forces though, via the deformation they cause on the Earth's crust, result in 
-site displacements (e.g. on instrumentation sites) that have to be addressed when 
-processing observations from Earth to satellites (see ??).
+site displacements (e.g. on instrumentation sites) that often have to be addressed when 
+processing observations from Earth to satellites.
 
 Solid earth tide effects, include the direct attraction of the tide generating 
 potential, as well as deformations and associated geopotential changes arising 
@@ -153,16 +153,21 @@ where
     \begin{equation}
     \eta _m = 
       \begin{cases} -\iim , m=1 \\ 1 , m=2\end{cases}
-    \end{equation} and\footnote{As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
-    explicit computation of $A_m$ is not needed if the 
-    amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
-    \cite{iers2010} Tables 6.5a through 6.5c.}
+    \end{equation} and
+    %\footnote{As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
+    %explicit computation of $A_m$ is not needed if the 
+    %amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
+    %\cite{iers2010} Tables 6.5a through 6.5c.}
     \begin{equation} 
       A_m = \begin{cases} 
           \frac{1}{R_{\Earth}\sqrt{4 \pi}}, m=0\\
           \frac{(-1)^m}{R_{\Earth}\sqrt{8 \pi}}, m \ne 0
       \end{cases}
     \end{equation}
+    As with the $\delta k^\Re _f$ and $\delta k^\Im _f$ terms 
+    explicit computation of $A_m$ is not needed if the 
+    amplitude terms $A_{in-phase}$ and $A_{out-of-phase}$ are used from 
+    \cite{iers2010} Tables 6.5a through 6.5c.
 \end{description}
 
 Steps 1 and 2 can be used to compute the total tidal contribution, including 

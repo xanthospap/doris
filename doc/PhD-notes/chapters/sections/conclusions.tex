@@ -53,6 +53,18 @@ different modules. Adding yet another satellite in the processing chain, would o
 require the development of a dedicated attitude model (as e.g. done for \gls{jason}-3, \autoref{ssec:jason3-attitude}) 
 and accommodating for the new state parameters in the filter.
 
+As shown in earlier chapters, modeling of the fundamental conservative forces, i.e.
+Earth's gravity (c.f. \autoref{sssec:geopotential}), third-body perturbations (computed
+here for Sun and Moon, c.f. \autoref{sssec:third-body-perturbations}), solid earth tides
+(c.f. \autoref{sssec:earth-tide-perturbations}) and ocean tides (c.f.
+\autoref{sssec:ocean-tide-perturbations}) is in close agreement with state-of-the-art
+scientific software (\autoref{sec:costg-benchmark-test}). Additionally, given the
+accuracy of the results and validation tests obtained both in \autoref{ch:fundamental-astrodynamics}
+and \autoref{sec:jason3-pod}, intermediate but fundamental computations such as
+\gls{eop} interpolation (see \autoref{ssec:eop-interpolation}) and reference frames and
+time-scales transformations (see \autoref{ssec:the-celestial-reference-frame} and
+\autoref{ssec:time-systems-and-scales}) seem to comply to high accuracy standards.
+
 \iffalse
 Results obtained for the case of orbit determination using the \gls{jason}-3 satellite, 
 show average discrepancies, with respect to the \gls{cnes}/SSALTO (multitechnique) solution, 

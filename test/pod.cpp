@@ -197,8 +197,7 @@ dso::TwoPartDate correction_aberration(const RcSv &v, const dso::Itrs2Gcrs &R) n
   // time correction (sec)
   const double sec = v.s() / iers2010::C;
   // time of emission
-  tai_emission._small -= (sec / 86400e0);
-  tai_emission.normalize();
+  tai_emission.add_seconds(-sec);
   return tai_emission;
 }
 
@@ -525,8 +524,8 @@ public:
       fprintf(stderr,
               "ERROR wanted integration to %.9f and got up to %.9f, that is "
               "%.9f sec apart!\n",
-              mjd_target.mjd(), tout_mjd.mjd(),
-              (mjd_target.mjd() - mjd_tai.mjd()) * 86400e0);
+              mjd_target.as_mjd(), tout_mjd.as_mjd(),
+              (mjd_target.as_mjd() - mjd_tai.as_mjd()) * 86400e0);
       return 1;
     }
 

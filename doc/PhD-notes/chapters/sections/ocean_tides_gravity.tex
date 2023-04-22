@@ -56,7 +56,7 @@ and $H$ is the astronomic amplitude of the considered wave.
 
 As in the case of solid Earth tides (\autoref{sssec:earth-tide-perturbations}), 
 ocean loading can induce deformation on the Earth's crust and thus displacements 
-on instrumentation sites. These effects are treated in ??.
+on instrumentation sites.
 
 \paragraph{Ocean Tide Models}\label{par:ocean-tide-models}
 
@@ -158,8 +158,9 @@ through the computation of the fundamental arguments of nutation theory or
 These values are computed using the latest formulations (\cite{iers2010}).
 
 Next, efficient mapping/loading of the coefficients $\mathcal{C}_{f,nm}^{\pm}$ and 
-$\mathcal{S}_{f,nm}^{\pm}$ must be developed. Note that we have four such coefficients 
-per tidal wave, and for every combination of degree and order $(n,m)$; as can be seen 
+$\mathcal{S}_{f,nm}^{\pm}$ must be developed. Note that four such coefficients 
+per tidal wave, and for every combination of degree and order $(n,m)$ have to be 
+considered; as can be seen 
 in \autoref{fig:part-of-fes2014b}, the maximum degree and order in this case is 180;
 that amounts to a huge number of floating point numerics that need to be stored 
 and loaded to/from memory. The software developed, uses efficient data structures and 

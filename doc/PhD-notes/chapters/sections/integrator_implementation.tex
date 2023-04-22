@@ -19,7 +19,7 @@ problems in which:
     \item many output points are required
 \end{itemize}
 
-\info{Added paragraph}It is worth noting that  major scientific software packages used for \gls{pod}, such 
+It is worth noting that  major scientific software packages used for \gls{pod}, such
 as \texttt{GINS}, developed by \gls{cnes} and \gls{grgs} (\cite{Gins2013}) and 
 \texttt{GEODYN} developed by \gls{gsfc} (\cite{Geodyn2015}) use \emph{multi-step} 
 methods for the numerical integration. The algorithm implementation was written 
@@ -32,7 +32,7 @@ In \gls{pod}, the cost of calling the derivative function $\bm{f}(t, \bm{y}(t))$
 is quite heavy and repeated calls can make the integrator inefficient. Hence, care 
 must be taken to limit such computations. The Adams methods, when carefully used, 
 are more efficient in this respect than any other method being used today to 
-solve general \gls{ode} (\cite{Shampine1975}). \info{correction}This incurs an additional overhead, 
+solve general \gls{ode} (\cite{Shampine1975}). This incurs an additional overhead,
 however, because making such decisions necessitates estimating the errors that 
 are, or would be, incurred for various step sizes and orders. To address this 
 issue, most steps are performed in groups with constant step size and order.

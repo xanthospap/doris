@@ -1,38 +1,48 @@
-Satellite Geodesy comprises the observational and computational techniques which
-allow the solution of geodetic problems by the use of precise measurements to,
-from, or between artificial, mostly near-Earth, satellites. The use of artificial 
-satellites in geodesy, has some prerequisites though; these are basically a 
-comprehensive knowledge of the satellite motion under the influence of all 
-acting forces as well as the description of the satellite trajectory and
-ground stations in suitable reference frames, both spatial and temporal. Thus, in
-the core of satellite geodesy lies the problem of orbit determination.
+Geodesy has greatly advanced since the introduction of artificial, Earth orbiting
+satellites. A new era has emerged, where satellite-based data dominate the field,
+providing results for a wide range of geodesy-related fields, including but not
+limited to positioning, reference frames, altimetry and gravity field determination.
 
-\gls{pod} analysis is a very challenging task, requiring multi-scientific expertise,
-coupled with efficient engineering. Given the accuracy requirements today,
-the ever growing number of scientific satellites missions, and the widening of the
-application range, it constitutes a dynamic, active and ever transforming field of 
-growing interest.
+The use of artificial satellites in geosciences however requires
+a comprehensive knowledge of the satellite motion under
+the influence of all acting forces as well as the description of the satellite
+trajectory and ground stations in suitable reference frames, both spatial and
+temporal. Thus exploitation of satellite-based observations is inherently
+coupled with the complex problem of orbit determination, a problem that lies in
+the core of satellite geodesy since its inception.
 
-To-date, \gls{pod} is dominated by three space geodetic techniques, namely 
-\gls{slr}, \gls{gnss} and \gls{doris}, which additionally, via the corresponding 
-Technique Centers, provide the input data time series of station positions and 
-\gls{eop} for the realization of the \gls{itrf}. Along with \gls{vlbi}, these 
-techniques constitute the fundamental pillars of modern satellite ans space geodesy.
+To-date, \gls{pod} is dominated by three space geodetic techniques, namely \gls{slr}, \gls{gnss} and
+\gls{doris}, which additionally, via the corresponding Technique Centers, provide the input
+data time series of station positions and \gls{eop} for the realization of the \gls{itrf}
+. Along with \gls{vlbi}, these
+techniques constitute the fundamental pillars of modern satellite geodesy.
 
-Since its inception in the late 1980s, \gls{doris} has played a crucial role in 
-expanding geodetic knowledge and enhancing our understanding of the Earth's 
-dynamics and is currently considered of crucial importance for satellite geodesy. 
-However, despite its importance, the scientific audience for the technique is 
-disproportionately limited, as evidenced by the small number of dedicated Analysis 
-Centers compared to other space geodetic techniques. This
-lack of dedicated scientific software tools for a prominent space geodetic technique
-is a significant challenge that needs to be addressed. The absence of specialized,
-scientific software tools for a significant space geodetic method like \gls{doris} 
-served as the primary objective and motivation for this thesis.
+\gls{doris} has played a crucial role in expanding geodetic knowledge and enhancing
+our understanding of the Earth's dynamics and is anticipated to continue to enhance
+its significant role through endeavors such as the Surface Water and Ocean Topography
+(SWOT) and GENESIS missions.
 
-In the framework of the current Thesis, the scarcity of dedicated \gls{doris} 
-analysis tools for orbit determination is targeted, with the aim of creating a 
-high quality, scientific software solution, hoping to spur further interest and 
-progress in this fundamental area of satellite geodesy. This software package
-will hopefully serve as a fundamental building block for a dedicated analysis 
-tool to process \gls{doris} observations at an \gls{ids} level.
+Despite the \gls{doris} prominence and significance in the field of satellite geodesy,
+it has failed to allure a dedicated scientific audience comparable in size to
+the other techniques. The shortage of dedicated \gls{ids} analysis centers,
+is indicative of the limited availability of dedicated software solutions designed to
+handle \gls{doris} data, particularly for the purpose of orbit determination.
+
+In the framework of the current Thesis, the scarcity of dedicated \gls{doris}
+analysis tools for orbit determination is targeted, with the aim of creating
+a high quality, scientific software solution.
+
+Given the complexity of the problem and the inherent limitations of a thesis, both in
+terms of time and resources, the objective of the current study is not to attain the
+highest possible accuracy achievable by the \gls{ids} Analysis Centers. Instead, the
+focus is on developing a brand-new toolset from scratch, which can serve as a
+foundational component towards achieving that goal. The envisioned toolset, with
+some additional fine refinements, has the potential to form the backbone of a
+state-of-the-art, \gls{doris} \gls{pod} analysis pipeline.
+
+Using the toolset developed, an orbit determination analysis scheme was designed and
+tested using the \gls{jason}-3 satellite mission, using a high quality reference orbit
+for validation. Position differences ranges within a few meters for one day, while
+velocity discrepancies are in the order of a few millimeters per second. These results show
+that the software package developed can serve as a building block for a high quality
+\gls{doris} analysis software solution.
