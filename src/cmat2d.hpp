@@ -327,12 +327,20 @@ public:
       : m_storage(rows, cols), m_data(new double[m_storage.num_elements()]) {
 #ifdef DEBUG
     assert(m_storage.num_elements() > 0);
+    printf("Allocated memory for array in %p size=%d\n", (void*)(m_data), (int)num_elements());
 #endif
   };
 
   ~Mat2D() noexcept {
+    printf("Deleting memory for array in %p\n", (void*)(m_data));
+    printf("It apears that this matrix holds: %dx%d=%d number of data\n", (int)m_storage.nrows(), (int)m_storage.ncols(), (int)num_elements());
+    try {
     if (m_data)
       delete[] m_data;
+    }catch (std::exception &e) {
+      fprintf(stderr, "Thrown!!\n");
+    }
+    printf("deleted ...\n");
   }
 
   Mat2D(const Mat2D &mat) noexcept
@@ -342,6 +350,7 @@ public:
 
   Mat2D(Mat2D &&mat) noexcept : m_storage(mat.m_storage), m_data(mat.m_data) {
     mat.m_data = nullptr;
+    mat.m_storage.__set_dimensions(0,0);
   }
 
   Mat2D &operator=(const Mat2D &mat) noexcept {
@@ -360,6 +369,7 @@ public:
     m_data = mat.m_data;
     m_storage.__set_dimensions(mat.rows(), mat.cols());
     mat.m_data = nullptr;
+    mat.m_storage.__set_dimensions(0,0);
     return *this;
   }
 

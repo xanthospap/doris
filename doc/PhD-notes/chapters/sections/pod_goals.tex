@@ -1,7 +1,7 @@
 \subsection{Goals of Current Chapter}\label{ssec:pod-goals}
 In this section the fundamentals of orbit determination are discussed, focusing on 
 two of the most crucial problems:
-\begin{itemize}
+\begin{itemize}[noitemsep]
   \item the derivation, computation and solution of the so called \emph{variational equations}, and 
   \item efficient, robust and precise parameter estimation via a variation of the 
     Kalman filter, labeled \emph{Extended Kalman Filter}
@@ -15,7 +15,7 @@ variational equations is coupled with the computation of the \emph{state transit
 which relates the perturbed state at one epoch to a perturbed state at a later time and 
 can be used to propagate the covariance matrix. Propagating the latter forward in time, 
 a prediction can be made of the evolution of uncertainty in the estimate of the satellite's 
-state. Formulas and numerical recipes for the linearization, as well as the differential 
+state. Formulae and numerical recipes for the linearization, as well as the differential 
 equations of the state transition matrix and variational equations are presented. 
 The discussion focuses on a hands-on approach, limiting analytical derivations which can be 
 found in relevant literature. Equations are presented in matrix form, to enable an 
@@ -33,4 +33,4 @@ methodology and the implementation are discussed, as well as advantages and shor
 Since a discussion on the input data for the \gls{pod} problem considered in this Thesis 
 is not yet touched upon, the computation of \emph{observation equations} (needed in the 
 estimation process) is not thoroughly presented here; this issue will be revisited once the 
-basics of the DORIS system are presented (??see chapter 5??).
+basics of the \gls{doris} system are presented (see chapter \autoref{ch:doris}).

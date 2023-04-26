@@ -1,0 +1,78 @@
+\section{Short Introduction to Quaternion Algebra}\label{sec:quaternion-intro}
+
+\iffalse
+There is a substantial body of quaternion mathematics that are beyond
+the scope of this report. Consequently, we focus on the
+essential definitions required to use the quaternion as a
+representation of the attitude of an object.
+\fi
+This chapter is only a very short introduction to quaternions, focused on 
+essential definitions required to use the quaternion as a
+representation of the attitude of an object. A more detailed review of the 
+matter can be found in \cite{Markley2019} and \cite{Diebel2006}.
+
+A quaternion $q$ consists of four elements $q_0, q_1, q_2, q_3$ and is defined as:
+\begin{equation}
+  \bm{q} \equiv q_0 + i q_0 + j q_1 + k q_2
+\end{equation}
+where $i, j$ and $k$ are imaginary numbers satisfying following conditions
+\begin{equation}
+  \begin{aligned}
+    i^2 + j^2 + k^2 &= -1 \\
+    ij = -ji &= k \\ 
+    jk=-kj &= i \\
+    ki=-ik &= j
+  \end{aligned}
+\end{equation}
+$q$ may be represented as a vector,
+\begin{equation}
+  \bm{q} = \begin{pmatrix} q_0 & q_1 & q_2 & q_3 \end{pmatrix} = \begin{pmatrix} q_0 \\ \bm{q}_{1:3} \end{pmatrix}
+\end{equation}
+where the component $q_0 \in \mathbb{R}$ represents the scalar (real) part and 
+$\bm{q}_{1:3} \in \mathbb{R}^3$ the vector (imaginary) part. The four components 
+of a quaternion can hold the axis $\bm{e}$ and angle $\theta$ of a rotation. 
+In this case, 
+\begin{equation}
+  \begin{aligned}
+    q_0 = & \cos \frac{\theta}{2} \\
+    q_1 = & \bm{e}_1 \sin \frac{\theta}{2} \\
+    q_2 = & \bm{e}_2 \sin \frac{\theta}{2} \\
+    q_3 = & \bm{e}_3 \sin \frac{\theta}{2}
+  \end{aligned}
+\end{equation}
+
+The following properties of a quaternion $\bm{q}$ are defined:
+\begin{itemize}
+  \item The conjugate of a quaternion is:
+  \begin{equation}
+    \bar{q} = \begin{pmatrix} q_0 \\ -\bm{q}_{1:3} \end{pmatrix}
+  \end{equation}
+
+  \item The norm of a quaternion is:
+  \begin{equation}
+    \norm{q} = \sqrt{ q_0^2 + q_1^2 + q_2^2 + q_3^2}
+  \end{equation}
+
+  \item The normalized conjugate or inverse of a quaternion is:
+  \begin{equation}
+    q^{-1} = \frac{\bar{q}}{\norm{q}}
+  \end{equation}
+
+  \item Multiplication of $\bm{q}$ with another quaternion $\bm{p}$ is defined as
+  \begin{equation}
+    \bm{q} = \bm{p} \odot \bm{q} = 
+    \begin{pmatrix}
+      %p_0 q_0 - \bm{p}_{1:3} \dot \bm{q}_{1:3} \\
+      p_0 q_0 - \bm{p}_{1:3} \cdot \bm{q}_{1:3} \\
+      p_0 \cdot \bm{q}_{1:3} + q_0 \cdot \bm{p}_{1:3} + \bm{p}_{1:3} \times \bm{q}_{1:3}
+    \end{pmatrix}
+  \end{equation}
+\end{itemize}
+
+A rotation of a vector $\bm{r}$ from a coordinate system $A$ to a system $B$ can 
+be expressed using quaternions as (\cite{Zeitlhofler2019}):
+\begin{equation}
+  \bm{r}^{\ast}_B = \hat{\bm{q}} \odot \bm{r}^{\ast}_A \odot \bm{q}
+\end{equation}
+where $\bm{r}^{\ast}_B$ and $\bm{r}^{\ast}_A$ are the vectors $\bm{r}_B$ and $\bm{r}_A$ 
+expressed as quaternions with a sclar part ($q_0$) equal to zero.

@@ -15,11 +15,6 @@ gives
     \delta \dot{\bm{y}}(t) = \dot{\Phi} (t,t_k) \delta \bm{y}_k
 \end{equation}
 and using \autoref{eq:tapley426a} and \autoref{eq:tapley427}, the \gls{ode} system 
-\footnote{
-    The \gls{ode} system for the state transition matrix \autoref{eq:tapley429} 
-    is prefered against a direct solution of $\delta \bm{y}(t)$ from the system
-    \autoref{eq:tapley426a} for computational reasons, \cite{Tapley2004}.
-}
 \begin{equation}\label{eq:tapley4210}
     \begin{aligned}
         \dot{\Phi} (t,t_k) &= A(t) \Phi (t,t_k) \\
@@ -29,8 +24,12 @@ and using \autoref{eq:tapley426a} and \autoref{eq:tapley427}, the \gls{ode} syst
 The great advantage of this formulation, is that it allows the solution $\delta \bm{y}(t)$ 
 to be expressed in terms of the unknown initial state $\delta \bm{y}_k$. Hence, the 
 state transition matrix enables relating observations made at different times.
+    
+The \gls{ode} system for the state transition matrix \autoref{eq:tapley429} 
+is prefered against a direct solution of $\delta \bm{y}(t)$ from the system
+\autoref{eq:tapley426a} for computational reasons, \cite{Tapley2004}.
 
-\cite{Montenbruck2000} gives the formulas for forming the state transition matrix 
+\cite{Montenbruck2000} give the formulae for forming the state transition matrix 
 using orbital elements and the associated partials with respect to the state vector.
 \cite{Battin1999} uses the fact that $\Phi$ is a \emph{sympletic} matrix, to obtain 
 an analyticaly its inverse.

@@ -33,11 +33,33 @@ with respect to the atmosphere, $\bm{v}_r$, is given by
 \begin{equation}\label{eq:mont398}
   \bm{v}_r = \bm{v} - \bm{\omega}_{\Earth} \times \bm{r}
 \end{equation}
-which is a very good approximation even for \gls{pod} applications\footnote{According 
+which is a very good approximation even for \gls{pod} applications. According 
 to \cite{Montenbruck2000}, the maximum observed deviations from this assumption 
-lead to uncertainties in the drag force of less than 5\%.}. $\bm{v}$ and $\bm{r}$ 
+lead to uncertainties in the drag force of less than 5\%. $\bm{v}$ and $\bm{r}$ 
 are the inertial satellite velocity and position vectors, while 
 $\bm{\omega}_{\Earth}$ is the Earth's angular velocity vector.
+
+In the ideal case of a spherical spacecraft, the projected area $A$ 
+would not change. For all other shapes however, $A$ needs to be computed using the 
+space vehicle's attitude. It is typical to model such complex geometries using a 
+collection of flat plates (macromodel), each with an area $A_i$ and outward normal 
+unit vector $\hat{\bm{n}}_i$, expressed in the spacecraft body-fixed coordinate system.
+
+The inclination of the $i$th plate to the relative velocity $\bm{v}_r$, is given by:
+\begin{equation}\label{markley10110}
+  \cos \theta _{i} = \begin{pmatrix}\mathcal{R}^T \hat{\bm{n}}_i \end{pmatrix}^T \left( \frac{\bm{v}_r}{\norm{\bm{v}_r}} \right)
+\end{equation}
+
+where $\mathcal{R}$ is the attitude matrix that rotates the \gls{gcrf} frame to the 
+spacecraft body-fixed frame. Using this formulation, the projected area $A$ can 
+be computed as the collection of the $N$ macromodel plates, i.e.
+\begin{equation}
+  A = \sum _{i=1}^{N} A_i \cdot 
+  \begin{cases} 
+    \cos \theta _{i} \text{, if } \cos \theta _{i} > 0 \text{ or }\\
+    0 \text{, if } \cos \theta _{i} < 0
+  \end{cases}
+\end{equation}
 
 \paragraph{Partial Derivatives}\label{par:atmospheric-drag-partials}
 Differentiation of \autoref{eq:mont397} with respect to the $C_d$ parameter, yields
@@ -46,7 +68,7 @@ Differentiation of \autoref{eq:mont397} with respect to the $C_d$ parameter, yie
     -\frac{1}{2} \frac{A}{m} \rho \norm{v_r} \bm{v_r}
 \end{equation}
 
-From \autoref{eq:mont397} and \autoref{eq:mont398}, we can analytically derive the 
+From \autoref{eq:mont397} and \autoref{eq:mont398}, one can analytically derive the 
 partials of the acceleration with respect to the satellite velocity vector
 \begin{equation}
   \frac{\partial \ddot{\bm{r}}}{\partial \bm{v}} = 
@@ -72,7 +94,7 @@ In \autoref{eq:mont784}, the $\frac{\partial \rho}{\partial \bm{r}}$ term descri
 the dependence of atmospheric density on satellite position. Analytical derivation 
 of this term is nearly impossible, due to the complexity of the atmospheric model 
 used. Therefore, a numerical approach is followed to derive the density gradient, 
-using the \emph{Difference Quotient Approximation}. Thus use the formula
+using the \emph{Difference Quotient Approximation}. Thus, the formula
 \begin{equation}
   \begin{aligned}
   \frac{\partial \rho}{\partial \bm{r}}(\bm{r},t) 
@@ -109,16 +131,25 @@ geomagnetic activity index ($A_p$).
 
 Different (upper) atmospheric models are available (for comparison and overview, 
 see e.g. \cite{Doornbos2009}, \cite{Yang2022} and \cite{Vallado2014}) varying in 
-methodology, data, application criteria and demands, complexity and efficiency. 
-In this Thesis, the \texttt{NRLMSISE-00} (\cite{nrlmsise00}) model is used  
-to compute atmospheric density, which is an empirical atmospheric model that 
+methodology, input data, application criteria and demands, complexity and efficiency. 
+In this Thesis, two atmospheric models were implemented, namely:
+\begin{description}
+  \item[NRLMSISE-00] model (\cite{nrlmsise00}), which is an empirical atmospheric model that 
 extends from the ground to the exobase and describes the average observed behavior 
 of temperature, various species densities, and mass density via a parametric 
 analytic formulation. The model inputs are location, date and time, solar activity, 
 and geomagnetic activity. It was developed by researchers in the US Naval Research 
 Laboratory.
+  \item[DTM-2020] model (\cite{Bruinsma2021}), a semi-empirical Drag Temperature Model (DTM) 
+  to predict the Earth's thermosphere's temperature, density, and composition, 
+  especially for orbit computation purposes. This model comes in two variations, 
+  the ``operational'' version, driven by the trusted and established $F10.7$ and $A_p$ 
+  indices for solar and geomagnetic activity and the ``research'' alternative which 
+  is based on space weather observations not yet accredited operationally. Hence, 
+  in the Thesis, the first, ``operational'' version is used.
+\end{description}
 
-In order to use the \texttt{NRLMSISE-00} model, space weather data is needed, including 
+In order to use the \texttt{NRLMSISE-00} and \texttt{DTM-2020} models, space weather data is needed, including 
 an 81-day average of F10.7 flux\footnote{The solar radio flux at \SI{10.7}{\cm} (\SI{2800}{\MHz}) 
 is an excellent indicator of solar activity. Often called the F10.7 index, it is 
 one of the longest running records of solar activity, reported in ``solar flux units''. 
@@ -130,10 +161,10 @@ records archived by \href{https://celestrak.org/}{CelesTrack} (\cite{Vallado2013
 
 \paragraph{Implementation}\label{par:atmospheric-drag-implementation}
 
-Implementing the \texttt{NRLMSISE-00} model is a challenging task. Not only due to
+Implementing the atmospheric density models described above, is a challenging task. Not only due to
 model complexity and the large number of computations involved, but also because 
 it needs to be paired with space weather data spanning various time intervals 
-(e.g. we need a 81-day average of $F10.7$, and values of $A_p$ per 3-hour intervals). 
+(e.g. an 81-day average of $F10.7$ is needed at each epoch, as well as values of $A_p$ per 3-hour intervals). 
 Obviously, the complete scheme must be efficient and robust, since computing atmospheric 
 density is performed hundreds of times in a \gls{pod} process spanning considerable 
 arcs.
@@ -148,4 +179,3 @@ input file streams.
 Acceleration (see \autoref{eq:mont397} and \autoref{eq:mont398}) and derivatives 
 (see discussion in \autoref{par:atmospheric-drag-partials}) with respect to the 
 parameters considered are also implemented in source code.
-

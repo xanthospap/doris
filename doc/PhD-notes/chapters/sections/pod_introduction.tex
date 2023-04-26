@@ -1,7 +1,7 @@
 \section{Introduction}\label{sec:pod-introduction}
 
 Orbit determination of artificial satellites began in essence in the 1960s. However, 
-it wasn't until the 1980s that great advancements were made, facilitated by
+it was not until the 1980s that great advancements were made, facilitated by
 a better modeling of the Earth's gravity field and its variations (e.g. tides) and
 the large increase in computing capabilities. This enabled orbit determination 
 accuracy to increase to the tens-of-centimeter level. This improvement was
@@ -34,7 +34,7 @@ different parameters have to be considered in a \gls{pod} problem, including
         bias parameters
 \end{itemize}
 All of these parameters have to be considered and dealt-with (either estimated or 
-introduced) in a \gls{pod} analysis scheme. In this thesis, a ``restricted'' problem 
+introduced) in a \gls{pod} analysis scheme. In this Thesis, a ``restricted'' problem 
 is addressed, often labeled \emph{pure orbit determination}, where coordinates of 
 reference observation sites are assumed to known (via their \gls{ecef} position vector).
 
@@ -51,42 +51,3 @@ an alternate method can be used, in which stochastic accelerations are introduce
 Not only observation noise but also system noise has to be introduced, and each 
 \emph{deterministic} parameter is replaced by a stochastic process (see e.g. \cite{Jaggi2005b} 
 and \cite{Jaggi2005a} for a least-squares approach).
-
-\iffalse
-The precise orbit determination of LEO, such as Starlette, Stella, and AJISAI is more
-demanding than the determination of the LAGEOS orbits, because of:
--a larger sensitivity to the Earth’s gravity field and to its temporal variations,
--a large sensitivity to atmospheric drag models and variations of air density in the
-upper atmosphere, (diss_ks_front)
-
-Gauss’s theory, Kalman filters, and so forth, ultimately needed more precise data.
-Without improvements in observational instruments, many of the techniques and meth-
-ods in this chapter would be of little use.
-
-On the other hand, the stochastic approach (involving or con-
-taining a random variable, a chance, or a probability) uses information in addition to
-measurements to account for the fact that neither the mathematical models nor the mea-
-surements are perfectly known but are corrupted by random processes. The stochastic
-approach combines information from the dynamics, uncertainty with the force model,
-and the measurement errors to obtain the best estimate possible. This combination is the
-basis of estimation.
-
-Even our best theories can’t exactly model the atmosphere, the Earth’s gravity field,
-or the satellite’s attitude. Process noise, v, is a mathematical model of the errors in the
-system dynamics. Bierman (1977:113) notes that in a general sense, process noise also represents effects of un-
-modeled parameters, linearization, and even “effects such as leaky attitude controls or solar
-wind.” It quantifies our ability to model accurately the actual dynamics
-before and after a given epoch. The effect of process-noise is that the dynamics may introduce measurable error into
-the solution. One difficulty is that we often assume the process-noise statistics are ran-
-dom. Unfortunately, they’re often systematic errors such as we might expect from an
-incomplete gravity model. These errors can be highly correlated with time and not well
-approximated by white noise. Closely related is the power-density matrix or the second
-moment of the process noise, Q, which is a covariance of acceleration errors induced by
-the mathematical modeling of the system dynamics.
-
-The procedure typically involves an iterative least-squares estimation
-seeking best ts of selected model parameters and model-predicted satellite
-position and velocity to the tracking data along an orbit arc. The predicted
-state at each epoch is integrated by using the satellite equations of motion re-
-quiring accurate force models.
-\fi

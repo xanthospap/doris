@@ -81,6 +81,9 @@ int gravity_acceleration_impl(
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M) noexcept {
 
+    static int showme=false;
+    if (!showme) {printf("Imple version, using mem at %p and %p\n", (void*)W.data(), (void*)M.data()); showme++;}
+
   /* make sure degree is compatible with MAX_SIZE_FOR_ALF_FACTORS */
   if (degree > MAX_SIZE_FOR_ALF_FACTORS - 3) {
     fprintf(stderr,
@@ -406,6 +409,8 @@ int dso::gravity_acceleration(
     Eigen::Matrix<double, 3, 3> &gradient,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *M) noexcept {
+    static int showme=false;
+    if (!showme) {printf("API version, using mem at %p and %p\n", (void*)W->data(), (void*)M->data()); showme++;}
 
   const int lp_degree = degree + 3;
   if (((W->rows() < lp_degree) || (W->cols() < lp_degree)) ||

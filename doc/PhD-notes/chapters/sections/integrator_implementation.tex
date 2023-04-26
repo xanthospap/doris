@@ -1,8 +1,5 @@
 \section{Integrator implementation}\label{sec:integrator-implementation}
 
-\iffalse
-\fi
-
 In this section a brief outline of the integrator designed and implemented for 
 the current Thesis is given. The method used, is a \emph{variable step}, 
 \emph{variable order} Adams-Bashforth-Moulton \gls{pece} algorithm. The 
@@ -13,11 +10,18 @@ An overview of the implemented schema is depicted in \autoref{fig:sgode}.
 
 According to \cite{Shampine1975}, use of Adams methods are most advantageous for 
 problems in which:
-\begin{itemize}\setlength\itemsep{.3em}
+\begin{itemize}
+%\setlength\itemsep{.1em}
     \item function evaluations are expensive,
     \item moderate to high accuracy is requested,
     \item many output points are required
 \end{itemize}
+
+In the case of \gls{pod}, at least the first two points above hold; function 
+evaluations are expensive in terms of computational time and resources. Computation 
+of the force model (see \autoref{ssec:perturbed-motion}) and respective accelerations 
+are resource demanding tasks, especially in view of the high accuracy standards 
+expected to be met in a \gls{pod} process.
 
 It is worth noting that  major scientific software packages used for \gls{pod}, such
 as \texttt{GINS}, developed by \gls{cnes} and \gls{grgs} (\cite{Gins2013}) and 
@@ -37,7 +41,7 @@ however, because making such decisions necessitates estimating the errors that
 are, or would be, incurred for various step sizes and orders. To address this 
 issue, most steps are performed in groups with constant step size and order.
 
-\begin{figure}
+\begin{figure}[ht]
   \centering
   \input{tikz/sgode}
   \caption{Flow chart of the implemented \gls{pece} integrator, based 

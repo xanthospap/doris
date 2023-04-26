@@ -116,12 +116,12 @@ center. This offset is computed as
 \end{equation}
 where $\bm{r}_{\SI{2}{\GHz}}$ and $\bm{r}_{\SI{400}{\MHz}}$ are the 
 eccentricities for the \SI{2}{\GHz} and the \SI{400}{\MHz} carriers respectively 
-from the beacon antenna phase center (given at \cite{DORISGSM}, Sec. 5.2.1).
+from the beacon antenna phase center (given at DORIS System Ground Segment Models, (Issue 1.3), Sec. 5.2.1).
 
 Note that in \autoref{eq:ionf-pco}, the eccentricity vector $\bm{r}_{iono-free}$ 
 is in a topocentric reference frame. Hence, to compute the \gls{ecef} coordinates of the 
 iono-free phase center, given the (cartesian) \gls{ecef} coordinates of the beacon's 
-\gls{arp} $\bm{r}_{arp}$ (see \ref{ssec:beacon_coordinates})
+\gls{arp} $\bm{r}_{arp}$ 
 \begin{equation}
   \bm{r}^{ecef}_{iono-free} = \bm{r}_{arp} + \bm{R}^T \cdot \bm{r}_{iono-free}
   \label{eq:arp-to-if-pc}

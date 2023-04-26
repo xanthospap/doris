@@ -63,7 +63,8 @@ program to drive the analysis scheme. \texttt{YAML} is a data serialization
 language with the important advantage of being human-friendly. An example of such 
 a file is depicted in \autoref{tab:config-example}.
 
-\begin{adjustbox}{center, max width=\linewidth , fbox=0.5pt, captionbelow={Configuration file example.}, float=table}
+\begin{center}
+\begin{adjustbox}{center, max width=.7\linewidth , fbox=0.5pt, captionbelow={Configuration file example.}, float=table}
 \begin{BVerbatim}
 ---
 data:
@@ -91,10 +92,23 @@ force-model:
 \end{BVerbatim}
 \label{tab:config-example}
 \end{adjustbox}
+\end{center}
 
 Results of orbit determination are depicted in \autoref{fig:state}, where the state 
 is given in the \texttt{dpod2020\_01} (\cite{Moreaux2023}) \gls{ecef} reference 
 frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
+
+The total number of observations per beacon are depicted in \autoref{fig:obsPerBeacon}. 
+It is worth noting that:
+\begin{itemize}
+  \item observations to beacons \texttt{ARFB} (AREQUIPA, located at Peru) and 
+    \texttt{CADB} (CACHOEIRA PAULISTA, located at Brazil) were not used, 
+    since the corresponding measurements were found to be largely affected by 
+    \gls{saa} (see \autoref{sec:saa}), giving large residual values
+  \item observations to beacon \texttt{HOFC} (HOFN, installed in Iceland) were not used; this site was installed in 
+    September 2020, and no available data based on operational Numerical Weather Model (NWM) 
+    were found at the VMF Data Server (\cite{vmf3DataServer})
+\end{itemize}
 
 \begin{figure}[ht]
     \centering
@@ -103,17 +117,6 @@ frame. This frame is suggested by the \gls{ids} for \gls{pod} applications.
     \label{fig:state}
 \end{figure}
 
-The total number of observations per beacon are depicted in \autoref{t5obsBeacons}. 
-It is worth noting that:
-\begin{description}
-  \item observations to beacons \texttt{ARFB} (AREQUIPA, located at Peru) and 
-    \texttt{CADB} (CACHOEIRA PAULISTA, located at Brazil) were not used, 
-    since the corresponding measurements were found to be largely affected by 
-    \gls{saa} (see \autoref{sec:saa}), giving large residual values
-  \item observations to beacon \texttt{HOFC} (HOFN, installed in Iceland) were not used; this site was installed in 
-    September 2020, and no available data based on operational Numerical Weather Model (NWM) 
-    were found at the VMF Data Server (\cite{vmf3DataServer})
-\end{description}
 \begin{figure}[ht]
     \centering
     \includegraphics[scale=1.0]{t5obsBeacons}
@@ -122,10 +125,12 @@ It is worth noting that:
 \end{figure}
 
 \autoref{fig:accelerations} depicts the computed acceleration components for the 
-force model considered. Atmospheric drag forces are below the order of \SI{1e-18}{\meter\per\second\squared} 
-and are not included, as they are well beyond the targeted precision. For the altitude 
+force model considered. %Atmospheric drag forces are below the order of \SI{1e-18}{\meter\per\second\squared} 
+%and are not included, as they are well beyond the targeted precision. 
+Atmospheric drag forces are not included since they are well beyond the targeted precision.
+For the altitude 
 of \gls{jason}-3, solar radiation pressure is several orders of magnitude larger than 
-atmospheric drag, a fact usually inverted for \gls{leo} satellites if lower 
+atmospheric drag, a fact usually inverted for \gls{leo} satellites of lower 
 altitude. Identification of dominant accelerations and thereby forces, is crucial 
 for further enhancements of the software since it enables prioritization of further 
 development.
@@ -211,6 +216,15 @@ the $y$ and $z$ directions is more evident, with values of \SI{-0.91}{\metre\per
 and \SI{+1.66}{\metre\per\day} respectively. A degradation of velocity estimates with 
 time is also clear in this case (see \autoref{fig:statediffseci}).
 
+The evident degradation of results over time is a clear indicator of 
+unmodeled effects in the force model applied (e.g. polar tides). This causes the solution of 
+the equations of motion, coupled with the variational equation system, to depart from 
+the ``true'' state. In turn, this deviation in the results is re-injected into the 
+system of differential equations by means of initial conditions, hence ultimately causing an 
+accumulation of errors. Even though the filtering process adjusts the state according to 
+observation data, this adjustment is not large enough to alleviate shortcomings of the 
+force model.
+
 \begin{figure}[ht]
     \centering
     \includegraphics{t9stateDiffsEci}
@@ -248,7 +262,12 @@ $\approx \SI{1}{\hour}$ and $\approx \SI{2}{\hour}$. Position estimates are domi
 the second frequency, while velocity estimates by the first. Note that \gls{jason}-3 
 completes a revolution around the Earth in \SI{112.4}{\minute} or $\approx \SI{1.9}{\hour}$. 
 This frequency coincides with the findings of the periodogram for the case of position 
-estimates.
+estimates. The existence of such periodic signals is often attributed to 
+mismodeled radiation forces (e.g. \cite{Xia2022}). Given the fact that the force model 
+used does not take into consideration albedo effects and satellite emitted thermal radiation, 
+mismodeled radiation forces could explain the observed behavior. Apart from modeling 
+enhancements, empirical, once-per-revolution acceleration components can be used to 
+mitigate such effects.
 
 To gain a clearer view on the satellite position differences, discrepancies are often 
 transformed to an ``orbital frame'', defined by the radial and velocity vectors. 
@@ -287,12 +306,12 @@ seems to follow a parabolic pattern. Details are given in \autoref{table:statedi
 \end{table}
 
 % tODO comment on this
-\begin{figure}[ht]
-    \centering
-    \includegraphics{t5dstatediffs}
-    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow, while green lines mark orbital revolutions.}
-    \label{fig:statediffs-details}
-\end{figure}
+%\begin{figure}[ht]
+%    \centering
+%    \includegraphics{t5dstatediffs}
+%    \caption{Discrepancies of estimated state against the orbits estimated at \gls{cnes}/AALTO for one day of \gls{jason}-3 orbit (in \gls{ecef} RF). Red colored regions depict passing through shadow, while green lines mark orbital revolutions.}
+%    \label{fig:statediffs-details}
+%\end{figure}
 
 \autoref{fig:ResVsTimeRaw} depicts the residuals of the analysis, i.e. the \emph{Observed} 
 - \emph{Computed} values. Residuals are higher at the beginning of the analysis interval, but 
@@ -300,7 +319,7 @@ quickly converge to smaller values. This effect is due to the unknown a-priori v
 the beacon relative frequency offsets (see \autoref{ssec:doris-computational-aspects}). 
 \begin{figure}[ht]
     \centering
-    \includegraphics[height=.5\textheight,keepaspectratio]{t4-resVsTimeRaw}
+    \includegraphics[height=.4\textheight,keepaspectratio]{t4-resVsTimeRaw}
     \caption{\gls{doris} residuals computed from one day of \gls{jason}-3 orbit determination.}
     \label{fig:ResVsTimeRaw}
 \end{figure}

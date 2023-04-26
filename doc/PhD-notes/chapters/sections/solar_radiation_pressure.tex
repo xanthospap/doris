@@ -36,16 +36,52 @@ where:
 \item[\(A\)] is the cross section of the satellite normal to the direction 
   \(Sun \to Satellite\)
 \end{itemize}
-$C_R$ is usually estimated during a \gls{pod} process. For high-precision applications, 
+$C_R$ is usually estimated during a \gls{pod} process. 
+\iffalse
+For high-precision applications, 
 a complex micro model may be established prior to the mission, which is used to
 adjust parameters of a simplified macro model, applied during routine spacecraft
 operations. To this end, a finite element method is applied to
-model the complex spacecraft shape and orientation, the optical and thermal prop-
-erties of the surfaces, and the impinging radiation (\cite{Montenbruck2000}).
+model the complex spacecraft shape and orientation, the optical and thermal properties 
+of the surfaces, and the impinging radiation (\cite{Montenbruck2000}).
+\fi
+While \autoref{eq:mont375} constitutes a good approximation, more sophisticated 
+methods are often used in a \gls{pod} process to obtain more accurate estimates 
+of solar radiation pressure, if detailed knowledge of the vehicle is available.
+In such a case, the total force (or acceleration) is decomposed into contributions 
+due to \emph{specular} reflection, \emph{diffuse} reflection \emph{absorption} and 
+\emph{emission}, modeling the spacecraft's surface as a collection of $N$ flat plates, 
+each of area $A_i$.
+
+To use such complex model, the spacecraft's attitude must be known at each request 
+epoch. Using $\mathcal{R}$ as the attitude matrix that rotates the \gls{gcrf} frame to the 
+spacecraft body-fixed frame and $\hat{\bm{e}}_{\Sun}$ to denote the unit vector directed 
+from the space vehicle to the center of the Sun, the inclination of the $i$th plate 
+to the spacecraft-to-Sun vector is given by:
+\begin{equation}\label{eq:markley10114}
+  \cos \theta _{i} =  \begin{pmatrix}\mathcal{R}^T \hat{\bm{n}}_i \end{pmatrix}^T \hat{\bm{e}}_{\Sun}
+\end{equation}
+where $\hat{\bm{n}}_i$ is the outward normal of the $i$th plate, expressed in the 
+spacecraft body-fixed coordinate system.
+
+The individual contribution of each plate can now be be expressed as (\cite{Markley2019})
+\begin{equation}\label{eq:markley10115}
+  \sum _{i=1}^{N} A_i \cos \theta _{i} \left( 2 \left( \frac{R^{diff}_{i}}{3} + R^{spec}_{i} \cos \theta _{i} \right) \begin{pmatrix}\mathcal{R}^T \hat{\bm{n}}_i \end{pmatrix}^T  + \left( 1 - R_{i}^{spec} \right) \hat{\bm{e}}_{\Sun} \right)
+\end{equation}
+where the summation is performed on all plates for which $\cos \theta _{i} > 0$ holds, and
+\begin{itemize}
+  \item[$R^{diff}_{i}$] is the diffuse reflection coefficient for the $i$th plate, and
+  \item[$R^{spec}_{i}$] is the specular reflection coefficient for the $i$th plate,
+\end{itemize}
+
+\autoref{eq:markley10115} is used in this Thesis to compute individual plate contributions.
+It should be noted that \emph{albedo} effects, i.e. radiation pressure from reflected 
+light from the Earth and/or Moon, is not considered here, as is the force of thermal 
+radiation emitted from the spacecraft.
 
 \paragraph{Partial Derivatives}\label{par:solar-radiation-pressure-partials}
 Starting from \ref{eq:mont375}, the acceleration due to solar radiation pressure 
-aries with the satellite position in the same way as the gravitational attraction
+varies with the satellite position in the same way as the gravitational attraction
 of the Sun, with derivatives given by:
 \begin{equation}
   \label{eq:mont777}

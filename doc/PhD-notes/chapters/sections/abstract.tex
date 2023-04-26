@@ -1,36 +1,36 @@
 Geodesy has greatly advanced since the introduction of artificial, Earth orbiting
 satellites. A new era has emerged, where satellite-based data dominate the field,
-providing results for a wide range of geodesy-related fields, including but not
-limited to positioning, reference frames, altimetry and gravity field determination.
-
+providing results for a wide range of geodesy-related fields.
 The use of artificial satellites in geosciences however requires
 a comprehensive knowledge of the satellite motion under
 the influence of all acting forces as well as the description of the satellite
-trajectory and ground stations in suitable reference frames, both spatial and
-temporal. Thus exploitation of satellite-based observations is inherently
-coupled with the complex problem of orbit determination, a problem that lies in
-the core of satellite geodesy since its inception.
+trajectory in suitable reference frames. Thus exploitation of satellite-based 
+observations is inherently coupled with the complex problem of orbit determination, 
+a problem that lies in the core of satellite geodesy since its inception.
 
 To-date, \gls{pod} is dominated by three space geodetic techniques, namely \gls{slr}, \gls{gnss} and
 \gls{doris}, which additionally, via the corresponding Technique Centers, provide the input
-data time series of station positions and \gls{eop} for the realization of the \gls{itrf}
-. Along with \gls{vlbi}, these
-techniques constitute the fundamental pillars of modern satellite geodesy.
+data time series of station positions and \gls{eop} for the realization of the \gls{itrf}.
 
-\gls{doris} has played a crucial role in expanding geodetic knowledge and enhancing
-our understanding of the Earth's dynamics and is anticipated to continue to enhance
-its significant role through endeavors such as the Surface Water and Ocean Topography
-(SWOT) and GENESIS missions.
-
-Despite the \gls{doris} prominence and significance in the field of satellite geodesy,
-it has failed to allure a dedicated scientific audience comparable in size to
+Despite its prominence and significance in the field of satellite geodesy,
+\gls{doris} has failed to allure a dedicated scientific audience comparable in size to
 the other techniques. The shortage of dedicated \gls{ids} analysis centers,
 is indicative of the limited availability of dedicated software solutions designed to
 handle \gls{doris} data, particularly for the purpose of orbit determination.
 
 In the framework of the current Thesis, the scarcity of dedicated \gls{doris}
 analysis tools for orbit determination is targeted, with the aim of creating
-a high quality, scientific software solution.
+a high quality, scientific software solution. Specifically, the software 
+package is \emph{non-proprietary} and \emph{open-source}, \emph{adaptable} and \emph{extensible} 
+to meet the demands of scientific community, implements state-of-the-art \emph{algorithms}
+and \emph{methodologies} and is designed using \emph{modern programming patterns} 
+and paradigms.
+
+The software is built in a modular fashion. The various components are organized 
+in different, independent, moderate-sized libraries, targeting well defined problems.
+Various different implementations are put to the test and robust algorithmic 
+approaches are constructed based on criteria of accuracy and efficiency
+(computing speed and resources).
 
 Given the complexity of the problem and the inherent limitations of a thesis, both in
 terms of time and resources, the objective of the current study is not to attain the
@@ -42,7 +42,10 @@ state-of-the-art, \gls{doris} \gls{pod} analysis pipeline.
 
 Using the toolset developed, an orbit determination analysis scheme was designed and
 tested using the \gls{jason}-3 satellite mission, using a high quality reference orbit
-for validation. Position differences ranges within a few meters for one day, while
-velocity discrepancies are in the order of a few millimeters per second. These results show
-that the software package developed can serve as a building block for a high quality
-\gls{doris} analysis software solution.
+for validation. Position differences range within a few meters for one day, while
+velocity discrepancies are in the order of a few millimeters per second. 
+
+These results show that the software package developed can serve as a building 
+block for a high quality \gls{doris} analysis software solution. Conclusions and 
+recommendations for further enhancements and refinements are supplied to eventually 
+reach the goal set.

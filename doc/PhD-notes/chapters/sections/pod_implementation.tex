@@ -31,7 +31,7 @@ chosen due to a number of factors, including
   \item compensation for dynamic model inaccuracy (\emph{process noise}),
   \item estimation of varying state and easily adaptable to (near) real-time scenarios; 
     \cite{Zhou2020} use an extended Kalman filterig algorithm to determine in real time 
-    the orbit of the HY2A \gls{leo}, using DORIS and spaceborne \gls{gps} 
+    the orbit of the HY2A \gls{leo}, using \gls{doris} and spaceborne \gls{gps} 
     observations
   \item adaptability and fine tuning of statistical properties of process noise, 
     and measurement error to design an ``optimal'' filter,
@@ -58,7 +58,7 @@ This makes the algorithm more efficient and less demading on memory resources.
 Filter design is as generic as possible, so as to allow (except from varying user 
 input descussed above) reusage in different parts of the software package, to perform 
 different tasks. E.g. a variant of the same algorithm performs linear regression 
-to estimate relative frequency offsets biases (??see DORIS chapter??).
+to estimate relative frequency offsets biases (see \autoref{ch:doris}).
 
 It is worth noting that most state-of-the-art software packages for \gls{pod} using 
 DORIS observations, use the method of least squares for parameter estimation. This 

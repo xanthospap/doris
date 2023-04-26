@@ -52,6 +52,35 @@ Note that $GM$ for Sun and Moon are extracted from the benchmark documentation, 
 `00README_simulation.txt`. Postion are extracted using 
 [c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html)
 
+### 004solidEarthTide_icrf.txt
+```
+$> costg/check-ocean-pole-tide.out \
+    costG/satellite/06oceanPoleTide_icrf.txt \
+    costG/models/eopc04_14_IAU2000.62-now \
+    costG/satellite/00orbit_icrf.txt \
+    data/jpl/de421.bsp \
+    data/jpl/naif0012.tls \
+    costG/satellite/01earthRotation_quaternion.txt \
+    data/desaiscopolecoef.txt
+```
+![alt text](figures/04solidEarthTide_icrf.pdf)
+Note that results are way worse if i use the provided quaternions for transforming 
+between GCRF/ITRF (argument `01earthRotation_quaternion.txt`). Compile with 
+`USE_OWN_ROTATION_COSTG` option to use own transformation.
+
+### 06oceanPoleTide_icrf.txt
+```
+$> costg/check-ocean-pole-tide.out \
+    costG/satellite/06oceanPoleTide_icrf.txt \
+    costG/models/eopc04_14_IAU2000.62-now \
+    costG/satellite/00orbit_icrf.txt \
+    data/jpl/de421.bsp \
+    data/jpl/naif0012.tls \
+    costG/satellite/01earthRotation_quaternion.txt \
+    data/desaiscopolecoef.txt
+```
+
+
 ## Other Tests
 
 ### ITRF to ICRF transformation

@@ -1,9 +1,9 @@
 #include "astrodynamics.hpp"
 #include "costg_utils.hpp"
 #include "egravity.hpp"
+#include "iers2010/cel2ter.hpp"
 #include "orbit_integration.hpp"
 #include "planetpos.hpp"
-#include "iers2010/cel2ter.hpp"
 #include <cassert>
 
 /* extracted from COST-G documentation */
@@ -14,7 +14,8 @@ int main(int argc, char *argv[]) {
   if (argc != 7) {
     fprintf(stderr,
             "Usage: %s [04solidEarthTide_icrf.txt] [eopc04_14_IAU2000.62-now]"
-            " [00orbit_itrf.txt] [de421.bsp] [naif0012.tls] []\n",
+            " [00orbit_icrf.txt] [de421.bsp] [naif0012.tls] "
+            "[01earthRotation_quaternion.txt]\n",
             argv[0]);
     return 1;
   }
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]) {
 
   /* an ITRF-to-GCRF Rotation for further use */
   dso::Itrs2Gcrs R(costg::gps2tai(vstate[0].gpst).tai2tt(), &eop_lut);
-  
+
 #ifndef USE_OWN_ROTATION_COSTG
   /* read rotation quaternions from costg file */
   std::vector<costg::CostgQuat> qvrots;
@@ -78,7 +79,7 @@ int main(int argc, char *argv[]) {
 #endif
   int error = 0;
   while (state != vstate.end()) {
-    aset= std::find_if(aset, avset.end(), [&](const costg::CostgAcc &g) {
+    aset = std::find_if(aset, avset.end(), [&](const costg::CostgAcc &g) {
       return g.gpst == state->gpst;
     });
     if (aset == avset.end()) {
@@ -99,9 +100,11 @@ int main(int argc, char *argv[]) {
     const auto tai = costg::gps2tai(state->gpst);
 
     /* Sun and Moon position in ICRF */
-    Eigen::Matrix<double, 3, 1> sun,moon;
-    if (dso::planet_pos(dso::Planet::SUN, tai.tai2tt(), sun)) ++error;
-    if (dso::planet_pos(dso::Planet::MOON, tai.tai2tt(), moon)) ++error;
+    Eigen::Matrix<double, 3, 1> sun, moon;
+    if (dso::planet_pos(dso::Planet::SUN, tai.tai2tt(), sun))
+      ++error;
+    if (dso::planet_pos(dso::Planet::MOON, tai.tai2tt(), moon))
+      ++error;
     if (error) {
       fprintf(stderr, "ERROR Failed extracting Sun/Moon position!\n");
       return 2;
@@ -120,12 +123,12 @@ int main(int argc, char *argv[]) {
     moon = q * moon;
     auto r = q * state->r();
 #endif
-    
 
     /* Acceleration from Solid E. T. in ITRF  */
     Eigen::Matrix<double, 3, 3> partials;
     Eigen::Matrix<double, 3, 1> set_acc;
-    if (SeTide.acceleration(tai.tai2tt(), R.ut1(), r, moon, sun, set_acc, partials)) {
+    if (SeTide.acceleration(tai.tai2tt(), R.ut1(), r, moon, sun, set_acc,
+                            partials)) {
       fprintf(stderr, "ERROR Failed to compute Solid Earth Tide!\n");
       return 1;
     }

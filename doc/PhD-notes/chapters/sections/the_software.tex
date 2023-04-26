@@ -23,13 +23,13 @@ such robust products. A deep understanding of the underlying scientific notions 
 a prerequisite (including e.g. celestial mechanics, spatial/Temporal reference frames, 
 geodesy and estimation theory) coupled with software engineering skills to match the 
 high volume and high calibre of work needed (about 100000 lines of source code were 
-written for this Thesis, \autoref{table:software-components}).
+written for this Thesis, \autoref{table:software-components}\footnote{Lines of Code counted using \texttt{tokei} (\url{https://github.com/XAMPPRocky/tokei}) excluding blank and comment lines.}).
 
 \begin{table}[h!]
   \centering
   \begin{tabular}{p{0.20\linewidth} | p{0.2\linewidth} | p{0.20\linewidth} | p{0.25\linewidth}}
     \toprule
-    \textbf{Library} & \textbf{Language} & \textbf{Lines of Code}\footnote{Counted using \texttt{tokei} (\url{https://github.com/XAMPPRocky/tokei}) excluding blank and comment lines.} & \textbf{Comment}\\
+    \textbf{Library} & \textbf{Language} & \textbf{Lines of Code} & \textbf{Comment}\\
     \midrule
     \multirow{2}{*}{\texttt{doris}}  & \texttt{C++} & 18286 & \multirow{2}{4cm}{Including source code for executables}\\
       & \texttt{Python} & 2068 & \\
@@ -93,11 +93,12 @@ emerging technique of \emph{template metaprogramming} (\cite{Esterie2014},
 The source code is split into different modules/libraries, where each collection 
 serves a well established, individual goal (see \autoref{table:software-components2}). 
 This division favors the overall modularity of the package.
+Note that the individual repositories can be found online by adding the name at the static path \url{https://github.com/xanthospap/}
 
 \begin{table}[h!]
   \centering
   \begin{tabular}{p{0.20\linewidth} | p{0.60\linewidth} | p{0.15\linewidth}}
-    \textbf{Library} & \textbf{Purpose} & \textbf{Repository Name}\footnote{The repository can be found online by adding the name at the static path \url{https://github.com/xanthospap/}} \\
+    \textbf{Library} & \textbf{Purpose} & \textbf{Repository Name} \\
     \toprule
     
     \texttt{libdatetime} & A library to handle datetime instances. Includes data structures, 

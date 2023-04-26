@@ -1,6 +1,7 @@
 \documentclass[12pt,a4paper,twoside]{report}
 
 \usepackage[utf8]{inputenc}
+\usepackage[greek,english]{babel}
 \usepackage{graphicx}
 \graphicspath{ {./../figures/} }
 \usepackage{pgfplots}                %% for ploting in latex
@@ -301,6 +302,10 @@
 \addcontentsline{toc}{chapter}{Abstract}
 \input{chapters/sections/abstract}
 \clearpage
+\chapter*{\textgreek{Περίληψη}}
+\addcontentsline{toc}{chapter}{\textgreek{Περίληψη}}
+\input{chapters/sections/abstract_greek}
+\clearpage
 
 %\frontmatter
 \tableofcontents
@@ -316,11 +321,12 @@
 \pagenumbering{arabic}
 
 \chapter{Introduction}\label{ch:introduction}
-\input{chapters/sections/introduction}
+  \input{chapters/sections/introduction}
 
 \chapter{Fundamental Astrodynamics}\label{ch:fundamental-astrodynamics}
     \input{chapters/sections/astrodynamics_introduction}
-  \section{Orbital Mechanics}\label{ssec:orbital-mechanics}
+
+\section{Orbital Mechanics}\label{ssec:orbital-mechanics}
     \input{chapters/sections/two_body_problem}
     \input{chapters/sections/orbital_elements}
     \input{chapters/sections/non_keplerian_motion}
@@ -381,7 +387,6 @@
   \input{chapters/sections/conclusions}
   \input{chapters/sections/reccommendations}
 
-
 \iffalse
   \include{chapters/orbit_intergators}
   \include{chapters/orbit_modeling}
@@ -406,6 +411,9 @@
 \addcontentsline{toc}{chapter}{Appendices}
 \renewcommand{\thesection}{\Alph{section}}
 \input{chapters/sections/alternate_variational_equations}
+\clearpage
+\input{chapters/sections/quaternion_algebra}
+\clearpage
 
 %\bibliographystyle{agsm} 
 %\bibliography{doris}
