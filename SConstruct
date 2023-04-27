@@ -95,7 +95,7 @@ lib_src_files += glob.glob(r"src/filters/*.cpp")
 hdr_src_files = glob.glob(r"src/*.hpp")
 
 ## Environments ...
-denv = Environment(CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -Wdisabled-optimization -DDEBUG -DUSE_OWN_ROTATION_COSTG')
+denv = Environment(CXXFLAGS='-std=c++17 -g -pg -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -Wdisabled-optimization -DDEBUG -DDORIS_EXTRA_CHECKS -DUSE_OWN_ROTATION_COSTG')
 ## .. for checking the integrator ...
 #penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DRANDOM_RFO -DINTEGRATOR_CHECK')
 penv = Environment(CXXFLAGS='-std=c++17 -Wall -Wextra -Werror -pedantic -W -Wshadow -Wno-error=inline -Wno-class-memaccess -O2 -march=native -DUSE_OWN_ROTATION_COSTG')

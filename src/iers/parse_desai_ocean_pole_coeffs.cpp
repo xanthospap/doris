@@ -30,6 +30,12 @@ dso::iStatus dso::parse_desai_ocean_pole_tide_coeffs(
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Aimag,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Breal,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Bimag) noexcept {
+  /* fill output arrays with zeros */
+  Areal.fill_with(0e0);
+  Aimag.fill_with(0e0);
+  Breal.fill_with(0e0);
+  Bimag.fill_with(0e0);
+
   std::fstream fin(fn);
   if (!fin.is_open()) {
     fprintf(stderr,

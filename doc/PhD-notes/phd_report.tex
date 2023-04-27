@@ -2,6 +2,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[greek,english]{babel}
+\usepackage{datetime}
 \usepackage{graphicx}
 \graphicspath{ {./../figures/} }
 \usepackage{pgfplots}                %% for ploting in latex
@@ -176,6 +177,10 @@
 ]}
 % -----------------------------------------
 
+% date as month, year
+\newdateformat{monthyeardate}{%
+  \monthname[\THEMONTH], \THEYEAR}
+
 \makeglossaries
 \newacronym{ids}{IDS}{International DORIS Service}
 \newacronym{antex}{ANTEX}{Antenna Exchange Format}
@@ -260,9 +265,9 @@
 % list package version in log file
 \listfiles
 
-\title{PhD Memo and Notes}
-\author{Xanthos}
-\date{\today}
+% \title{PhD Memo and Notes}
+% \author{Xanthos}
+% \date{\today}
 
 \begin{document}
 

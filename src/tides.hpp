@@ -31,14 +31,14 @@ inline double years_since_2000(const dso::TwoPartDate &mjdtt) noexcept {
   return dt_days.big() / 365.25e0 + dt_days.small() / 365.25e0;
 }
 
-/* @brief Secular pole coordinates (xp, yp) in [mas], computed as in IERS2010, 
+/* @brief Secular pole coordinates (xp, yp) in [mas], computed as in IERS2010,
  *        Sec7.2.4 Eq. 21
  * @param[in] mjdtt MJD of date of request [TT]
  * @param[out] xs X component of secular pole coordinates, i.e. xp in [mas]
  * @param[out] ys Y component of secular pole coordinates, i.e. yp in [mas]
  */
 inline int secular_pole(const dso::TwoPartDate &mjdtt, double &xs,
-                 double &ys) noexcept {
+                        double &ys) noexcept {
   // secular pole (IERS2010, Sec7.2.4 Eq. 21)
   const double dt = years_since_2000(mjdtt);
   xs = 55e0 + 1.677e0 * dt;    // [mas]
@@ -46,9 +46,9 @@ inline int secular_pole(const dso::TwoPartDate &mjdtt, double &xs,
   return 0;
 }
 
-/* @brief Compute "wobble" variables m1 and m2 of polar motion (for pole 
+/* @brief Compute "wobble" variables m1 and m2 of polar motion (for pole
  *        tides)
- * m1 and m2 describe the time-dependent offset of the instantaneous rotation 
+ * m1 and m2 describe the time-dependent offset of the instantaneous rotation
  * pole from (xs, ys). See IERS2010, Sec7.2.4.
  * @param[in] xp Polar motion component X, in [as]
  * @param[in] yp Polar motion component Y, in [as]
@@ -184,13 +184,13 @@ public:
   OceanPoleTide(int maxdegree, int maxorder, const char *fn,
                 double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
   //~OceanPoleTide() noexcept;
-  int operator()(const dso::TwoPartDate &mjdtt, double xp_sec,
-                 double yp_sec) noexcept;
-  int acceleration(const dso::TwoPartDate &mjdtt,
-                   double xp_sec, double yp_sec,
+  int operator()(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
+                 int maxdegre = -1, int maxorder = -1) noexcept;
+  int acceleration(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
+                   Eigen::Matrix<double, 3, 3> &acc_gradient, int maxdegre = -1,
+                   int maxorder = -1) noexcept;
 
 }; /* OceanPoleTide */
 
@@ -210,9 +210,9 @@ class SolidEarthPoleTide {
   int operator()(const dso::TwoPartDate &mjdtt, double xp_sec,
                  double yp_sec) noexcept {
     /* secular pole in [mas] */
-    double xs,ys;
-    secular_pole(mjdtt,xs,ys);
-    /* wobble */
+    double xs, ys;
+    secular_pole(mjdtt, xs, ys);
+    /* wobble [as] */
     wobble_components(xp_sec, yp_sec, xs, ys, m1, m2);
     return 0;
   }
@@ -232,15 +232,22 @@ public:
     struct dCS21 {
       double dc21, ds21;
     };
-    // compute "wobble" variables of date
+    /* compute "wobble" variables of date */
     this->operator()(mjdtt, xp_sec, yp_sec);
     double dC21, dS21;
-    // compute solid earth pole tide
-    dC21 = -1.3331e-9 * (m1 + 0.0115 * m2);
-    dS21 = -1.3331e-9 * (m2 - 0.0115 * m1);
+    /* compute solid earth pole tide */
+    dC21 = -1.3331e-9 * (m1 + 0.0115e0 * m2);
+    dS21 = -1.3331e-9 * (m2 - 0.0115e0 * m1);
     return dCS21{dC21, dS21};
   }
-}; // SolidEarthPoleTide
+  
+  int acceleration(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
+                   const Eigen::Matrix<double, 3, 1> &rsat,
+                   Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &acc_gradient,
+                   double GMearth = iers2010::GMe,
+                   double Rearth = iers2010::Re) noexcept;
+}; /* SolidEarthPoleTide */
 
 class SolidEarthTide {
   static constexpr const int degree = 4;

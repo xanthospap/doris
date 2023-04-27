@@ -52,7 +52,7 @@ Note that $GM$ for Sun and Moon are extracted from the benchmark documentation, 
 `00README_simulation.txt`. Postion are extracted using 
 [c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html)
 
-### 004solidEarthTide_icrf.txt
+### 04solidEarthTide_icrf.txt
 ```
 $> costg/check-ocean-pole-tide.out \
     costG/satellite/06oceanPoleTide_icrf.txt \
@@ -61,12 +61,24 @@ $> costg/check-ocean-pole-tide.out \
     data/jpl/de421.bsp \
     data/jpl/naif0012.tls \
     costG/satellite/01earthRotation_quaternion.txt \
-    data/desaiscopolecoef.txt
+    data/desaiscopolecoef.txt \
+    | costg/plot_costg_04solidEarthTide_icrf.py
 ```
 ![alt text](figures/04solidEarthTide_icrf.pdf)
 Note that results are way worse if i use the provided quaternions for transforming 
 between GCRF/ITRF (argument `01earthRotation_quaternion.txt`). Compile with 
 `USE_OWN_ROTATION_COSTG` option to use own transformation.
+
+### 05poleTide_icrf.txt
+```
+$> costg/check-pole-tide.out \
+    costG/satellite/05poleTide_icrf.txt \
+    costG/models/eopc04_14_IAU2000.62-now \
+    costG/satellite/00orbit_icrf.txt \
+    costG/satellite/01earthRotation_quaternion.txt \
+    | costg/plot_costg_05poleTide_icrf.py
+```
+![alt text](figures/05poleTide_icrf.pdf)
 
 ### 06oceanPoleTide_icrf.txt
 ```
@@ -77,9 +89,10 @@ $> costg/check-ocean-pole-tide.out \
     data/jpl/de421.bsp \
     data/jpl/naif0012.tls \
     costG/satellite/01earthRotation_quaternion.txt \
-    data/desaiscopolecoef.txt
+    data/desaiscopolecoef.txt \
+    | costg/plot_costg_06oceanPoleTide_icrf.py
 ```
-
+![alt text](figures/06oceanPoleTide_icrf.pdf)
 
 ## Other Tests
 
