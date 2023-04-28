@@ -55,9 +55,7 @@ struct NormalizedLegendreFactors {
       for (int n = m + 1; n < N; n++) {
         const double f =
             (2e0 * n + 1e0) / static_cast<double>((n + m) * (n - m));
-        // f1_nm = B_nm
         f1(n, m) = std::sqrt(f * (2e0 * n - 1e0));
-        // f2_nm = B_nm / Bn-1m
         f2(n, m) =
             -std::sqrt(f * (n - m - 1e0) * (n + m - 1e0) / (2e0 * n - 3e0));
       }
@@ -170,7 +168,7 @@ int gravity_acceleration_impl(
    */
   for (int m = degree; m >= 2; --m) {
     for (int n = degree; n >= m; --n) {
-      { // acceleration
+      { /* acceleration */
         const double wm1 =
             std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2)));
         const double wm0 =

@@ -26,73 +26,47 @@ $>costg/check-01eop.out \
 ## Accelerations
 
 ### 02gravityfield_itrf
-```
-$> costg/check-gravity-field.out \
-    costG/models/EIGEN6-C4.gfc \
-    costG/satellite/02gravityfield_itrf.txt \
-    costG/satellite/00orbit_itrf.txt \
-    | costg/plot_costg_02gravityfield_itrf.py
-```
-![alt text](figures/02gravityfield_itrf.pdf)
+![alt text](figures/gravity-field.png)
 Note that $GM$ and $Re$ constants (for Earth) are extracted from the `EIGEN6-C4.gfc` 
-data file (header).
+data file (header). This test does not include transformation between ITRF/GCRF 
+frames. All computations performed in ITRF.
+
 
 ### 03directTide[Sun|Moon]_icrf
-```
-$> costg/check-third-body.out \
-    costG/satellite/03directTideMoon_icrf.txt \
-    costG/satellite/03directTideSun_icrf.txt \
-    costG/satellite/00orbit_icrf.txt \
-    data/jpl/de421.bsp data/jpl/naif0012.tls \
-    | costg/plot_costg_03directTides.py
-```
-![alt text](figures/03directTideMoon_icrf.pdf)
-![alt text](figures/03directTideSun_icrf.pdf)
+![alt text](figures/third-body-[MOON].png)
+![alt text](figures/third-body-[SUN].png)
 Note that $GM$ for Sun and Moon are extracted from the benchmark documentation, i.e. 
-`00README_simulation.txt`. Postion are extracted using 
-[c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html)
+`00README_simulation.txt`. Sun and Moon positions are extracted using 
+[c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html).
+This test does not include transformation between ITRF/GCRF frames. All computations 
+performed in GCRF.
 
 ### 04solidEarthTide_icrf.txt
-```
-$> costg/check-ocean-pole-tide.out \
-    costG/satellite/06oceanPoleTide_icrf.txt \
-    costG/models/eopc04_14_IAU2000.62-now \
-    costG/satellite/00orbit_icrf.txt \
-    data/jpl/de421.bsp \
-    data/jpl/naif0012.tls \
-    costG/satellite/01earthRotation_quaternion.txt \
-    data/desaiscopolecoef.txt \
-    | costg/plot_costg_04solidEarthTide_icrf.py
-```
-![alt text](figures/04solidEarthTide_icrf.pdf)
-Note that results are way worse if i use the provided quaternions for transforming 
+![alt text](figures/solid-earth-tide.png)
+
+Note that $GM$ for Sun and Moon are extracted from the benchmark documentation, i.e. 
+`00README_simulation.txt`. Sun and Moon positions are extracted using 
+[c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html). This test also includes 
+transformations between ITRF/GCRF frames.
+
+Results are way worse if i use the provided quaternions for transforming 
 between GCRF/ITRF (argument `01earthRotation_quaternion.txt`). Compile with 
 `USE_OWN_ROTATION_COSTG` option to use own transformation.
 
+
 ### 05poleTide_icrf.txt
-```
-$> costg/check-pole-tide.out \
-    costG/satellite/05poleTide_icrf.txt \
-    costG/models/eopc04_14_IAU2000.62-now \
-    costG/satellite/00orbit_icrf.txt \
-    costG/satellite/01earthRotation_quaternion.txt \
-    | costg/plot_costg_05poleTide_icrf.py
-```
-![alt text](figures/05poleTide_icrf.pdf)
+![alt text](figures/pole-tide.png)
+Test includes transformations between ITRF/GCRF frames.
+
 
 ### 06oceanPoleTide_icrf.txt
-```
-$> costg/check-ocean-pole-tide.out \
-    costG/satellite/06oceanPoleTide_icrf.txt \
-    costG/models/eopc04_14_IAU2000.62-now \
-    costG/satellite/00orbit_icrf.txt \
-    data/jpl/de421.bsp \
-    data/jpl/naif0012.tls \
-    costG/satellite/01earthRotation_quaternion.txt \
-    data/desaiscopolecoef.txt \
-    | costg/plot_costg_06oceanPoleTide_icrf.py
-```
-![alt text](figures/06oceanPoleTide_icrf.pdf)
+![alt text](figures/ocean-pole-tide.png)
+Test includes transformations between ITRF/GCRF frames.
+
+### 07relativistic_icrf.txt
+![alt text](figures/relativistic.png)
+[c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html) used to compute Sun position 
+and approximate Earth/Sun velocity.
 
 ## Other Tests
 
