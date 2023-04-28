@@ -6,23 +6,18 @@
 #include "planetpos.hpp"
 #include <cassert>
 
-/* extracted from COST-G documentation */
-constexpr const double GM_Sun = 1.32712442076e20;
-constexpr const double GM_Moon = 0.49028010560e13;
+constexpr const int degree = 180;
+constexpr const int order = 180;
 
 int main(int argc, char *argv[]) {
-  if (argc != 7) {
+  if (argc != 6) {
     fprintf(stderr,
-            "Usage: %s [04solidEarthTide_icrf.txt] [eopc04_14_IAU2000.62-now]"
-            " [00orbit_icrf.txt] [de421.bsp] [naif0012.tls] "
+            "Usage: %s [11oceanTide_fes2014b_34major_icrf.txt] [eopc04_14_IAU2000.62-now]"
+            " [00orbit_icrf.txt] [oceanTide_FES2014b.potential.iers.txt] "
             "[01earthRotation_quaternion.txt]\n",
             argv[0]);
     return 1;
   }
-
-  /* Load CSPICE/NAIF Kernels */
-  dso::cspice::load_if_unloaded_spk(argv[4]);
-  dso::cspice::load_if_unloaded_spk(argv[5]);
 
   /* parse COST-G (acceleration) results */
   std::vector<costg::CostgAcc> avset;
@@ -38,7 +33,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed to read input state file %s\n", argv[3]);
     return 1;
   }
-
+  
   /* create and fill an EOP look up table */
   dso::EopLookUpTable eop_lut;
   {
@@ -62,14 +57,24 @@ int main(int argc, char *argv[]) {
 #ifndef USE_OWN_ROTATION_COSTG
   /* read rotation quaternions from costg file */
   std::vector<costg::CostgQuat> qvrots;
-  if (costg::parse_rotation_quaternions(argv[6], qvrots)) {
+  if (costg::parse_rotation_quaternions(argv[5], qvrots)) {
     fprintf(stderr, "ERROR Failed to read input state file %s\n", argv[6]);
     return 1;
   }
 #endif
 
-  /* create a SolidEarthTideInstance */
-  dso::SolidEarthTide SeTide(iers2010::GMe, iers2010::Re, GM_Moon, GM_Sun);
+  /* create a vector of DoodsonOceanTideConstituent and read coefficients
+   * for major waves from input file
+   */
+  std::vector<dso::DoodsonOceanTideConstituent> vdds;
+  if (dso::memmap_octide_coefficients(argv[4], vdds, degree, order, 2, 1e-11)) {
+    fprintf(stderr, "Failed reading ocean tide loading file %s!\n", argv[4]);
+    return 1;
+  }
+  printf("Note that number of major waves in model is %d\n", (int)vdds.size());
+
+  /* create an Ocean Tide instance */
+  dso::OceanTide OcTide(vdds, degree, order, iers2010::GMe, iers2010::Re);
 
   /* loop through reference results ... */
   auto state = vstate.begin();
@@ -77,7 +82,6 @@ int main(int argc, char *argv[]) {
 #ifndef USE_OWN_ROTATION_COSTG
   auto quat = qvrots.begin();
 #endif
-  int error = 0;
   while (state != vstate.end()) {
     aset = std::find_if(aset, avset.end(), [&](const costg::CostgAcc &g) {
       return g.gpst == state->gpst;
@@ -99,41 +103,35 @@ int main(int argc, char *argv[]) {
     /* gps time to TAI */
     const auto tai = costg::gps2tai(state->gpst);
 
-    /* Sun and Moon position in ICRF */
-    Eigen::Matrix<double, 3, 1> sun, moon;
-    if (dso::planet_pos(dso::Planet::SUN, tai.tai2tt(), sun))
-      ++error;
-    if (dso::planet_pos(dso::Planet::MOON, tai.tai2tt(), moon))
-      ++error;
-    if (error) {
-      fprintf(stderr, "ERROR Failed extracting Sun/Moon position!\n");
-      return 2;
-    }
-
     R.prepare(tai.tai2tt());
 
     /* rotate, ICRF to ITRF */
 #ifdef USE_OWN_ROTATION_COSTG
-    sun = R.gcrf2itrf(sun);
-    moon = R.gcrf2itrf(moon);
     auto r = R.gcrf2itrf(state->r());
 #else
     const Eigen::Quaternion<double> q = quat->q.conjugate();
-    sun = q * sun;
-    moon = q * moon;
     auto r = q * state->r();
 #endif
 
-    /* Acceleration from Solid E. T. in ITRF  */
+    /* Acceleration from Ocean Tides in ITRF  */
     Eigen::Matrix<double, 3, 3> partials;
     Eigen::Matrix<double, 3, 1> set_acc;
-    if (SeTide.acceleration(tai.tai2tt(), R.ut1(), r, moon, sun, set_acc,
-                            partials)) {
-      fprintf(stderr, "ERROR Failed to compute Solid Earth Tide!\n");
+    if (OcTide.acceleration(tai.tai2tt(), r, set_acc, partials)) {
+      fprintf(stderr, "ERROR Failed to compute Ocean Tide!\n");
       return 1;
     }
 
-    /* Acceleration from Solid E. T. in GCRF */
+    {
+      /* compute and subtract degrees [0,1] */
+      Eigen::Matrix<double, 3, 1> set01_acc;
+      if (OcTide.acceleration(tai.tai2tt(), r, set01_acc, partials, 1, 1)) {
+        fprintf(stderr, "ERROR Failed to compute Ocean Tide!\n");
+        return 1;
+      }
+      set_acc = set_acc - set01_acc;
+    }
+
+    /* Acceleration in GCRF */
 #ifdef USE_OWN_ROTATION_COSTG
     set_acc = R.itrf2gcrf(set_acc);
 #else

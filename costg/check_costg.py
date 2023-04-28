@@ -29,21 +29,24 @@ plt.rcParams.update(tex_fonts)
 
 def unitsstr(scale): return r'$[m/s^2]\times{:.1e}$'.format(1e0/scale) if scale != 1e0 else r'$[m/s^2]$'
 def handle_date(mjd): return julian.from_jd(mjd, fmt='mjd')
-def get_diffs(dct, component):
+def get_diffs(dct, component,raw=False):
     t = []; y= [];
     k1,k2 = list(zip(['rax','ray','raz'],['ax','ay','az']))[component]
     for entry in dct:
         t.append(entry['mjd'])
-        y.append(entry[k1] - entry[k2])
+        y.append(entry[k1] - entry[k2]) if not raw else y.append(entry[k2])
     return t,y
-def get_diffs_norm(dct):
+def get_diffs_norm(dct,raw=False):
     t = []; y= [];
     for entry in dct:
         t.append(entry['mjd'])
         n = 0e0
         for component in range(3):
             k1,k2 = list(zip(['rax','ray','raz'],['ax','ay','az']))[component]
-            n += (entry[k1] - entry[k2])*(entry[k1] - entry[k2])
+            if not raw:
+                n += (entry[k1] - entry[k2])*(entry[k1] - entry[k2])
+            else:
+                n += entry[k2]*entry[k2]
         y.append(math.sqrt(n))
     return t,y
 def parse(fn, force=None):
@@ -62,14 +65,14 @@ def parse(fn, force=None):
                         print("Failed to parse line: [{:}]; skipped!".format(line.strip()), 
                             file=sys.stderr)
     return dct
-def plot(fn, scale, title, saveas, forceid=['']):
+def plot(fn, scale, title, saveas, forceid=[''], raw=False):
     for f in forceid:
         forcestr = None if f==' ' else f
         dct = parse(fn, forcestr)
         fig, axs = plt.subplots(4, 1, figsize=(10, 6), sharex=True, sharey=True, constrained_layout=True)
         # cartesian components ...
         for i in range(3):
-            t,y = get_diffs(dct, i)
+            t,y = get_diffs(dct, i, raw)
             y = [yy * scale for yy in y]
             sts = stats.describe(y)
             axs[i].scatter(t,y,s=1,color='black')
@@ -80,7 +83,7 @@ def plot(fn, scale, title, saveas, forceid=['']):
             axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
             axs[i].xaxis.set_minor_locator(mdates.HourLocator())
         # plot norm ...
-        t,y = get_diffs_norm(dct)
+        t,y = get_diffs_norm(dct,raw)
         y = [yy * scale for yy in y]
         sts = stats.describe(y)
         axs[3].scatter(t,y,s=1,color='black')
@@ -93,7 +96,8 @@ def plot(fn, scale, title, saveas, forceid=['']):
         # set x-axis lable ...
         axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")), fontsize=12)
         ## title and save ...
-        fig.suptitle('COST-G Benchmark Diffs\n{}'.format(title+('' if not forcestr else ' '+forcestr)))
+        line1_title = 'COST-G Benchmark Diffs' if not raw else 'Acceleration Reults'
+        fig.suptitle('{:}\n{:}'.format(line1_title, title+('' if not forcestr else ' '+forcestr)))
         savefn = saveas if not forcestr else saveas.replace('.png','-'+forcestr)+'.png'
         plt.savefig(savefn)
         # plt.show()
@@ -159,19 +163,25 @@ parser.add_argument(
     dest='verbose',
     help='Verbose mode on')
 
+parser.add_argument(
+    '--raw',
+    action='store_true',
+    dest='plot_raw',
+    help='Plot \'raw\' results, i.e. not differences but computed acceleration results')
+
 if __name__ == '__main__':
 
     ## parse cmd
     args = parser.parse_args()
 
     # executables including path
-    nopath_prog_list = ['check-gravity-field.out', 'check-third-body.out', 'check-solid-earth-tide.out', 'check-pole-tide.out', 'check-ocean-pole-tide.out', 'check-relativistic.out']
+    nopath_prog_list = ['check-gravity-field.out', 'check-third-body.out', 'check-solid-earth-tide.out', 'check-pole-tide.out', 'check-ocean-pole-tide.out', 'check-relativistic.out', 'check-fes14b-ocean-tide.out']
     prog_list = [ os.path.join(args.progs_dir, x) for x in nopath_prog_list ]
 
     # plot file names (output)
     ext = '.png'
     plot_fns = [ os.path.join(args.plots_dir, x.replace('check-','').replace('.out', ext)) for x in nopath_prog_list ]
-    plot_titles = [ 'Gravity Field n=(2..180)', 'Third Body', 'Solid Earth Tide', 'Solid Earth Pole Tide', 'Ocean Pole Tide n=(2..180)', 'Relativistic Correction']
+    plot_titles = [ 'Gravity Field n=(2..180)', 'Third Body', 'Solid Earth Tide', 'Solid Earth Pole Tide', 'Ocean Pole Tide n=(2..180)', 'Relativistic Correction', 'FES2014 Major Waves n=(2..180)']
 
     # path to costg models
     mdlp = os.path.join(args.costg_dir, 'models')
@@ -191,7 +201,8 @@ if __name__ == '__main__':
         { 'args': [os.path.join(stlp, '04solidEarthTide_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(jplp,'de421.bsp'), os.path.join(jplp, 'naif0012.tls'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] },
         { 'args': [os.path.join(stlp, '05poleTide_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] },
         { 'args': [os.path.join(stlp, '06oceanPoleTide_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt'), os.path.join(mdlp, 'desaiscopolecoef.txt') ] },
-        { 'args': [os.path.join(stlp, '07relativistic_icrf.txt'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(jplp,'de421.bsp'), os.path.join(jplp, 'naif0012.tls') ] }
+        { 'args': [os.path.join(stlp, '07relativistic_icrf.txt'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(jplp,'de421.bsp'), os.path.join(jplp, 'naif0012.tls') ] },
+        { 'args': [os.path.join(stlp, '11oceanTide_fes2014b_34major_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(mdlp, 'FES2014b_oceanTide/oceanTide_FES2014b.potential.iers.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] }
     ]
     for d in args_list:
         files = [ x for x in d['args'] ]
@@ -214,6 +225,6 @@ for i,prog in enumerate(prog_list):
         sys.exit(1)
     if os.path.basename(prog) == 'check-third-body.out':
         forces = ['[SUN]', '[MOON]']
-    plot(temp_fn, args.factor, plot_titles[i], plot_fns[i], forces)
+    plot(temp_fn, args.factor, plot_titles[i], plot_fns[i], forces, args.plot_raw)
     ftmp.close()
     #os.remove(".tmp")

@@ -112,8 +112,11 @@ void dso::VariationalEquations(
   if (params.octide) 
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
-    params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc);
+    Eigen::Matrix<double, 3, 3> taccgrad;
+    params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc, taccgrad);
     f += Rot.itrf2gcrf(tacc);
+    const auto T = Rot.itrf2gcrf();
+    df += T * taccgrad * T.transpose();
   }
 
   // Differential equation for the state transition matrix Φ(t, t_0) is:
@@ -307,8 +310,11 @@ void dso::VariationalEquations2(
   if (params.octide) {
     // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> acc;
-    params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc);
+    Eigen::Matrix<double, 3, 3> gradient;
+    params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc, gradient);
     f += Rot.itrf2gcrf(acc);
+    const auto T = Rot.itrf2gcrf();
+    dadr += T * gradient * T.transpose();
   }
   
   Eigen::Matrix<double,n,n> f123;

@@ -5,6 +5,7 @@
 int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
                                  const Eigen::Matrix<double, 3, 1> &rsat,
                                  Eigen::Matrix<double, 3, 1> &acc,
+                                 Eigen::Matrix<double, 3, 3> &gradient,
                                  int max_degree, int max_order) noexcept {
   if (max_degree < 0)
     max_degree = this->max_degree();
@@ -14,9 +15,8 @@ int dso::OceanTide::acceleration(const dso::TwoPartDate &mjdtt,
   this->operator()(mjdtt, max_degree, max_order);
 
   // compute acceleration at satellite position (ITRF, cartesian)
-  Eigen::Matrix<double, 3, 3> partials;
-  dso::gravity_acceleration(dCS, rsat, max_degree, dCS.Re(), dCS.GM(), acc, partials, &V,
-                 &W);
+  dso::gravity_acceleration(dCS, rsat, max_degree, dCS.Re(), dCS.GM(), acc,
+                            gradient, &V, &W);
 
   return 0;
 }

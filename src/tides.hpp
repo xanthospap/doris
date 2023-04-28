@@ -155,8 +155,9 @@ public:
                  int max_order) noexcept;
   int acceleration(const dso::TwoPartDate &mjdtt,
                    const Eigen::Matrix<double, 3, 1> &rsat,
-                   Eigen::Matrix<double, 3, 1> &acc, int max_degree = -1,
-                   int max_order = -1) noexcept;
+                   Eigen::Matrix<double, 3, 1> &acc,
+                   Eigen::Matrix<double, 3, 3> &acc_gradient,
+                   int max_degree = -1, int max_order = -1) noexcept;
 }; // OceanTide
 
 class OceanPoleTide {
@@ -240,7 +241,7 @@ public:
     dS21 = -1.3331e-9 * (m2 - 0.0115e0 * m1);
     return dCS21{dC21, dS21};
   }
-  
+
   int acceleration(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    Eigen::Matrix<double, 3, 1> &acc,
