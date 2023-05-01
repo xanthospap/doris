@@ -721,7 +721,6 @@ int main(int argc, char *argv[]) {
 
   // Ocean Tides Geopotential
   int oc_degree, oc_order;
-  std::vector<dso::DoodsonOceanTideConstituent> vdds;
   dso::get_yaml_value_depth2(config, "ocean-tides", "harmonics", buf);
   error = dso::get_yaml_value_depth2<int>(config, "ocean-tides", "degree",
                                           oc_degree);
@@ -732,13 +731,8 @@ int main(int argc, char *argv[]) {
             oc_order);
     return 1;
   }
-  if (dso::memmap_octide_coefficients(buf, vdds, oc_degree, oc_order, 3,
-                                      1e-11)) {
-    fprintf(stderr, "Failed reading ocean tide loading file %s!\n", buf);
-    return 1;
-  }
   // An ocean tide instance
-  dso::OceanTide octide(vdds, harmonics.GM(), harmonics.Re(), oc_degree,
+  dso::OceanTide octide(buf, 1e-11, harmonics.GM(), harmonics.Re(), oc_degree,
                         oc_order);
 
   // Setup Integration Parameters for Orbit Integration

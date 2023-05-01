@@ -310,7 +310,7 @@ void dso::VariationalEquations_mg(
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    params.octide->acceleration(cmjd.tai2tt(), r_itrf, tacc, taccgrad);
+    assert(params.octide->acceleration(cmjd.tai2tt(), r_itrf, tacc, taccgrad));
     a += Rot.itrf2gcrf(tacc);
     printf(" octide:%.9e", Rot.itrf2gcrf(tacc).norm());
     const auto T = Rot.itrf2gcrf();
@@ -485,7 +485,7 @@ void dso::VariationalEquations_ta(
     // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> acc;
     Eigen::Matrix<double, 3, 3> gradient;
-    params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc, gradient);
+    assert(params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc, gradient));
     a += Rot.itrf2gcrf(acc);
     const auto T = Rot.itrf2gcrf();
     dadr += T * gradient * T.transpose();
@@ -651,7 +651,7 @@ void dso::noVariationalEquations(
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc, taccgrad);
+    assert(params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc, taccgrad));
     f += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();

@@ -63,18 +63,9 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  /* create a vector of DoodsonOceanTideConstituent and read coefficients
-   * for major waves from input file
-   */
-  std::vector<dso::DoodsonOceanTideConstituent> vdds;
-  if (dso::memmap_octide_coefficients(argv[4], vdds, degree, order, 2, 1e-11)) {
-    fprintf(stderr, "Failed reading ocean tide loading file %s!\n", argv[4]);
-    return 1;
-  }
-  printf("Note that number of major waves in model is %d\n", (int)vdds.size());
-
   /* create an Ocean Tide instance */
-  dso::OceanTide OcTide(vdds, degree, order, iers2010::GMe, iers2010::Re);
+  dso::OceanTide OcTide(argv[4], 1e-11, degree, order, iers2010::GMe,
+                        iers2010::Re);
 
   /* loop through reference results ... */
   auto state = vstate.begin();

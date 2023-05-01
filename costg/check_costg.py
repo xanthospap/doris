@@ -62,11 +62,13 @@ def parse(fn, force=None):
                         dct.append({'mjd': handle_date(float(l[0+ofset])), 'rax':float(l[1+ofset]), 'ray':float(l[2+ofset]), 
                             'raz':float(l[3+ofset]), 'ax':float(l[4+ofset]), 'ay':float(l[5+ofset]), 'az':float(l[6+ofset])})
                     except:
-                        print("Failed to parse line: [{:}]; skipped!".format(line.strip()), 
-                            file=sys.stderr)
+                        #print("Failed to parse line: [{:}]; skipped!".format(line.strip()), 
+                        #    file=sys.stderr)
+                        pass
     return dct
 def plot(fn, scale, title, saveas, forceid=[''], raw=False):
     for f in forceid:
+        print('|{:}|'.format(' '.join([title,f])))
         forcestr = None if f==' ' else f
         dct = parse(fn, forcestr)
         fig, axs = plt.subplots(4, 1, figsize=(10, 6), sharex=True, sharey=True, constrained_layout=True)
@@ -82,6 +84,8 @@ def plot(fn, scale, title, saveas, forceid=[''], raw=False):
             axs[i].set_ylabel([r'$\delta\ddot{x}$', r'$\delta\ddot{y}$', r'$\delta\ddot{z}$'][i]+unitsstr(scale))
             axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
             axs[i].xaxis.set_minor_locator(mdates.HourLocator())
+            # print statistics in MarkDown format (as a single line)
+            print('|{:}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|'.format(['x','y','z'][i], sts.mean, math.sqrt(sts.variance), sts.minmax[0], sts.minmax[1], scale))
         # plot norm ...
         t,y = get_diffs_norm(dct,raw)
         y = [yy * scale for yy in y]
@@ -93,6 +97,7 @@ def plot(fn, scale, title, saveas, forceid=[''], raw=False):
         axs[3].set_ylabel(r'$\delta\ddot{a}$'+unitsstr(scale))
         axs[3].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
         axs[3].xaxis.set_minor_locator(mdates.HourLocator())
+        print('|{:}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|'.format('a', sts.mean, math.sqrt(sts.variance), sts.minmax[0], sts.minmax[1], scale))
         # set x-axis lable ...
         axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")), fontsize=12)
         ## title and save ...
@@ -174,6 +179,8 @@ if __name__ == '__main__':
     ## parse cmd
     args = parser.parse_args()
 
+    verboseprint = print if args.verbose else lambda *a, **k: None
+
     # executables including path
     nopath_prog_list = ['check-gravity-field.out', 'check-third-body.out', 'check-solid-earth-tide.out', 'check-pole-tide.out', 'check-ocean-pole-tide.out', 'check-relativistic.out', 'check-fes14b-ocean-tide.out']
     prog_list = [ os.path.join(args.progs_dir, x) for x in nopath_prog_list ]
@@ -215,7 +222,7 @@ if __name__ == '__main__':
 temp_fn = ".tmp"
 for i,prog in enumerate(prog_list):
     cmd = [prog] + [ x for x in args_list[i]['args'] ]
-    print('Running command: [{:}]'.format(' '.join(cmd)))
+    verboseprint('Running command: [{:}]'.format(' '.join(cmd)))
     forces = ['']
     ftmp = open(temp_fn, "w")
     try:
@@ -227,4 +234,4 @@ for i,prog in enumerate(prog_list):
         forces = ['[SUN]', '[MOON]']
     plot(temp_fn, args.factor, plot_titles[i], plot_fns[i], forces, args.plot_raw)
     ftmp.close()
-    #os.remove(".tmp")
+    os.remove(".tmp")

@@ -79,86 +79,103 @@ int pole_tide(const dso::datetime<dso::nanoseconds> &t, double xp, double yp,
 int permanent_tide(const std::vector<Eigen::Matrix<double, 3, 1>> &sites,
                    std::vector<Eigen::Matrix<double, 3, 1>> &Senu) noexcept;
 
+/* @brief Ocean Tide information for an individual wave
+ * This class holds information, i.e. DelC+, DelS+, DelC-, DelS- coefficients
+ * up to degree 'maxl' and order 'maxm', for a given tidal wave, identified by
+ * its Doodson number 'doodson' (see Eq. 6.15 in IERS2010 standards).
+ * Coefficients are usually read off from a relevant input file.
+ */
 class DoodsonOceanTideConstituent {
 private:
+  /* Doodson number of the wave */
   DoodsonNumber doodson;
-  int maxl, maxm;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *DelCpl{nullptr},
-      *DelSpl{nullptr}, *DelCmi{nullptr}, *DelSmi{nullptr};
-  void set_null() noexcept;
-  void deallocate() noexcept;
+  /* max degree of coefficients */
+  int maxl;
+  /* max order of coefficients */
+  int maxm;
+  /* coefficients DelC+, i.e. C_nm^(+) */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> DelCpl;
+  /* coefficients DelS+, i.e. S_nm^(+) */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> DelSpl;
+  /* coefficients DelC-, i.e. C_nm^(-) */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> DelCmi;
+  /* coefficients DelS-, i.e. S_nm^(-) */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> DelSmi;
 
 public:
-  DoodsonOceanTideConstituent() noexcept
-      : doodson{}, maxl(0), maxm(0), DelCpl(nullptr), DelSpl(nullptr),
-        DelCmi(nullptr), DelSmi(nullptr) {}
   DoodsonOceanTideConstituent(const dso::DoodsonNumber d, int max_degree,
                               int max_order);
-  ~DoodsonOceanTideConstituent() noexcept;
-  DoodsonOceanTideConstituent(const DoodsonOceanTideConstituent &) noexcept;
-  DoodsonOceanTideConstituent(DoodsonOceanTideConstituent &&) noexcept;
-  DoodsonOceanTideConstituent &
-  operator=(const DoodsonOceanTideConstituent &) noexcept;
-  DoodsonOceanTideConstituent &
-  operator=(DoodsonOceanTideConstituent &&) noexcept;
 
   int max_degree() const noexcept { return maxl; }
   int max_order() const noexcept { return maxm; }
   const DoodsonNumber &doodson_number() const noexcept { return doodson; }
-  /// @warning Your fault if *DelCpl is NULL!
   const double &delCp(int l, int m) const noexcept {
-    return DelCpl->operator()(l, m);
+    return DelCpl.operator()(l, m);
   }
   const double &delSp(int l, int m) const noexcept {
-    return DelSpl->operator()(l, m);
+    return DelSpl.operator()(l, m);
   }
   const double &delCm(int l, int m) const noexcept {
-    return DelCmi->operator()(l, m);
+    return DelCmi.operator()(l, m);
   }
   const double &delSm(int l, int m) const noexcept {
-    return DelSmi->operator()(l, m);
+    return DelSmi.operator()(l, m);
   }
-  double &delCp(int l, int m) noexcept { return DelCpl->operator()(l, m); }
-  double &delSp(int l, int m) noexcept { return DelSpl->operator()(l, m); }
-  double &delCm(int l, int m) noexcept { return DelCmi->operator()(l, m); }
-  double &delSm(int l, int m) noexcept { return DelSmi->operator()(l, m); }
+  double &delCp(int l, int m) noexcept { return DelCpl.operator()(l, m); }
+  double &delSp(int l, int m) noexcept { return DelSpl.operator()(l, m); }
+  double &delCm(int l, int m) noexcept { return DelCmi.operator()(l, m); }
+  double &delSm(int l, int m) noexcept { return DelSmi.operator()(l, m); }
 
-  dso::iStatus resize(int maxDegree) noexcept;
+  /* resize instance to hold coefficients up to maxDegree (inclusive) */
+  void resize(int maxDegree) noexcept;
+
+  /* set all of C_nm^(+) S_nm^(+) C_nm^(-) and S_nm^(-) coeffs to zero */
   void clear_coefficients() noexcept;
+}; /* DoodsonOceanTideConstituent */
 
-#ifdef DEBUG
-  void print_matrix_sizes() const noexcept;
-#endif
-}; // DoodsonOceanTideConstituent
-
-int memmap_octide_coefficients(
+iStatus memmap_octide_coefficients(
     const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
-    int max_degree, int max_order, int num_header_lines,
-    double scale = 1e0) noexcept;
+    int max_degree, int max_order, double scale = 1e0) noexcept;
 
+/* @brief A class to hold and compute ocean tidal disturbances
+ * This class i based on model described in IERS-2010 standards, Sec. 6.3.
+ * It holds a list of 'main' tidal waves, along with their coefficients i.e.
+ * C_nm^(+) S_nm^(+) C_nm^(-) and S_nm^(-) up to given degree and order (n,m).
+ * For each such wave, the relevant information are kept in an individual 
+ * DoodsonOceanTideConstituent instance.
+ * Computation of geopotential ΔCnm and ΔSnm components is based on Eq. 6.15
+ */
 class OceanTide {
 private:
+  /* hold one DoodsonOceanTideConstituent for each of the main waves of the
+   * model. This instance is usually read-off of from an input file (e.g.
+   * ftp://tai.bipm.org/iers/conv2010/chapter6/tidemodels/fes2004_Cnm-Snm.dat
+   * and function memmap_octide_coefficients)
+   */
   std::vector<DoodsonOceanTideConstituent> doodsonFreqs;
+  /* ΔCnm and ΔSnm after computation */
   dso::StokesCoeffs dCS;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
+  /* workspace matrix */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
+  /* workspace matrix */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
 public:
   int max_degree() const noexcept { return dCS.max_degree(); }
   int max_order() const noexcept { return dCS.max_order(); }
-  OceanTide(const std::vector<DoodsonOceanTideConstituent> &dfvec,
-            int max_degree, int max_order, double GMearth = iers2010::GMe,
-            double Rearth = iers2010::Re) noexcept
-      : doodsonFreqs(dfvec), dCS(max_degree, max_order, GMearth, Rearth),
-        V(max_degree + 3, max_degree + 3), W(max_degree + 3, max_degree + 3) {}
+  int num_main_waves() const noexcept {return doodsonFreqs.size();}
 
-  int operator()(const dso::TwoPartDate &mjdtt, int max_degree,
-                 int max_order) noexcept;
-  int acceleration(const dso::TwoPartDate &mjdtt,
+  OceanTide(const char *fn, double scale, int max_degree, int max_order,
+            double GMearth = iers2010::GMe,
+            double Rearth = iers2010::Re);
+
+  iStatus operator()(const dso::TwoPartDate &mjdtt, int max_degree=-1,
+                 int max_order=-1) noexcept;
+  iStatus acceleration(const dso::TwoPartDate &mjdtt,
                    const Eigen::Matrix<double, 3, 1> &rsat,
                    Eigen::Matrix<double, 3, 1> &acc,
                    Eigen::Matrix<double, 3, 3> &acc_gradient,
                    int max_degree = -1, int max_order = -1) noexcept;
-}; // OceanTide
+}; /* OceanTide */
 
 class OceanPoleTide {
 private:

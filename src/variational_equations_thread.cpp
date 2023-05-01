@@ -193,7 +193,7 @@ void tides_n_tba(const dso::TwoPartDate &tai,
   if (params.octide) {
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> tgradient;
-    params.octide->acceleration(tai.tai2tt(), ritrf, tacc, tgradient);
+    assert(params.octide->acceleration(tai.tai2tt(), ritrf, tacc, tgradient));
     acc += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     dadr += T * tgradient * T.transpose();
