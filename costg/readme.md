@@ -24,7 +24,8 @@ $>costg/check-01eop.out \
 ![alt text](figures/01earthRotation_rotaryMatrix.png)
 
 ## Accelerations
-||Mean|Std. Deviation|Min|Max|Scale for [m/sec^2]|
+|Component|Mean |Std. Deviation|Min |Max |Scale for [m/sec^2]|
+|:--      | :-- | :--          |:-- |:-- |:-- |
 |Gravity Field n=(2..180) |
 |x|+7.253e-06|+7.373e-04|-4.385e-03|+2.966e-03|+1.000e+12|
 |y|-1.631e-05|+7.162e-04|-4.226e-03|+3.882e-03|+1.000e+12|
