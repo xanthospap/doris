@@ -109,6 +109,11 @@ Test includes transformations between ITRF/GCRF frames.
 [c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html) used to compute Sun position 
 and approximate Earth/Sun velocity.
 
+### 11oceanTide_fes2014b_34major_icrf.txt
+![alt text](figures/fes14b-ocean-tide.png)
+Validation check using only the 34 major tidal waves of the fes2014b model. 
+Test includes transformations between ITRF/GCRF frames.
+
 ## Other Tests
 
 ### ITRF to ICRF transformation
