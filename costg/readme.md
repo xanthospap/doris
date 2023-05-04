@@ -109,6 +109,17 @@ Test includes transformations between ITRF/GCRF frames.
 [c-spice](https://naif.jpl.nasa.gov/naif/toolkit.html) used to compute Sun position 
 and approximate Earth/Sun velocity.
 
+### 09 AOD1B RL06 atmospheric tides
+![alt text](figures/aod1b-atmosphericTides.png)
+Atmospheric tides uing model AOD1B RL06 (all waves) via the COST-G provided 
+file `atmosTides_AOD1BRL06.iers.txt`. Test includes transformations between 
+ITRF/GCRF frames.
+
+![alt text](figures/aod1b-atmosphericTides-s1.png)
+Atmospheric tides uing model AOD1B RL06 (S1 wave only) via the COST-G provided 
+file `atmosTides_AOD1BRL06.iers.txt`. Test includes transformations between 
+ITRF/GCRF frames.
+
 ### 11oceanTide_fes2014b_34major_icrf.txt
 ![alt text](figures/fes14b-ocean-tide.png)
 Validation check using only the 34 major tidal waves of the fes2014b model. 
