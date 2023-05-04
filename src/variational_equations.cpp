@@ -113,7 +113,7 @@ void dso::VariationalEquations(
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    assert(params.octide->acceleration(cmjd.tai2tt(), r_geo, tacc, taccgrad));
+    assert(params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, tacc, taccgrad));
     f += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();
@@ -311,7 +311,7 @@ void dso::VariationalEquations2(
     // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> acc;
     Eigen::Matrix<double, 3, 3> gradient;
-    assert(params.octide->acceleration(cmjd.tai2tt(), r_itrf, acc, gradient));
+    assert(params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, acc, gradient));
     f += Rot.itrf2gcrf(acc);
     const auto T = Rot.itrf2gcrf();
     dadr += T * gradient * T.transpose();

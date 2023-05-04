@@ -137,11 +137,23 @@ iStatus memmap_octide_coefficients(
     const char *fn, std::vector<dso::DoodsonOceanTideConstituent> &freqs,
     int max_degree, int max_order, double scale = 1e0) noexcept;
 
+/* @brief Match given waves from an DoodsonOceanTideConstituent vector
+ * @param[in] waves A vector of DoodsonNumber of interest
+ * @param[in] freqs Original vector of DoodsonOceanTideConstituent (to be 
+ *            filtered)
+ * @return std::vector<dso::DoodsonOceanTideConstituent> A vector of 
+ *         DoodsonOceanTideConstituent, containing only waves included both
+ *         in waves and in freqs vectors.
+ */
+std::vector<dso::DoodsonOceanTideConstituent> filter_waves(
+    const std::vector<DoodsonNumber> &waves,
+    const std::vector<dso::DoodsonOceanTideConstituent> &freqs) noexcept;
+
 /* @brief A class to hold and compute ocean tidal disturbances
  * This class i based on model described in IERS-2010 standards, Sec. 6.3.
  * It holds a list of 'main' tidal waves, along with their coefficients i.e.
  * C_nm^(+) S_nm^(+) C_nm^(-) and S_nm^(-) up to given degree and order (n,m).
- * For each such wave, the relevant information are kept in an individual 
+ * For each such wave, the relevant information are kept in an individual
  * DoodsonOceanTideConstituent instance.
  * Computation of geopotential ΔCnm and ΔSnm components is based on Eq. 6.15
  */
@@ -159,23 +171,63 @@ private:
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
   /* workspace matrix */
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
+
 public:
   int max_degree() const noexcept { return dCS.max_degree(); }
   int max_order() const noexcept { return dCS.max_order(); }
-  int num_main_waves() const noexcept {return doodsonFreqs.size();}
+  int num_main_waves() const noexcept { return doodsonFreqs.size(); }
 
   OceanTide(const char *fn, double scale, int max_degree, int max_order,
-            double GMearth = iers2010::GMe,
-            double Rearth = iers2010::Re);
+            double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
 
-  iStatus operator()(const dso::TwoPartDate &mjdtt, int max_degree=-1,
-                 int max_order=-1) noexcept;
+  iStatus operator()(const dso::TwoPartDate &mjdtt,
+                     const dso::TwoPartDate &mjdut1, int max_degree = -1,
+                     int max_order = -1) noexcept;
   iStatus acceleration(const dso::TwoPartDate &mjdtt,
-                   const Eigen::Matrix<double, 3, 1> &rsat,
-                   Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient,
-                   int max_degree = -1, int max_order = -1) noexcept;
+                       const dso::TwoPartDate &mjdut1,
+                       const Eigen::Matrix<double, 3, 1> &rsat,
+                       Eigen::Matrix<double, 3, 1> &acc,
+                       Eigen::Matrix<double, 3, 3> &acc_gradient,
+                       int max_degree = -1, int max_order = -1) noexcept;
 }; /* OceanTide */
+
+class AtmosphericTide {
+private:
+  /* hold one DoodsonOceanTideConstituent for each of the main waves of the
+   * model. This instance is usually read-off of from an input file (e.g.
+   * atmosTides_AOD1BRL06.potential.iers.txt
+   * and function memmap_octide_coefficients)
+   */
+  std::vector<DoodsonOceanTideConstituent> doodsonFreqs;
+  /* ΔCnm and ΔSnm after computation */
+  dso::StokesCoeffs dCS;
+  /* workspace matrix */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
+  /* workspace matrix */
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
+
+public:
+  int max_degree() const noexcept { return dCS.max_degree(); }
+  int max_order() const noexcept { return dCS.max_order(); }
+  int num_main_waves() const noexcept { return doodsonFreqs.size(); }
+
+  void filter_waves(const std::vector<DoodsonNumber> &waves) noexcept {
+    doodsonFreqs = dso::filter_waves(waves, doodsonFreqs);
+  }
+
+  AtmosphericTide(const char *fn, double scale, int max_degree, int max_order,
+            double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
+
+  iStatus operator()(const dso::TwoPartDate &mjdtt,
+                     const dso::TwoPartDate &mjdut1, int max_degree = -1,
+                     int max_order = -1) noexcept;
+  iStatus acceleration(const dso::TwoPartDate &mjdtt,
+                       const dso::TwoPartDate &mjdut1,
+                       const Eigen::Matrix<double, 3, 1> &rsat,
+                       Eigen::Matrix<double, 3, 1> &acc,
+                       Eigen::Matrix<double, 3, 3> &acc_gradient,
+                       int max_degree = -1, int max_order = -1) noexcept;
+}; /* AtmosphericTide */
 
 class OceanPoleTide {
 private:
@@ -303,9 +355,7 @@ public:
                  double GMmoon = 0.49028010560e13,
                  double GMsun = 1.32712442076e20) noexcept
       : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth),
-        V(degree + 3, degree + 3), W(degree + 3, degree + 3) /*, PM(degree),
-         PS(degree)*/
-  {}
+        V(degree + 3, degree + 3), W(degree + 3, degree + 3) {}
 
   int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
                  const Eigen::Matrix<double, 3, 1> &rmoon,

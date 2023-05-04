@@ -12,7 +12,8 @@ constexpr const int order = 180;
 int main(int argc, char *argv[]) {
   if (argc != 6) {
     fprintf(stderr,
-            "Usage: %s [11oceanTide_fes2014b_34major_icrf.txt] [eopc04_14_IAU2000.62-now]"
+            "Usage: %s [11oceanTide_fes2014b_34major_icrf.txt] "
+            "[eopc04_14_IAU2000.62-now]"
             " [00orbit_icrf.txt] [oceanTide_FES2014b.potential.iers.txt] "
             "[01earthRotation_quaternion.txt]\n",
             argv[0]);
@@ -33,7 +34,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed to read input state file %s\n", argv[3]);
     return 1;
   }
-  
+
   /* create and fill an EOP look up table */
   dso::EopLookUpTable eop_lut;
   {
@@ -107,7 +108,7 @@ int main(int argc, char *argv[]) {
     /* Acceleration from Ocean Tides in ITRF  */
     Eigen::Matrix<double, 3, 3> partials;
     Eigen::Matrix<double, 3, 1> set_acc;
-    if (OcTide.acceleration(tai.tai2tt(), r, set_acc, partials)) {
+    if (OcTide.acceleration(tai.tai2tt(), R.ut1(), r, set_acc, partials)) {
       fprintf(stderr, "ERROR Failed to compute Ocean Tide!\n");
       return 1;
     }
@@ -115,7 +116,8 @@ int main(int argc, char *argv[]) {
     {
       /* compute and subtract degrees [0,1] */
       Eigen::Matrix<double, 3, 1> set01_acc;
-      if (OcTide.acceleration(tai.tai2tt(), r, set01_acc, partials, 1, 1)) {
+      if (OcTide.acceleration(tai.tai2tt(), R.ut1(), r, set01_acc, partials, 1,
+                              1)) {
         fprintf(stderr, "ERROR Failed to compute Ocean Tide!\n");
         return 1;
       }

@@ -7,7 +7,7 @@
  * with respect to the GRACE satellite mission https://d-nb.info/97498454x/34
  */
 
-dso::iStatus dso::OceanTide::acceleration(
+dso::iStatus dso::AtmosphericTide::acceleration(
     const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
     const Eigen::Matrix<double, 3, 1> &rsat, Eigen::Matrix<double, 3, 1> &acc,
     Eigen::Matrix<double, 3, 3> &gradient, int max_degree,
@@ -28,7 +28,7 @@ dso::iStatus dso::OceanTide::acceleration(
   return dso::iStatus(0);
 }
 
-dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
+dso::iStatus dso::AtmosphericTide::operator()(const dso::TwoPartDate &mjdtt,
                                         const dso::TwoPartDate &mjdut1,
                                         int max_degree,
                                         int max_order) noexcept {
@@ -39,7 +39,7 @@ dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
     max_order = dCS.max_order();
   if (max_degree > dCS.max_degree() || max_order > dCS.max_order()) {
     fprintf(stderr,
-            "[ERROR] Invalid degree/order for ocean tides computation "
+            "[ERROR] Invalid degree/order for atmospheric tides computation "
             "(traceback: %s)\n",
             __func__);
     return dso::iStatus(1);
@@ -70,7 +70,7 @@ dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
 
   /* iterate through main waves f and apply Eq. 6.15 for each f */
   for (const auto &f : doodsonFreqs) {
-    /* angle θ(t) for wave f (i.e. f is DoodsonOceanTideConstituent) */
+    /* angle θ(t) for wave f (i.e. f is DoodsonAtmosphericTideConstituent) */
     const double theta = f.doodson_number().phase(dmult);
     const double st = std::sin(theta);
     const double ct = std::cos(theta);
@@ -88,17 +88,6 @@ dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
       } /* end looping degrees */
     }   /* end looping order */
   }     /* end current wave f */
-
-  /* Warning !!
-   * According to IERS 2010, Sec. 6.3.2
-   * Note that, for zonal terms, FES2004 takes the approach to set the
-   * retrograde coefficients C_f,n0^(-) and S_f,n0^(-) to zero and to double
-   * the prograde coefficients C_f,n0^(+) and S_f,n0^(+). Therefore, after
-   * applying Equation (6.15), the ΔC_n0 have the expected value but the ΔSn0
-   * must be set to zero.
-   */
-  for (int n = 0; n <= max_degree; n++)
-    dCS.S(n, 0) = 0e0;
 
   return dso::iStatus(0);
 }

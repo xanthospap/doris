@@ -182,13 +182,13 @@ if __name__ == '__main__':
     verboseprint = print if args.verbose else lambda *a, **k: None
 
     # executables including path
-    nopath_prog_list = ['check-gravity-field.out', 'check-third-body.out', 'check-solid-earth-tide.out', 'check-pole-tide.out', 'check-ocean-pole-tide.out', 'check-relativistic.out', 'check-fes14b-ocean-tide.out']
+    nopath_prog_list = ['check-gravity-field.out', 'check-third-body.out', 'check-solid-earth-tide.out', 'check-pole-tide.out', 'check-ocean-pole-tide.out', 'check-relativistic.out', 'check-fes14b-ocean-tide.out', 'check-aod1b-atmosphericTides.out', 'check-aod1b-atmosphericTides-s1.out']
     prog_list = [ os.path.join(args.progs_dir, x) for x in nopath_prog_list ]
 
     # plot file names (output)
     ext = '.png'
     plot_fns = [ os.path.join(args.plots_dir, x.replace('check-','').replace('.out', ext)) for x in nopath_prog_list ]
-    plot_titles = [ 'Gravity Field n=(2..180)', 'Third Body', 'Solid Earth Tide', 'Solid Earth Pole Tide', 'Ocean Pole Tide n=(2..180)', 'Relativistic Correction', 'FES2014 Major Waves n=(2..180)']
+    plot_titles = [ 'Gravity Field n=(2..180)', 'Third Body', 'Solid Earth Tide', 'Solid Earth Pole Tide', 'Ocean Pole Tide n=(2..180)', 'Relativistic Correction', 'FES2014 Major Waves n=(2..180)', 'AOD1B RL06 all waves n=(2..180)', 'AOD1B RL06 S1 wave n=(2..180)']
 
     # path to costg models
     mdlp = os.path.join(args.costg_dir, 'models')
@@ -209,7 +209,9 @@ if __name__ == '__main__':
         { 'args': [os.path.join(stlp, '05poleTide_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] },
         { 'args': [os.path.join(stlp, '06oceanPoleTide_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt'), os.path.join(mdlp, 'desaiscopolecoef.txt') ] },
         { 'args': [os.path.join(stlp, '07relativistic_icrf.txt'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(jplp,'de421.bsp'), os.path.join(jplp, 'naif0012.tls') ] },
-        { 'args': [os.path.join(stlp, '11oceanTide_fes2014b_34major_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(mdlp, 'FES2014b_oceanTide/oceanTide_FES2014b.potential.iers.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] }
+        { 'args': [os.path.join(stlp, '11oceanTide_fes2014b_34major_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(mdlp, 'FES2014b_oceanTide/oceanTide_FES2014b.potential.iers.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] },
+        { 'args': [os.path.join(stlp, '09aod1b_atmosphericTides_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(mdlp, 'AOD1B_tides_groops_gfc/atmosTides_AOD1BRL06.potential.iers.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] },
+        { 'args': [os.path.join(stlp, '09aod1b_atmosphericTides_S1_icrf.txt'), os.path.join(mdlp, 'eopc04_14_IAU2000.62-now'), os.path.join(stlp, '00orbit_icrf.txt'), os.path.join(mdlp, 'AOD1B_tides_groops_gfc/atmosTides_AOD1BRL06.potential.iers.txt'), os.path.join(stlp, '01earthRotation_quaternion.txt') ] }
     ]
     for d in args_list:
         files = [ x for x in d['args'] ]

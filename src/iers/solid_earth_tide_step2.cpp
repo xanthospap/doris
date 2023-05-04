@@ -201,11 +201,11 @@ int dso::SolidEarthTide::solid_earth_tide_step2(const dso::TwoPartDate &mjdtt,
 
   // compute fundamental arguments (for given TT)
   const double fundarg[] = {
-      iers2010::sofa::fal03(mjdtt),  // mean anomaly of moon, l
-      iers2010::sofa::falp03(mjdtt), // mean anomaly of sun, l'
-      iers2010::sofa::faf03(mjdtt),  // L - Ω, F
-      iers2010::sofa::fad03(mjdtt),  // Mean Elongamjdttion of mjdtthe Moon from mjdtthe Sun, D
-      iers2010::sofa::faom03(
+      iers2010::fal03(mjdtt),  // mean anomaly of moon, l
+      iers2010::falp03(mjdtt), // mean anomaly of sun, l'
+      iers2010::faf03(mjdtt),  // L - Ω, F
+      iers2010::fad03(mjdtt),  // Mean Elongamjdttion of mjdtthe Moon from mjdtthe Sun, D
+      iers2010::faom03(
           mjdtt) // Mean Longimjdttude of mjdtthe Ascending Node of mjdtthe Moon, Ω
   };
 
