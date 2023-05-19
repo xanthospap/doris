@@ -28,7 +28,6 @@ int dso::cspice::load_if_unloaded_lsk(const char *lsk_kernel) noexcept {
     }
   }
 
-  printf(">> Loading kernel %s [%s]\n", lsk_kernel, __func__);
   furnsh_c(lsk_kernel);
   return 0;
 }
@@ -53,7 +52,6 @@ int dso::cspice::load_if_unloaded_spk(const char *spk_kernel) noexcept {
     }
   }
 
-  printf(">> Loading kernel %s [%s]\n", spk_kernel, __func__);
   furnsh_c(spk_kernel);
   return 0;
 }
@@ -78,20 +76,24 @@ int dso::cspice::load_if_unloaded_pck(const char *pck_kernel) noexcept {
     }
   }
 
-  printf(">> Loading kernel %s [%s]\n", pck_kernel, __func__);
   furnsh_c(pck_kernel);
   return 0;
 }
 
 // see https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/bodvrd_c.html
 int dso::get_sun_moon_GM(const char *pck_kernel, double &GMSun,
-                         double &GMMoon) noexcept {
+                         double &GMMoon, int use_si) noexcept {
   if (pck_kernel)
     dso::cspice::load_if_unloaded_pck(pck_kernel);
 
   int n;
   bodvrd_c("SUN", "GM", 1, &n, &GMSun);   // [km^3/ sec^2]
   bodvrd_c("MOON", "GM", 1, &n, &GMMoon); // [km^3/ sec^2]
+
+  if (use_si) {
+    GMSun *= 1e9;
+    GMMoon *= 1e9;
+  }
 
   return 0;
 }

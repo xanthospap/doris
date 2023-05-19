@@ -213,26 +213,26 @@ int drag(const dso::TwoPartDate &tai, const Eigen::Matrix<double, 3, 1> &rgcrf,
     return 0;
 }
 
-}//unnamed namespace
+} /* unnamed namespace */
 
 void dso::VariationalEquations_mg(
-    // seconds from reference epoch (TAI)
+    /* seconds from reference epoch (TAI) */
     double tsec,
-    // state and state transition matrix (inertial RF)
+    /* state and state transition matrix (inertial RF) */
     const Eigen::VectorXd &yP0,
-    // state derivative and state transition matrix derivative (inertial RF)
+    /* state derivative and state transition matrix derivative (inertial RF) */
     Eigen::Ref<Eigen::VectorXd> yPt,
-    // auxiliary parametrs
+    /* auxiliary parametrs */
     dso::IntegrationParameters &params) noexcept {
 
-  // current mjd, TAI
+  /* current mjd, TAI */
   const dso::TwoPartDate _cmjd(params.mjd_tai +
                               dso::TwoPartDate(0e0, tsec / 86400e0));
   const dso::TwoPartDate cmjd = _cmjd.normalized();
 
   printf("[ACC] %.9e", cmjd.as_mjd());
 
-  // split input vector to y, [Φ S]
+  /* split input vector to y, [Φ S] */
   Eigen::Matrix<double,6,1> y;
   Eigen::Matrix<double,6,n> FS;
   {
@@ -242,10 +242,10 @@ void dso::VariationalEquations_mg(
     }
   }
 
-  // terrestrial to celestial for epoch
+  /* terrestrial to celestial for epoch */
   dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
 
-  // split position and velocity vectors GCRF
+  /* split position and velocity vectors GCRF */
   Eigen::Matrix<double, 3, 1> r = y.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = y.block<3, 1>(3, 0);
 
@@ -254,18 +254,20 @@ void dso::VariationalEquations_mg(
   Eigen::Matrix<double, 3, 3> dadv = Eigen::Matrix<double, 3, 3>::Zero();
   Eigen::Matrix<double, 3, m> dadp = Eigen::Matrix<double, 3, m>::Zero();
 
-  // satellite position at t, in ITRF
+  /* satellite position at t, in ITRF */
   Eigen::Matrix<double, 3, 1> r_itrf = Rot.gcrf2itrf(r);
-  { // compute gravity-induced acceleration (we need the position vector in
-    // ITRF)
+  { /* compute gravity-induced acceleration (we need the position vector in
+     * ITRF)
+     */
     Eigen::Matrix<double, 3, 3> gpartials;
     Eigen::Matrix<double, 3, 1> gacc;
     dso::gravity_acceleration(params.harmonics, r_itrf, params.degree,
                    params.harmonics.Re(), params.harmonics.GM(), gacc,
                    gpartials, params.V, params.W);
 
-    // gravity acceleration in earth-fixed frame; need to have inertial 
-    // acceleration!
+    /* gravity acceleration in earth-fixed frame; need to have inertial 
+     * acceleration!
+     */
     gacc = Rot.itrf2gcrf(gacc);
     const auto T = Rot.itrf2gcrf();
     gpartials = T * gpartials * T.transpose();
@@ -279,9 +281,9 @@ void dso::VariationalEquations_mg(
     printf(" gm:%.9e", Rot.itrf2gcrf(gacc).norm());
   }
 
-  // position of sun/moon, [m] in celestial RF
+  /* position of sun/moon, [m] in celestial RF */
   Eigen::Matrix<double, 3, 1> rsun,rmon; 
-  { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
+  { /* third body perturbations, Sun and Moon [m/sec^2] in celestial RF */
     Eigen::Matrix<double, 3, 1> sun_acc;
     Eigen::Matrix<double, 3, 1> mon_acc;
     Eigen::Matrix<double, 3, 3> partials;
@@ -292,10 +294,11 @@ void dso::VariationalEquations_mg(
     dadr += partials;
   }
 
-  if (params.setide) { // earth tides on geopotential, gravity
+  if (params.setide) { 
+    /* earth tides on geopotential, gravity */
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    // Sun and Moon position in ECEF
+    /* Sun and Moon position in ECEF */
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
     params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, rm_ecef,
@@ -306,19 +309,19 @@ void dso::VariationalEquations_mg(
     dadr += T * taccgrad * T.transpose();
   }
 
-  if (params.octide) 
-  { // oean tides on geopotential, gravity
+  if (params.octide) { 
+    /* oean tides on geopotential, gravity */
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    assert(params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, tacc, taccgrad));
+    assert(!params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, tacc, taccgrad));
     a += Rot.itrf2gcrf(tacc);
     printf(" octide:%.9e", Rot.itrf2gcrf(tacc).norm());
     const auto T = Rot.itrf2gcrf();
     dadr += T * taccgrad * T.transpose();
   }
 
-  // drag
-  {
+  { 
+    /* drag */
     Eigen::Matrix<double, 3, 1> ta;
     Eigen::Matrix<double, 3, 3> tdadr;
     Eigen::Matrix<double, 3, 3> tdadv;
@@ -332,7 +335,8 @@ void dso::VariationalEquations_mg(
     printf(" drag:%.9e", ta.norm());
   }
 
-  {
+  { 
+    /* solar radiation pressure */
     Eigen::Matrix<double, 3, 1> ta;
     Eigen::Matrix<double, 3, 3> tdadr;
     Eigen::Matrix<double, 3, 3> tdadv;
@@ -346,8 +350,8 @@ void dso::VariationalEquations_mg(
     printf(" srp:%.9e", ta.norm());
   }
 
-  // relativity
-  {
+  { 
+    /* relativity */
     Eigen::Matrix<double, 3, 1> ta;
     ta = iers2010::relativistic_correction(r,v);
     a += ta;
@@ -409,44 +413,47 @@ phi2(const Eigen::Matrix<double, (6 + 6*n), 1> &yp0) noexcept {
 }
 
 void dso::VariationalEquations_ta(
-    // seconds from reference epoch (TAI)
+    /* seconds from reference epoch (TAI) */
     double tsec,
-    // state and state transition matrix (inertial RF) column-vector of size 6+6*n
+    /* state and state transition matrix (inertial RF) column-vector of size 6+6*n */
     const Eigen::VectorXd &yP0,
-    // state derivative and state transition matrix derivative (inertial RF)
+    /* state derivative and state transition matrix derivative (inertial RF) */
     Eigen::Ref<Eigen::VectorXd> yPt, // column-vector of size 6+6*n
-    // auxiliary parametrs
+    /* auxiliary parametrs */
     dso::IntegrationParameters &params) noexcept {
 
-  // current mjd, TAI
+  /* current mjd, TAI */
   const dso::TwoPartDate _cmjd(params.mjd_tai +
                               dso::TwoPartDate(0e0, tsec / 86400e0));
   const dso::TwoPartDate cmjd = _cmjd.normalized();
 
-  // terrestrial to celestial for requested epoch t
+  /* terrestrial to celestial for requested epoch t */
   dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &params.eopLUT);
 
-  // split position and velocity vectors (GCRF) at t=t0
+  /* split position and velocity vectors (GCRF) at t=t0 */
   Eigen::Matrix<double, 3, 1> r = yP0.block<3, 1>(0, 0);
   Eigen::Matrix<double, 3, 1> v = yP0.block<3, 1>(3, 0);
+
+  printf("Position at %.6f[sec] is %.3f %.3f %.3f %.6f %.6f %.6f\n", tsec, r(0), r(1), r(2), v(0), v(1), v(2));
 
   Eigen::Matrix<double, 3, 1> a    = Eigen::Matrix<double, 3, 1>::Zero();
   Eigen::Matrix<double, 3, 3> dadr = Eigen::Matrix<double, 3, 3>::Zero();
   Eigen::Matrix<double, 3, 3> dadv = Eigen::Matrix<double, 3, 3>::Zero();
   Eigen::Matrix<double, 3, m> dadp = Eigen::Matrix<double, 3, m>::Zero();
 
-  // satellite position at t=t0 (ITRF)
+  /* satellite position at t=t0 (ITRF) */
   Eigen::Matrix<double, 3, 1> r_itrf = Rot.gcrf2itrf(r);
 
-  { // compute gravity-induced acceleration
+  { /* compute gravity-induced acceleration */
     Eigen::Matrix<double, 3, 3> gradient;
     Eigen::Matrix<double, 3, 1> acc;
     dso::gravity_acceleration(params.harmonics, r_itrf, params.degree,
                    params.harmonics.Re(), params.harmonics.GM(), acc,
                    gradient, params.V, params.W);
 
-    // transform acceleration and gradient to GCRF
+    /* transform acceleration and gradient to GCRF */
     acc = Rot.itrf2gcrf(acc);
+    printf("acceleration is: %.3f m/s^2\n", acc.norm());
     const auto T = Rot.itrf2gcrf();
     gradient = T * gradient* T.transpose();
 
@@ -454,45 +461,85 @@ void dso::VariationalEquations_ta(
     dadr += gradient;
   }
 
-  // position of sun/moon, [m] in GCRF
+  /* position of sun/moon, [m] in GCRF */
   Eigen::Matrix<double, 3, 1> rsun,rmon; 
-  { // third body perturbations, Sun and Moon [m/sec^2] in celestial RF
+
+  { /* third body perturbations, Sun and Moon [m/sec^2] in celestial RF */
     Eigen::Matrix<double, 3, 1> sun_acc;
     Eigen::Matrix<double, 3, 1> mon_acc;
     Eigen::Matrix<double, 3, 3> gradient;
     dso::SunMoon(cmjd, r, params.GMSun, params.GMMon, sun_acc, mon_acc, rsun,
                  rmon, gradient);
     a += (sun_acc + mon_acc);
-    dadr += gradient;
+    //dadr += gradient;
   }
 
   if (params.setide) { 
-    // earth tides on geopotential
+    /* earth tides on geopotential (ITRF) */
     Eigen::Matrix<double, 3, 1> acc;
     Eigen::Matrix<double, 3, 3> gradient;
-    // Sun and Moon position in ECEF
+    /* Sun and Moon position in ITRF */
     const Eigen::Matrix<double, 3, 1> rm_ecef = Rot.gcrf2itrf(rmon);
     const Eigen::Matrix<double, 3, 1> rs_ecef = Rot.gcrf2itrf(rsun);
     params.setide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, rm_ecef,
                                 rs_ecef, acc, gradient);
-    // acceleration and gradient to GCRF
+    /* acceleration and gradient to GCRF */
     a += Rot.itrf2gcrf(acc);
-    const auto T = Rot.itrf2gcrf();
-    dadr += T * gradient * T.transpose();
+    //const auto T = Rot.itrf2gcrf();
+    //dadr += T * gradient * T.transpose();
   }
 
   if (params.octide) {
-    // oean tides on geopotential, gravity
+    /* oean tides on geopotential (ITRF) */
     Eigen::Matrix<double, 3, 1> acc;
     Eigen::Matrix<double, 3, 3> gradient;
-    assert(params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, acc, gradient));
+    assert(!params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_itrf, acc,
+                                       gradient));
+    /* acceleration and gradient to GCRF */
     a += Rot.itrf2gcrf(acc);
-    const auto T = Rot.itrf2gcrf();
-    dadr += T * gradient * T.transpose();
+    //const auto T = Rot.itrf2gcrf();
+    //dadr += T * gradient * T.transpose();
+  }
+
+  {
+    /* Acceleration from solid earth pole tide in ITRF */
+    Eigen::Matrix<double, 3, 1> acc;
+    Eigen::Matrix<double, 3, 3> gradient;
+    params.psetide->acceleration(cmjd.tai2tt(), Rot.eop().xp, Rot.eop().yp,
+                                 r_itrf, acc, gradient);
+    /* acceleration and gradient to GCRF */
+    a += Rot.itrf2gcrf(acc);
+    //const auto T = Rot.itrf2gcrf();
+    //dadr += T * gradient * T.transpose();
   }
   
-  // drag
   {
+    /* Acceleration from ocean pole tide in ITRF */
+    Eigen::Matrix<double, 3, 1> acc;
+    Eigen::Matrix<double, 3, 3> gradient;
+    params.poctide->acceleration(cmjd.tai2tt(), Rot.eop().xp, Rot.eop().yp,
+                                 r_itrf, acc, gradient);
+    /* acceleration and gradient to GCRF */
+    a += Rot.itrf2gcrf(acc);
+    //const auto T = Rot.itrf2gcrf();
+    //dadr += T * gradient * T.transpose();
+  }
+
+  { /* relativistic corrections */
+    auto dRes = rsun;
+    /* Time derivative of the position of the Earth with respect to Sun */
+    const auto dt = 10; /* seconds */
+    auto t2 = cmjd.tai2tt();
+    t2.add_seconds(dt);
+    Eigen::Matrix<double, 3, 1> sun2;
+    if (dso::planet_pos(dso::Planet::SUN, t2, sun2)) {
+      assert(1==2);
+    }
+    dRes = (sun2 - rsun) / dt;
+    a += iers2010::relativistic_correction(r,rsun,dRes,v);
+  }
+  
+  { /* drag */
     Eigen::Matrix<double, 3, 1> ta;
     Eigen::Matrix<double, 3, 3> tdadr;
     Eigen::Matrix<double, 3, 3> tdadv;
@@ -510,7 +557,7 @@ void dso::VariationalEquations_ta(
     //printf(" %.9f[drag]", Rot.itrf2gcrf(ta).norm());
   }
 
-  {
+  { /* dolar radiation pressure */
     Eigen::Matrix<double, 3, 1> ta;
     Eigen::Matrix<double, 3, 3> tdadr;
     Eigen::Matrix<double, 3, 3> tdadv;
@@ -524,14 +571,7 @@ void dso::VariationalEquations_ta(
     //printf(" %.9f[srp]", ta.norm());
   }
   
-  // relativity
-  {
-    Eigen::Matrix<double, 3, 1> ta;
-    ta = iers2010::relativistic_correction(r,v);
-    a += ta;
-    // printf(" rel:%.9e", ta.norm());
-  }
-  
+  printf("acceleration is: %.3f m/s^2\n", a.norm());
   Eigen::Matrix<double,n,n> f123;
   {
     f123.block<3,n>(0,0) = phi1(yP0);
@@ -651,7 +691,7 @@ void dso::noVariationalEquations(
   { // oean tides on geopotential, gravity
     Eigen::Matrix<double, 3, 1> tacc;
     Eigen::Matrix<double, 3, 3> taccgrad;
-    assert(params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, tacc, taccgrad));
+    assert(!params.octide->acceleration(cmjd.tai2tt(), Rot.ut1(), r_geo, tacc, taccgrad));
     f += Rot.itrf2gcrf(tacc);
     const auto T = Rot.itrf2gcrf();
     df += T * taccgrad * T.transpose();

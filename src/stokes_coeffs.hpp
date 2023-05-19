@@ -82,8 +82,11 @@ public:
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Cmat() noexcept {return Cnm;}
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &Smat() noexcept {return Snm;}
 
-}; // StokesCoeffs
+  /* calling instance should be larger that argument (sc) */
+  StokesCoeffs &operator+=(const StokesCoeffs &sc);
 
-} // namespace dso
+}; /* StokesCoeffs */
+
+} /* namespace dso */
 
 #endif

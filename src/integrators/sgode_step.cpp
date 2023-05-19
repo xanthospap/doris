@@ -323,6 +323,7 @@ int dso::SGOde::step(double &eps) noexcept {
         if (ifail != 3 && p5eps < erk * .25e0) {
           tmp2 = std::sqrt(p5eps / erk);
         }
+        if (ifail > 100) { assert(1==2); }
         knew = 1;
       }
       h = tmp2 * h;
@@ -353,7 +354,7 @@ int dso::SGOde::step(double &eps) noexcept {
     if (!nornd) {
       // ρ = h g[k] (y' -φ[0]) - φ[15]
       const auto rho =
-          fac * (/*ArraysNeqn.col(3)*/ yp() - Phi.col(0)) - Phi.col(15);
+          fac * (ArraysNeqn.col(3) /*yp()*/ - Phi.col(0)) - Phi.col(15);
       // y = p + ρ
       yy() = p() + rho;
       // φ[14] = (y-p) - ρ

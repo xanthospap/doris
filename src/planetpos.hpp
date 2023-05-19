@@ -117,10 +117,12 @@ iStatus planet_pos(Planet p, const TwoPartDate &mjd_tt,
  *         [km^3 / sec^2]
  * @param[out] GMMoon Moon's gravitational constant according to the kernel in
  *         [km^3 / sec^2]
+ * @param[in] use_si Transform Sun's and Moon's gravitational constant to SI
+ *         units, i.e. to m^3/sec^2 (instead of km^3/sec^2)
  * @return Anything other than zero denotes an error.
  */
 int get_sun_moon_GM(const char *pck_kernel, double &GMSun,
-                    double &GMMoon) noexcept;
+                    double &GMMoon, int use_si=false) noexcept;
 
 } /* namespace dso */
 

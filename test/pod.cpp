@@ -50,19 +50,13 @@ int site_affected_by_ssa(const char *b4id) noexcept {
 struct {
   const char *id;
   const char *fallback;
-} FallBackVmfNames[] = {
-  {"CRQC", "CRQB"},
-  {"KEYC", "KEWC"},
-  {"MALC", "MALB"},
-  {"ROZC", "ROXC"},
-  {"SJVC", "SJUC"},
-  {"REVC", "REUB"},
-  {"SVBC", "SVAC"}
-};
+} FallBackVmfNames[] = {{"CRQC", "CRQB"}, {"KEYC", "KEWC"}, {"MALC", "MALB"},
+                        {"ROZC", "ROXC"}, {"SJVC", "SJUC"}, {"REVC", "REUB"},
+                        {"SVBC", "SVAC"}};
 constexpr const int FallBackVmfNamesSize =
     sizeof(FallBackVmfNames) / sizeof(FallBackVmfNames[0]);
 const char *fallback_name(const char *fcid) noexcept {
-  for (int i=0; i<FallBackVmfNamesSize; i++)
+  for (int i = 0; i < FallBackVmfNamesSize; i++)
     if (!std::strncmp(fcid, FallBackVmfNames[i].id, 4))
       return FallBackVmfNames[i].fallback;
   return nullptr;
@@ -83,7 +77,7 @@ struct Kalman {
     x(index) = val0;
     P.row(index).setZero();
     P.col(index).setZero();
-    P(index,index) = sigma0*sigma0;
+    P(index, index) = sigma0 * sigma0;
   }
 
   void time_update(const dso::TwoPartDate &ti,
@@ -105,9 +99,9 @@ struct Kalman {
     var = R + H.dot(P * H);
     return (z - g) - H.transpose() * (K * (z - g));
   }
-  
+
   auto observation_no_update(double z, double g, double sigma,
-                          const Eigen::VectorXd &H) noexcept {
+                             const Eigen::VectorXd &H) noexcept {
     double inv_w = sigma * sigma;
     // kalman gain
     K = P * H / (inv_w + H.dot(P * H));
@@ -138,8 +132,8 @@ struct TropoDetails {
 };
 
 class RcSv {
-  dso::TwoPartDate tai{dso::TwoPartDate()}; /* time of reception */
-  dso::TwoPartDate etai{dso::TwoPartDate()}; /* time of emission */
+  dso::TwoPartDate tai{dso::TwoPartDate()};   /* time of reception */
+  dso::TwoPartDate etai{dso::TwoPartDate()};  /* time of emission */
   dso::TwoPartDate tprop{dso::TwoPartDate()}; /* proper time (receiver) */
   char fcid[5] = {'\0'};
   double l2_cycles; /* L [2GHz] measurement */
@@ -147,36 +141,32 @@ class RcSv {
   TropoDetails dTro;
   Eigen::Matrix<double, 3, 1> svGcrf; /* Sv position at t=tai, GCRF [m] */
   Eigen::Matrix<double, 3, 1> bcItrf; /* Beacon coordinates, ITRF [m] */
-  Eigen::Matrix<double, 3, 3> R; /* ITRF-to-GCRF matrix at t=etai */
+  Eigen::Matrix<double, 3, 3> R;      /* ITRF-to-GCRF matrix at t=etai */
   int _restart = {0};
 
 public:
   // geometric distance:
   // d = | svGcrf - R(etai) * bcItrf |
-  double s() const noexcept {
-    return (svGcrf - R*bcItrf).norm();
-  }
+  double s() const noexcept { return (svGcrf - R * bcItrf).norm(); }
 
-  void mark_restart(int onoff=1) noexcept { _restart = onoff; }
+  void mark_restart(int onoff = 1) noexcept { _restart = onoff; }
 
-  dso::TwoPartDate time_of_reception() const noexcept {return tai;}
-  dso::TwoPartDate proper_time() const noexcept {return tprop;}
-  Eigen::Matrix<double, 3, 1> sv_gcrf() const noexcept {return svGcrf;}
-  Eigen::Matrix<double, 3, 1> bc_itrf() const noexcept {return bcItrf;}
-  TropoDetails tropo() const noexcept {return dTro;}
-  double l2GHz_cycles() const noexcept {return l2_cycles;}
-  double iono_cycles() const noexcept {return dIon;}
-  const char *bc_name() const noexcept {return fcid;}
-  int restart() const noexcept {return _restart;}
+  dso::TwoPartDate time_of_reception() const noexcept { return tai; }
+  dso::TwoPartDate proper_time() const noexcept { return tprop; }
+  Eigen::Matrix<double, 3, 1> sv_gcrf() const noexcept { return svGcrf; }
+  Eigen::Matrix<double, 3, 1> bc_itrf() const noexcept { return bcItrf; }
+  TropoDetails tropo() const noexcept { return dTro; }
+  double l2GHz_cycles() const noexcept { return l2_cycles; }
+  double iono_cycles() const noexcept { return dIon; }
+  const char *bc_name() const noexcept { return fcid; }
+  int restart() const noexcept { return _restart; }
 
   void set_emission_tai(const dso::TwoPartDate &t,
                         const dso::EopLookUpTable &eops) noexcept {
     dso::Itrs2Gcrs Rot(t.tai2tt(), &eops);
     R = Rot.itrf2gcrf();
   }
-  void set_proper_time(const dso::TwoPartDate &t) noexcept {
-    tprop = t;
-  }
+  void set_proper_time(const dso::TwoPartDate &t) noexcept { tprop = t; }
 
   RcSv(const char *b4cid, const dso::TwoPartDate &t, double L2, double dion,
        const TropoDetails &trp, const Eigen::Matrix<double, 3, 1> &sv_gcrf,
@@ -190,7 +180,8 @@ public:
   }
 };
 
-dso::TwoPartDate correction_aberration(const RcSv &v, const dso::Itrs2Gcrs &R) noexcept {
+dso::TwoPartDate correction_aberration(const RcSv &v,
+                                       const dso::Itrs2Gcrs &R) noexcept {
   // all work done in GCRF
   assert(R.tt() == v.time_of_reception().tai2tt());
   dso::TwoPartDate tai_emission(v.time_of_reception());
@@ -211,8 +202,9 @@ double emitter_potential(const Eigen::Matrix<double, 3, 1> &ritrf,
 }
 
 int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
-                         double DfeFen, double emitterPotential, double &Vobs, double &Vtheo,
-                         double &dDfeNfeN, Eigen::Matrix<double, 3, 1> &dObsdr,
+                         double DfeFen, double emitterPotential, double &Vobs,
+                         double &Vtheo, double &dDfeNfeN,
+                         Eigen::Matrix<double, 3, 1> &dObsdr,
                          Eigen::Matrix<double, 3, 1> &dObsdv) noexcept {
   constexpr const double c = iers2010::C;
   const double dt =
@@ -221,11 +213,11 @@ int observation_equation(const RcSv &v1, const RcSv &v2, double feN, double frT,
   const double dIon = (c / feN) * (v2.iono_cycles() - v1.iono_cycles()) / dt;
   const double dTro = (v2.tropo()() - v1.tropo()()) / dt;
   const double Ndop = v2.l2GHz_cycles() - v1.l2GHz_cycles();
-  const double fac = 1e0 - emitterPotential/c/c;
+  const double fac = 1e0 - emitterPotential / c / c;
 
   Vobs = (c / feN) * (feN - frT - Ndop / dt) + dIon;
-  Vtheo =
-      fac*(v2.s() - v1.s()) / dt - (c / feN) * (Ndop / dt + frT) * DfeFen + dTro;
+  Vtheo = fac * (v2.s() - v1.s()) / dt -
+          (c / feN) * (Ndop / dt + frT) * DfeFen + dTro;
 
   // partials
   dDfeNfeN = (c / feN) * (Ndop / dt + frT);
@@ -252,17 +244,22 @@ int get_tropo_vmf(const char *fcid, const dso::datetime<dso::nanoseconds> &t,
     // before quiting, try for a fallback site name
     const char *fallback_site_name = fallback_name(fcid);
     if (fallback_site_name) {
-      printf("[DEBUG] Failed Tropo; trying for fallback name %.4s (%.4s) for VMF3 grid ...",
+      printf("[DEBUG] Failed Tropo; trying for fallback name %.4s (%.4s) for "
+             "VMF3 grid ...",
              fallback_site_name, fcid);
       if (feed.interpolate(fallback_site_name, t, meteo)) {
         printf(" Noop!\n");
-        fprintf(stderr, "[WRNNG] Observation skipped for site %.4s (TROPO missing)\n", fcid);
+        fprintf(stderr,
+                "[WRNNG] Observation skipped for site %.4s (TROPO missing)\n",
+                fcid);
         return 1;
       } else {
         printf(" yeap!\n");
       }
     } else {
-      fprintf(stderr, "[WRNNG] Observation skipped for site %.4s (TROPO missing)\n", fcid);
+      fprintf(stderr,
+              "[WRNNG] Observation skipped for site %.4s (TROPO missing)\n",
+              fcid);
       return 1;
     }
   }
@@ -291,9 +288,10 @@ beaconcrs2cchar_vec(const std::vector<dso::BeaconCoordinates> &bcv) noexcept {
   }
   /* check if we have fallback site names and replace */
   for (auto it = site_names.begin(); it != site_names.end(); ++it) {
-    for (int i=0; i<FallBackVmfNamesSize; i++) {
+    for (int i = 0; i < FallBackVmfNamesSize; i++) {
       if (!std::strncmp(*it, FallBackVmfNames[i].id, 4)) {
-        printf("[NOTE] Replacing site name %.4s with %.4s in VMF3 feed\n", *it, FallBackVmfNames[i].fallback);
+        printf("[NOTE] Replacing site name %.4s with %.4s in VMF3 feed\n", *it,
+               FallBackVmfNames[i].fallback);
         *it = FallBackVmfNames[i].fallback;
       }
     }
@@ -413,19 +411,19 @@ public:
   Eigen::Matrix<double, 6, 1> itrf_state_cm() const noexcept {
     return Rot.gcrf2itrf(gcrf_state_cm());
   }
-  
+
   Eigen::Matrix<double, 3, 1> gcrf_position_arp() noexcept {
-    // return satellite's Antenna L2 RP position, in GCRF, assuming that 
+    // return satellite's Antenna L2 RP position, in GCRF, assuming that
     // state is referred to CoM (GCRF)
     if (sv_frame) {
       // GCRF: from satellite ARP to CoG
       Eigen::Matrix<double, 3, 1> dr;
-      assert(! (sv_frame->arp2cog(tai_time(), dr)) );
+      assert(!(sv_frame->arp2cog(tai_time(), dr)));
       return gcrf_position_cm() - dr;
     }
     return gcrf_position_cm();
   }
-  
+
   Eigen::Matrix<double, 3, 1> itrf_position_arp() noexcept {
     return Rot.gcrf2itrf(gcrf_position_arp());
   }
@@ -464,6 +462,10 @@ public:
   int integrate(const dso::TwoPartDate &mjd_target,
                 dso::SGOde &integrator) noexcept {
 
+    printf("Integrating %.3f seconds away!\n",
+           mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+               mjd_tai));
+
     // number of equations:
     // 6 for the state + 6*n for the variational equations, where n = 6 + m
     constexpr const int NumEqn = 6 + 6 * n;
@@ -488,22 +490,6 @@ public:
 
     // integration solution
     Eigen::VectorXd sol(NumEqn);
-
-    /* char buf[64];
-    {
-      using ST = dso::nanoseconds::underlying_type;
-      const auto T = mjd_tai.normalized();
-      dso::datetime<dso::nanoseconds> wt(
-          dso::modified_julian_day(T._big),
-          dso::nanoseconds(static_cast<ST>(
-              (T._small * 86400e0) * dso::nanoseconds::sec_factor<double>())));
-      dso::strftime_ymd_hmfs(wt, buf);
-      fprintf(stderr, "[LOG] Integrating from %s to ", buf);
-      wt.add_seconds(dso::nanoseconds(static_cast<ST>(
-          (tout) * dso::nanoseconds::sec_factor<double>())));
-      dso::strftime_ymd_hmfs(wt, buf);
-      fprintf(stderr, "%s (%.9f sec away)\n", buf, tout);
-    }*/
 
     // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
     double tsec = 0e0;
@@ -598,6 +584,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  printf("-- bp 1\n");
   // Initial Orbit
   // -------------------------------------------------------------------------
   // Initial satellite state, get it from the Sp3 using the RINEX's time of
@@ -630,6 +617,7 @@ int main(int argc, char *argv[]) {
     eop_lut.regularize(false);
   }
 
+  printf("-- bp 2\n");
   // Gravity
   // -------------------------------------------------------------------------
   // parse degree, order and the requested gravity model into a
@@ -656,6 +644,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  printf("-- bp 3\n");
   // Station/Beacon coordinates
   // -------------------------------------------------------------------------
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
@@ -731,10 +720,29 @@ int main(int argc, char *argv[]) {
             oc_order);
     return 1;
   }
-  // An ocean tide instance
-  dso::OceanTide octide(buf, 1e-11, harmonics.GM(), harmonics.Re(), oc_degree,
-                        oc_order);
+  /* An ocean tide instance */
+  dso::OceanTide octide(buf, 1e-11, oc_degree, oc_order, iers2010::GMe,
+                        iers2010::Re);
 
+  /* Pole Tides
+   * create a SolidEarthPoleTide instance
+   */
+  dso::SolidEarthPoleTide sept;
+  /* create a OceanPoleTide instance */
+  dso::get_yaml_value_depth2(config, "pole-tide", "model", buf);
+  error =
+      dso::get_yaml_value_depth2<int>(config, "pole-tide", "degree", oc_degree);
+  error +=
+      dso::get_yaml_value_depth2<int>(config, "pole-tide", "order", oc_order);
+  if (error || (oc_order > oc_degree)) {
+    fprintf(stderr, "Invalid ocean pole tide degree/order, %d/%d!\n", oc_degree,
+            oc_order);
+    return 1;
+  }
+  dso::OceanPoleTide ocpt(oc_degree, oc_order, buf, iers2010::GMe,
+                          iers2010::Re);
+
+  printf("-- bp 4\n");
   // Setup Integration Parameters for Orbit Integration
   // -------------------------------------------------------------------------
   // We will need the pck (SPICE) kernel for gravitational parameters of Sun
@@ -745,12 +753,16 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   char dtm2020_data[256];
-  if (dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag", "dtm2020-data", dtm2020_data)) {
+  if (dso::get_yaml_value_depth3(config, "force-model", "atmospheric-drag",
+                                 "dtm2020-data", dtm2020_data)) {
     fprintf(stderr, "ERROR Failed locating dtm2020-data\n");
     return 1;
   }
-  dso::IntegrationParameters IntegrationParams(degree, order, eop_lut,
-                                               harmonics, pck_kernel, dtm2020_data);
+  dso::IntegrationParameters IntegrationParams(
+      degree, order, eop_lut, harmonics, pck_kernel, dtm2020_data);
+  IntegrationParams.psetide = &sept;
+  IntegrationParams.poctide = &ocpt;
+  printf("-- bp 5\n");
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -758,16 +770,15 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  //dso::SGOde Integrator(dso::VariationalEquations_thread, (6 + 6 * n), 1e-12,
-  //                      1e-12, &IntegrationParams);
-  dso::SGOde Integrator(dso::VariationalEquations_ta, (6 + 6 * n), 1e-12,
-                        1e-12, &IntegrationParams);
+  dso::SGOde Integrator(dso::noVariationalEquations, (6 + 6 * n), 1e-12, 1e-12,
+                        &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
   double sigma_obs;
   error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                              "observation-sigma", sigma_obs);
   assert(sigma_obs > 0e0 && sigma_obs < 1e2 && (!error));
+  printf("-- bp 6\n");
 
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi, w1i, w2i;
@@ -778,14 +789,14 @@ int main(int argc, char *argv[]) {
 
   // Important !! OC-TIDES
   IntegrationParams.octide = &octide;
-  // Setup Solid Earth Tide
-  dso::SolidEarthTide setide(harmonics.GM(), harmonics.Re(),
-                             IntegrationParams.GMMon * 1e9,
-                             IntegrationParams.GMSun * 1e9);
+  /* Setup Solid Earth Tide */
+  dso::SolidEarthTide setide(iers2010::GMe, iers2010::Re,
+                             IntegrationParams.GMMon, IntegrationParams.GMSun);
   IntegrationParams.setide = &setide;
 
   OrbitIntegrator svState(dso::TwoPartDate(rnx.time_of_first_obs()), eop_lut);
-  
+  printf("-- bp 7\n");
+
   // On-board receiver eccentricity, in the satellite-fixed frame
   // -------------------------------------------------------------------------
   if (INCLUDE_ATTITUDE) {
@@ -816,7 +827,8 @@ int main(int argc, char *argv[]) {
     IntegrationParams.set_sv_frame(sat_cog, l3_pco, buf, sat_mass);
     svState.set_attitude(IntegrationParams);
   }
-  
+  printf("-- bp 8\n");
+
   // Data feed for the DTM2020 model
   // -------------------------------------------------------------------------
   if (INCLUDE_ATM_DRAG) {
@@ -825,11 +837,14 @@ int main(int argc, char *argv[]) {
     const dso::TwoPartDate t0(rnx.time_of_first_obs());
     dso::SolarActivityData flux;
     if (flux.feed(buf, rnx.time_of_first_obs(), 3, 3)) {
-      fprintf(stderr, "[ERROR] Failed to read required solar flux data from file %s\n", buf);
+      fprintf(stderr,
+              "[ERROR] Failed to read required solar flux data from file %s\n",
+              buf);
       return 1;
     }
     IntegrationParams.Dtm20.set_flux_data(flux);
   }
+  printf("-- bp 9\n");
 
   /*
    * Setup the Kalman filter
@@ -854,7 +869,7 @@ int main(int argc, char *argv[]) {
     error = dso::get_yaml_value_depth2<double>(config, "filtering", "cr-sigma",
                                                apriori_sigma_Cr);
     /* Initialize to Unit matrix */
-    filter.P = Eigen::MatrixXd::Identity(NumParams,NumParams);
+    filter.P = Eigen::MatrixXd::Identity(NumParams, NumParams);
     /* Covariance for state/position */
     filter.P.block<3, 3>(0, 0) *=
         (apriori_sigma_orbsp3_pos * apriori_sigma_orbsp3_pos);
@@ -875,8 +890,8 @@ int main(int argc, char *argv[]) {
   double apriori_Cd, apriori_Cr;
   { /* a-priori estimates */
     if (m >= 1) {
-      dso::get_yaml_value_depth3<double>(config, "force-model",
-                                         "atmospheric-drag", "Cd-apriori", apriori_Cd);
+      dso::get_yaml_value_depth3<double>(
+          config, "force-model", "atmospheric-drag", "Cd-apriori", apriori_Cd);
       dso::get_yaml_value_depth3<double>(config, "force-model", "srp",
                                          "Cr-apriori", apriori_Cr);
       filter.x(6) = apriori_Cd;
@@ -884,7 +899,8 @@ int main(int argc, char *argv[]) {
         filter.x(7) = apriori_Cr;
       }
     }
-    for (int i=6+m; i<NumParams; i++) filter.x(i) = 1e-3;
+    for (int i = 6 + m; i < NumParams; i++)
+      filter.x(i) = 1e-3;
   }
 
   // Start RINEX data-block iteration
@@ -944,6 +960,7 @@ int main(int argc, char *argv[]) {
     dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
 
     // integrate orbit to here (TAI)
+    printf("Next block: integration!\n");
     if (!num_blocks) {
       // for first iteration, get reference state from sp3, for an epoch as
       // close as possible
@@ -951,6 +968,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "ERROR Failed to get reference position from SP3\n");
         return 1;
       }
+      printf("Extracted position from sp3 file\n");
       Eigen::Matrix<double, 6, 1> itrf;
       itrf(0) = sp3_iterator.data_block().state[0] * 1e3;
       itrf(1) = sp3_iterator.data_block().state[1] * 1e3;
@@ -973,6 +991,7 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
+    printf("Integration performed ok!\n");
 
     /* an ITRF-to-GCRF Rotation for general use */
     dso::Itrs2Gcrs R(tobs_tai.tai2tt(), &eop_lut);
@@ -983,8 +1002,10 @@ int main(int argc, char *argv[]) {
       F.block<6, 6>(0, 0) = svState.stateTransitionMatrix();
       filter.time_update(tobs_tai, F);
       filter.estimates().block<6, 1>(0, 0) = svState.gcrf_state_cm();
-      if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
-      if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
+      if (m >= 1)
+        IntegrationParams.drag_ceofficient() = filter.x(6);
+      if (m > 1)
+        IntegrationParams.srp_ceofficient() = filter.x(7);
     }
 
     /* check to see if we have a new orbit revolution */
@@ -993,14 +1014,14 @@ int main(int argc, char *argv[]) {
       printf("[REV] New SV revolution around the Earth at %s "
              "re-initialize Cd\n",
              dtbuf);
-      //if (m >= 1) {
-      //  // filter.x(6) = apriori_Cd;
-      //  filter.P.row(6).setZero();
-      //  filter.P.col(6).setZero();
-      //  filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
-      //}
-      //if (m >= 1)
-      //  IntegrationParams.drag_ceofficient() = filter.x(6);
+      // if (m >= 1) {
+      //   // filter.x(6) = apriori_Cd;
+      //   filter.P.row(6).setZero();
+      //   filter.P.col(6).setZero();
+      //   filter.P(6, 6) = (apriori_sigma_Cd * apriori_sigma_Cd);
+      // }
+      // if (m >= 1)
+      //   IntegrationParams.drag_ceofficient() = filter.x(6);
       last_revolution_at = tobs_tai;
     }
 
@@ -1020,178 +1041,194 @@ int main(int argc, char *argv[]) {
       const char *b4id = rnx.beacon_internal_id2id(beaconIt->id());
       /* check if beacon is within SSA */
       if (!site_affected_by_ssa(b4id)) {
-      /* check flags */
-      if (check_obs_flags(*beaconIt, l1i, l2i, w1i, w2i)) {
-        ++flaged_obs;
-        /* mark discontinuity */
-        if (auto vit = findLastObs(b4id, vLastObs); vit != vLastObs.end())
-          vit->mark_restart();
-      } else { /* observation falgs ok, keep on */
-        /* index for referencing beacon parameters in filter */
-        int beaconFilterIndex;
-        /* coordinates of beacon, ITRF */
-        Eigen::Matrix<double, 3, 1> bcrd;
-        if (auto vit = findItrfCrd(b4id, beaconCrdVec);
-            vit != beaconCrdVec.end()) {
-          bcrd = getItrfCrd(vit);
-          beaconFilterIndex = std::distance(beaconCrdVec.cbegin(), vit) + 6 + m;
-        /* Rc-Sv azimouth [rad], elevation [rad] and range [m] */
-        double az, el;
-        {
-          Eigen::Matrix<double, 3, 1> r_enu =
-              dso::car2top<dso::ellipsoid::grs80>(bcrd,
-                                                  svState.itrf_position_arp());
-          dso::top2dae(r_enu, az, el);
-        }
-        /* only procced if elevation angle is large enough */
-        if (dso::rad2deg(el) > EleCutOff) {
-          /* get beacon nominal frequency, f_eN at 2GHz in [Hz] */
-          double feN;
-          {
-            int k; // shift factor
-            if (rnx.beacon_shift_factor(beaconIt->id(), k)) {
-              fprintf(stderr,
+        /* check flags */
+        if (check_obs_flags(*beaconIt, l1i, l2i, w1i, w2i)) {
+          ++flaged_obs;
+          /* mark discontinuity */
+          if (auto vit = findLastObs(b4id, vLastObs); vit != vLastObs.end())
+            vit->mark_restart();
+        } else { /* observation falgs ok, keep on */
+          /* index for referencing beacon parameters in filter */
+          int beaconFilterIndex;
+          /* coordinates of beacon, ITRF */
+          Eigen::Matrix<double, 3, 1> bcrd;
+          if (auto vit = findItrfCrd(b4id, beaconCrdVec);
+              vit != beaconCrdVec.end()) {
+            bcrd = getItrfCrd(vit);
+            beaconFilterIndex =
+                std::distance(beaconCrdVec.cbegin(), vit) + 6 + m;
+            /* Rc-Sv azimouth [rad], elevation [rad] and range [m] */
+            double az, el;
+            {
+              Eigen::Matrix<double, 3, 1> r_enu =
+                  dso::car2top<dso::ellipsoid::grs80>(
+                      bcrd, svState.itrf_position_arp());
+              dso::top2dae(r_enu, az, el);
+            }
+            /* only procced if elevation angle is large enough */
+            if (dso::rad2deg(el) > EleCutOff) {
+              /* get beacon nominal frequency, f_eN at 2GHz in [Hz] */
+              double feN;
+              {
+                int k; // shift factor
+                if (rnx.beacon_shift_factor(beaconIt->id(), k)) {
+                  fprintf(
+                      stderr,
                       "[ERROR] Failed to find shift factor for beacon %.4s\n",
                       b4id);
-              return 1;
-            }
-            double fe2N; // [Hz]
-            dso::beacon_nominal_frequency(k, feN, fe2N);
-          }
-          /* Iono correction in [cycles] */
-          const double Dion = iono_l2_correction(*beaconIt, l1i, l2i);
-          /* Tropospheric correction (only proceed if ok) */
-          TropoDetails Dtro;
-          if (get_tropo_vmf(b4id, tobs_tai_dt, bcrd, dso::DPI / 2e0 - el, feed,
-                            Dtro)) {
-            fprintf(stderr,
+                  return 1;
+                }
+                double fe2N; // [Hz]
+                dso::beacon_nominal_frequency(k, feN, fe2N);
+              }
+              /* Iono correction in [cycles] */
+              const double Dion = iono_l2_correction(*beaconIt, l1i, l2i);
+              /* Tropospheric correction (only proceed if ok) */
+              TropoDetails Dtro;
+              if (get_tropo_vmf(b4id, tobs_tai_dt, bcrd, dso::DPI / 2e0 - el,
+                                feed, Dtro)) {
+                fprintf(
+                    stderr,
                     "[WRNNG] Failed to get tropo ceorrection for %.4s at %s; "
                     "observation skipped\n",
                     b4id, dtbuf);
-            // return 1;
-          } else {
-            /* Hold current measurement details in a struct */
-            RcSv cObs(b4id, tobs_tai, beaconIt->m_values[l1i].m_value, Dion,
-                      Dtro, svState.gcrf_position_arp(), bcrd, eop_lut);
-            /* Find emission time (correction of aberration */
-            {
-              const dso::TwoPartDate tai_emission =
-                  correction_aberration(cObs, R);
-              cObs.set_emission_tai(tai_emission, eop_lut);
-            }
-            /* set proper time */
-            cObs.set_proper_time(tobs_proper);
-            /* depending on if we already have a records for the beacon */
-            const auto pObs = std::find_if(
-                vLastObs.begin(), vLastObs.end(), [=](const RcSv &v) {
-                  return !(std::strncmp(b4id, v.bc_name(), 4));
-                });
-            if (pObs == vLastObs.end()) {
-              // cObs.mark_restart();
-              vLastObs.emplace_back(cObs);
-            } else {
-              if (/*pObs->restart() ||*/
-                  tobs_tai.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-                      pObs->time_of_reception()) > RESTART_AFTER_SEC) {
-                /* restart frequency bias for new pass if needed */
-                if (tobs_tai
-                        .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-                            pObs->time_of_reception()) >
-                    NEW_PASS_AFTER_MIN * 60e0) {
-                  filter.reset_frequency_bias(
-                      beaconFilterIndex, filter.estimates()(beaconFilterIndex),
-                      apriori_sigma_freqbias);
-                  printf("[DEBUG] Resetting frequency bias for site %.4s, new "
-                         "pass at %s\n",
-                         b4id, dtbuf);
-                
-                  cObs.mark_restart();
-                  *pObs = cObs;
-                }
+                // return 1;
               } else {
-                /* observation equation */
-                double Vobs, Vtheo;
-                /* true proper frequency of the receiver f_rT [Hz] */
-                const double frT =
-                    dso::DORIS_FREQ1_MHZ * 1e6 *
-                    (1e0 + rfo_fit.value_at(tobs_proper_dt) * 1e-11);
-                const double DfeFen = filter.parameter(beaconFilterIndex);
-                /* emitter potential */
-                const double ePot =
-                    emitter_potential(bcrd, R.omega_earth(), 3.986004418e14);
-                /* partials */
-                double d_DfedeN;
-                Eigen::Matrix<double, 3, 1> dObsdr, dObsdv;
-                observation_equation(*pObs, cObs, feN, frT, DfeFen, ePot, Vobs,
-                                     Vtheo, d_DfedeN, dObsdr, dObsdv);
-                /* filter observation update */
+                /* Hold current measurement details in a struct */
+                RcSv cObs(b4id, tobs_tai, beaconIt->m_values[l1i].m_value, Dion,
+                          Dtro, svState.gcrf_position_arp(), bcrd, eop_lut);
+                /* Find emission time (correction of aberration */
                 {
-                  Eigen::VectorXd H = Eigen::VectorXd::Zero(NumParams);
-                  H.block<3, 1>(0, 0) = dObsdr;
-                  H.block<3, 1>(3, 0) = dObsdv;
-                  if (m>=1) H(6) = 1e0;
-                  if (m>1) H(7) = 1e0;
-                  H(beaconFilterIndex) = d_DfedeN;
-                  double var_prediction;
-                  double res_prediction = filter.prediction_residual(
-                      Vobs, -Vtheo, sigma_obs, H, var_prediction);
-                  /* outlier check */
-                  if (std::abs(res_prediction) > 3 * std::sqrt(var_prediction)) {
-                    ++flagged_res_obs;
-                    ++flagged_res_obs_block;
-                  } else if (cObs.restart()) {
-                    cObs.mark_restart(0);
-                    filter.observation_no_update(Vobs, -Vtheo, sigma_obs / std::sin(el) / std::sin(el), H);
-                  } else {
-                    filter.observation_update(Vobs, -Vtheo,
-                                              sigma_obs / std::sin(el), H);
-                    /* update drag coefficient value */
-                    if (m>=1) IntegrationParams.drag_ceofficient() = filter.x(6);
-                    if (m>1) IntegrationParams.srp_ceofficient() = filter.x(7);
-                    /* debug print */
-                    printf("[RES] %s site:%.4s res:%+.6f res_prediction:%+.6f "
-                           "res_var:%.6f vobs:%+.3f vtheo:%+.3f df:%.3e "
-                           "df_var:%.9e cd:%.6f cd_var:%.9e cr:%.6f "
-                           "cr_var:%.9e el:%.3f\n",
-                           dtbuf, b4id, Vobs + Vtheo, res_prediction,
-                           var_prediction, Vobs, Vtheo, DfeFen,
-                           filter.P(beaconFilterIndex, beaconFilterIndex),
-                           IntegrationParams.drag_ceofficient(), filter.P(6, 6),
-                           IntegrationParams.srp_ceofficient(), filter.P(7, 7),
-                           dso::rad2deg(el));
-                    ++filter_obs;
-                    ++filter_obs_block;
-                  }
+                  const dso::TwoPartDate tai_emission =
+                      correction_aberration(cObs, R);
+                  cObs.set_emission_tai(tai_emission, eop_lut);
                 }
-                /* push back */
-                *pObs = cObs;
-              }
-            } /* tropospheric correction found/applied */
-          }   /* end handling current observation, cObs */
-        }   /* end of observation with acceptable elevation */ 
-        else if (dso::rad2deg(el) < 0) {
-          fprintf(
-              stderr,
-              "[WRNNG] Unexpected elevation angle encountered for %.4s at %s\n",
-              b4id, dtbuf);
-        } else {
-          ++flagged_low_obs;
-          ++flagged_low_obs_block;
-        }
-        } else {
-          fprintf(stderr,
-                  "[ERROR] Failed to find coordinates for station %4s\n", b4id);
-        }
-      } /* end of non-flaged observation processing */
-    } else {
-      // fprintf(stderr, "[WRNNG] Site %.4s within SSA; ignornig observation\n", b4id);
-      ++flagged_saa_obs;
-      ++flagged_saa_obs_block;
-      inside_saa = 1;
-    } /* site affected by SSA */
+                /* set proper time */
+                cObs.set_proper_time(tobs_proper);
+                /* depending on if we already have a records for the beacon */
+                const auto pObs = std::find_if(
+                    vLastObs.begin(), vLastObs.end(), [=](const RcSv &v) {
+                      return !(std::strncmp(b4id, v.bc_name(), 4));
+                    });
+                if (pObs == vLastObs.end()) {
+                  // cObs.mark_restart();
+                  vLastObs.emplace_back(cObs);
+                } else {
+                  if (/*pObs->restart() ||*/
+                      tobs_tai
+                          .diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+                              pObs->time_of_reception()) > RESTART_AFTER_SEC) {
+                    /* restart frequency bias for new pass if needed */
+                    if (tobs_tai.diff<
+                            dso::DateTimeDifferenceType::FractionalSeconds>(
+                            pObs->time_of_reception()) >
+                        NEW_PASS_AFTER_MIN * 60e0) {
+                      filter.reset_frequency_bias(
+                          beaconFilterIndex,
+                          filter.estimates()(beaconFilterIndex),
+                          apriori_sigma_freqbias);
+                      printf(
+                          "[DEBUG] Resetting frequency bias for site %.4s, new "
+                          "pass at %s\n",
+                          b4id, dtbuf);
+
+                      cObs.mark_restart();
+                      *pObs = cObs;
+                    }
+                  } else {
+                    /* observation equation */
+                    double Vobs, Vtheo;
+                    /* true proper frequency of the receiver f_rT [Hz] */
+                    const double frT =
+                        dso::DORIS_FREQ1_MHZ * 1e6 *
+                        (1e0 + rfo_fit.value_at(tobs_proper_dt) * 1e-11);
+                    const double DfeFen = filter.parameter(beaconFilterIndex);
+                    /* emitter potential */
+                    const double ePot = emitter_potential(bcrd, R.omega_earth(),
+                                                          3.986004418e14);
+                    /* partials */
+                    double d_DfedeN;
+                    Eigen::Matrix<double, 3, 1> dObsdr, dObsdv;
+                    observation_equation(*pObs, cObs, feN, frT, DfeFen, ePot,
+                                         Vobs, Vtheo, d_DfedeN, dObsdr, dObsdv);
+                    /* filter observation update */
+                    {
+                      Eigen::VectorXd H = Eigen::VectorXd::Zero(NumParams);
+                      H.block<3, 1>(0, 0) = dObsdr;
+                      H.block<3, 1>(3, 0) = dObsdv;
+                      if (m >= 1)
+                        H(6) = 1e0;
+                      if (m > 1)
+                        H(7) = 1e0;
+                      H(beaconFilterIndex) = d_DfedeN;
+                      double var_prediction;
+                      double res_prediction = filter.prediction_residual(
+                          Vobs, -Vtheo, sigma_obs, H, var_prediction);
+                      /* outlier check */
+                      if (std::abs(res_prediction) >
+                          3 * std::sqrt(var_prediction)) {
+                        ++flagged_res_obs;
+                        ++flagged_res_obs_block;
+                      } else if (cObs.restart()) {
+                        cObs.mark_restart(0);
+                        filter.observation_no_update(
+                            Vobs, -Vtheo,
+                            sigma_obs / std::sin(el) / std::sin(el), H);
+                      } else {
+                        filter.observation_update(Vobs, -Vtheo,
+                                                  sigma_obs / std::sin(el), H);
+                        /* update drag coefficient value */
+                        if (m >= 1)
+                          IntegrationParams.drag_ceofficient() = filter.x(6);
+                        if (m > 1)
+                          IntegrationParams.srp_ceofficient() = filter.x(7);
+                        /* debug print */
+                        printf(
+                            "[RES] %s site:%.4s res:%+.6f res_prediction:%+.6f "
+                            "res_var:%.6f vobs:%+.3f vtheo:%+.3f df:%.3e "
+                            "df_var:%.9e cd:%.6f cd_var:%.9e cr:%.6f "
+                            "cr_var:%.9e el:%.3f\n",
+                            dtbuf, b4id, Vobs + Vtheo, res_prediction,
+                            var_prediction, Vobs, Vtheo, DfeFen,
+                            filter.P(beaconFilterIndex, beaconFilterIndex),
+                            IntegrationParams.drag_ceofficient(),
+                            filter.P(6, 6), IntegrationParams.srp_ceofficient(),
+                            filter.P(7, 7), dso::rad2deg(el));
+                        ++filter_obs;
+                        ++filter_obs_block;
+                      }
+                    }
+                    /* push back */
+                    *pObs = cObs;
+                  }
+                } /* tropospheric correction found/applied */
+              }   /* end handling current observation, cObs */
+            }     /* end of observation with acceptable elevation */
+            else if (dso::rad2deg(el) < 0) {
+              fprintf(stderr,
+                      "[WRNNG] Unexpected elevation angle encountered for %.4s "
+                      "at %s\n",
+                      b4id, dtbuf);
+            } else {
+              ++flagged_low_obs;
+              ++flagged_low_obs_block;
+            }
+          } else {
+            fprintf(stderr,
+                    "[ERROR] Failed to find coordinates for station %4s\n",
+                    b4id);
+          }
+        } /* end of non-flaged observation processing */
+      } else {
+        // fprintf(stderr, "[WRNNG] Site %.4s within SSA; ignornig
+        // observation\n", b4id);
+        ++flagged_saa_obs;
+        ++flagged_saa_obs_block;
+        inside_saa = 1;
+      } /* site affected by SSA */
       ++beaconIt;
     } /* end of beacons in current block */
-      /* print block statistics */
+    /* print block statistics */
     printf("[BLC] %s obs:%d rele:%d rsaa:%d rres:%d ufilter:%d\n", dtbuf,
            num_cblock_obs, flagged_low_obs_block, flagged_saa_obs_block,
            flagged_res_obs_block, filter_obs_block);

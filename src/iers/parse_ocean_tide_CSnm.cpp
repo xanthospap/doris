@@ -275,14 +275,14 @@ dso::iStatus dso::memmap_octide_coefficients(
   } /* end reading lines */
 
   /* let's check the degree and order of the waves collected */
-  if (maxDegreeRead != max_degree) {
+  if (maxDegreeRead < max_degree) {
     fprintf(stderr,
             "[ERROR] Requested paring constituents with max degree = %d but "
             "only found coefficients up to degree %d (traceback: %s)\n",
             max_degree, maxDegreeRead, __func__);
     return dso::iStatus(1);
   }
-  if (maxOrderRead != max_order) {
+  if (maxOrderRead < max_order) {
     fprintf(stderr,
             "[ERROR] Requested paring constituents with max order = %d but "
             "only found coefficients up to order %d (traceback: %s)\n",

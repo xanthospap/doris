@@ -2,8 +2,6 @@
 data:
   # doris-rinex: data/Jason-3/ja3rx21002.001
   doris-rinex: data/Jason-3/ja3rx22248.001
-  # sp3: data/Jason-3/ssaja320.b20362.e21006.DG_.sp3.001
-  # sp3: data/Sentinel-6A/ssas6a20.b20362.e21006.DG_.sp3.001
   sp3: data/Jason-3/ssaja320.b22238.e22258.DG_.sp3.001
 
 reference-frame:
@@ -21,9 +19,14 @@ naif-kernels:
 
 ocean-tides:
   harmonics: data/oceanTide_FES2014b.potential.iers.txt
+  degree: 120
+  order: 120
+  blq: data/fes14b.blq
+
+pole-tide:
+  model: data/desaiscopolecoef.txt
   degree: 80
   order: 80
-  blq: data/fes14b.blq
   
 gravity:
   # model: data/gfc/GOCO02s.gfc

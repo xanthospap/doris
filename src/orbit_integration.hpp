@@ -106,6 +106,9 @@ struct IntegrationParameters {
   dso::OceanTide *octide;
   ///< Earth Tides
   dso::SolidEarthTide *setide;
+  /* Pole tides */
+  dso::SolidEarthPoleTide *psetide;
+  dso::OceanPoleTide *poctide;
   ///< Satellite-specific information
   SvFrame *svFrame{nullptr};
   /* atmospheric density model and data feed */
@@ -130,7 +133,8 @@ struct IntegrationParameters {
         W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
             degree_ + 3, degree_ + 3)) {
     assert(degree_ == harmonics_.max_degree());
-    assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon)); // [km^3/ sec^2]
+    /* Sun and Moon gravitational constants in SI units (m^3/s^2) */
+    assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon, true));
   };
 
   void set_sv_frame(Eigen::Matrix<double, 3, 1> vcog,

@@ -19,11 +19,11 @@ plt.style.use('seaborn-v0_8-pastel')
 tex_fonts = {
     "text.usetex": True,
     "font.family": "serif",
-    "axes.labelsize": 10,
-    "font.size": 10,
-    "legend.fontsize": 7,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9
+    "axes.labelsize": 12,
+    "font.size": 12,
+    "legend.fontsize": 10,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10
 }
 plt.rcParams.update(tex_fonts)
 
@@ -66,7 +66,7 @@ def parse(fn, force=None):
                         #    file=sys.stderr)
                         pass
     return dct
-def plot(fn, scale, title, saveas, forceid=[''], raw=False):
+def plot2(fn, scale, title, saveas, forceid=[''], raw=False):
     for f in forceid:
         print('|{:}|'.format(' '.join([title,f])))
         forcestr = None if f==' ' else f
@@ -99,10 +99,39 @@ def plot(fn, scale, title, saveas, forceid=[''], raw=False):
         axs[3].xaxis.set_minor_locator(mdates.HourLocator())
         print('|{:}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|'.format('a', sts.mean, math.sqrt(sts.variance), sts.minmax[0], sts.minmax[1], scale))
         # set x-axis lable ...
-        axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")), fontsize=12)
+        axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")))
         ## title and save ...
         line1_title = 'COST-G Benchmark Diffs' if not raw else 'Acceleration Reults'
         fig.suptitle('{:}\n{:}'.format(line1_title, title+('' if not forcestr else ' '+forcestr)))
+        savefn = saveas if not forcestr else saveas.replace('.png','-'+forcestr)+'.png'
+        plt.savefig(savefn)
+        # plt.show()
+
+def plot(fn, scale, title, saveas, forceid=[''], raw=False):
+    for f in forceid:
+        print('|{:}|'.format(' '.join([title,f])))
+        forcestr = None if f==' ' else f
+        dct = parse(fn, forcestr)
+        fig, axs = plt.subplots(3, 1, figsize=(10, 6), sharex=True, sharey=True, constrained_layout=True)
+        # cartesian components ...
+        for i in range(3):
+            t,y = get_diffs(dct, i, raw)
+            t=t[1:-1]
+            y=y[1:-1]
+            y = [yy * scale for yy in y]
+            sts = stats.describe(y)
+            axs[i].scatter(t,y,s=1,color='black')
+            axs[i].axhline(sts.mean, color='r', linestyle='--', linewidth=1)
+            axs[i].set_ylabel([r'$\delta\ddot{x} [m/s^2]$', r'$\delta\ddot{y} [m/s^2]$', r'$\delta\ddot{z} [m/s^2]$'][i])
+            axs[i].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+            axs[i].xaxis.set_minor_locator(mdates.HourLocator())
+            # print statistics in MarkDown format (as a single line)
+            print('|{:}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|{:+.3e}|'.format(['x','y','z'][i], sts.mean, math.sqrt(sts.variance), sts.minmax[0], sts.minmax[1], scale))
+        # set x-axis lable ...
+        axs[-1].set_xlabel("Date {:}".format(t[0].strftime("%Y/%m/%d")))
+        ## title and save ...
+        line1_title = 'COST-G Benchmark Diffs' if not raw else 'Acceleration Reults'
+        fig.suptitle('{:}\n{:}, Scale {:.1e}'.format(line1_title, title+('' if not forcestr else ' '+forcestr), scale))
         savefn = saveas if not forcestr else saveas.replace('.png','-'+forcestr)+'.png'
         plt.savefig(savefn)
         # plt.show()
