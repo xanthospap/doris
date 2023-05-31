@@ -79,6 +79,12 @@ int gravity_acceleration_impl(
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &W,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &M) noexcept {
 
+  /* trigger floating point exceptions in debug mode */
+#ifdef DEBUG
+  /* Enable all floating point exceptions but FE_INEXACT */
+  feenableexcept(FE_ALL_EXCEPT & ~FE_INEXACT);  
+#endif
+
   /* make sure degree is compatible with MAX_SIZE_FOR_ALF_FACTORS */
   if (degree > MAX_SIZE_FOR_ALF_FACTORS - 3) {
     fprintf(stderr,
@@ -196,6 +202,12 @@ int gravity_acceleration_impl(
                std::sqrt((2e0 * n + 1e0) / (2e0 * n + 3e0));
       }
       { /* derivative of acceleration */
+#ifdef DEBUG
+        if ( (m<0) || (n<0) || (m>n)) {
+          fprintf(stderr, "Invalid m/n combination, n=%d, m=%d\n", n,m);
+        }
+#endif
+        /*
         const double wm2 =
             std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
                                           (n - m + 3) * (n - m + 4))) *
@@ -208,6 +220,23 @@ int gravity_acceleration_impl(
             (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3)));
         const double wp2 = std::sqrt(static_cast<double>(
             (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4)));
+        */
+        const double wm2 =
+            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
+                                          (n - m + 3) * (n - m + 4))) *
+            ((m == 2) ? std::sqrt(2.0) : 1.0);
+        const long unsigned wm1l = 
+            (n - m + 1) * (n - m + 2) * (n - m + 3) * (n + m + 1);
+        const long unsigned wm0l =
+            (n - m + 1) * (n - m + 2) * (n + m + 1) * (n + m + 2);
+        const long unsigned wp1l = 
+            (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3);
+        const long unsigned wp2l =
+            (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4);
+        const double wm1 = std::sqrt(static_cast<double>(wm1l));
+        const double wm0 = std::sqrt(static_cast<double>(wm0l));
+        const double wp1 = std::sqrt(static_cast<double>(wp1l));
+        const double wp2 = std::sqrt(static_cast<double>(wp2l));
 
         const double Cm2 = wm2 * M(n + 2, m - 2);
         const double Sm2 = wm2 * W(n + 2, m - 2);

@@ -102,109 +102,105 @@
  * like. Such a situation ought to be followed by a restart.
  */
 
-/// According to Shampine & Gordon:
-/// "The only machine dependent constants are TWOU and FOURU, which
-/// represent, respectively, two times and four times the machine's unit 
-/// roundoff errror U. This latter quantity is defined as being the smallest 
-/// positive number for which 1+U > 1."
-/// So, i guess in our case we define:
-/// U = umach = std::numeric_limits<double>::epsilon();
 constexpr const double umach = std::numeric_limits<double>::epsilon();
 constexpr const double fouru = 4e0 * umach;
 
 dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &y0,
                    Eigen::VectorXd &yout) noexcept {
-  assert(y0.rows() == yout.rows());
-  // printf(">> Integrating a system of %d equations\n", (int)yout.rows());
+  assert( (y0.rows() == yout.rows()) && (y0.rows() == neqn) );
   
-  // test for improper parameters
+  /* test for improper parameters */
   double eps = std::max(relerr, abserr);
   if ((t == tout)
       || (relerr < 0e0 || abserr < 0e0) 
-      || (eps < 0e0)
+      || (eps <= 0e0)
       || (iflag != IFLAG::RESTART && told!=t)) {
     return (iflag = IFLAG::INVALID_INPUT);
   }
 
-  // on each call set interval of integration and counter for number of
-  // steps.  adjust input error tolerances to define weight vector for
+  /* on each call set interval of integration and counter for number of
+   * steps. adjust input error tolerances to define weight vector for
+   * call to step
+   */
   const double del = tout - t;
   const double absdel = std::abs(del);
   const double tend =
-      integrate_past_tout * (t + 10e0 * del) + (integrate_past_tout)*tout;
-  // reset number of steps
+      integrate_past_tout * (t + 10e0 * del) + (!integrate_past_tout)*tout;
+  /* reset number of steps */
   int nostep = 0;
   int kle4 = 0;
-  // reset stiff signal
+  /* reset stiff signal */
   int stiff = false;
-  // reset error tolerances
+  /* reset error tolerances */
   const double releps = relerr / eps;
   const double abseps = abserr / eps;
 
-  // (re-)start (could be the we are reversing the integration in time)
+  /* (re-)start (could be the we are reversing the integration in time) */
   if ((delsgn * del <= 0e0) || (!integrate_past_tout) || (iflag == IFLAG::RESTART)) {
-    // on start and restart also set work variables x and yy
+    /* on start and restart also set work variables x and yy */
     tc = t;
     yy() = y0;
-    // store direction of integration
+    /* store direction of integration */
     delsgn = (-1) * (del < 0) + (1) * (del >= 0);
-    // initialize step size
+    /* initialize step size */
     h = std::copysign(std::max(std::abs(del), fouru * std::abs(t)), del);
 #ifdef INTEGRATOR_CHECK
     function_calls = 0;
-    printf("[INTGR] Start of integration, calls %u start %.15e to %.15e\n", function_calls, t, tout);
 #endif
   }
 
   while (true) {
-    // if already past output point, interpolate and return
-    if (std::abs(tc - t) >= absdel) {
+    /* if already past output point, interpolate and return */
+    if (std::abs(tc - t) >= absdel && integrate_past_tout) {
       intrp(tout, yout);
       told = t = tout;
 #ifdef INTEGRATOR_CHECK
-      printf("[INTGR] End of integration, calls %u\n", function_calls);
+      printf("[INTGR] End of integration via interpolation, calls %u\n", function_calls);
 #endif
       return (iflag = IFLAG::SUCCESS);
     }
 
-    // if cannot go past output point and sufficiently close, extrapolate and 
-    // return
+    /* if cannot go past output point and sufficiently close, extrapolate and 
+     * return
+     */
     if ((!integrate_past_tout) && (std::abs(tout-tc)<fouru*std::abs(tc))) {
       h = tout - tc;
-      f(tc, yy(), yp(), *params);
+      f(tc, yy(), yp(), params);
 #ifdef INTEGRATOR_CHECK
       ++function_calls;
 #endif
       yout = yy() + h * yp();
       told = t = tout;
 #ifdef INTEGRATOR_CHECK
-      printf("[INTGR] End of integration, calls %u\n", function_calls);
+      printf("[INTGR] End of integration via extrapolation, calls %u\n", function_calls);
 #endif
       return (iflag = IFLAG::SUCCESS);
     }
 
-    // test too many steps
+    /* test too many steps */
     if (nostep >= maxnum) {
       yout = yy();
       told = t = tc;
       fprintf(stderr,
               "[WRNNG] Integrator says: reached max number of steps!\n");
-      if (stiff)
+      if (stiff) {
         fprintf(stderr, "[ERROR] Probably a stiff ODE; cannot integrate!\n");
-      else
+      } else {
         fprintf(stderr, "[WRNNG] Allowing integration past target time, and "
                         "setting stiff flag!\n");
+        stiff = 1;
+      }
       integrate_past_tout = true;
       return (iflag = stiff ? IFLAG::STIFF : IFLAG::MAXSTEPS_REACHED);
     }
 
-    // limit step size, set weight vector and take a step
+    /* limit step size, set weight vector and take a step */
     h = std::copysign(std::min(std::abs(h), std::abs(tend - tc)), h);
-    // WT(l) = |y(l)|*RE/EPS + AE/EPS (shampine & Gordon, p. 176)
+    /* WT(l) = |y(l)|*RE/EPS + AE/EPS (shampine & Gordon, p. 176) */
     wt() = (releps * yy().cwiseAbs()).array() + abseps;
     int crash = this->step(eps);
 
-    // test for tolerances too small
+    /* test for tolerances too small */
     if (crash) {
       relerr *= eps;
       abserr *= eps;
@@ -216,11 +212,12 @@ dso::SGOde::IFLAG dso::SGOde::de(double &t, double tout, const Eigen::VectorXd &
       return (iflag = IFLAG::TOL_SMALL);
     }
 
-    // augment counter on number of steps and test for stiffness
+    /* augment counter on number of steps and test for stiffness */
     ++nostep;
     kle4 = (kold > 4) ? 0 : kle4+1;
     stiff = (kle4 >= 50);
   }
 
+  /* should not reach this point */
   return (iflag=IFLAG::UNDEFINED);
 }

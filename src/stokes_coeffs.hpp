@@ -41,14 +41,6 @@ public:
       : _GM(0e0), _Re(0e0), _cnormalized(true), m_degree(n), m_order(n),
         Cnm(n + 1, n + 1), Snm(n + 1, n + 1) {}
 
-  /*
-  StokesCoeffs(const StokesCoeffs &h) = delete;
-  StokesCoeffs &operator=(const StokesCoeffs &h) = delete;
-  StokesCoeffs(StokesCoeffs &&h) noexcept;
-  StokesCoeffs &operator=(StokesCoeffs &&h) noexcept;
-  ~StokesCoeffs() noexcept { deallocate(); }
-  */
-
   /* @brief Resize; check current capacity and only re-allocated data if
    *      needed. m_degree set to new value.
    */

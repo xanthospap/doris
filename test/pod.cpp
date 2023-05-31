@@ -31,7 +31,8 @@
 constexpr const int INCLUDE_ATTITUDE = true;
 constexpr const int INCLUDE_ATM_DRAG = true;
 constexpr const int INCLUDE_SRP_DRAG = true;
-constexpr const int m = INCLUDE_ATM_DRAG + INCLUDE_SRP_DRAG;
+// constexpr const int m = INCLUDE_ATM_DRAG + INCLUDE_SRP_DRAG;
+constexpr const int m = 0; /* TODO */
 constexpr const int n = 6 + m;
 /* only compute Doppler count if two observation are within this time interval
  */
@@ -476,6 +477,8 @@ public:
 
     // transform state from ITRF to GCRF
     yPhi0.block<6, 1>(0, 0) = gcrf_state_cm();
+    printf("Starting integration gcrf %.3f %.3f %.3f %.6f %.6f %.6f\n",
+      yPhi0(0), yPhi0(1), yPhi0(2), yPhi0(3), yPhi0(4), yPhi0(5));
 
     // Initial condition for state transition matrix Φ(t0,t0) = I
     setInitialconditions(yPhi0);
@@ -630,19 +633,9 @@ int main(int argc, char *argv[]) {
         dso::get_yaml_value_depth2<int>(config, "gravity", "degree", degree);
     error += dso::get_yaml_value_depth2<int>(config, "gravity", "order", order);
   }
-  dso::StokesCoeffs harmonics(degree);
-  {
-    if (!error)
-      error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
-    // parse the un-normalized harmonic ceofficients from model (gfc format)
-    if (!error)
-      error = dso::parse_gravity_model(buf, degree, order, rnx.ref_datetime(),
-                                       harmonics);
-    if (error) {
-      fprintf(stderr, "ERROR Failed handling gravity field model!\n");
-      return 1;
-    }
-  }
+  if (!error)
+    error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
+  dso::EarthGravity egrav(buf, degree, order, rnx.ref_datetime());
 
   printf("-- bp 3\n");
   // Station/Beacon coordinates
@@ -758,10 +751,11 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed locating dtm2020-data\n");
     return 1;
   }
-  dso::IntegrationParameters IntegrationParams(
-      degree, order, eop_lut, harmonics, pck_kernel, dtm2020_data);
+  dso::IntegrationParameters IntegrationParams(eop_lut, pck_kernel,
+                                               dtm2020_data);
   IntegrationParams.psetide = &sept;
   IntegrationParams.poctide = &ocpt;
+  IntegrationParams.egravity = &egrav;
   printf("-- bp 5\n");
 
   // Orbit Integrator
@@ -770,7 +764,8 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  dso::SGOde Integrator(dso::noVariationalEquations, (6 + 6 * n), 1e-12, 1e-12,
+  constexpr const int NumEqn = 6 + 2 * (3 * (6 + m)) + m * (6 + m);
+  dso::SGOde Integrator(dso::VariationalEquations, NumEqn, 1e-12, 1e-15,
                         &IntegrationParams);
 
   // Default observation sigma for a range-rate observable at zenith
@@ -909,9 +904,9 @@ int main(int argc, char *argv[]) {
   dso::RinexDataBlockIterator it(&rnx);
 
   // Some variables ...
-  [[maybe_unused]] const double J2 = harmonics.J2();
-  [[maybe_unused]] const double GM = harmonics.GM();
-  [[maybe_unused]] const double Re = harmonics.Re();
+  [[maybe_unused]] const double J2 = egrav.J2();
+  [[maybe_unused]] const double GM = iers2010::GMe;
+  [[maybe_unused]] const double Re = iers2010::Re;
   // form a rotation instance (ITRF-to-GCRF) for current epoch
   dso::Itrs2Gcrs Rot(rnx.time_of_first_obs(), &eop_lut);
   // a buffer to write datetime strings to ...
@@ -976,6 +971,13 @@ int main(int argc, char *argv[]) {
       itrf(3) = sp3_iterator.data_block().state[4] * 1e-1;
       itrf(4) = sp3_iterator.data_block().state[5] * 1e-1;
       itrf(5) = sp3_iterator.data_block().state[6] * 1e-1;
+      printf("Extracted state from sp3: %.3f %.3f %.3f %.6f %.6f %.6f\n",
+             sp3_iterator.data_block().state[0] * 1e3,
+             sp3_iterator.data_block().state[1] * 1e3,
+             sp3_iterator.data_block().state[2] * 1e3,
+             sp3_iterator.data_block().state[4] * 1e-1,
+             sp3_iterator.data_block().state[5] * 1e-1,
+             sp3_iterator.data_block().state[6] * 1e-1);
       /* state in ITRF, w.r.t CoM */
       svState.set_state_from_itrf(dso::TwoPartDate(sp3_iterator.current_time()),
                                   itrf);

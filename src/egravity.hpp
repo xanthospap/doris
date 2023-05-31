@@ -2,6 +2,7 @@
 #define __EARTH_GRAVITY_N_POTENTIAL_HPP__
 
 #include "associated_legendre.hpp"
+#include "base_error.hpp"
 #include "cmat2d.hpp"
 #include "datetime/dtcalendar.hpp"
 #include "eigen3/Eigen/Eigen"
@@ -12,16 +13,16 @@
 #endif
 
 namespace dso {
-int gravity_acceleration(const dso::StokesCoeffs &cs,
-                         const Eigen::Matrix<double, 3, 1> &p, int degree,
-                         double Re, double GM, Eigen::Matrix<double, 3, 1> &acc,
-                         Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+int gravity_acceleration(const dso::StokesCoeffs& cs,
+    const Eigen::Matrix<double, 3, 1>& p, int degree,
+    double Re, double GM, Eigen::Matrix<double, 3, 1>& acc,
+    Eigen::Matrix<double, 3, 3>& gradient) noexcept;
 int gravity_acceleration(
-    const dso::StokesCoeffs &cs, const Eigen::Matrix<double, 3, 1> &p,
-    int degree, double Re, double GM, Eigen::Matrix<double, 3, 1> &acc,
-    Eigen::Matrix<double, 3, 3> &gradient,
-    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W,
-    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *M) noexcept;
+    const dso::StokesCoeffs& cs, const Eigen::Matrix<double, 3, 1>& p,
+    int degree, double Re, double GM, Eigen::Matrix<double, 3, 1>& acc,
+    Eigen::Matrix<double, 3, 3>& gradient,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>* W,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>* M) noexcept;
 
 /// @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs
 ///        instance
@@ -36,9 +37,26 @@ int gravity_acceleration(
 ///        the needs of the requested harmonics
 /// @param[in] denormalize Denormalize coefficients (if normalized)
 /// @return Anything other than 0 denotes an error
-int parse_gravity_model(const char *model_fn, int degree, int order,
-                        const dso::TwoPartDate &t,
-                        dso::StokesCoeffs &harmonics) noexcept;
+int parse_gravity_model(const char* model_fn, int degree, int order,
+    const dso::TwoPartDate& t,
+    dso::StokesCoeffs& harmonics) noexcept;
+
+class EarthGravity {
+private:
+  int max_degree;
+  int max_order;
+  dso::StokesCoeffs cs_coeffs;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W, V;
+
+public:
+  EarthGravity(const char *icgem, int degree, int order,
+               const dso::TwoPartDate &t);
+  double J2() const noexcept { return cs_coeffs.J2(); }
+  dso::iStatus
+  acceleration(const Eigen::Matrix<double, 3, 1> &r_itrf,
+               Eigen::Matrix<double, 3, 1> &acc_itrf,
+               Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+}; /* EarthGravity */
 
 /// @brief Computes the perturbational acceleration due to a point mass
 /// E.g. use this function we can compute the perturbing acceleration affecting
@@ -48,8 +66,9 @@ int parse_gravity_model(const char *model_fn, int degree, int order,
 /// @return A vector containing the acceleration components
 /// @see e.g. Curtis, Chapter 10.10
 inline Eigen::Matrix<double, 3, 1>
-point_mass_accel(const Eigen::Matrix<double, 3, 1> &rsat,
-                 const Eigen::Matrix<double, 3, 1> &robj, double GM) noexcept {
+point_mass_accel(const Eigen::Matrix<double, 3, 1>& rsat,
+    const Eigen::Matrix<double, 3, 1>& robj, double GM) noexcept
+{
   //  Relative position vector of satellite w.r.t. point mass
   auto d = rsat - robj;
   // Acceleration
@@ -57,13 +76,13 @@ point_mass_accel(const Eigen::Matrix<double, 3, 1> &rsat,
 }
 
 Eigen::Matrix<double, 3, 1>
-point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
-                 const Eigen::Matrix<double, 3, 1> &robj,
-                 Eigen::Matrix<double, 3, 3> &partials) noexcept;
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
+    const Eigen::Matrix<double, 3, 1>& robj,
+    Eigen::Matrix<double, 3, 3>& partials) noexcept;
 
 Eigen::Matrix<double, 3, 1>
-point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
-                 const Eigen::Matrix<double, 3, 1> &robj) noexcept;
+point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1>& rsat,
+    const Eigen::Matrix<double, 3, 1>& robj) noexcept;
 
 /// Compute Lagrange polynomials (for spherical harmonics) given a (cartesian)
 /// position vector.
@@ -83,13 +102,14 @@ point_mass_accel(double GM, const Eigen::Matrix<double, 3, 1> &rsat,
 ///      ch. 3.2.4, p. 66
 int lagrange_polynomials(
     double x, double y, double z, double Re, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept;
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& W) noexcept;
 
 inline int lagrange_polynomials(
-    const Eigen::Matrix<double, 3, 1> &xyz, double Re, int l, int k,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &V,
-    dso::Mat2D<dso::MatrixStorageType::Trapezoid> &W) noexcept {
+    const Eigen::Matrix<double, 3, 1>& xyz, double Re, int l, int k,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& V,
+    dso::Mat2D<dso::MatrixStorageType::Trapezoid>& W) noexcept
+{
   const double x = xyz(0);
   const double y = xyz(1);
   const double z = xyz(2);

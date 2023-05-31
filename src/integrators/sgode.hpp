@@ -7,9 +7,10 @@
 namespace dso {
 
 class SGOde {
-  /// The constant maxnum is the maximum number of steps allowed in one
-  /// call to sgode_de. The user may change this limit by altering the
-  /// following statement
+  /* The constant maxnum is the maximum number of steps allowed in one
+   * call to sgode_de. The user may change this limit by altering the
+   * following statement
+   */
   static constexpr const int maxnum = 500;
 
 public:
@@ -150,11 +151,11 @@ public:
   }
 
 public:
-  /// slope function (uses params pointer for evaluation)
+  /* slope function (uses params pointer for evaluation) */
   ODEfun f; 
-  ///  number of equations (aka practically size of arrays used)
+  /*  number of equations (aka practically size of arrays used) */
   int neqn; 
-   ///< status from DE
+   /* status from DE */
   IFLAG iflag{IFLAG::RESTART};
   // PHI(NEQN,16) arrays of modified divided differences. Columns 15 and 16 
   // are used for propagated roundoff control
@@ -175,18 +176,14 @@ public:
   int  nornd; ///< Indicates whether extra precautions are necessary to reduce round-off
   double relerr, abserr;
   bool integrate_past_tout{true};
-  /// May store a pointer to some king of parameters that are passed in the
-  /// ODE function
+  /* May store a pointer to some king of parameters that are passed in the
+   * ODE function
+   */
   dso::IntegrationParameters *params{nullptr};
 #ifdef INTEGRATOR_CHECK
   unsigned function_calls;
 #endif
-}; // SGOde
+}; /* SGOde */
 
-/*
- * Note 1:
- * ψ_i (n) = h_n + h_{n-1} + ... + h_{n-i+1}
- */
-
-} // namespace dso
+} /* namespace dso */
 #endif

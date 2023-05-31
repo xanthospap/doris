@@ -88,7 +88,7 @@ constexpr const Step2EarthTideCoeffs ST2_m22_D[]{
     /*245655*/ {{2, -1, 0, 1, 0, 0}, -0.3e0, 0e0},
     /*255555*/ {{2, 0, 0, 0, 0, 0}, -1.2e0, 0e0}};
 
-double compute_step2_m0_d(const double *const dargs) noexcept {
+/*double compute_step2_m0_d(const double *const dargs) noexcept {
   constexpr const int szm20 = sizeof(ST2_m20_D) / sizeof(ST2_m20_D[0]);
   double dC20 = 0e0;
   for (int i = 0; i < szm20; i++) {
@@ -97,8 +97,8 @@ double compute_step2_m0_d(const double *const dargs) noexcept {
         (ST2_m20_D[i].AIp * std::cos(theta) - ST2_m20_D[i].AOp * std::sin(theta));
   }
   return dC20 * 1e-12;
-}
-int compute_step2_m1_d(const double *const dargs, double &dC21,
+}*/
+/*int compute_step2_m1_d(const double *const dargs, double &dC21,
                      double &dS21) noexcept {
   constexpr const int szm21 = sizeof(ST2_m21_D) / sizeof(ST2_m21_D[0]);
   // initial values for geopotential correction
@@ -117,8 +117,8 @@ int compute_step2_m1_d(const double *const dargs, double &dC21,
   dS21 *= 1e-12;
 
   return 0;
-}
-int compute_step2_m2_d(const double *const dargs, double &dC22,
+}*/
+/*int compute_step2_m2_d(const double *const dargs, double &dC22,
                      double &dS22) noexcept 
 {
   constexpr const int szm22 = sizeof(ST2_m22_D) / sizeof(ST2_m22_D[0]);
@@ -136,9 +136,10 @@ int compute_step2_m2_d(const double *const dargs, double &dC22,
   dS22 *= 1e-12;
 
   return 0;
-}
+}*/
 }// unnamed namespace
-int dso::SolidEarthTide::solid_earth_tide_step2_d(const dso::TwoPartDate &mjdtt,
+
+/*int dso::SolidEarthTide::solid_earth_tide_step2_d(const dso::TwoPartDate &mjdtt,
                                                 double &dC20, double &dC21,
                                                 double &dS21, double &dC22,
                                                 double &dS22) const noexcept {
@@ -168,4 +169,4 @@ int dso::SolidEarthTide::solid_earth_tide_step2_d(const dso::TwoPartDate &mjdtt,
   compute_step2_m2_d(dargs, dC22, dS22);
 
   return 0;
-}
+}*/

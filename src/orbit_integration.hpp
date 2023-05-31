@@ -85,54 +85,52 @@ public:
 };
 
 
-/// @brief A structure to hold orbit integration parameters; it is a
-///        collection of data and parameters to be used in the computation
-///        of (the system of) variational equations.
+/* @brief A structure to hold orbit integration parameters; it is a
+ *        collection of data and parameters to be used in the computation
+ *        of (the system of) variational equations.
+ */
 struct IntegrationParameters {
-  ///< time in TAI
+  /* time in TAI */
   dso::TwoPartDate mjd_tai;
   dso::TwoPartDate &reference_epoch() noexcept { return mjd_tai; }
   dso::TwoPartDate reference_epoch() const  noexcept { return mjd_tai; }
-  ///< EOP parameters Look-up table
+  
+  /* EOP parameters Look-up table */
   const dso::EopLookUpTable &eopLUT;
   const dso::EopLookUpTable &eop_lookup_table() const noexcept { return eopLUT; }
-  ///< gravity harmonics
-  const dso::StokesCoeffs &harmonics;
-  ///< degree and order of geopotential harmonics
-  int degree, order;
-  ///< Sun/Moon gravitational parameters, in [km^3/ sec^2]
+
+  /* Earth gravity field */
+  dso::EarthGravity *egravity;
+  
+  /* Sun/Moon gravitational parameters, in [m^3/ sec^2] */
   double GMSun, GMMon;
-  ///< Ocean Tides
+
+  /* Ocean Tides */
   dso::OceanTide *octide;
-  ///< Earth Tides
+
+  /* Earth Tides */
   dso::SolidEarthTide *setide;
+  
   /* Pole tides */
   dso::SolidEarthPoleTide *psetide;
   dso::OceanPoleTide *poctide;
-  ///< Satellite-specific information
+  
+  /* Satellite-specific information */
   SvFrame *svFrame{nullptr};
+
   /* atmospheric density model and data feed */
   dso::Dtm2020 Dtm20;
+
   /* setup dynamic parameters */
   double Cd = 2e0;
   double &drag_ceofficient() noexcept {return Cd;}
   double Cr = 1.5e0;
   double &srp_ceofficient() noexcept {return Cr;}
-  ///< memmory for Lagrange polynomials
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V{nullptr};
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W{nullptr};
-  
-  IntegrationParameters(int degree_, int order_,
-                        const dso::EopLookUpTable &eoptable_,
-                        const dso::StokesCoeffs &harmonics_,
-                        const char *pck_kernel, const char *dtm2020datafile) noexcept
-      : eopLUT(eoptable_), harmonics(harmonics_), degree(degree_),
-        order(order_), Dtm20(dtm2020datafile),
-        V(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
-            degree_ + 3, degree_ + 3)),
-        W(new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
-            degree_ + 3, degree_ + 3)) {
-    assert(degree_ == harmonics_.max_degree());
+
+  IntegrationParameters(const dso::EopLookUpTable &eoptable_,
+                        const char *pck_kernel,
+                        const char *dtm2020datafile) noexcept
+      : eopLUT(eoptable_), Dtm20(dtm2020datafile) {
     /* Sun and Moon gravitational constants in SI units (m^3/s^2) */
     assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon, true));
   };
@@ -143,13 +141,6 @@ struct IntegrationParameters {
     svFrame = new dso::SvFrame(vcog,varp,qfn,mass);
   }
 
-  // TODO
-  ~IntegrationParameters() noexcept {
-    if (V)
-      delete V;
-    if (W)
-      delete W;
-  }
 }; // Integration Parameters
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
@@ -177,8 +168,10 @@ void SunMoon(const dso::TwoPartDate &mjd_tai, const Eigen::Matrix<double, 3, 1> 
 
 void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
-                          dso::IntegrationParameters &params) noexcept;
-void VariationalEquations2(double tsec_away, const Eigen::VectorXd &yPhi,
+                          dso::IntegrationParameters *params) noexcept;
+
+/*
+void VariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
 void VariationalEquations_mg(double tsec_away, const Eigen::VectorXd &yPhi,
@@ -194,6 +187,7 @@ void VariationalEquations_thread(double tsec_away, const Eigen::VectorXd &yPhi,
 void noVariationalEquations(double tsec_away, const Eigen::VectorXd &yPhi,
                           Eigen::Ref<Eigen::VectorXd> yPhiP,
                           dso::IntegrationParameters &params) noexcept;
+*/
 } // namespace dso
 
 #endif
