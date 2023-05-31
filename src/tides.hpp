@@ -11,6 +11,7 @@
 #include "stokes_coeffs.hpp"
 #include <array>
 #include <cstring>
+#include <iers2010/iersc.hpp>
 
 namespace dso {
 dso::iStatus parse_desai_ocean_pole_tide_coeffs(
@@ -139,9 +140,9 @@ iStatus memmap_octide_coefficients(
 
 /* @brief Match given waves from an DoodsonOceanTideConstituent vector
  * @param[in] waves A vector of DoodsonNumber of interest
- * @param[in] freqs Original vector of DoodsonOceanTideConstituent (to be 
+ * @param[in] freqs Original vector of DoodsonOceanTideConstituent (to be
  *            filtered)
- * @return std::vector<dso::DoodsonOceanTideConstituent> A vector of 
+ * @return std::vector<dso::DoodsonOceanTideConstituent> A vector of
  *         DoodsonOceanTideConstituent, containing only waves included both
  *         in waves and in freqs vectors.
  */
@@ -167,28 +168,41 @@ private:
   std::vector<DoodsonOceanTideConstituent> doodsonFreqs;
   /* ΔCnm and ΔSnm after computation */
   dso::StokesCoeffs dCS;
-  /* workspace matrix */
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
-  /* workspace matrix */
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
 
 public:
   int max_degree() const noexcept { return dCS.max_degree(); }
   int max_order() const noexcept { return dCS.max_order(); }
   int num_main_waves() const noexcept { return doodsonFreqs.size(); }
+  dso::StokesCoeffs &geopotential_coeffs() noexcept {return dCS;}
 
   OceanTide(const char *fn, double scale, int max_degree, int max_order,
             double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
 
+  /* Compute geopotential coefficients ΔC and ΔS and store them in dCS */
   iStatus operator()(const dso::TwoPartDate &mjdtt,
                      const dso::TwoPartDate &mjdut1, int max_degree = -1,
                      int max_order = -1) noexcept;
-  iStatus acceleration(const dso::TwoPartDate &mjdtt,
-                       const dso::TwoPartDate &mjdut1,
-                       const Eigen::Matrix<double, 3, 1> &rsat,
-                       Eigen::Matrix<double, 3, 1> &acc,
-                       Eigen::Matrix<double, 3, 3> &acc_gradient,
-                       int max_degree = -1, int max_order = -1) noexcept;
+  
+  /* Compute geopotential acceleration at given point. 
+   *
+   * If you use this function a lot, then you should pre-allocate the V and W
+   * matrices (with size >= degree + 2) and pass in the respective pointers.
+   * Otherwise, the function will try to allocate storage each time it is
+   * called.
+   * The function will call the operator() on the instance to compute the 
+   * geopotential coefficients, and then compute acceleration (and gradient) 
+   * based on an SH expansion.
+   *
+   * All units is SI. Reference frame is ITRF.
+   */
+  iStatus acceleration(
+      const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
+      const Eigen::Matrix<double, 3, 1> &rsat, Eigen::Matrix<double, 3, 1> &acc,
+      Eigen::Matrix<double, 3, 3> &acc_gradient, int max_degree = -1,
+      int max_order = -1,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V = nullptr,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W =
+          nullptr) noexcept;
 }; /* OceanTide */
 
 class AtmosphericTide {
@@ -216,7 +230,7 @@ public:
   }
 
   AtmosphericTide(const char *fn, double scale, int max_degree, int max_order,
-            double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
+                  double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
 
   iStatus operator()(const dso::TwoPartDate &mjdtt,
                      const dso::TwoPartDate &mjdut1, int max_degree = -1,
@@ -231,8 +245,6 @@ public:
 
 class OceanPoleTide {
 private:
-  int max_degree{0};
-  int max_order{0};
   /* Anm real part */
   dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> Ar;
   /* Anm imaginary part */
@@ -244,23 +256,42 @@ private:
   /* stokes coefficients (to be computed) */
   dso::StokesCoeffs dCS;
   /* degree-dependent coefficients for geopotential computation */
-  // double *Rn{nullptr};
   std::vector<double> Rn;
-  /* workspace */
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W;
 
 public:
+  int max_degree() const noexcept { return dCS.max_degree(); }
+  int max_order() const noexcept { return dCS.max_order(); }
+
   OceanPoleTide(int maxdegree, int maxorder, const char *fn,
                 double GMearth = iers2010::GMe, double Rearth = iers2010::Re);
-  //~OceanPoleTide() noexcept;
-  int operator()(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
-                 int maxdegre = -1, int maxorder = -1) noexcept;
-  int acceleration(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
-                   const Eigen::Matrix<double, 3, 1> &rsat,
-                   Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient, int maxdegre = -1,
-                   int maxorder = -1) noexcept;
+
+  dso::StokesCoeffs &geopotential_coeffs() noexcept {return dCS;}
+
+  /* Compute geopotential coefficients ΔC and ΔS and store them in dCS */
+  iStatus operator()(const dso::TwoPartDate &mjdtt, double xp_sec,
+                     double yp_sec, int maxdegre = -1,
+                     int maxorder = -1) noexcept;
+
+  /* Compute geopotential acceleration at given point.
+   *
+   * If you use this function a lot, then you should pre-allocate the V and W
+   * matrices (with size >= degree + 2) and pass in the respective pointers.
+   * Otherwise, the function will try to allocate storage each time it is
+   * called.
+   * The function will call the operator() on the instance to compute the
+   * geopotential coefficients, and then compute acceleration (and gradient)
+   * based on an SH expansion.
+   *
+   * All units is SI. Reference frame is ITRF.
+   */
+  iStatus acceleration(
+      const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
+      const Eigen::Matrix<double, 3, 1> &rsat, Eigen::Matrix<double, 3, 1> &acc,
+      Eigen::Matrix<double, 3, 3> &acc_gradient, int maxdegre = -1,
+      int maxorder = -1,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V = nullptr,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W =
+          nullptr) noexcept;
 
 }; /* OceanPoleTide */
 
@@ -277,7 +308,7 @@ class SolidEarthPoleTide {
    * @param[in] xp_sec Polar motion in [as] for the date of request
    * @param[in] yp_sec Polar motion in [as] for the date of request
    */
-  int operator()(const dso::TwoPartDate &mjdtt, double xp_sec,
+  int wobble(const dso::TwoPartDate &mjdtt, double xp_sec,
                  double yp_sec) noexcept {
     /* secular pole in [mas] */
     double xs, ys;
@@ -303,7 +334,7 @@ public:
       double dc21, ds21;
     };
     /* compute "wobble" variables of date */
-    this->operator()(mjdtt, xp_sec, yp_sec);
+    this->wobble(mjdtt, xp_sec, yp_sec);
     double dC21, dS21;
     /* compute solid earth pole tide */
     dC21 = -1.3331e-9 * (m1 + 0.0115e0 * m2);
@@ -323,11 +354,10 @@ class SolidEarthTide {
   static constexpr const int degree = 4;
 
 private:
+  /* gravitational constants for Sun and Moon in SI */
   const double GM_moon, GM_sun;
+  /* geopotential, i.e. Stoke's coefficients (n,m) = (4,4) */
   dso::StokesCoeffs cs;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V; ///< workspace
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W; ///< workspace
-  // AssociatedLegendreFunctions PM, PS;
 
   int solid_earth_tide_step1(const Eigen::Matrix<double, 3, 1> &rmoon,
                              const Eigen::Matrix<double, 3, 1> &rsun,
@@ -338,49 +368,53 @@ private:
                              const dso::TwoPartDate &mjdut1, double &dC20,
                              double &dC21, double &dS21, double &dC22,
                              double &dS22) const noexcept;
-  //int solid_earth_tide_step2_d(const dso::TwoPartDate &mjdtt, double &dC20,
-  //                             double &dC21, double &dS21, double &dC22,
-  //                             double &dS22) const noexcept;
 
 public:
-  /// @brief Constructor
-  /// @param GMearth Standard gravitational parameter μ=GM for the Earth
-  /// [m^2/s^2]
-  /// @param Rearth Equatorial radius of Earth [m]
-  /// @param GMmoon Standard gravitational parameter μ=GM for the Moon
-  ///        [m^2/s^2]
-  /// @param GMsun Standard gravitational parameter μ=GM for the Moon
-  ///        [m^2/s^2]
+  /* @brief Constructor
+   * @param GMearth Standard gravitational parameter μ=GM for the Earth
+   * [m^2/s^2]
+   * @param Rearth Equatorial radius of Earth [m]
+   * @param GMmoon Standard gravitational parameter μ=GM for the Moon
+   *        [m^2/s^2]
+   * @param GMsun Standard gravitational parameter μ=GM for the Moon
+   *        [m^2/s^2]
+   */
   SolidEarthTide(double GMearth = iers2010::GMe, double Rearth = iers2010::Re,
                  double GMmoon = 0.49028010560e13,
-                 double GMsun = 1.32712442076e20) noexcept
-      : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth),
-        V(degree + 3, degree + 3), W(degree + 3, degree + 3) {}
+                 double GMsun = iers2010::GMSun) noexcept
+      : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth)
+  /*V(degree + 3, degree + 3), W(degree + 3, degree + 3)*/ {}
 
+  dso::StokesCoeffs &geopotential_coeffs() noexcept {return cs;}
+
+  /* Compute geopotential coefficients ΔC and ΔS and store them in cs */
   int operator()(const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
                  const Eigen::Matrix<double, 3, 1> &rmoon,
-                 const Eigen::Matrix<double, 3, 1> &rsun,
-                 std::array<double, 12> &dC,
-                 std::array<double, 12> &dS) noexcept;
+                 const Eigen::Matrix<double, 3, 1> &rsun) noexcept;
 
-  int acceleration(const dso::TwoPartDate &mjdtt,
-                   const dso::TwoPartDate &mjdut1,
-                   const Eigen::Matrix<double, 3, 1> &rsat,
-                   const Eigen::Matrix<double, 3, 1> &rmoon,
-                   const Eigen::Matrix<double, 3, 1> &rsun,
-                   Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;
+  /* Compute geopotential acceleration at given point. 
+   *
+   * If you use this function a lot, then you should pre-allocate the V and W
+   * matrices (with size >= degree + 2) and pass in the respective pointers.
+   * Otherwise, the function will try to allocate storage each time it is
+   * called.
+   * The function will call the operator() on the instance to compute the 
+   * geopotential coefficients, and then compute acceleration (and gradient) 
+   * based on an SH expansion.
+   *
+   * All units is SI. Reference frame is ITRF.
+   */
+  dso::iStatus acceleration(
+      const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
+      const Eigen::Matrix<double, 3, 1> &rsat,
+      const Eigen::Matrix<double, 3, 1> &rmoon,
+      const Eigen::Matrix<double, 3, 1> &rsun, Eigen::Matrix<double, 3, 1> &acc,
+      Eigen::Matrix<double, 3, 3> &acc_gradient,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V = nullptr,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W =
+          nullptr) noexcept;
+}; /* SolidEarthTide */
 
-  /*int acceleration(const dso::TwoPartDate &mjdtt,
-                   const dso::TwoPartDate &mjdut1,
-                   double xp_sec, double yp_sec,
-                   const Eigen::Matrix<double, 3, 1> &rsat,
-                   const Eigen::Matrix<double, 3, 1> &rmoon,
-                   const Eigen::Matrix<double, 3, 1> &rsun,
-                   Eigen::Matrix<double, 3, 1> &acc,
-                   Eigen::Matrix<double, 3, 3> &acc_gradient) noexcept;*/
-}; // SolidEarthTide
-
-} // namespace dso
+} /* namespace dso */
 
 #endif

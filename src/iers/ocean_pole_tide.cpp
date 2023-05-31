@@ -105,44 +105,37 @@ constexpr const double LoadLoveNumbers[360] = {
     -0.5243842709e-02, -0.5235061516e-02, -0.5226334273e-02, -0.5217660524e-02,
     -0.5209039665e-02, -0.5200471169e-02, -0.5191954431e-02, -0.5183488963e-02,
     -0.5175074221e-02, -0.5166709698e-02, -0.5158394787e-02, -0.5150129056e-02};
-} // namespace
+} /* unnamed namespace */
 
 dso::OceanPoleTide::OceanPoleTide(int maxdegree, int maxorder, const char *fn,
                                   double GMearth, double Rearth)
-    : max_degree(maxdegree), max_order(maxorder),
-      Ar(maxdegree + 1, maxorder + 1), Ai(maxdegree + 1, maxorder + 1),
+    : Ar(maxdegree + 1, maxorder + 1), Ai(maxdegree + 1, maxorder + 1),
       Br(maxdegree + 1, maxorder + 1), Bi(maxdegree + 1, maxorder + 1),
-      dCS(maxdegree, maxorder, GMearth,
-          Rearth), /*Rn(new double[maxdegree + 1]),*/
-      V(maxdegree + 3, maxdegree + 3), W(maxdegree + 3, maxdegree + 3) {
-  if (dso::parse_desai_ocean_pole_tide_coeffs(fn, max_degree, max_order, Ar, Ai,
+      dCS(maxdegree, maxorder, GMearth, Rearth) {
+  if (dso::parse_desai_ocean_pole_tide_coeffs(fn, maxdegree, maxorder, Ar, Ai,
                                               Br, Bi)) {
     throw std::runtime_error("Failed constructing OceanPoleTide instance!\n");
   }
   /* constants */
   const double Omega = iers2010::OmegaEarth;
-  const double ae = /*iesr2010::Re*/ Rearth;
-  const double GM = /*iers2010::GMe*/ GMearth;
+  const double ae = Rearth;
+  const double GM = GMearth;
   const double ge = iers2010::ge;
   const double G = iers2010::G;
   const double rho = 1025e0; /* density of water in [kg/m^3] */
 
   const double fac = ((Omega * Omega * ae * ae) / GM) * (ae * ae) * (G / ge) *
                      (4e0 * dso::DPI * rho);
-  Rn.reserve(max_degree + 1);
-  for (int i = 0; i <= max_degree; i++) {
-    // Rn[i] = fac * (1e0 + LoadLoveNumbers[i]) / (2 * i + 1e0);
+  Rn.reserve(maxdegree + 1);
+  for (int i = 0; i <= maxdegree; i++) {
     Rn.push_back(fac * (1e0 + LoadLoveNumbers[i]) / (2 * i + 1e0));
   }
 }
 
-// dso::OceanPoleTide::~OceanPoleTide() noexcept {
-//   if (Rn) delete[] Rn;
-// }
-
-int dso::OceanPoleTide::operator()(const dso::TwoPartDate &ttmjd, double xp,
-                                   double yp, int maxdegree,
-                                   int maxorder) noexcept {
+dso::iStatus dso::OceanPoleTide::operator()(const dso::TwoPartDate &ttmjd,
+                                            double xp, double yp,
+                                            int max_degree,
+                                            int max_order) noexcept {
   /* secular pole in [mas] */
   double xs, ys;
   secular_pole(ttmjd, xs, ys);
@@ -152,15 +145,24 @@ int dso::OceanPoleTide::operator()(const dso::TwoPartDate &ttmjd, double xp,
   /* wobble in radians */
   m1 = dso::sec2rad(m1);
   m2 = dso::sec2rad(m2);
-  
-  if (maxdegree < 0)
-    maxdegree = this->max_degree;
-  if (maxorder < 0)
-    maxorder = this->max_order;
+
+  if (max_degree < 0)
+    max_degree = this->max_degree();
+  if (max_order < 0)
+    max_order = this->max_order();
+
+  /* check input degree and order */
+  if (max_degree > this->max_degree() || max_order > this->max_order()) {
+    fprintf(stderr,
+            "[ERROR] Invalid degree/order for computation of ocean pole tide "
+            "geopotential (traceback: %s)\n",
+            __func__);
+    return dso::iStatus(1);
+  }
 
   /* perform computation column-wise, starting from bigger (n,m) values */
-  for (int m = maxorder; m >= 0; m--) {
-    for (int n = maxdegree; n >= m; n--) {
+  for (int m = max_order; m >= 0; m--) {
+    for (int n = max_degree; n >= m; n--) {
       dCS.C(n, m) = Ar(n, m) * (m1 * gamma_real + m2 * gamma_imag) +
                     Ai(n, m) * (m2 * gamma_real - m1 * gamma_imag);
       dCS.C(n, m) *= Rn[n];
@@ -170,24 +172,47 @@ int dso::OceanPoleTide::operator()(const dso::TwoPartDate &ttmjd, double xp,
     }
   }
 
-  return 0;
+  return dso::iStatus(0);
 }
 
-int dso::OceanPoleTide::acceleration(const dso::TwoPartDate &mjdtt,
-                                     double xp_sec, double yp_sec,
-                                     const Eigen::Matrix<double, 3, 1> &rsat,
-                                     Eigen::Matrix<double, 3, 1> &acc,
-                                     Eigen::Matrix<double, 3, 3> &acc_gradient,
-                                     int maxdegree, int maxorder) noexcept {
-  if (maxdegree < 0)
-    maxdegree = this->max_degree;
-  if (maxorder < 0)
-    maxorder = this->max_order;
-  /* prepare Stokes coefficients */
-  this->operator()(mjdtt, xp_sec, yp_sec, maxdegree, maxorder);
-  /* compute acceleration at satellite position (ITRF, cartesian) */
-  dso::gravity_acceleration(dCS, rsat, maxdegree, dCS.Re(), dCS.GM(), acc,
-                            acc_gradient, &V, &W);
+dso::iStatus dso::OceanPoleTide::acceleration(
+    const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
+    const Eigen::Matrix<double, 3, 1> &rsat, Eigen::Matrix<double, 3, 1> &acc,
+    Eigen::Matrix<double, 3, 3> &acc_gradient, int max_degree, int max_order,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W) noexcept {
 
-  return 0;
+  if (max_degree < 0)
+    max_degree = this->max_degree();
+  if (max_order < 0)
+    max_order = this->max_order();
+
+  /* allocate workspace for SH computations if needed */
+  if (!V) {
+    V = new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+        max_degree + 3, max_degree + 3);
+  }
+  if (!W) {
+    W = new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+        max_degree + 3, max_degree + 3);
+  }
+
+  /* check sizes of workspace matrices */
+  if (V->rows() < max_degree + 2 || W->rows() < max_degree + 2) {
+    fprintf(stderr,
+            "[ERROR] Invalid workspace matrices for SH computation "
+            "(traceback: %s)\n",
+            __func__);
+    return dso::iStatus(1);
+  }
+
+  /* prepare Stokes coefficients */
+  if (this->operator()(mjdtt, xp_sec, yp_sec, max_degree, max_order))
+    return dso::iStatus(1);
+
+  /* compute acceleration at satellite position (ITRF, cartesian) */
+  dso::gravity_acceleration(dCS, rsat, max_degree, dCS.Re(), dCS.GM(), acc,
+                            acc_gradient, V, W);
+
+  return dso::iStatus(0);
 }

@@ -7,15 +7,64 @@
  * with respect to the GRACE satellite mission https://d-nb.info/97498454x/34
  */
 
+/*
+ * @param[in] t_tt  datetime in TT
+ * @param[in] ut1_mjd Corresponding datetime in UT1 time scale, as MJD
+ * @param[in] rsat ECEF vector of satellite, as (X,Y,Z) in [m]
+ * @param[out] acc Acceleration at given point, as (X,Y,Z) in [m/sec^2]
+ * @param[out] gradient Gradient of acceleration (i.e. da/dr)
+ * @param[in] max_degree Max degree for computation of geopotential 
+ *            coefficients. If <0 (default), then we are using the instance's 
+ *            max degree (stored in the dCS instance, i.e. dCS.max_degree())
+ * @param[in] max_order Max order for computation of geopotential 
+ *            coefficients. If <0 (default), then we are using the instance's 
+ *            max order (stored in the dCS instance, i.e. dCS.max_order())
+ * @param[in] V A dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> of
+ *              size >= degree + 2, to compute SH. If not given, the function
+ *              will allocate it.
+ * @param[in] W A dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> of
+ *              size >= degree + 2, to compute SH. If not given, the function
+ *              will allocate it.
+ */
 dso::iStatus dso::OceanTide::acceleration(
     const dso::TwoPartDate &mjdtt, const dso::TwoPartDate &mjdut1,
     const Eigen::Matrix<double, 3, 1> &rsat, Eigen::Matrix<double, 3, 1> &acc,
-    Eigen::Matrix<double, 3, 3> &gradient, int max_degree,
-    int max_order) noexcept {
+    Eigen::Matrix<double, 3, 3> &gradient, int max_degree, int max_order,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V,
+    dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W) noexcept {
+
   if (max_degree < 0)
     max_degree = this->max_degree();
   if (max_order < 0)
     max_order = this->max_order();
+
+  /* check input degree and order */
+  if (max_degree > this->max_degree() || max_order > this->max_order()) {
+    fprintf(stderr,
+            "[ERROR] Invalid degree/order for computation of ocean tidal "
+            "geopotential (traceback: %s)\n",
+            __func__);
+    return dso::iStatus(1);
+  }
+
+  /* allocate workspace for SH computations if needed */
+  if (!V) {
+    V = new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+        max_degree + 3, max_degree + 3);
+  }
+  if (!W) {
+    W = new dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>(
+        max_degree + 3, max_degree + 3);
+  }
+
+  /* check sizes of workspace matrices */
+  if (V->rows() < max_degree + 2 || W->rows() < max_degree + 2) {
+    fprintf(stderr,
+            "[ERROR] Invalid workspace matrices for SH computation "
+            "(traceback: %s)\n",
+            __func__);
+    return dso::iStatus(1);
+  }
 
   /* compute geopotential corrections ΔC and ΔS */
   if (this->operator()(mjdtt, mjdut1, max_degree, max_order))
@@ -23,11 +72,25 @@ dso::iStatus dso::OceanTide::acceleration(
 
   /* compute acceleration at satellite position (ITRF, cartesian) */
   dso::gravity_acceleration(dCS, rsat, max_degree, dCS.Re(), dCS.GM(), acc,
-                            gradient, &V, &W);
+                            gradient, V, W);
 
   return dso::iStatus(0);
 }
 
+/* @brief Compute corrections to normalized C and S gravitational
+ *        coefficients, using the model(s) described in IERS2010 standards.
+ *        The corrections are computed and set in the instance's cs (member)
+ *        variable
+ *
+ * @param[in] t_tt  datetime in TT
+ * @param[in] ut1_mjd Corresponding datetime in UT1 time scale, as MJD
+ * @param[in] max_degree Max degree for computation of geopotential 
+ *            coefficients. If <0 (default), then we are using the instance's 
+ *            max degree (stored in the dCS instance, i.e. dCS.max_degree())
+ * @param[in] max_order Max order for computation of geopotential 
+ *            coefficients. If <0 (default), then we are using the instance's 
+ *            max order (stored in the dCS instance, i.e. dCS.max_order())
+ */
 dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
                                         const dso::TwoPartDate &mjdut1,
                                         int max_degree,
@@ -37,7 +100,10 @@ dso::iStatus dso::OceanTide::operator()(const dso::TwoPartDate &mjdtt,
     max_degree = dCS.max_degree();
   if (max_order < 0)
     max_order = dCS.max_order();
-  if (max_degree > dCS.max_degree() || max_order > dCS.max_order()) {
+
+  /* check degree and order */
+  if (max_degree > dCS.max_degree() || max_order > dCS.max_order() ||
+      max_degree < max_order) {
     fprintf(stderr,
             "[ERROR] Invalid degree/order for ocean tides computation "
             "(traceback: %s)\n",
