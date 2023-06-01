@@ -17,6 +17,7 @@ int gravity_acceleration(const dso::StokesCoeffs& cs,
     const Eigen::Matrix<double, 3, 1>& p, int degree,
     double Re, double GM, Eigen::Matrix<double, 3, 1>& acc,
     Eigen::Matrix<double, 3, 3>& gradient) noexcept;
+
 int gravity_acceleration(
     const dso::StokesCoeffs& cs, const Eigen::Matrix<double, 3, 1>& p,
     int degree, double Re, double GM, Eigen::Matrix<double, 3, 1>& acc,
@@ -24,38 +25,45 @@ int gravity_acceleration(
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>* W,
     dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise>* M) noexcept;
 
-/// @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs
-///        instance
-/// @param[in] model_fn An icegm file, describing a static gravity/geopotential
-///        model
-/// @param[in] degree Max degree for harmonics to extract; should be at
-///        maximum equal to the model's max degree
-/// @param[in] order Max order for harmonics to extract; should be at
-///        maximum equal to the model's max order and <= to degree
-/// @param[out] harmonics An dso::HarmonicCoeffs instance to store results. If
-///        (at input) the instance has wrong size, it will be resized to match
-///        the needs of the requested harmonics
-/// @param[in] denormalize Denormalize coefficients (if normalized)
-/// @return Anything other than 0 denotes an error
-int parse_gravity_model(const char* model_fn, int degree, int order,
-    const dso::TwoPartDate& t,
-    dso::StokesCoeffs& harmonics) noexcept;
+/* @brief Parse a gravity model (given in icgem format) to a HarmonicCoeffs
+ *        instance
+ * @param[in] model_fn An icegm file, describing a static gravity/geopotential
+ *        model
+ * @param[in] degree Max degree for harmonics to extract; should be at
+ *        maximum equal to the model's max degree
+ * @param[in] order Max order for harmonics to extract; should be at
+ *        maximum equal to the model's max order and <= to degree
+ * @param[out] harmonics An dso::HarmonicCoeffs instance to store results. If
+ *        (at input) the instance has wrong size, it will be resized to match
+ *        the needs of the requested harmonics
+ * @return Anything other than 0 denotes an error
+ */
+dso::iStatus parse_gravity_model(const char *model_fn, int degree, int order,
+                                 const dso::TwoPartDate &t,
+                                 dso::StokesCoeffs &harmonics) noexcept;
 
 class EarthGravity {
 private:
-  int max_degree;
-  int max_order;
   dso::StokesCoeffs cs_coeffs;
-  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> W, V;
 
 public:
   EarthGravity(const char *icgem, int degree, int order,
                const dso::TwoPartDate &t);
+
+  int max_degree() const noexcept {return cs_coeffs.max_degree();}
+  int max_order() const noexcept {return cs_coeffs.max_order();}
+  dso::StokesCoeffs &geopotential_coeffs() noexcept {return cs_coeffs;}
+  
   double J2() const noexcept { return cs_coeffs.J2(); }
-  dso::iStatus
-  acceleration(const Eigen::Matrix<double, 3, 1> &r_itrf,
-               Eigen::Matrix<double, 3, 1> &acc_itrf,
-               Eigen::Matrix<double, 3, 3> &gradient) noexcept;
+
+  dso::iStatus acceleration(
+      const Eigen::Matrix<double, 3, 1> &r_itrf,
+      Eigen::Matrix<double, 3, 1> &acc_itrf,
+      Eigen::Matrix<double, 3, 3> &gradient, int max_degree = -1,
+      int max_order = -1,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *V = nullptr,
+      dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> *W =
+          nullptr) noexcept;
 }; /* EarthGravity */
 
 /// @brief Computes the perturbational acceleration due to a point mass

@@ -298,6 +298,8 @@ public:
 class SolidEarthPoleTide {
   /* wobble variables in [asec] */
   double m1, m2;
+  /* geopotential coefficients (after computation) */
+  double mdC21, mdS21;
 
   /* @brief Compute "wobble" variables m1 and m2 using Eqs. 24 and 25 from
    *        IERS2010, Sec7.2.4
@@ -319,6 +321,11 @@ class SolidEarthPoleTide {
   }
 
 public:
+  constexpr int max_degree() const noexcept {return 2;}
+  constexpr int max_order() const noexcept {return 1;}
+  double dC21() const noexcept {return mdC21;}
+  double dS21() const noexcept {return mdS21;}
+
   /* @brief Compute geopotential coefficient correction ΔC_21 and ΔS_21 due to
    *        Solid Earth pole tide, as descibed in IERS2010, Sec. 6.4
    * @param[in] mjdtt Date of request in MJD, [TT]
@@ -335,11 +342,10 @@ public:
     };
     /* compute "wobble" variables of date */
     this->wobble(mjdtt, xp_sec, yp_sec);
-    double dC21, dS21;
     /* compute solid earth pole tide */
-    dC21 = -1.3331e-9 * (m1 + 0.0115e0 * m2);
-    dS21 = -1.3331e-9 * (m2 - 0.0115e0 * m1);
-    return dCS21{dC21, dS21};
+    mdC21 = -1.3331e-9 * (m1 + 0.0115e0 * m2);
+    mdS21 = -1.3331e-9 * (m2 - 0.0115e0 * m1);
+    return dCS21{mdC21, mdS21};
   }
 
   int acceleration(const dso::TwoPartDate &mjdtt, double xp_sec, double yp_sec,
@@ -370,6 +376,9 @@ private:
                              double &dS22) const noexcept;
 
 public:
+  int max_degree() const noexcept {return cs.max_degree(); }
+  int max_order() const noexcept {return cs.max_order(); }
+
   /* @brief Constructor
    * @param GMearth Standard gravitational parameter μ=GM for the Earth
    * [m^2/s^2]
@@ -383,7 +392,7 @@ public:
                  double GMmoon = 0.49028010560e13,
                  double GMsun = iers2010::GMSun) noexcept
       : GM_moon(GMmoon), GM_sun(GMsun), cs(degree, degree, GMearth, Rearth)
-  /*V(degree + 3, degree + 3), W(degree + 3, degree + 3)*/ {}
+  {}
 
   dso::StokesCoeffs &geopotential_coeffs() noexcept {return cs;}
 

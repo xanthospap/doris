@@ -2,10 +2,9 @@
 #include "icgemio.hpp"
 #include <cstdio>
 
-int dso::parse_gravity_model(const char *model_fn, int degree, int order,
-                             const dso::TwoPartDate &t,
-                             dso::StokesCoeffs &harmonics
-                             ) noexcept {
+dso::iStatus dso::parse_gravity_model(const char *model_fn, int degree,
+                                      int order, const dso::TwoPartDate &t,
+                                      dso::StokesCoeffs &harmonics) noexcept {
   dso::Icgem gfc(model_fn);
 
   /* parse the header ... */
@@ -13,7 +12,7 @@ int dso::parse_gravity_model(const char *model_fn, int degree, int order,
     fprintf(stderr,
             "[ERROR] Failed to parse icgem header for %s (traceback: %s)!\n",
             model_fn, __func__);
-    return 1;
+    return dso::iStatus(1);
   }
 
   /* check degree and order validity */
@@ -22,7 +21,7 @@ int dso::parse_gravity_model(const char *model_fn, int degree, int order,
             "[ERROR]  invalid degree/order %d/%d for input gravity model %s "
             "(traceback: %s)\n",
             degree, order, model_fn, __func__);
-    return 1;
+    return dso::iStatus(1);
   }
 
   /* resize HarmonicCoeffs to fit input */
@@ -34,9 +33,9 @@ int dso::parse_gravity_model(const char *model_fn, int degree, int order,
             "[ERROR] Failed to parse harmonic coefficients from file %s "
             "(traceback: %s)\n",
             model_fn, __func__);
-    return 1;
+    return dso::iStatus(1);
   }
 
   /* all done */
-  return 0;
+  return dso::iStatus(0);
 }

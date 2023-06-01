@@ -89,15 +89,12 @@ public:
  *        collection of data and parameters to be used in the computation
  *        of (the system of) variational equations.
  */
-struct IntegrationParameters {
+class IntegrationParameters {
   /* time in TAI */
   dso::TwoPartDate mjd_tai;
-  dso::TwoPartDate &reference_epoch() noexcept { return mjd_tai; }
-  dso::TwoPartDate reference_epoch() const  noexcept { return mjd_tai; }
   
   /* EOP parameters Look-up table */
   const dso::EopLookUpTable &eopLUT;
-  const dso::EopLookUpTable &eop_lookup_table() const noexcept { return eopLUT; }
 
   /* Earth gravity field */
   dso::EarthGravity *egravity;
@@ -106,14 +103,14 @@ struct IntegrationParameters {
   double GMSun, GMMon;
 
   /* Ocean Tides */
-  dso::OceanTide *octide;
+  dso::OceanTide *octide{nullptr};
 
   /* Earth Tides */
-  dso::SolidEarthTide *setide;
+  dso::SolidEarthTide *setide{nullptr};
   
   /* Pole tides */
-  dso::SolidEarthPoleTide *psetide;
-  dso::OceanPoleTide *poctide;
+  dso::SolidEarthPoleTide *psetide{nullptr};
+  dso::OceanPoleTide *poctide{nullptr};
   
   /* Satellite-specific information */
   SvFrame *svFrame{nullptr};
@@ -123,17 +120,52 @@ struct IntegrationParameters {
 
   /* setup dynamic parameters */
   double Cd = 2e0;
-  double &drag_ceofficient() noexcept {return Cd;}
   double Cr = 1.5e0;
-  double &srp_ceofficient() noexcept {return Cr;}
 
+  /* workspace -- these should match the maximum degree and order */
+  dso::StokesCoeffs geopotential;
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> V,W;
+
+public:
   IntegrationParameters(const dso::EopLookUpTable &eoptable_,
+                        dso::EarthGravity *earth_gravity,
+                        dso::OceanTide *ocean_tide,
+                        dso::SolidEarthTide *solid_earth_tide,
+                        dso::SolidEarthPoleTide *solid_earth_pole_tide,
+                        dso::OceanPoleTide *ocean_pole_tide,
                         const char *pck_kernel,
-                        const char *dtm2020datafile) noexcept
-      : eopLUT(eoptable_), Dtm20(dtm2020datafile) {
-    /* Sun and Moon gravitational constants in SI units (m^3/s^2) */
-    assert(!dso::get_sun_moon_GM(pck_kernel, GMSun, GMMon, true));
-  };
+                        const char *dtm2020datafile);
+
+  dso::TwoPartDate &reference_epoch() noexcept { return mjd_tai; }
+  dso::TwoPartDate reference_epoch() const  noexcept { return mjd_tai; }
+  const dso::EopLookUpTable &eop_lookup_table() const noexcept { return eopLUT; }
+  double &drag_ceofficient() noexcept {return Cd;}
+  double &srp_ceofficient() noexcept {return Cr;}
+  dso::EarthGravity *earth_gravity() noexcept {return egravity;};
+  dso::OceanTide *ocean_tide() noexcept {return octide;}
+  dso::SolidEarthTide *solid_earth_tide() noexcept {return setide;}
+  dso::SolidEarthPoleTide *solid_earth_pole_tide() noexcept {return psetide;}
+  dso::OceanPoleTide *ocean_pole_tide() noexcept {return poctide;}
+  dso::TwoPartDate tai() const noexcept {return mjd_tai;}
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &workspace_v() noexcept {return V;}
+  dso::Mat2D<dso::MatrixStorageType::LwTriangularColWise> &workspace_w() noexcept {return W;}
+
+  dso::StokesCoeffs &accumulate_geopotential_coeffs() noexcept {
+    geopotential.clear();
+    if (egravity) geopotential+=egravity->geopotential_coeffs();
+    if (octide) geopotential+=octide->geopotential_coeffs();
+    if (setide) geopotential+=setide->geopotential_coeffs();
+    if (poctide) geopotential+=poctide->geopotential_coeffs();
+    if (psetide) {
+      geopotential.C(2,1) += psetide->dC21();
+      geopotential.S(2,1) += psetide->dS21();
+    }
+    return geopotential;
+  }
+
+  void set_flux_data(dso::SolarActivityData &data) noexcept {
+    Dtm20.set_flux_data(data);
+  }
 
   void set_sv_frame(Eigen::Matrix<double, 3, 1> vcog,
                     Eigen::Matrix<double, 3, 1> varp, const char *qfn,
@@ -141,7 +173,7 @@ struct IntegrationParameters {
     svFrame = new dso::SvFrame(vcog,varp,qfn,mass);
   }
 
-}; // Integration Parameters
+}; /* Integration Parameters */
 
 /// @brief Comnpute third-body, Sun- and Moon- induced acceleration on an
 ///        orbiting satellite.

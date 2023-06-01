@@ -732,8 +732,10 @@ int main(int argc, char *argv[]) {
             oc_order);
     return 1;
   }
-  dso::OceanPoleTide ocpt(oc_degree, oc_order, buf, iers2010::GMe,
-                          iers2010::Re);
+  dso::OceanPoleTide ocpt(oc_degree, oc_order, buf);
+  
+  /* Setup Solid Earth Tide */
+  dso::SolidEarthTide setide;
 
   printf("-- bp 4\n");
   // Setup Integration Parameters for Orbit Integration
@@ -751,11 +753,9 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "ERROR Failed locating dtm2020-data\n");
     return 1;
   }
-  dso::IntegrationParameters IntegrationParams(eop_lut, pck_kernel,
-                                               dtm2020_data);
-  IntegrationParams.psetide = &sept;
-  IntegrationParams.poctide = &ocpt;
-  IntegrationParams.egravity = &egrav;
+  dso::IntegrationParameters IntegrationParams(eop_lut, &egrav, &octide,
+                                               &setide, &sept, &ocpt,
+                                               pck_kernel, dtm2020_data);
   printf("-- bp 5\n");
 
   // Orbit Integrator
@@ -781,13 +781,6 @@ int main(int argc, char *argv[]) {
     if (get_rinex_indexes(rnx, l1i, l2i, fi, w1i, w2i))
       return 1;
   }
-
-  // Important !! OC-TIDES
-  IntegrationParams.octide = &octide;
-  /* Setup Solid Earth Tide */
-  dso::SolidEarthTide setide(iers2010::GMe, iers2010::Re,
-                             IntegrationParams.GMMon, IntegrationParams.GMSun);
-  IntegrationParams.setide = &setide;
 
   OrbitIntegrator svState(dso::TwoPartDate(rnx.time_of_first_obs()), eop_lut);
   printf("-- bp 7\n");
@@ -837,7 +830,8 @@ int main(int argc, char *argv[]) {
               buf);
       return 1;
     }
-    IntegrationParams.Dtm20.set_flux_data(flux);
+    // IntegrationParams.Dtm20.set_flux_data(flux);
+    params->set_flux_data(flux);
   }
   printf("-- bp 9\n");
 

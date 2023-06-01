@@ -36,8 +36,10 @@ void dso::VariationalEquations(
   auto error = dso::iStatus(0);
 
   /* current mjd, TAI */
-  const dso::TwoPartDate cmjd(params->mjd_tai +
-                              dso::TwoPartDate(0e0, tsec / 86400e0));
+  //const dso::TwoPartDate cmjd(params->mjd_tai +
+  //                            dso::TwoPartDate(0e0, tsec / 86400e0));
+  auto cmjd = params->tai();
+  cmjd.add_seconds(tsec);
 
   /* terrestrial to celestial for requested epoch t */
   dso::Itrs2Gcrs Rot(cmjd.tai2tt(), &(params->eop_lookup_table()));
@@ -53,24 +55,23 @@ void dso::VariationalEquations(
   /* satellite position at t=t0 (ITRF) */
   Eigen::Matrix<double, 3, 1> r_itrf = Rot.gcrf2itrf(r);
 
-  { /* compute gravity-induced acceleration */
-    Eigen::Matrix<double, 3, 3> gradient;
-    Eigen::Matrix<double, 3, 1> acc;
-    if (params->egravity->acceleration(r_itrf, acc, gradient)) {
-      fprintf(stderr,
-              "[ERROR] Failed computing gravity/gradient (traceback: %s)\n",
-              __func__);
-    }
-
-    /* transform acceleration and gradient to GCRF */
-    acc = Rot.itrf2gcrf(acc);
-    const auto T = Rot.itrf2gcrf();
-    gradient = T * gradient * T.transpose();
-    /* add to global matrices */
-    a += acc;
-    dadr += gradient;
-  }
-
+  //{ /* compute gravity-induced acceleration */
+  //  Eigen::Matrix<double, 3, 3> gradient;
+  //  Eigen::Matrix<double, 3, 1> acc;
+  //  if (params->egravity->acceleration(r_itrf, acc, gradient)) {
+  //    fprintf(stderr,
+  //            "[ERROR] Failed computing gravity/gradient (traceback: %s)\n",
+  //            __func__);
+  //  }
+  //  /* transform acceleration and gradient to GCRF */
+  //  acc = Rot.itrf2gcrf(acc);
+  //  const auto T = Rot.itrf2gcrf();
+  //  gradient = T * gradient * T.transpose();
+  //  /* add to global matrices */
+  //  a += acc;
+  //  dadr += gradient;
+  //}
+  
   /* Sun and Moon position in GCRF */
   Eigen::Matrix<double, 3, 1> sun_gcrf, sun_itrf;
   Eigen::Matrix<double, 3, 1> mon_gcrf, mon_itrf;
@@ -88,12 +89,12 @@ void dso::VariationalEquations(
 
   {
     /* compute geopotential coefficients for solid earth tides */
-    params->setide->operator()(Rot.tt(), Rot.ut1(), mon_itrf, sun_itrf);
+    params->solid_earth_tide()->operator()(Rot.tt(), Rot.ut1(), mon_itrf, sun_itrf);
   }
 
   {
     /* compute geopotential coefficients for ocean tides */
-    if (params->octide->operator()(Rot.tt(), Rot.ut1())) {
+    if (params->ocean_tide()->operator()(Rot.tt(), Rot.ut1())) {
       error += dso::iStatus(1);
       fprintf(stderr,
               "[ERROR] Failed computing ocean tides geopotential corrections "
@@ -104,20 +105,37 @@ void dso::VariationalEquations(
 
   {
     /* compute geopotential coefficients for ocean pole tides */
-    if (params->poctide->operator()(Rot.tt(), Rot.eop().xp, Rot.eop().yp)) {
+    if (params->ocean_pole_tide()->operator()(Rot.tt(), Rot.eop().xp, Rot.eop().yp)) {
       error += dso::iStatus(1);
       fprintf(stderr,
               "[ERROR] Failed computing ocean tides geopotential corrections "
               "(traceback: %s)\n",
               __func__);
     }
-    /* add dC21 and dS21 from solid earth pole tide */
-    const auto dcs =
-        params->psetide->delta_stokes_21(Rot.tt(), Rot.eop().xp, Rot.eop().yp);
-    params->poctide->geopotential_coeffs().C(2, 1) += dcs.dc21;
-    params->poctide->geopotential_coeffs().S(2, 1) += dcs.ds21;
+    /* solid earth pole tide */
+    [[maybe_unused]]const auto dcs =
+        params->solid_earth_pole_tide()->delta_stokes_21(Rot.tt(), Rot.eop().xp, Rot.eop().yp);
   }
 
+  /* geopotential coefficients (gravity+tides) to acceleration */
+  {
+    Eigen::Matrix<double, 3, 3> gradient;
+    Eigen::Matrix<double, 3, 1> acc;
+    dso::gravity_acceleration(
+        params->accumulate_geopotential_coeffs(), r_itrf,
+        params->earth_gravity()->max_degree(),
+        params->earth_gravity()->geopotential_coeffs().Re(),
+        params->earth_gravity()->geopotential_coeffs().GM(), acc, gradient,
+        &(params->workspace_v()), &(params->workspace_w()));
+    /* transform acceleration and gradient to GCRF */
+    acc = Rot.itrf2gcrf(acc);
+    const auto T = Rot.itrf2gcrf();
+    gradient = T * gradient * T.transpose();
+    /* add to global matrices */
+    a += acc;
+    dadr += gradient;
+  }
+  
   /* yPt(0:3) = v */
   yPt.block<3, 1>(0, 0) = v;
   /* yPt(3:6) = a */
