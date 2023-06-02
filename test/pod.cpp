@@ -375,23 +375,23 @@ int get_rinex_indexes(const dso::DorisObsRinex &rnx, int &l1_idx, int &l2_idx,
 
 // hold satellite state & time
 class OrbitIntegrator {
-  // Current datetime in TAI
+  /* Current datetime in TAI */
   dso::TwoPartDate mjd_tai;
-  // state vector at t=tai in GCRF, at DORIS receiver RP (Iono-Free)
+  /* state vector at t=tai in GCRF, at DORIS receiver RP (Iono-Free) */
   Eigen::Matrix<double, 6, 1> state;
-  // state transition matrix at t=tai
+  /* state transition matrix at t=tai */
   Eigen::Matrix<double, 6, 6> Phi;
-  // an instance to transform between ITRF and GCRF coordinates
+  /* an instance to transform between ITRF and GCRF coordinates */
   dso::Itrs2Gcrs Rot;
-  // SV details
+  /* SV details */
   dso::SvFrame *sv_frame{nullptr};
 
 public:
   OrbitIntegrator(const dso::TwoPartDate &tai, const dso::EopLookUpTable &eops)
       : mjd_tai(tai), Rot(tai.tai2tt(), &eops){};
 
-  void set_attitude(const dso::IntegrationParameters &params) {
-    sv_frame = params.svFrame;
+  void set_attitude(dso::IntegrationParameters &params) {
+    sv_frame = params.svframe();
   }
 
   dso::TwoPartDate &tai_time() noexcept { return mjd_tai; }
@@ -810,9 +810,11 @@ int main(int argc, char *argv[]) {
            "in SV-frame\n",
            l3_pco(0), l3_pco(1), l3_pco(2));
     // Attitude Information
-    dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", buf);
+    char b[256], a[256];
+    dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", b);
+    dso::get_yaml_value_depth2(config, "attitude", "solar-array", a);
     /* set attitude in Integration parametrs and */
-    IntegrationParams.set_sv_frame(sat_cog, l3_pco, buf, sat_mass);
+    IntegrationParams.set_sv_frame(sat_cog, l3_pco, b, a, sat_mass);
     svState.set_attitude(IntegrationParams);
   }
   printf("-- bp 8\n");
@@ -831,7 +833,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     // IntegrationParams.Dtm20.set_flux_data(flux);
-    params->set_flux_data(flux);
+    IntegrationParams.set_flux_data(flux);
   }
   printf("-- bp 9\n");
 
