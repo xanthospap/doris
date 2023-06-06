@@ -139,7 +139,7 @@ void dso::VariationalEquations(
   {
     /* shadow factor */
     const double f = dso::conic_shadow_factor(r, sun_gcrf, 6.957e8);
-    if (f) {
+    if (f!=0e0) {
       /* get macromodel in ECI */
       std::vector<dso::MacroModelComponent> sv;
       if (params->svframe()->macromodel_iterator(cmjd,sv)) {
