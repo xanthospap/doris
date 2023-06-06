@@ -813,7 +813,7 @@ int main(int argc, char *argv[]) {
     char b[256], a[256];
     dso::get_yaml_value_depth2(config, "attitude", "body-quaternion", b);
     dso::get_yaml_value_depth2(config, "attitude", "solar-array", a);
-    /* set attitude in Integration parametrs and */
+    /* set attitude in Integration parameters */
     IntegrationParams.set_sv_frame(sat_cog, l3_pco, b, a, sat_mass);
     svState.set_attitude(IntegrationParams);
   }

@@ -3,9 +3,17 @@
 
 #include "eigen3/Eigen/Eigen"
 #include "iers2010/iersc.hpp"
+#include "satellites.hpp"
+#include "astrodynamics/occultation.hpp"
 #include <limits>
 
 namespace dso {
+
+Eigen::Matrix<double, 3, 1>
+direct_solar_radiation_pressure(const std::vector<dso::MacroModelComponent> &sv,
+                                const Eigen::Matrix<double, 3, 1> &r,
+                                const Eigen::Matrix<double, 3, 1> &sun,
+                                double Mass) noexcept;
 
 struct OrbitalElements {
   /// [0]: Semimajor axis a

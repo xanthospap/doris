@@ -45,6 +45,9 @@ struct MacroModelComponent {
   }
   /* spec, diff, abs */
   double m_optical_properties[3];
+  double optical_specular() const noexcept {return m_optical_properties[0];}
+  double optical_diffusion() const noexcept {return m_optical_properties[1];}
+  double optical_absorption() const noexcept {return m_optical_properties[2];}
   /* spec, diff, abs */
   double m_infrared_properties[3];
 };

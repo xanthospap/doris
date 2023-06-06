@@ -3,8 +3,6 @@
 #include "geodesy/units.hpp"
 #include "iers2010/cel2ter.hpp"
 #include "orbit_integration.hpp"
-#include <datetime/dtcalendar.hpp>
-#include <geodesy/ellipsoid.hpp>
 
 constexpr const int m = 0;
 constexpr const int F1 = 3 * (6 + m);
@@ -36,8 +34,6 @@ void dso::VariationalEquations(
   auto error = dso::iStatus(0);
 
   /* current mjd, TAI */
-  //const dso::TwoPartDate cmjd(params->mjd_tai +
-  //                            dso::TwoPartDate(0e0, tsec / 86400e0));
   auto cmjd = params->tai();
   cmjd.add_seconds(tsec);
 
@@ -55,23 +51,6 @@ void dso::VariationalEquations(
   /* satellite position at t=t0 (ITRF) */
   Eigen::Matrix<double, 3, 1> r_itrf = Rot.gcrf2itrf(r);
 
-  //{ /* compute gravity-induced acceleration */
-  //  Eigen::Matrix<double, 3, 3> gradient;
-  //  Eigen::Matrix<double, 3, 1> acc;
-  //  if (params->egravity->acceleration(r_itrf, acc, gradient)) {
-  //    fprintf(stderr,
-  //            "[ERROR] Failed computing gravity/gradient (traceback: %s)\n",
-  //            __func__);
-  //  }
-  //  /* transform acceleration and gradient to GCRF */
-  //  acc = Rot.itrf2gcrf(acc);
-  //  const auto T = Rot.itrf2gcrf();
-  //  gradient = T * gradient * T.transpose();
-  //  /* add to global matrices */
-  //  a += acc;
-  //  dadr += gradient;
-  //}
-  
   /* Sun and Moon position in GCRF */
   Eigen::Matrix<double, 3, 1> sun_gcrf, sun_itrf;
   Eigen::Matrix<double, 3, 1> mon_gcrf, mon_itrf;
@@ -135,7 +114,47 @@ void dso::VariationalEquations(
     a += acc;
     dadr += gradient;
   }
-  
+
+  /* acceleration (correction) due to relativity, IERS-2010 */
+  {
+    /* Time derivative of the position of the Earth with respect to Sun */
+    auto dRes = sun_gcrf;
+    {
+      const double dt = 10e0; /* seconds */
+      auto t2 = cmjd.tai2tt();
+      t2.add_seconds(dt);
+      Eigen::Matrix<double, 3, 1> sun2;
+      if (dso::planet_pos(dso::Planet::SUN, t2, sun2)) {
+        fprintf(stderr, "ERROR Failed extracting Sun/Moon position!\n");
+        return;
+      }
+      dRes = (sun2 - sun_gcrf) / dt;
+    }
+    a += iers2010::relativistic_correction(r, sun_gcrf, dRes, v);
+  }
+
+  printf("Acceleration a = %.9e %.9e %.9e\n", a(0), a(1), a(2));
+
+  /* (direct) solar radiation pressure */
+  {
+    /* shadow factor */
+    const double f = dso::conic_shadow_factor(r, sun_gcrf, 6.957e8);
+    if (f) {
+      /* get macromodel in ECI */
+      std::vector<dso::MacroModelComponent> sv;
+      if (params->svframe()->macromodel_iterator(cmjd,sv)) {
+        fprintf(stderr, "[ERROR] Failed getting attitude (traceback: %s)\n",
+                __func__);
+      }
+      /* compute SRP */
+      const Eigen::Matrix<double, 3, 1> asrp =
+          dso::direct_solar_radiation_pressure(sv, r, sun_gcrf,
+                                               params->svframe()->mass());
+      auto Asrp = asrp * f;
+      printf("SRP a = %.9e %.9e %.9e\n", Asrp(0), Asrp(1), Asrp(2));
+    }
+  }
+
   /* yPt(0:3) = v */
   yPt.block<3, 1>(0, 0) = v;
   /* yPt(3:6) = a */

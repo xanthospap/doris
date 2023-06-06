@@ -50,8 +50,25 @@ int resolve_jason3_solar_array_line(
   }
   record.left_array = angle;
 
+  /* WARNING
+   * according to the specifications, https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf 
+   * the two angles are only seperated by one dummy integer value. However, it 
+   * seems that in reality they are two!
+   */
   /* Useless parameter, format (I10) */
-  c += 10;
+  // c += 10;
+  /* instead of the above, read in two dummy integer values */
+  {
+    int dummy;
+    for (int i = 0; i < 2; i++) {
+      pec = std::from_chars(skip_ws(c), last, dummy);
+      c = pec.ptr;
+      if (!std::isspace(*c) || pec.ec != std::errc{}) {
+        ++error;
+      }
+    }
+  }
+
   pec = std::from_chars(skip_ws(c), last, angle);
   if (!std::isspace(*c) || pec.ec != std::errc{}) {
     ++error;
