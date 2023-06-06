@@ -4,6 +4,7 @@
 #include "eigen3/Eigen/Eigen"
 #include "satellites.hpp"
 #include "satellites/jason3_quaternions.hpp"
+#include "iers2010/rotations.hpp"
 #include <cassert>
 
 namespace dso {
@@ -30,6 +31,67 @@ public:
 
   const dso::MacroModel<SATELLITE::Jason3> &plates() const noexcept {
     return mplates;
+  }
+
+  dso::iStatus macromodel_iterator(const dso::TwoPartDate &tai, std::vector<dso::MacroModelComponent> &sv) noexcept {
+    sv.clear();
+    sv.reserve(mplates.NumPlates);
+
+    /* get rotation quaternion for body frame */
+    Eigen::Quaternion<double> q;
+    if (qhunt.get_at(tai, q)) {
+      fprintf(
+          stderr,
+          "[ERROR] Failed to find quaternion for datetime (traceback: %s)\n",
+          __func__);
+      return dso::iStatus(1);
+    }
+    /* get rotation for left and right arrays */
+    double lrot, rrot;
+    if (shunt.get_at(tai, lrot, rrot)) {
+      fprintf(stderr,
+              "[ERROR] Failed getting solar array rotation (traceback: %s)\n",
+              __func__);
+      return dso::iStatus(1);
+    }
+    /* iterate macromodel; for sv body */
+    for (int i=0; i<mplates.NumPlates-2; i++) {
+      dso::MacroModelComponent plate(mplates.plate(i));
+      /* body-fixed to ECI */
+      plate.set_normal(q.conjugate().normalized() * mplates.plate(i).normal());
+      /* push back */
+      sv.emplace_back(plate);
+    }
+
+    /* left solar array */
+    {
+      const int index = 6;
+      dso::MacroModelComponent plate(mplates.plate(index));
+      /* left solar array default normal */
+      Eigen::Matrix<double,3,1> n = mplates.plate(index).normal();
+      /* rotate solar array to body-fixed frame */
+      n = dso::rotate<dso::RotationAxis::Y>(lrot, n);
+      /* body-fixed to ECI */
+      plate.set_normal(q.conjugate().normalized() * n);
+      /* push back */
+      sv.emplace_back(plate);
+    }
+    
+    /* right solar array */
+    {
+      const int index = 7;
+      dso::MacroModelComponent plate(mplates.plate(index));
+      /* right solar array default normal */
+      Eigen::Matrix<double,3,1> n = mplates.plate(index).normal();
+      /* rotate solar array to body-fixed frame */
+      n = dso::rotate<dso::RotationAxis::Y>(rrot, n);
+      /* body-fixed to ECI */
+      plate.set_normal(q.conjugate().normalized() * n);
+      /* push back */
+      sv.emplace_back(plate);
+    }
+
+    return dso::iStatus(0);
   }
 
   /* body-fixed frame to GCRF */

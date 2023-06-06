@@ -8,72 +8,51 @@
 
 namespace dso {
 
-/// @brief Get corrections for Jason-3 mass and center of gravity
-/// coordinates in satellite reference frame.
-///
-/// The recdords in this file are "corrections" to the mass and [XYZ]
-/// coordinates of the CoG of the satellite in the satellite reference
-/// frame. Hence, the values this function retrievds, should be added to
-/// the initial values of the respective quantities (see InitialMass and
-/// initial_center_of_gravity).
-///
-/// @param[in] j3mass An IDS/CNES format file with records of
-/// mass & Center of gravity history for Jason-3 see:
-/// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
-/// and ftp://ftp.ids-doris.org/pub/ids/satellites/ja3mass.txt
-/// @param[in] t Current datetime
-/// @param[out] dmdxyz An array holding corrections for datetime t, in
-/// order:
-///   dmdxyz[0]: Dmass [kg]
-///   dmdxyz[1,2,3]: Dx, Dy, Dz [m]
-// int get_jason3_corrections(const char *j3mass,
-//                            const dso::datetime<dso::nanoseconds> &t,
-//                            double *dmdxyz) noexcept;
-
 template <> struct SatelliteInfo<SATELLITE::Jason3> {
-  /// @ref https://cddis.nasa.gov/Techniques/sp3c_satlist.html
+  /* @ref https://cddis.nasa.gov/Techniques/sp3c_satlist.html */
   static constexpr char sp3Id[4] = "L39";
   static constexpr char rnxId[24] = "JASON-3";
 
-  /// @ref
-  /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+  /* @ref https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf */
   static double InitialMass() noexcept { return 509.6e0; } // [kg]
 
-  /// @brief Jason-3 initial center of gravity in the satellite fixed frame, in
-  /// cartesian components (x,y,z) [m].
-  /// @ref
-  /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+  /* @brief Jason-3 initial center of gravity in the satellite fixed frame, in
+   * cartesian components (x,y,z) [m].
+   * @ref https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+   */
   static Eigen::Matrix<double, 3, 1> initial_center_of_gravity() noexcept {
     constexpr const double com[] = {+1.0023e0, +0.0000e0, -0.0021e0};
     return Eigen::Matrix<double, 3, 1>(com);
   }
 
-  /// @brief Get corrections for satellite's mass and center of gravity
-  /// coordinates in satellite reference frame.
-  ///
-  /// The recdords in this file are "corrections" to the mass and [XYZ]
-  /// coordinates of the CoG of the satellite in the satellite reference
-  /// frame. Hence, the values this function retrievds, should be added to
-  /// the initial values of the respective quantities (see InitialMass and
-  /// initial_center_of_gravity).
-  ///
-  /// @param[in] j3mass An IDS/CNES format file with records of
-  /// mass & Center of gravity history, see:
-  /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
-  /// and ftp://ftp.ids-doris.org/pub/ids/satellites/ja3mass.txt
-  /// @param[in] t Current datetime
-  /// @param[out] dmdxyz An array holding corrections for datetime t, in
-  /// order:
-  ///   dmdxyz[0]: Dmass [kg]
-  ///   dmdxyz[1,2,3]: Dx, Dy, Dz [m]
+  /* @brief Get corrections for satellite's mass and center of gravity
+   * coordinates in satellite reference frame.
+   *
+   * The recdords in this file are "corrections" to the mass and [XYZ]
+   * coordinates of the CoG of the satellite in the satellite reference
+   * frame. Hence, the values this function retrievds, should be added to
+   * the initial values of the respective quantities (see InitialMass and
+   * initial_center_of_gravity).
+   *
+   * @param[in] j3mass An IDS/CNES format file with records of
+   * mass & Center of gravity history, see:
+   * https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+   * and ftp://ftp.ids-doris.org/pub/ids/satellites/ja3mass.txt
+   * @param[in] t Current datetime
+   * @param[out] dmdxyz An array holding corrections for datetime t, in
+   * order:
+   *   dmdxyz[0]: Dmass [kg]
+   *   dmdxyz[1,2,3]: Dx, Dy, Dz [m]
+   */
   static int corrections(const char *j3mass,
                          const dso::datetime<dso::nanoseconds> &t,
                          double *dmdxyz) {
     return get_satellite_corrections(j3mass, t, dmdxyz);
   }
 
-  /// @brief Get satellite's mass and center of gravity coordinates in
-  /// satellite reference frame.
+  /* @brief Get satellite's mass and center of gravity coordinates in
+   * satellite reference frame.
+   */
   static int mass_cog(const dso::datetime<dso::nanoseconds> &t,
                       const char *j3mass, double &mass,
                       Eigen::Matrix<double, 3, 1> &cog_xyz) noexcept {
@@ -92,10 +71,10 @@ template <> struct SatelliteInfo<SATELLITE::Jason3> {
     return 0;
   }
 
-  /// @brief DORIS phase center for  the 2GHz carrier in satellite reference
-  /// frame; cartesian (x,y,z) in [m]
-  /// @ref
-  /// https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+  /* @brief DORIS phase center for the 2GHz carrier in satellite reference
+   * frame; cartesian (x,y,z) in [m]
+   * @ref https://ids-doris.org/documents/BC/satellites/DORISSatelliteModels.pdf
+   */
   static int pco(Eigen::Matrix<double, 3, 1> &l1_pco,
                  Eigen::Matrix<double, 3, 1> &l2_pco) noexcept {
     constexpr const double l1pco[] = {2.4128e0, -0.1325e0, 0.9235e0};
@@ -105,7 +84,7 @@ template <> struct SatelliteInfo<SATELLITE::Jason3> {
     return 0;
   }
 
-}; // SatelliteInfo<SATELLITE::Jason3>
+}; /* SatelliteInfo<SATELLITE::Jason3> */
 
 template <> struct MacroModel<SATELLITE::Jason3> {
   static constexpr int NumPlates = 8;
@@ -134,7 +113,7 @@ template <> struct MacroModel<SATELLITE::Jason3> {
        {0e0, 0e0, 1e0},
        {0.2130e0, 0.4530e0, 0.3340e0},
        {0.0370e0, 0.2870e0, 0.6760e0}},
-      // solar arrays
+      /* solar array */
       {9.800e0,
        {1e0, 0e0, 0e0},
        {0.0600e0, 0.4070e0, 0.5330e0},
@@ -143,8 +122,9 @@ template <> struct MacroModel<SATELLITE::Jason3> {
        {-1e0, 0e0, 0e0},
        {0.0040e0, 0.2980e0, 0.6970e0},
        {0.0350e0, 0.0350e0, 0.9310e0}}};
-}; // MacroModel<SATELLITE::Jason3>
+  const MacroModelComponent &plate(int i) const {return mmcomponents[i];}
+}; /* MacroModel<SATELLITE::Jason3> */
 
-} // namespace dso
+} /* namespace dso */
 
 #endif

@@ -1,14 +1,14 @@
 #include "occultation.hpp"
 
 double dso::conic_shadow_factor(const Eigen::Matrix<double, 3, 1> &rsat,
-                    const Eigen::Matrix<double, 3, 1> &rsun, double Rs,
-                    double Re = iers2010::Re) noexcept {
+                                const Eigen::Matrix<double, 3, 1> &rsun,
+                                double Rs, double Re) noexcept {
   /* apparent radius of the Earth */
   const double te = std::asin(Re / rsat.norm());
   /* apparent radius of the Sun */
   const double ts = std::asin(Rs / (rsun - rsat).norm());
   /* apparent separation between the Earth and the Sun */
-  const double tes = std::acos(-(rsat.transpose() * (rsun - rsat)) /
+  const double tes = std::acos(-(rsat.transpose() * (rsun - rsat))(0,0) /
                                (rsat.norm() * (rsun - rsat).norm()));
   /* no occultation */
   if (te + ts <= tes) {
