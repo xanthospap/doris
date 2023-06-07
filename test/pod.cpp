@@ -34,6 +34,7 @@ constexpr const int INCLUDE_SRP_DRAG = true;
 // constexpr const int m = INCLUDE_ATM_DRAG + INCLUDE_SRP_DRAG;
 constexpr const int m = 0; /* TODO */
 constexpr const int n = 6 + m;
+constexpr const int NumEqn = 6 + 2 * (3 * (6 + m)) + m * (6 + m);
 /* only compute Doppler count if two observation are within this time interval
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
@@ -438,63 +439,66 @@ public:
   }
 
   Eigen::Matrix<double, 6, 6> extractStateTransitionMatrix(
-      const Eigen::Matrix<double, (6 + 6 * n), 1> &yP) noexcept {
+      const Eigen::Matrix<double, NumEqn, 1> &yP) noexcept {
     Eigen::Matrix<double, 6, 6> F;
-    int of = 6;
-    F.row(0) = yP.block<6, 1>(of, 0);
-    F.row(1) = yP.block<6, 1>(of + 1 * n, 0);
-    F.row(2) = yP.block<6, 1>(of + 2 * n, 0);
-    F.row(3) = yP.block<6, 1>(of + 3 * n, 0);
-    F.row(4) = yP.block<6, 1>(of + 4 * n, 0);
-    F.row(5) = yP.block<6, 1>(of + 5 * n, 0);
+    /* no dynamic parameters */
+    if constexpr (m==0) {
+      F = yP.block<NumEqn - 6, 1>(6, 0).reshaped(6,6).transpose();
+    } else {
+      assert(1==0);
+      // static_assert(m==1, "Dynamic parameters present. Set initial conditions!\n");
+    }
     return F;
   }
 
   void
-  setInitialconditions(Eigen::Matrix<double, (6 + 6 * n), 1> &yP0) noexcept {
-    int of = 6;
-    yP0.block<6 * n, 1>(6, 0) = Eigen::Matrix<double, (6 * n), 1>::Zero();
-    for (int i = 0; i < 6; i++) {
-      int start = of + i * n;
-      yP0(start + i) = 1e0;
+  setInitialconditions(Eigen::Matrix<double, NumEqn, 1> &yP0) noexcept {
+    /* no dynamic parameters */
+    if constexpr (m==0) {
+      const auto v =
+          Eigen::Matrix<double, 6, 6>::Identity().transpose().reshaped();
+      yP0.block<NumEqn - 6, 1>(6, 0) = v;
+    } else {
+      assert(1==0);
+      // static_assert(m==1, "Dynamic parameters present. Set initial conditions!\n");
     }
   }
 
   int integrate(const dso::TwoPartDate &mjd_target,
                 dso::SGOde &integrator) noexcept {
 
-    printf("Integrating %.3f seconds away!\n",
-           mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-               mjd_tai));
+    //printf("Integrating %.3f seconds away!\n",
+    //       mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
+    //           mjd_tai));
 
-    // number of equations:
-    // 6 for the state + 6*n for the variational equations, where n = 6 + m
-    constexpr const int NumEqn = 6 + 6 * n;
-
-    // Vector containing state + variational equations size: 6 + 6xn
+    /* Vector containing state + variational equations */
     Eigen::Matrix<double, NumEqn, 1> yPhi0 =
         Eigen::Matrix<double, NumEqn, 1>::Zero();
 
-    // transform state from ITRF to GCRF
+    
+    /* Set initial conditions for position and state (aka this part is the
+     * 'equations of motion', [r,v]
+     * Reference point is SV's center of gravity
+     */
     yPhi0.block<6, 1>(0, 0) = gcrf_state_cm();
-    printf("Starting integration gcrf %.3f %.3f %.3f %.6f %.6f %.6f\n",
-      yPhi0(0), yPhi0(1), yPhi0(2), yPhi0(3), yPhi0(4), yPhi0(5));
+    //printf("Starting integration gcrf %.3f %.3f %.3f %.6f %.6f %.6f\n",
+    //  yPhi0(0), yPhi0(1), yPhi0(2), yPhi0(3), yPhi0(4), yPhi0(5));
 
-    // Initial condition for state transition matrix Φ(t0,t0) = I
+    /* Initial condition for state transition matrix Φ(t0,t0) = I */
     setInitialconditions(yPhi0);
 
-    // t0 for integration (TAI), aka current reference time
-    integrator.params->reference_epoch() = mjd_tai.normalized();
+    /* t0 for integration (TAI), aka current reference time */
+    integrator.params->reference_epoch() = mjd_tai;
 
-    // target t for integration: seconds after t0
+    /* target t for integration: seconds after t0 */
     double tout =
         mjd_target.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
             integrator.params->reference_epoch());
 
-    // integration solution
+    /* integration solution */
     Eigen::VectorXd sol(NumEqn);
 
-    // integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec]
+    /* integrate (in inertial RF), from 0+mjd_tai to tout+mjd_tai [sec] */
     double tsec = 0e0;
     integrator.flag() = dso::SGOde::IFLAG::RESTART;
     if (integrator.de(tsec, tout, yPhi0, sol) != dso::SGOde::IFLAG::SUCCESS) {
@@ -502,14 +506,13 @@ public:
       return 1;
     }
 
-    // after integration, we reached the epoch: t0+tsec[sec] (TAI)
-    const dso::TwoPartDate tout_mjd(
-        dso::TwoPartDate(mjd_tai + dso::TwoPartDate(0e0, tsec / 86400e0))
-            .normalized());
+    /* after integration, we reached the epoch: t0+tsec[sec] (TAI) */
+    dso::TwoPartDate tout_mjd(mjd_tai);
+    tout_mjd.add_seconds(tsec);
 
-    // let's see were we are at
+    /* let's see were we are at */
     if (std::abs(tout_mjd.diff<dso::DateTimeDifferenceType::FractionalSeconds>(
-            mjd_target)) > 1e-9) {
+            mjd_target)) > 1e-16) {
       fprintf(stderr,
               "ERROR wanted integration to %.9f and got up to %.9f, that is "
               "%.9f sec apart!\n",
@@ -518,15 +521,16 @@ public:
       return 1;
     }
 
-    // everything seems ok, update state and time
+    /* everything seems ok, update state and time */
     mjd_tai = tout_mjd;
 
-    // assign Phi matrix 6x6
+    /* assign Phi matrix 6x6 */
     Phi = extractStateTransitionMatrix(sol);
     state = sol.block<6, 1>(0, 0);
 
-    // ! warning !
-    // do not forget this step, rotation matrix for now
+    /* ! warning !
+     * do not forget this step, rotation matrix for now
+     */
     Rot.prepare(mjd_tai.tai2tt());
 
     return 0;
@@ -764,7 +768,6 @@ int main(int argc, char *argv[]) {
   // 1. Relative accuracy 1e-12
   // 2. Absolute accuracy 1e-12
   // 3. Num of Equations: 6 for state and 6*6 for variational equations
-  constexpr const int NumEqn = 6 + 2 * (3 * (6 + m)) + m * (6 + m);
   dso::SGOde Integrator(dso::VariationalEquations, NumEqn, 1e-12, 1e-15,
                         &IntegrationParams);
 
@@ -951,7 +954,6 @@ int main(int argc, char *argv[]) {
     dso::strftime_ymd_hmfs(tobs_tai_dt, dtbuf);
 
     // integrate orbit to here (TAI)
-    printf("Next block: integration!\n");
     if (!num_blocks) {
       // for first iteration, get reference state from sp3, for an epoch as
       // close as possible
@@ -989,7 +991,6 @@ int main(int argc, char *argv[]) {
         return 1;
       }
     }
-    printf("Integration performed ok!\n");
 
     /* an ITRF-to-GCRF Rotation for general use */
     dso::Itrs2Gcrs R(tobs_tai.tai2tt(), &eop_lut);

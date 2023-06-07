@@ -15,46 +15,51 @@ class SGOde {
 
 public:
   enum class IFLAG : char {
-    /// Signal start or restart
+    /* Signal start or restart */
     RESTART, 
-    /// IFLAG = 2—integration successful, T is set to TOUT and Y to the
-    /// solution at TOUT.
-    /// All parameters in the call list are set for continuing the integration 
-    /// if the user wishes to. All he has to do is define a new value TOUT and 
-    /// call DE again.
+    /* IFLAG = 2—integration successful, T is set to TOUT and Y to the
+     * solution at TOUT.
+     * All parameters in the call list are set for continuing the integration 
+     * if the user wishes to. All he has to do is define a new value TOUT and 
+     * call DE again.
+     */
     SUCCESS,
-    /// IFLAG = 3—error tolerances RELERR and ABSERR are too small for the 
-    /// machine being used. T is set to the point closest to TOUT reached 
-    /// during the integration and Y to the solution at that point. RELERR and 
-    /// ABSERR are set to larger, acceptable values. To continue with the 
-    /// larger tolerances, just call DE again.
-    /// The word length of the machine and the error criterion impose 
-    /// limitations on the accuracy that can be obtained. Requests for too 
-    /// much accuracy are detected without additional function evaluations 
-    /// (calls to the subroutine F) and suitable tolerances are communicated 
-    /// to the user. Because of the way control is returned, nothing is lost. 
-    /// The user gets the last solution computed by the code which meets the 
-    /// requested error tolerances and, if he wishes to continue with the 
-    /// larger tolerances, he simply calls DE again. To integrate with the 
-    /// maximum accuracy possible, simply specify tolerances that are known to 
-    /// be too small and let the code increase them to an acceptable level. 
-    /// The code will increase the tolerances if it is necessary, but will not 
-    /// decrease them. The tolerances may be altered by the user at each call 
-    /// without re-initializing.
+    /* IFLAG = 3—error tolerances RELERR and ABSERR are too small for the 
+     * machine being used. T is set to the point closest to TOUT reached 
+     * during the integration and Y to the solution at that point. RELERR and 
+     * ABSERR are set to larger, acceptable values. To continue with the 
+     * larger tolerances, just call DE again.
+     * The word length of the machine and the error criterion impose 
+     * limitations on the accuracy that can be obtained. Requests for too 
+     * much accuracy are detected without additional function evaluations 
+     * (calls to the subroutine F) and suitable tolerances are communicated 
+     * to the user. Because of the way control is returned, nothing is lost. 
+     * The user gets the last solution computed by the code which meets the 
+     * requested error tolerances and, if he wishes to continue with the 
+     * larger tolerances, he simply calls DE again. To integrate with the 
+     * maximum accuracy possible, simply specify tolerances that are known to 
+     * be too small and let the code increase them to an acceptable level. 
+     * The code will increase the tolerances if it is necessary, but will not 
+     * decrease them. The tolerances may be altered by the user at each call 
+     * without re-initializing.
+     */
     TOL_SMALL,
-    /// IFLAG = 4— more than MAXNUM steps are required to reach TOUT. T is set 
-    /// to the point closest to TOUT reached during the integration, and Y to 
-    /// the answer at that point. To continue, just call DE again.
+    /* IFLAG = 4— more than MAXNUM steps are required to reach TOUT. T is set 
+     * to the point closest to TOUT reached during the integration, and Y to 
+     * the answer at that point. To continue, just call DE again.
+     */
     MAXSTEPS_REACHED,
-    /// IFLAG = 5—more than MAXNUM steps needed to reach TOUT and the 
-    /// equations appear to be stiff. T is set to the point closest to TOUT 
-    /// reached during the integration, and Y to the answer at that point. A 
-    /// code for stiff equations should be used but one can (usually) get 
-    /// accurate results with DE if he is prepared to stand the cost. To 
-    /// continue, the user has only to call DE again.
+    /* IFLAG = 5—more than MAXNUM steps needed to reach TOUT and the 
+     * equations appear to be stiff. T is set to the point closest to TOUT 
+     * reached during the integration, and Y to the answer at that point. A 
+     * code for stiff equations should be used but one can (usually) get 
+     * accurate results with DE if he is prepared to stand the cost. To 
+     * continue, the user has only to call DE again.
+     */
     STIFF,
-    /// IFLAG = 6— integration is not begun because the input parameters are 
-    /// invalid. The user must correct them and call DE again.
+    /* IFLAG = 6— integration is not begun because the input parameters are 
+     * invalid. The user must correct them and call DE again.
+     */
     INVALID_INPUT,
     UNDEFINED
   };
@@ -157,12 +162,13 @@ public:
   int neqn; 
    /* status from DE */
   IFLAG iflag{IFLAG::RESTART};
-  // PHI(NEQN,16) arrays of modified divided differences. Columns 15 and 16 
-  // are used for propagated roundoff control
+  /* PHI(NEQN,16) arrays of modified divided differences. Columns 15 and 16 
+   * are used for propagated roundoff control
+   */
   Eigen::MatrixXd Phi;
-  // holds arrays : wt, p, ypout, yp, yy (in this order). Dimension is NEQN
+  /* holds arrays : wt, p, ypout, yp, yy (in this order). Dimension is NEQN */
   Eigen::MatrixXd ArraysNeqn;
-  // holds arrays: ψ, α, β, v, w, σ, g (Note 1)
+  /* holds arrays: ψ, α, β, v, w, σ, g (Note 1) */
   double *Arrays13;
   int delsgn; ///< sign of (tout - t), aka going forward or backward in time
   double tc;   ///< current t (independent variable of integration)

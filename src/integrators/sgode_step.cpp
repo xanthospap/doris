@@ -319,7 +319,7 @@ int dso::SGOde::step(double &eps) noexcept {
     {
       double tmp2 = .5e0;
       if (ifail >= 3) {
-        fprintf(stderr, "[DEBUG] Third failed attempt to step forward!\n");
+        // fprintf(stderr, "[DEBUG] Third failed attempt to step forward!\n");
         if (ifail != 3 && p5eps < erk * .25e0) {
           tmp2 = std::sqrt(p5eps / erk);
         }
@@ -388,11 +388,11 @@ int dso::SGOde::step(double &eps) noexcept {
 
   if (phase1) {
     ++k;
-    printf("Raising order to %d phase1=%d\n", k,phase1);
+    //printf("Raising order to %d phase1=%d\n", k,phase1);
     erk = erkp1;
   } else if (knew == k - 1) {
     --k;
-    printf("Lowering order to %d phase1=%d\n", k,phase1);
+    //printf("Lowering order to %d phase1=%d\n", k,phase1);
     erk = erkm1;
   } else if (k < ns) {
     /* erkp1 = |φ[k+1] / wt|^2 */
@@ -403,16 +403,16 @@ int dso::SGOde::step(double &eps) noexcept {
     if (k > 1) {
       if (erkm1 <= std::min(erk, erkp1)) {
         --k;
-        printf("Lowering order to %d\n", k);
+        //printf("Lowering order to %d\n", k);
         erk = erkm1;
       } else if (erkp1 < erk && k != 12) {
         ++k;
-        printf("Raising order to %d\n", k);
+        //printf("Raising order to %d\n", k);
         erk = erkp1;
       }
     } else if (erkp1 < erk * .5e0) {
       ++k;
-      printf("Raising order to %d\n", k);
+      //printf("Raising order to %d\n", k);
       erk = erkp1;
     }
   }

@@ -53,8 +53,8 @@ struct NormalizedLegendreFactors {
     /* factors for the recursion */
     for (int m = 0; m < N - 1; m++) {
       for (int n = m + 1; n < N; n++) {
-        const double f =
-            (2e0 * n + 1e0) / static_cast<double>((n + m) * (n - m));
+        const long lf = (n + m) * (n - m);
+        const double f = (2e0 * n + 1e0) / (double)lf;
         f1(n, m) = std::sqrt(f * (2e0 * n - 1e0));
         f2(n, m) =
             -std::sqrt(f * (n - m - 1e0) * (n + m - 1e0) / (2e0 * n - 3e0));
@@ -175,12 +175,14 @@ int gravity_acceleration_impl(
   for (int m = degree; m >= 2; --m) {
     for (int n = degree; n >= m; --n) {
       { /* acceleration */
+        const long unsigned ln = n;
+        const long unsigned lm = m;
         const double wm1 =
-            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2)));
-        const double wm0 =
-            std::sqrt(static_cast<double>((n - m + 1) * (n + m + 1)));
-        const double wp1 =
-            std::sqrt(static_cast<double>((n + m + 1) * (n + m + 2)));
+            std::sqrt(static_cast<double>((ln - lm + 1) * (ln - lm + 2)));
+        const long unsigned wm0_ = (ln - lm + 1) * (ln + lm + 1);
+        const double wm0 = std::sqrt(static_cast<double>(wm0_));
+        const long unsigned wp1_ = (ln + lm + 1) * (ln + lm + 2);
+        const double wp1 = std::sqrt(static_cast<double>(wp1_));
 
         const double Cm1 = wm1 * M(n + 1, m - 1);
         const double Sm1 = wm1 * W(n + 1, m - 1);
@@ -207,32 +209,20 @@ int gravity_acceleration_impl(
           fprintf(stderr, "Invalid m/n combination, n=%d, m=%d\n", n,m);
         }
 #endif
-        /*
+        const long unsigned ln = n;
+        const long unsigned lm = m;
         const double wm2 =
-            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
-                                          (n - m + 3) * (n - m + 4))) *
-            ((m == 2) ? std::sqrt(2.0) : 1.0);
-        const double wm1 = std::sqrt(static_cast<double>(
-            (n - m + 1) * (n - m + 2) * (n - m + 3) * (n + m + 1)));
-        const double wm0 = std::sqrt(static_cast<double>(
-            (n - m + 1) * (n - m + 2) * (n + m + 1) * (n + m + 2)));
-        const double wp1 = std::sqrt(static_cast<double>(
-            (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3)));
-        const double wp2 = std::sqrt(static_cast<double>(
-            (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4)));
-        */
-        const double wm2 =
-            std::sqrt(static_cast<double>((n - m + 1) * (n - m + 2) *
-                                          (n - m + 3) * (n - m + 4))) *
-            ((m == 2) ? std::sqrt(2.0) : 1.0);
+            std::sqrt(static_cast<double>((ln - lm + 1) * (ln - lm + 2) *
+                                          (ln - lm + 3) * (ln - lm + 4))) *
+            ((lm == 2) ? std::sqrt(2.0) : 1.0);
         const long unsigned wm1l = 
-            (n - m + 1) * (n - m + 2) * (n - m + 3) * (n + m + 1);
+            (ln - lm + 1) * (ln - lm + 2) * (ln - lm + 3) * (ln + lm + 1);
         const long unsigned wm0l =
-            (n - m + 1) * (n - m + 2) * (n + m + 1) * (n + m + 2);
+            (ln - lm + 1) * (ln - lm + 2) * (ln + lm + 1) * (ln + lm + 2);
         const long unsigned wp1l = 
-            (n - m + 1) * (n + m + 1) * (n + m + 2) * (n + m + 3);
+            (ln - lm + 1) * (ln + lm + 1) * (ln + lm + 2) * (ln + lm + 3);
         const long unsigned wp2l =
-            (n + m + 1) * (n + m + 2) * (n + m + 3) * (n + m + 4);
+            (ln + lm + 1) * (ln + lm + 2) * (ln + lm + 3) * (ln + lm + 4);
         const double wm1 = std::sqrt(static_cast<double>(wm1l));
         const double wm0 = std::sqrt(static_cast<double>(wm0l));
         const double wp1 = std::sqrt(static_cast<double>(wp1l));
@@ -269,7 +259,6 @@ int gravity_acceleration_impl(
   }   /* loop over m */
 
   /* order m = 1
-   * for (int n = degree; n >= std::max(1,minDegree); --n)
    * begin summation from smaller terms
    */
   for (int n = degree; n >= 1; --n) {

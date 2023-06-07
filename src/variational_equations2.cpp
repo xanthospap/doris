@@ -133,7 +133,7 @@ void dso::VariationalEquations(
     a += iers2010::relativistic_correction(r, sun_gcrf, dRes, v);
   }
 
-  printf("Acceleration a = %.9e %.9e %.9e\n", a(0), a(1), a(2));
+  // printf("Acceleration a = %.9e %.9e %.9e at %.15e\n", a(0), a(1), a(2), cmjd.as_mjd());
 
   /* (direct) solar radiation pressure */
   {
@@ -151,7 +151,7 @@ void dso::VariationalEquations(
           dso::direct_solar_radiation_pressure(sv, r, sun_gcrf,
                                                params->svframe()->mass());
       auto Asrp = asrp * f;
-      printf("SRP a = %.9e %.9e %.9e\n", Asrp(0), Asrp(1), Asrp(2));
+      printf("SRP a = %.9e %.9e %.9e |a|=%.12e\n", Asrp(0), Asrp(1), Asrp(2), Asrp.norm());
     }
   }
 
@@ -169,5 +169,6 @@ void dso::VariationalEquations(
           .reshaped();
   /* φ3'(t,t0) = 0 */
 
+   // for (int i=0;i<yPt.rows();i++) printf("[%2d] %.12e\n", i, yPt(i));
   return;
 }

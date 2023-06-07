@@ -260,8 +260,7 @@ dso::iStatus dso::JasonQuaternionHunter::read_untill_buffered(
     left_shift(N);
     error = bodyin.get_next(bodyq + NumQuaternionsInBuffer - N, N);
     index = this->find_interval(tai_mjd);
-  } while (!error && (index != std::numeric_limits<int>::min() &&
-                      index != std::numeric_limits<int>::max()));
+  } while (!error && index == std::numeric_limits<int>::max());
 
   return error;
 }
@@ -278,6 +277,13 @@ dso::JasonQuaternionHunter::get_at(const dso::TwoPartDate &tai_mjd,
     return dso::iStatus(99);
 
 #ifdef DEBUG
+  if (index<0 || index >= NumQuaternionsInBuffer - 1) {
+    printf("Buffered quaternions:\n");
+    for (int i=0; i<NumQuaternionsInBuffer; i++) {
+      printf("[%2d] %.9f\n", i, bodyq[i].tai_mjd.as_mjd());
+    }
+    printf("Requested quaternion at %.9f, index found = %d\n", tai_mjd.as_mjd(), index);
+  }
   assert(index >= 0 && index < NumQuaternionsInBuffer - 1);
   assert(tai_mjd >= bodyq[index].tai_mjd && tai_mjd < bodyq[index + 1].tai_mjd);
 #endif
