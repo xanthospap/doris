@@ -258,8 +258,7 @@ dso::iStatus dso::JasonSolarArrayHunter::read_untill_buffered(
     left_shift(N);
     error = bodyin.get_next(rots + NumQuaternionsInBuffer - N, N);
     index = this->find_interval(tai_mjd);
-  } while (!error && (index != std::numeric_limits<int>::min() &&
-                      index != std::numeric_limits<int>::max()));
+  } while (!error && index == std::numeric_limits<int>::max());
 
   return error;
 }

@@ -137,7 +137,7 @@ void dso::VariationalEquations(
 
   /* (direct) solar radiation pressure */
   {
-    /* shadow factor */
+    /* shadow factor (zero means SV is in umbra) 0<=f<=1 */
     const double f = dso::conic_shadow_factor(r, sun_gcrf, 6.957e8);
     if (f!=0e0) {
       /* get macromodel in ECI */
@@ -150,8 +150,8 @@ void dso::VariationalEquations(
       const Eigen::Matrix<double, 3, 1> asrp =
           dso::direct_solar_radiation_pressure(sv, r, sun_gcrf,
                                                params->svframe()->mass());
-      auto Asrp = asrp * f;
-      printf("SRP a = %.9e %.9e %.9e |a|=%.12e\n", Asrp(0), Asrp(1), Asrp(2), Asrp.norm());
+      [[maybe_unused]]auto Asrp = asrp * f;
+      // printf("SRP a = %.9e %.9e %.9e |a|=%.12e, f=%.3f\n", Asrp(0), Asrp(1), Asrp(2), Asrp.norm(), f);
     }
   }
 

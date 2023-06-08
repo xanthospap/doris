@@ -34,11 +34,14 @@ dso::direct_solar_radiation_pressure(const std::vector<dso::MacroModelComponent>
     S += (Ai * plate.area() * ct) * visibility;
   }
 
+  constexpr const double AU2 = iers2010::AU * iers2010::AU;
+  /* Solar radiation pressure at 1 AU */
+  constexpr const double P0 =
+      4.56316e-6; /* [N/m^2] (~1367 W/m^2) from Beutler 2005 */
+  const double R2 = (sun - r).squaredNorm();
+  
   /* scale with (1/M) * (W/c) */
-  constexpr const double P = 4.56316e-6;
-  constexpr const double AU = iers2010::AU;
-  const double R = (sun - r).norm();
-  S *= (1e0 / Mass) * P * AU * AU / R;
-
+  S = (S / Mass) * P0 * AU2 / R2;
+      
   return S;
 }
