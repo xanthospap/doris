@@ -38,7 +38,7 @@ constexpr const int NumEqn = 6 + 2 * (3 * (6 + m)) + m * (6 + m);
 /* only compute Doppler count if two observation are within this time interval
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
-constexpr const double MAX_HOURS = 6;
+constexpr const double MAX_HOURS = 1;
 /* signal a new satellite pass over a beacon */
 constexpr const double NEW_PASS_AFTER_MIN = 30e0;
 

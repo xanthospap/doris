@@ -51,20 +51,26 @@ int resolve_jason3_solar_array_line(
   record.left_array = angle;
 
   /* WARNING
-   * according to the specifications, https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf 
-   * the two angles are only seperated by one dummy integer value. However, it 
+   * according to the specifications,
+   * https://ids-doris.org/documents/BC/ancillary/quaternions/jason1_2_3_quaternion_solar_panel.pdf
+   * the two angles are only seperated by one dummy integer value. However, it
    * seems that in reality they are two!
    */
   /* Useless parameter, format (I10) */
   // c += 10;
   /* instead of the above, read in two dummy integer values */
   {
-    int dummy;
+    long dummy;
     for (int i = 0; i < 2; i++) {
+      // fprintf(stderr, "[DEBUG] trying to resolve dummy from [%s] (left
+      // angle=%.9f (traceback: %s)\n", c, record.left_array, __func__);
       pec = std::from_chars(skip_ws(c), last, dummy);
       c = pec.ptr;
       if (!std::isspace(*c) || pec.ec != std::errc{}) {
         ++error;
+        // fprintf(stderr, "[ERROR] Failed extracting dummy variable at position
+        // %d (traceback: %s) true1=%d true2=%d\n", i, __func__,
+        // std::isspace(*c), pec.ec == std::errc{});
       }
     }
   }
@@ -131,7 +137,8 @@ int dso::JasonSolarArrayHunter::find_interval(
 
   /* we should never reach this point */
   fprintf(stderr,
-          "[ERROR] Hit wall while searching for solar array angles: requested date: "
+          "[ERROR] Hit wall while searching for solar array angles: requested "
+          "date: "
           "%.9f, buffered: %.9f to %.9f (traceback: %s)\n",
           tai_mjd.as_mjd(), rots[0].tai_mjd.as_mjd(),
           rots[NumQuaternionsInBuffer - 1].tai_mjd.as_mjd(), __func__);
@@ -165,7 +172,7 @@ dso::iStatus dso::JasonSolarArrayFile::get_next(
  */
 dso::iStatus
 dso::JasonSolarArrayFile::get_next(dso::JasonSolarArrayRotation *records,
-                                       int num_records) noexcept {
+                                   int num_records) noexcept {
   char line[LINE_SZ];
   int error = 0;
   int records_extracted = 0;
@@ -173,10 +180,10 @@ dso::JasonSolarArrayFile::get_next(dso::JasonSolarArrayRotation *records,
   /* iteratively extract num_records records ... */
   while (records_extracted < num_records && !error) {
     if (!fin.getline(line, LINE_SZ)) {
-      fprintf(
-          stderr,
-          "[ERROR] Failed to read line from solar array file! (traceback: %s)\n",
-          __func__);
+      fprintf(stderr,
+              "[ERROR] Failed to read line from solar array file! (traceback: "
+              "%s)\n",
+              __func__);
       return dso::iStatus(2);
     }
 
@@ -215,7 +222,8 @@ dso::iStatus dso::JasonSolarArrayHunter::set_at(const dso::TwoPartDate &tai_mjd,
     /* collect first NumQuaternionsInBuffer angles */
     if (bodyin.get_next(rots, NumQuaternionsInBuffer)) {
       fprintf(stderr,
-              "[ERROR] Failed to collect initial solar array angles after rewiding! "
+              "[ERROR] Failed to collect initial solar array angles after "
+              "rewiding! "
               "(traceback: %s)\n",
               __func__);
       return dso::iStatus(99);
@@ -227,10 +235,10 @@ dso::iStatus dso::JasonSolarArrayHunter::set_at(const dso::TwoPartDate &tai_mjd,
   /* try getting next quaternion, hopefully we are ok now ... */
   dso::JasonSolarArrayRotation tmp;
   if (bodyin.get_next(tmp)) {
-    fprintf(
-        stderr,
-        "[ERROR] Failed to get solar array angles for requested date (traceback: %s)\n",
-        __func__);
+    fprintf(stderr,
+            "[ERROR] Failed to get solar array angles for requested date "
+            "(traceback: %s)\n",
+            __func__);
     return dso::iStatus(1);
   }
 #ifdef DEBUG
