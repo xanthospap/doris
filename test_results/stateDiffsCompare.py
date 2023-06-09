@@ -654,11 +654,11 @@ def plot_residuals(fn, plot_regression=False, saveas=None, snx=None, plot_range=
       ax.set_xlim([0, 90])
       ax.grid(True, 'both', 'x')
       ax.legend()
-      #if Regression:
-      #  xx, yy = reducexy(el, y, regression_range[0], regression_range[1])
-      #  b = np.average(yy)
-      #  ax.axhline(b, color='r', linestyle='--', linewidth=1)
-      #  ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
+      if Regression:
+        xx, yy = reducexy(el, y, regression_range[0], regression_range[1])
+        b = np.average(yy)
+        ax.axhline(b, color='r', linestyle='--', linewidth=1)
+        ax.text(1,b+.01,"{:+.2f} [mm]".format(b*1e3),color='red')
       ax.set(xlabel=r'Elevation Angle ($^\circ$)', ylabel='Residual [m/s]')
       # fig.suptitle('DORIS residuals at {:}\n'.format(min(t).strftime('%Y-%m-%d')), fontsize=16)
       if saveas:
@@ -926,13 +926,13 @@ def plot_state_diffs(fnref, fntest, plot_regression=False, plot_details=False, s
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
           axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-          if pv == 0: 
-              axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
-              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
-              axs[component, pv].set_ylim(-3.6,3.6)
-          else: 
-              axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
-              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
+          #if pv == 0: 
+          #    axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
+          #    axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
+          #    axs[component, pv].set_ylim(-3.6,3.6)
+          #else: 
+          #    axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
+          #    axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
           if Regression:
             # obtain m (slope) and b(intercept) of linear regression line
             x = mdates.date2num(t)
@@ -1048,13 +1048,13 @@ def plot_state_diffs_eci(fnref, fntest, plot_regression=False, plot_details=Fals
           axs[component, pv].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
           axs[component, pv].xaxis.set_major_locator(mdates.HourLocator(interval=3))
           axs[component, pv].xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-          if pv == 0: 
-              axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
-              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
-              axs[component, pv].set_ylim(-3.6,3.6)
-          else: 
-              axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
-              axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
+          #if pv == 0: 
+          #    axs[component, pv].yaxis.set_major_locator(MultipleLocator(1))
+          #    axs[component, pv].yaxis.set_minor_locator(MultipleLocator(1))
+          #    axs[component, pv].set_ylim(-3.6,3.6)
+          #else: 
+          #    axs[component, pv].yaxis.set_major_locator(MultipleLocator(.001))
+          #    axs[component, pv].yaxis.set_minor_locator(MultipleLocator(.0005))
           if Regression:
             # obtain m (slope) and b(intercept) of linear regression line
             x = mdates.date2num(t)

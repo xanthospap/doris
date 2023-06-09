@@ -38,7 +38,7 @@ constexpr const int NumEqn = 6 + 2 * (3 * (6 + m)) + m * (6 + m);
 /* only compute Doppler count if two observation are within this time interval
  */
 constexpr const double RESTART_AFTER_SEC = 11e0;
-constexpr const double MAX_HOURS = 1;
+constexpr const double MAX_HOURS = 6;
 /* signal a new satellite pass over a beacon */
 constexpr const double NEW_PASS_AFTER_MIN = 30e0;
 
@@ -591,7 +591,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("-- bp 1\n");
   // Initial Orbit
   // -------------------------------------------------------------------------
   // Initial satellite state, get it from the Sp3 using the RINEX's time of
@@ -624,7 +623,6 @@ int main(int argc, char *argv[]) {
     eop_lut.regularize(false);
   }
 
-  printf("-- bp 2\n");
   // Gravity
   // -------------------------------------------------------------------------
   // parse degree, order and the requested gravity model into a
@@ -641,7 +639,6 @@ int main(int argc, char *argv[]) {
     error = dso::get_yaml_value_depth2(config, "gravity", "model", buf);
   dso::EarthGravity egrav(buf, degree, order, rnx.ref_datetime());
 
-  printf("-- bp 3\n");
   // Station/Beacon coordinates
   // -------------------------------------------------------------------------
   // Get beacon coordinates from sinex file and extrapolate to RINEX ref. time
@@ -741,7 +738,6 @@ int main(int argc, char *argv[]) {
   /* Setup Solid Earth Tide */
   dso::SolidEarthTide setide;
 
-  printf("-- bp 4\n");
   // Setup Integration Parameters for Orbit Integration
   // -------------------------------------------------------------------------
   // We will need the pck (SPICE) kernel for gravitational parameters of Sun
@@ -760,7 +756,6 @@ int main(int argc, char *argv[]) {
   dso::IntegrationParameters IntegrationParams(eop_lut, &egrav, &octide,
                                                &setide, &sept, &ocpt,
                                                pck_kernel, dtm2020_data);
-  printf("-- bp 5\n");
 
   // Orbit Integrator
   // -------------------------------------------------------------------------
@@ -776,7 +771,6 @@ int main(int argc, char *argv[]) {
   error = dso::get_yaml_value_depth2<double>(config, "filtering",
                                              "observation-sigma", sigma_obs);
   assert(sigma_obs > 0e0 && sigma_obs < 1e2 && (!error));
-  printf("-- bp 6\n");
 
   // get the (RINEX) indexes for the observables we want
   int l1i, l2i, fi, w1i, w2i;
@@ -786,7 +780,6 @@ int main(int argc, char *argv[]) {
   }
 
   OrbitIntegrator svState(dso::TwoPartDate(rnx.time_of_first_obs()), eop_lut);
-  printf("-- bp 7\n");
 
   // On-board receiver eccentricity, in the satellite-fixed frame
   // -------------------------------------------------------------------------
@@ -820,7 +813,6 @@ int main(int argc, char *argv[]) {
     IntegrationParams.set_sv_frame(sat_cog, l3_pco, b, a, sat_mass);
     svState.set_attitude(IntegrationParams);
   }
-  printf("-- bp 8\n");
 
   // Data feed for the DTM2020 model
   // -------------------------------------------------------------------------
@@ -838,7 +830,6 @@ int main(int argc, char *argv[]) {
     // IntegrationParams.Dtm20.set_flux_data(flux);
     IntegrationParams.set_flux_data(flux);
   }
-  printf("-- bp 9\n");
 
   /*
    * Setup the Kalman filter
